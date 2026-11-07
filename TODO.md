@@ -368,3 +368,8 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 - [x] Exclusions resolve on their last member day; inferred aliases extend back to earlier evidence (`extend_inferred_aliases`).
 - [x] Mutation: universe_derive 90.6%, nse_index_releases 90.3% (gate 85%).
 - [ ] Remaining before any membership is stored: read the 24 documents; component-level reconstruction (before the union); find the releases/files outside the press-release index (Midcap 100 / Nifty 200 constituent lists, factsheet archive); resolve HUDCO and the other NON_ALTERNATING cases; ISIN/circular evidence for IBVENTURES->DHANI; person verifies.
+
+### Archive search + component check (2026-11-07)
+- [x] niftyindices.com has no public historical constituent archive (only current lists/factsheets). Captured today's Nifty 50 / Next 50 / Midcap 100 / Nifty 200 lists (ISINs included) + methodology PDF (`capture_current_lists.py`, `load_current_lists.py`); union of the three components == Nifty 200 list exactly.
+- [x] Component-level check (`check_component_snapshots`): 57 mismatches (Midcap 100 35, Next 50 19, Nifty 50 3), clustered on review dates - these are where a component's own history is wrong even if the union looks plausible. Next: inspect those dates' releases (2022-09-30 first); check Nifty 100 sections as a Next50+Nifty50 cross-check; the methodology PDF's rules (Next 50 methodology changed 2023) may explain moves between components.
+- [ ] Historical constituent data would need the NSE index data subscription (owner decision) - it would replace most of this reconstruction.

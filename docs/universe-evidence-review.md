@@ -19,6 +19,15 @@ Status: **nothing is stored as membership and no coverage is declared.** The der
 * A parser bug (dates wrapped across lines) had left 1,363 rows undated; fixed (parser v2). Parser v4
   classifies every document explicitly.
 
+## Archive search (2026-11-07)
+
+niftyindices.com publishes only CURRENT constituent lists and factsheets; no historical constituent
+archive is linked (history is sold via the NSE index data subscription). Captured instead, untouched in
+the lake: today's Nifty 50 / Next 50 / Midcap 100 / Nifty 200 lists (with ISINs) and the equity-index
+methodology PDF. Independent check: the three component lists are disjoint and their union is exactly the
+Nifty 200 list (50 + 50 + 100 = 200, no differences). They are loaded as dated snapshots and used for a
+**component-level** check (each component's last event vs its own current list, before the union).
+
 ## Still unresolved
 
 | Kind | Count | Meaning |
@@ -27,6 +36,7 @@ Status: **nothing is stored as membership and no coverage is declared.** The der
 | SNAPSHOT_MISMATCH | 22 | last derived state disagrees with the current official list |
 | CHECKPOINT_MISSING / EXTRA | 15 / 12 | explicit "NIFTY 200" rows not reproduced / derived changes not listed |
 | UNMAPPED_EVENT / PLACEHOLDER_EVENT | 19 / 5 | symbols with no instrument (PEL, DALMIABHA, ABIRLANUVO, BHARATFIN, NESTLEIND, GSPL) / dummy symbols (DUMMYSIEMS, DUMMYABFRL) |
+| COMPONENT_SNAPSHOT_MISMATCH | 57 | a component's last event disagrees with its own current list: Midcap 100 35, Next 50 19, Nifty 50 3; clustered at 2022-09-30 (13), 2020-06-26 (5), 2023-03-31, 2019-09-27, 2021-03-31, 2022-03-31 |
 | MANUAL_DOCUMENT | 24 | releases a person must read (below) |
 
 Backward member counts differ from 200 at all 22 change dates (198..214); they are reported as is.

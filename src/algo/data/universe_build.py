@@ -95,9 +95,34 @@ def add_override(
     )
 
 
+COMPONENT_SNAPSHOTS = {
+    "NIFTY_50": "NIFTY50", "NIFTY_NEXT_50": "NIFTYNEXT50", "MIDCAP_100": "NIFTYMIDCAP100",
+}  # fmt: skip
+
+
+def load_component_snapshots(conn: psycopg.Connection) -> dict[str, set[int]]:
+    """Latest stored current list for each component (components without one are skipped)."""
+    out: dict[str, set[int]] = {}
+    for component, index_id in COMPONENT_SNAPSHOTS.items():
+        ids = {
+            r[0]
+            for r in conn.execute(
+                "SELECT instrument_id FROM index_snapshot WHERE index_id=%s AND as_of ="
+                " (SELECT max(as_of) FROM index_snapshot WHERE index_id=%s)",
+                (index_id, index_id),
+            )
+        }
+        if ids:
+            out[component] = ids
+    return out
+
+
 def derive(conn: psycopg.Connection) -> tuple[Report, set[int], date]:
     events, ids, manual, as_of, undated = load_inputs(conn)
-    return build_report(events, ids, manual, undated, voided(conn)), ids, as_of
+    report = build_report(
+        events, ids, manual, undated, voided(conn), load_component_snapshots(conn)
+    )
+    return report, ids, as_of
 
 
 def persist(conn: psycopg.Connection, report: Report, snapshot: set[int], now: datetime) -> int:

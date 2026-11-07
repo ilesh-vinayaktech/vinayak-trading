@@ -162,6 +162,31 @@ def check_checkpoints(derived: list[Derived], explicit: Iterable[CEvent]) -> lis
     return out
 
 
+def check_component_snapshots(
+    events: Iterable[CEvent], snapshots: Mapping[str, set[int]]
+) -> list[Discrepancy]:
+    """Per COMPONENT, before the union can hide an error: the last event for each instrument (from
+    the boundary on) must agree with that component's own current official list."""
+    last: dict[tuple[str, str], CEvent] = {}
+    for e in sorted(events, key=lambda x: x.effective):
+        comp = "MIDCAP_100" if e.component == "MIDCAP_100_FREE_FLOAT" else e.component
+        if (
+            e.effective >= BOUNDARY
+            and comp in snapshots
+            and e.key.startswith("i:")
+            and not e.placeholder
+        ):
+            last[(comp, e.key)] = e
+    out = []
+    for (comp, key), e in sorted(last.items()):
+        member_now = int(key[2:]) in snapshots[comp]
+        if member_now != (e.action == "INCLUDED"):
+            now = "member" if member_now else "not a member"
+            why = f"{comp}: last event is {e.action} but the current list says {now}"
+            out.append(Discrepancy("COMPONENT_SNAPSHOT_MISMATCH", key, e.symbol, e.effective, why))
+    return out
+
+
 def backward_counts(derived: list[Derived], snapshot: set[int]) -> list[tuple[date, int]]:
     """Mapped-instrument member count just BEFORE each change date, walking back from the current
     official list (M2 series). Unmapped/placeholder members are absent, so a deficit is expected and
@@ -187,11 +212,13 @@ def build_report(
     component_events: list[CEvent], snapshot: set[int], manual_documents: Iterable[str] = (),
     undated_rows: Iterable[tuple[str, str, str, str]] = (),
     voided_rows: Iterable[tuple[str, str, str, str, str, str]] = (),
+    component_snapshots: Mapping[str, set[int]] | None = None,
 ) -> Report:  # fmt: skip
     rep = Report()
     rep.derived, anomalies = derive_union(component_events)
     rep.discrepancies += anomalies
     rep.discrepancies += check_snapshot(rep.derived, snapshot)
+    rep.discrepancies += check_component_snapshots(component_events, component_snapshots or {})
     explicit = [e for e in component_events if e.component == "NIFTY_200"]
     rep.discrepancies += check_checkpoints(rep.derived, explicit)
     rep.counts[M2] = backward_counts(rep.derived, snapshot)

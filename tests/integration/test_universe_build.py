@@ -128,3 +128,25 @@ def test_a_voided_release_never_enters_the_derivation_but_stays_visible(world):
     assert len(v) == 5  # four component rows and the rejected one: voiding is by release + date
     report, _, _ = derive(conn)
     assert len(report.of_kind("VOIDED_ROW")) == len(v) and report.derived == []
+
+
+def test_component_lists_are_loaded_and_checked_against_each_components_own_history(world):
+    from algo.data.universe_build import load_component_snapshots
+
+    conn, a, b = world
+    assert load_component_snapshots(conn) == {}  # no component list stored yet
+    conn.execute(
+        "INSERT INTO index_snapshot VALUES ('NIFTYMIDCAP100','2026-11-01',%s)", (b,)
+    )  # older
+    conn.execute("INSERT INTO index_snapshot VALUES ('NIFTYMIDCAP100','2026-11-07',%s)", (a,))
+    conn.execute("INSERT INTO index_snapshot VALUES ('NIFTYNEXT50','2026-11-07',%s)", (b,))
+    assert load_component_snapshots(conn) == {
+        "MIDCAP_100": {a},
+        "NIFTY_NEXT_50": {b},
+    }  # latest only
+    report, _, _ = derive(conn)
+    # a: Midcap 100 INCLUDED and the list agrees; b: Next 50 EXCLUDED but the list says member
+    got = [(d.symbol, d.detail) for d in report.of_kind("COMPONENT_SNAPSHOT_MISMATCH")]
+    assert got == [
+        ("BBB", "NIFTY_NEXT_50: last event is EXCLUDED but the current list says member")
+    ]

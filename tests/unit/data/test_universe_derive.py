@@ -8,6 +8,7 @@ from algo.data.universe_derive import (
     backward_counts,
     build_report,
     check_checkpoints,
+    check_component_snapshots,
     check_snapshot,
     derive_union,
     series_of,
@@ -259,3 +260,25 @@ def test_reversing_removals_puts_each_removed_instrument_back():
         ev("i:5", "MIDCAP_100", "EXCLUDED", D(2019, 1, 1)),
     ])  # fmt: skip
     assert backward_counts(d, {1, 2}) == [(D(2019, 1, 1), 4)]  # both 4 and 5 were members before
+
+
+def test_each_component_is_checked_against_its_own_current_list_before_the_union():
+    events = [
+        ev("i:1", "NIFTY_NEXT_50", "INCLUDED", D(2019, 1, 1), symbol="AAA"),  # now in the list: ok
+        ev("i:2", "NIFTY_NEXT_50", "INCLUDED", D(2019, 1, 1), symbol="BBB"),  # not in the list
+        ev("i:3", "MIDCAP_100_FREE_FLOAT", "EXCLUDED", D(2019, 1, 1), symbol="CCC"),  # but present
+        ev("i:3", "MIDCAP_100", "EXCLUDED", D(2019, 6, 1), symbol="CCC"),  # same index; later wins
+        ev("i:4", "NIFTY_50", "INCLUDED", D(2017, 1, 1), symbol="OLD"),  # before the boundary: ignored
+        ev("i:5", "NIFTY_50", "INCLUDED", D(2019, 1, 1), symbol="PLH", placeholder=True),
+        ev("s:UNK", "NIFTY_50", "INCLUDED", D(2019, 1, 1), symbol="UNK"),  # unmapped: not comparable
+        ev("i:6", "MIDCAP_100", "INCLUDED", D(2019, 1, 1), symbol="NOLIST"),  # in its list: ok
+    ]  # fmt: skip
+    snaps = {"NIFTY_NEXT_50": {1}, "MIDCAP_100": {3, 6}, "NIFTY_50": set()}
+    got = check_component_snapshots(events, snaps)
+    assert got == [
+        Discrepancy("COMPONENT_SNAPSHOT_MISMATCH", "i:3", "CCC", D(2019, 6, 1),
+                    "MIDCAP_100: last event is EXCLUDED but the current list says member"),
+        Discrepancy("COMPONENT_SNAPSHOT_MISMATCH", "i:2", "BBB", D(2019, 1, 1),
+                    "NIFTY_NEXT_50: last event is INCLUDED but the current list says not a member"),
+    ]  # fmt: skip
+    assert check_component_snapshots(events, {}) == []  # no list stored: nothing to compare
