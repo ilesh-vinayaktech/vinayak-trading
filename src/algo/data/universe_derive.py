@@ -7,6 +7,9 @@ evidence does not hold together. Nothing is forced to 200 members.
       NIFTY200_M1  events effective before the boundary, midcap = Full Midcap 100
       NIFTY200     events effective on/after it,         midcap = Midcap 100
 
+On the boundary date itself the definition changes, so union transitions are NOT emitted and the
+explicit rows are not used as checkpoints: the NIFTY200 series begins with the state after it.
+
 Checks (each failure is a Discrepancy, not an error):
   forward     events must alternate ADD/REMOVE per instrument
   snapshot    the state after the last event must equal the current official Nifty 200 snapshot
@@ -18,15 +21,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 BOUNDARY = date(2018, 4, 2)  # Midcap 100 methodology change (NSE press release 2018-01-05)
 M1, M2 = "NIFTY200_M1", "NIFTY200"
 UNION = {
     M1: frozenset({"NIFTY_50", "NIFTY_NEXT_50", "MIDCAP_100_FULL"}),
-    # from the boundary the Free-float Midcap 100 IS Nifty Midcap 100 (renamed): both labels count
-    M2: frozenset({"NIFTY_50", "NIFTY_NEXT_50", "MIDCAP_100", "MIDCAP_100_FREE_FLOAT"}),
+    M2: frozenset({"NIFTY_50", "NIFTY_NEXT_50", "MIDCAP_100"}),
 }
 
 
@@ -87,6 +89,8 @@ def derive_union(events: Iterable[CEvent]) -> tuple[list[Derived], list[Discrepa
     by: dict[tuple[str, str], list[CEvent]] = defaultdict(list)
     for e in events:
         sid = series_of(e.effective)
+        if sid == M2 and e.component == "MIDCAP_100_FREE_FLOAT":
+            e = replace(e, component="MIDCAP_100")  # from the boundary the same index, renamed
         if e.component in UNION[sid]:
             by[(sid, e.key)].append(e)
     out: list[Derived] = []
@@ -108,6 +112,10 @@ def derive_union(events: Iterable[CEvent]) -> tuple[list[Derived], list[Discrepa
                 state[e.component] = wants
                 seen_before.add(e.component)
             after = any(state.values())
+            if (
+                day == BOUNDARY
+            ):  # the definition itself changes today: state is set, no change emitted
+                continue
             if before != after:
                 out.append(Derived(
                     sid, key, todays[0].symbol, "ADD" if after else "REMOVE", day,
@@ -139,7 +147,7 @@ def check_snapshot(derived: list[Derived], snapshot: set[int]) -> list[Discrepan
 def check_checkpoints(derived: list[Derived], explicit: Iterable[CEvent]) -> list[Discrepancy]:
     """Explicit 'NIFTY 200' rows are independent evidence: the union must reproduce them."""
     have = {(d.key, d.effective, d.event_type) for d in derived}
-    explicit = list(explicit)
+    explicit = [e for e in explicit if e.effective != BOUNDARY]  # definition change: not comparable
     want = {(e.key, e.effective, "ADD" if e.action == "INCLUDED" else "REMOVE") for e in explicit}
     days = {e.effective for e in explicit}
     name = {e.key: e.symbol for e in explicit}
@@ -178,6 +186,7 @@ def backward_counts(derived: list[Derived], snapshot: set[int]) -> list[tuple[da
 def build_report(
     component_events: list[CEvent], snapshot: set[int], manual_documents: Iterable[str] = (),
     undated_rows: Iterable[tuple[str, str, str, str]] = (),
+    voided_rows: Iterable[tuple[str, str, str, str, str, str]] = (),
 ) -> Report:  # fmt: skip
     rep = Report()
     rep.derived, anomalies = derive_union(component_events)
@@ -197,6 +206,11 @@ def build_report(
     for symbol, component, action, doc in undated_rows:
         why = f"{component} {action} in {doc} has no effective date: it cannot be placed in time"
         rep.discrepancies.append(Discrepancy("UNDATED_ROW", "", symbol, None, why))
+    for symbol, component, action, doc, effective, authority in voided_rows:
+        why = f"{component} {action} in {doc} never took effect (voided by {authority})"
+        rep.discrepancies.append(
+            Discrepancy("VOIDED_ROW", "", symbol, date.fromisoformat(effective), why)
+        )
     why = "Midcap 100 definition changed (Full -> Free-float); the two series are not joined"
     rep.discrepancies.append(Discrepancy("METHODOLOGY_BOUNDARY", "", "", BOUNDARY, why))
     rep.gaps = dict(sorted(_tally(rep.discrepancies).items()))

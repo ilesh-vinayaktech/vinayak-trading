@@ -9,7 +9,13 @@ from pathlib import Path
 
 import psycopg
 
-from algo.data.delisted import create_instruments, load_symbols, partitions_to_reload, plan
+from algo.data.delisted import (
+    create_instruments,
+    extend_inferred_aliases,
+    load_symbols,
+    partitions_to_reload,
+    plan,
+)  # fmt: skip
 from algo.data.index_releases import remap
 from algo.data.lake import LocalLake
 from algo.data.store.migrate import migrate
@@ -37,5 +43,6 @@ with psycopg.connect(a.db, autocommit=True) as conn:
     now = datetime.now(UTC)
     days = partitions_to_reload(conn, set(created))
     rows = sum(load_symbols(conn, lake, d, set(created), now) for d in days)
+    print(f"extended {extend_inferred_aliases(conn)} inferred aliases back to earlier evidence")
     print(f"remapped {remap(conn)} press-release rows to instruments")
     print(f"loaded {rows} bars for them from {len(days)} stored bhavcopy days")

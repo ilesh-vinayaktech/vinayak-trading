@@ -69,7 +69,7 @@ def test_the_methodology_boundary_keeps_two_series_apart():
         ev("i:2", "MIDCAP_100_FREE_FLOAT", "INCLUDED", D(2017, 9, 29)),  # not in N200 then: ignored
         ev("i:3", "MIDCAP_100", "INCLUDED", D(2018, 9, 28)),  # new definition -> M2
         ev("i:4", "MIDCAP_100_FULL", "INCLUDED", D(2018, 9, 28)),  # legacy label after: ignored
-        ev("i:5", "MIDCAP_100_FREE_FLOAT", "INCLUDED", D(2018, 4, 2)),  # renamed index: counts
+        ev("i:5", "MIDCAP_100_FREE_FLOAT", "INCLUDED", D(2018, 5, 2)),  # the same index, renamed: counts
     ])  # fmt: skip
     assert sorted((d.index_id, d.key) for d in out) == [(M2, "i:3"), (M2, "i:5"), (M1, "i:1")]
 
@@ -181,3 +181,81 @@ def test_undated_rows_are_reported_not_dropped():
     r = build_report([], set(), undated_rows=[("IGL", "MIDCAP_100", "INCLUDED", "pr_x")])
     u = r.of_kind("UNDATED_ROW")
     assert len(u) == 1 and u[0].symbol == "IGL" and "no effective date" in u[0].detail
+
+
+def test_voided_rows_are_listed_as_explained_with_their_authority():
+    r = build_report(
+        [], set(), voided_rows=[("IDEA", "MIDCAP_100", "INCLUDED", "d1", "2020-03-27", "d9")]
+    )
+    v = r.of_kind("VOIDED_ROW")
+    assert len(v) == 1 and v[0].on == D(2020, 3, 27) and "voided by d9" in v[0].detail
+
+
+def test_nothing_is_emitted_on_the_boundary_date_but_it_sets_the_state_for_later_changes():
+    out = derived([
+        ev("i:1", "MIDCAP_100_FREE_FLOAT", "EXCLUDED", BOUNDARY),  # definition changes today
+        ev("i:2", "MIDCAP_100_FREE_FLOAT", "INCLUDED", BOUNDARY),
+        ev("i:2", "MIDCAP_100", "EXCLUDED", D(2018, 9, 28)),  # a real change afterwards
+    ])  # fmt: skip
+    assert [(d.key, d.event_type, d.effective) for d in out] == [("i:2", "REMOVE", D(2018, 9, 28))]
+
+
+def test_explicit_rows_on_the_boundary_date_are_not_checkpoints():
+    assert check_checkpoints([], [ev("i:1", "NIFTY_200", "INCLUDED", BOUNDARY)]) == []
+
+
+# ---- precision tests -----------------------------------------------------------------------------
+from algo.data.universe_derive import Discrepancy  # noqa: E402
+
+
+def test_derived_events_carry_the_symbol_and_alternation_is_not_flagged_for_normal_sequences():
+    out, bad = derive_union([
+        ev("i:1", "MIDCAP_100", "INCLUDED", D(2019, 3, 29), symbol="AAA"),
+        ev("i:1", "MIDCAP_100", "EXCLUDED", D(2020, 3, 27), symbol="AAA"),
+    ])  # fmt: skip
+    assert bad == [] and [(d.symbol, d.event_type) for d in out] == [
+        ("AAA", "ADD"),
+        ("AAA", "REMOVE"),
+    ]
+
+
+def test_a_repeated_component_event_is_reported_with_its_symbol_date_and_detail():
+    _, bad = derive_union([
+        ev("i:1", "NIFTY_NEXT_50", "INCLUDED", D(2019, 1, 1), symbol="AAA"),
+        ev("i:1", "NIFTY_NEXT_50", "INCLUDED", D(2019, 6, 1), symbol="AAA"),
+    ])  # fmt: skip
+    assert bad == [Discrepancy("NON_ALTERNATING", "i:1", "AAA", D(2019, 6, 1),
+                               "NIFTY_NEXT_50 INCLUDED twice in a row: an event between is missing")]  # fmt: skip
+
+
+def test_snapshot_mismatch_reports_every_field_and_skips_placeholders_without_stopping():
+    d = derived([
+        ev("i:1", "MIDCAP_100", "INCLUDED", D(2019, 1, 1), symbol="PLH", placeholder=True),
+        ev("i:2", "MIDCAP_100", "INCLUDED", D(2019, 2, 1), symbol="BBB"),
+    ])  # fmt: skip
+    assert check_snapshot(d, snapshot=set()) == [Discrepancy(
+        "SNAPSHOT_MISMATCH", "i:2", "BBB", D(2019, 2, 1),
+        "last event is ADD but the current snapshot says not a member")]  # fmt: skip
+    gone = derived([ev("i:3", "MIDCAP_100", "EXCLUDED", D(2019, 2, 1), symbol="CCC")])
+    assert check_snapshot(gone, snapshot={3}) == [Discrepancy(
+        "SNAPSHOT_MISMATCH", "i:3", "CCC", D(2019, 2, 1),
+        "last event is REMOVE but the current snapshot says member")]  # fmt: skip
+
+
+def test_checkpoint_discrepancies_name_the_symbol_date_and_what_is_wrong():
+    d = derived([ev("i:2", "MIDCAP_100", "INCLUDED", D(2019, 3, 29), symbol="BBB")])
+    explicit = [ev("i:3", "NIFTY_200", "EXCLUDED", D(2019, 3, 29), symbol="CCC")]
+    assert check_checkpoints(d, explicit) == [
+        Discrepancy("CHECKPOINT_MISSING", "i:3", "CCC", D(2019, 3, 29),
+                    "explicit Nifty 200 REMOVE not produced by the component union"),
+        Discrepancy("CHECKPOINT_EXTRA", "i:2", "BBB", D(2019, 3, 29),
+                    "union derives ADD that no explicit Nifty 200 row lists"),
+    ]  # fmt: skip
+
+
+def test_reversing_removals_puts_each_removed_instrument_back():
+    d = derived([
+        ev("i:4", "MIDCAP_100", "EXCLUDED", D(2019, 1, 1)),
+        ev("i:5", "MIDCAP_100", "EXCLUDED", D(2019, 1, 1)),
+    ])  # fmt: skip
+    assert backward_counts(d, {1, 2}) == [(D(2019, 1, 1), 4)]  # both 4 and 5 were members before

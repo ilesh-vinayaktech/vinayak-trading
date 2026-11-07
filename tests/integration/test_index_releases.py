@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from algo.data.index_releases import store_release, unresolved
+from algo.data.index_releases import classification_counts, store_release, unresolved
 from algo.data.providers.nse_index_releases import parse_release
 from tests.support.bt import NOW, make_env
 
@@ -59,6 +59,24 @@ def test_unresolved_lists_manual_documents_and_unmapped_component_rows(conn):
     store(conn, "pr_review", rel("review_2020_06_10", date(2020, 6, 10)))
     store(conn, "pr_other", rel("no_component_2023_12_07", date(2023, 12, 7)))
     u = unresolved(conn)
-    assert u["manual_documents"] == [("pr_manual", "2020-05-13")]
+    assert [m[:3] for m in u["manual_documents"]] == [
+        ("pr_manual", "2020-05-13", "MANUAL_REVIEW_REQUIRED")
+    ]
+    assert "NIFTY 50" in u["manual_documents"][0][3]
+    assert classification_counts(conn) == {"MANUAL_REVIEW_REQUIRED": 1, "PARSED": 2}
+    text = conn.execute(
+        "SELECT extracted_text FROM index_release_document WHERE doc_id='pr_manual'"
+    ).fetchone()[0]
+    assert "null and void" in text  # kept for whoever reads it
     syms = {r[1] for r in u["unmapped_rows"]}
     assert "ASHOKLEY" in syms and "BPCL" not in syms  # non-component rows are not chased
+
+
+def test_a_not_relevant_document_is_classified_but_not_put_in_the_review_queue(conn):
+    make_env(conn)
+    from algo.data.providers.nse_index_releases import Release
+
+    store(conn, "pr_crit", Release(date(2021, 10, 8), "MANUAL_REVIEW", (), (), (), (),
+                                   "NOT_RELEVANT", "no constituent action on a Nifty 200 component index", None))  # fmt: skip
+    assert classification_counts(conn) == {"NOT_RELEVANT": 1}
+    assert unresolved(conn)["manual_documents"] == []

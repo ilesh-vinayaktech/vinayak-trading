@@ -5,7 +5,7 @@ import pytest
 
 from algo.data.providers.nse_index_releases import PARSER_VERSION as V
 from algo.data.universe import coverage_report, intervals
-from algo.data.universe_build import derive, load_inputs, persist
+from algo.data.universe_build import add_override, derive, load_inputs, persist, voided
 from tests.support.bt import NOW, make_env
 
 pytestmark = pytest.mark.integration
@@ -14,9 +14,12 @@ SECTION = itertools.count(1)  # the (doc, page, section, action, symbol) key mus
 
 
 def doc(conn, doc_id, announced, kind="REPLACEMENT_TABLES"):
+    label = "MANUAL_REVIEW_REQUIRED" if kind == "MANUAL_REVIEW" else "PARSED"
     conn.execute(
-        "INSERT INTO index_release_document VALUES (%s,%s,%s,'https://x/'||%s,'hash-'||%s,%s,'[]','[]',now())",
-        (doc_id, V, announced, doc_id, doc_id, kind),
+        "INSERT INTO index_release_document (doc_id,parser_version,announced,source_url,source_hash,"
+        "kind,sections,notes,parsed_at,classification) VALUES (%s,%s,%s,'https://x/'||%s,"
+        "'hash-'||%s,%s,'[]','[]',now(),%s)",
+        (doc_id, V, announced, doc_id, doc_id, kind, label),
     )
 
 
@@ -86,7 +89,7 @@ def test_a_consistent_history_reconciles_and_is_stored_provisional_without_cover
     assert persist(conn, report, snapshot, NOW) == 3  # initial member b, then a ADD and b REMOVE
     ivs = intervals(conn, "NIFTY200", strict=False)
     assert [(i.instrument_id, i.start, i.end) for i in ivs] == [
-        (a, D(2019, 3, 29), None), (b, D(2018, 4, 1), D(2019, 3, 29)),
+        (a, D(2019, 3, 29), None), (b, D(2018, 4, 2), D(2019, 3, 29)),
     ]  # fmt: skip
     rep = coverage_report(conn, "NIFTY200")
     assert rep["coverage"] == [] and rep["events"]["PROVISIONAL"] == 3 and not rep["strict_ready"]
@@ -108,3 +111,20 @@ def test_a_missing_snapshot_is_an_error(conn):
     make_env(conn)
     with pytest.raises(ValueError, match="no current Nifty 200 snapshot"):
         load_inputs(conn)
+
+
+def test_a_voided_release_never_enters_the_derivation_but_stays_visible(world):
+    conn, a, b = world
+    add_override(conn, doc_id="d1", effective_from=D(2019, 3, 29), authority_doc="d9",
+                 authority_quote="shall stand null and void", now=NOW)  # fmt: skip
+    add_override(conn, doc_id="d1", effective_from=D(2019, 3, 29), authority_doc="d9",
+                 authority_quote="shall stand null and void", now=NOW)  # idempotent  # fmt: skip
+    events, *_ = load_inputs(conn)
+    assert events == []  # every d1 row was announced for the voided date
+    v = voided(conn)
+    assert {(x[0], x[1], x[3], x[4], x[5]) for x in v} >= {
+        ("AAA", "MIDCAP_100", "d1", "2019-03-29", "d9")
+    }
+    assert len(v) == 5  # four component rows and the rejected one: voiding is by release + date
+    report, _, _ = derive(conn)
+    assert len(report.of_kind("VOIDED_ROW")) == len(v) and report.derived == []

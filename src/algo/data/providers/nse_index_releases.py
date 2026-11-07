@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-PARSER_VERSION = "2"  # 2: dates wrapped across lines ("March\n31, 2022") are read
+PARSER_VERSION = "4"  # 2: wrapped dates; 3: sub-headings in a section; 4: explicit classification
 
 # Component indices of Nifty 200 (= Nifty 100 + Midcap 100; Nifty 100 = Nifty 50 + Next 50).
 COMPONENTS = {
@@ -35,6 +35,7 @@ _SECTION = re.compile(r"^\s*(\d+)\)\s+(\S.*?)\s*$", re.M)
 _ACTION = re.compile(
     r"(?:companies|company|stocks?)\s+(?:is|are)\s+being\s+(excluded|included)", re.I
 )
+_SUBHEAD = re.compile(r"^\s*(NIFTY[\w &\-]*?)\s*\((?:to be )?renamed", re.I)
 _ROW = re.compile(r"^\s*(\d+)\s+(\S.*?)\s{2,}([A-Z0-9][A-Z0-9&\-_.]*)\s*$", re.M)
 _NOTICE_INDEX = re.compile(r"^\s*(\d+)\s+(Nifty\s.+?)\s*$", re.M | re.I)
 _SYMBOL_IN_PARENS = re.compile(r"\(([A-Z0-9][A-Z0-9&\-_.]*)\)")
@@ -54,6 +55,33 @@ class Row:
     related_symbol: str | None = None  # e.g. the dummy symbol this listing replaces
 
 
+PARSED = "PARSED"
+MANUAL = "MANUAL_REVIEW_REQUIRED"
+NOT_RELEVANT = "NOT_RELEVANT"
+UNSUPPORTED = "UNSUPPORTED_FORMAT"
+
+_COMPONENT_MENTION = re.compile(
+    r"nifty\s*(?:50|next\s*50|100|200|midcap\s*100|(?:free\s*float|full)\s*midcap\s*100)\b", re.I
+)
+_ACTION_WORDS = re.compile(
+    r"\b(?:exclu\w*|inclu\w*|replac\w*|defer\w*|null and void|reconstitut\w*|dummy)", re.I
+)
+_BOILERPLATE = re.compile(r"About (?:National Stock Exchange|NSE Indices)", re.I)
+
+
+def classify_unparsed(pages: list[str]) -> tuple[str, str]:
+    """(classification, reason) for a release that produced no rows. A document is NOT_RELEVANT only
+    if it says nothing about changing a Nifty 200 component index; else a person must read it."""
+    text = "\n".join(pages)
+    if len(text.strip()) < 40:
+        return UNSUPPORTED, "no text layer (scanned image): needs OCR or manual reading"
+    body = _BOILERPLATE.split(text)[0]  # the 'About' footer names Nifty 50 in every release
+    comp, act = _COMPONENT_MENTION.search(body), _ACTION_WORDS.search(body)
+    if comp and act:
+        return MANUAL, f"mentions '{act.group(0)}' and '{comp.group(0)}' but has no parsable tables"
+    return NOT_RELEVANT, "no constituent action on a Nifty 200 component index"
+
+
 @dataclass(frozen=True)
 class Release:
     announced: date
@@ -62,6 +90,9 @@ class Release:
     sections: tuple[str, ...]  # every section name seen (components or not)
     effective_dates: tuple[date, ...]
     notes: tuple[str, ...] = field(default=())
+    classification: str = PARSED
+    classification_reason: str = ""
+    extracted_text: str | None = None  # kept only when a person must read it
 
     @property
     def component_rows(self) -> tuple[Row, ...]:
@@ -112,9 +143,13 @@ def parse_release(pages: list[str], announced: date) -> Release:
         body = text[s.end() : end]
         name = s.group(2).strip()
         action = None
-        pos = 0
         for line_m in re.finditer(r"^.*$", body, re.M):
             line = line_m.group(0)
+            sub = _SUBHEAD.match(line)
+            if sub:  # one numbered section can hold several indices, each under its own sub-heading
+                name = sub.group(1).strip()
+                action = None
+                continue
             a = _ACTION.search(line)
             if a:
                 action = a.group(1).upper()
@@ -131,8 +166,6 @@ def parse_release(pages: list[str], announced: date) -> Release:
                     symbol=r.group(3), company=r.group(2).strip(),
                     effective_from=effective_at(s.start()), raw_text=line.strip(),
                 ))  # fmt: skip
-            pos = line_m.end()
-        del pos
     names = tuple(s.group(2).strip() for s in sections)
     if rows:
         return Release(
@@ -141,7 +174,9 @@ def parse_release(pages: list[str], announced: date) -> Release:
     notice = _notice_rows(text, announced, eff_marks)
     if notice:
         return Release(announced, KIND_COMPANY_NOTICE, tuple(notice), names, eff_all, tuple(notes))
-    return Release(announced, KIND_NO_STRUCTURE, (), names, eff_all, tuple(notes))
+    label, why = classify_unparsed(pages)
+    keep = text if label in (MANUAL, UNSUPPORTED) else None
+    return Release(announced, KIND_NO_STRUCTURE, (), names, eff_all, tuple(notes), label, why, keep)
 
 
 _DECIDED = re.compile(

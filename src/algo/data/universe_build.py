@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 import psycopg
 
@@ -26,7 +26,10 @@ def load_inputs(
         " r.doc_id, r.page, r.mapping_status FROM index_release_row r"
         " JOIN index_release_document d USING (doc_id, parser_version)"
         " WHERE r.component IS NOT NULL AND r.review_status <> 'REJECTED' AND r.parser_version=%s"
-        " AND r.effective_from IS NOT NULL ORDER BY r.effective_from, r.row_id",
+        " AND r.effective_from IS NOT NULL"
+        " AND NOT EXISTS (SELECT 1 FROM index_release_override o WHERE o.doc_id=r.doc_id"
+        "                 AND o.effective_from=r.effective_from AND o.effect='VOID')"
+        " ORDER BY r.effective_from, r.row_id",
         (PARSER_VERSION,),
     ).fetchall()
     undated = [
@@ -60,6 +63,7 @@ def load_inputs(
         r[0]
         for r in conn.execute(
             "SELECT doc_id FROM index_release_document WHERE kind='MANUAL_REVIEW'"
+            " AND classification IN ('MANUAL_REVIEW_REQUIRED','UNSUPPORTED_FORMAT')"
             " AND parser_version=%s AND announced >= %s ORDER BY announced",
             (PARSER_VERSION, date(2017, 1, 1)),
         )
@@ -67,9 +71,33 @@ def load_inputs(
     return events, ids, manual, snap[0], undated
 
 
+def voided(conn: psycopg.Connection) -> list[tuple[str, str, str, str, str, str]]:
+    """(symbol, component, action, doc, effective, authority) of rows that never took effect."""
+    rows = conn.execute(
+        "SELECT r.symbol, r.component, r.action, r.doc_id, r.effective_from::text, o.authority_doc"
+        " FROM index_release_row r JOIN index_release_override o ON o.doc_id=r.doc_id"
+        " AND o.effective_from=r.effective_from AND o.effect='VOID'"
+        " WHERE r.component IS NOT NULL AND r.parser_version=%s"
+        " ORDER BY r.effective_from, r.symbol",
+        (PARSER_VERSION,),
+    ).fetchall()
+    return [(r[0], r[1], r[2], r[3], r[4], r[5]) for r in rows]
+
+
+def add_override(
+    conn: psycopg.Connection, *, doc_id: str, effective_from: date, authority_doc: str,
+    authority_quote: str, now: datetime,
+) -> None:  # fmt: skip
+    conn.execute(
+        "INSERT INTO index_release_override (doc_id,effective_from,effect,authority_doc,"
+        "authority_quote,recorded_at) VALUES (%s,%s,'VOID',%s,%s,%s) ON CONFLICT DO NOTHING",
+        (doc_id, effective_from, authority_doc, authority_quote, now),
+    )
+
+
 def derive(conn: psycopg.Connection) -> tuple[Report, set[int], date]:
     events, ids, manual, as_of, undated = load_inputs(conn)
-    return build_report(events, ids, manual, undated), ids, as_of
+    return build_report(events, ids, manual, undated, voided(conn)), ids, as_of
 
 
 def persist(conn: psycopg.Connection, report: Report, snapshot: set[int], now: datetime) -> int:
@@ -89,7 +117,7 @@ def persist(conn: psycopg.Connection, report: Report, snapshot: set[int], now: d
         conn.execute("SELECT instrument_id, symbol FROM instrument").fetchall()
     )
     stamp = hashlib.sha256(",".join(map(str, sorted(snapshot))).encode()).hexdigest()
-    initial = BOUNDARY - timedelta(days=1)
+    initial = BOUNDARY  # the series begins with the state after the boundary reconstitution
     n = 0
     for iid in sorted(state):
         add_event(conn, index_id=M2, instrument_id=iid, symbol=sym[iid], event_type="ADD",

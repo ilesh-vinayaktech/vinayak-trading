@@ -70,7 +70,9 @@ def test_the_plan_creates_only_what_the_evidence_supports(conn):
     got = {c.symbol: c for c in plan(conn)}
     assert set(got) == {"GONE", "LIVE", "PRECOV", "NESTLE2"}
     assert got["GONE"].action == CREATE and got["GONE"].last_traded == date(2020, 3, 19)
-    assert got["GONE"].first_evidence == date(2019, 3, 29)  # earliest of release / bhavcopy
+    assert got["GONE"].first_evidence == date(
+        2019, 3, 28
+    )  # an exclusion proves membership the day before
     assert got["LIVE"].action == STILL_TRADING  # in the data to the end: not a delisting
     assert got["PRECOV"].action == NEEDS_EVIDENCE and got["PRECOV"].last_traded is None
     assert got["NESTLE2"].action == ALIAS_GAP  # never a duplicate of an existing company
@@ -90,7 +92,7 @@ def test_creating_instruments_records_the_basis_and_closes_the_alias(conn):
     alias = conn.execute(
         "SELECT valid_from, valid_to FROM instrument_alias WHERE source_symbol='GONE'"
     ).fetchone()
-    assert alias == (date(2019, 3, 29), date(2020, 3, 20))
+    assert alias == (date(2019, 3, 28), date(2020, 3, 20))
 
 
 def test_release_rows_are_remapped_once_the_instrument_exists_and_the_plan_then_skips_it(conn):
@@ -225,3 +227,28 @@ def test_identity_links_are_validated(env, kw, msg):  # noqa: F811
                 changed_on=date(2010, 1, 1), event="SYMBOL_CHANGE", evidence="e", asserted_by="owner")  # fmt: skip
     with pytest.raises(ValueError, match=msg):
         attach_predecessor_symbol(conn, **{**args, **kw})
+
+
+def test_inferred_aliases_extend_back_to_newly_found_evidence_but_master_ones_do_not(conn):
+    from algo.data.delisted import extend_inferred_aliases
+
+    scenario(conn)
+    ids = create_instruments(conn, plan(conn))
+    row(conn, "d9", "GONE", date(2018, 4, 2))  # a newly parsed, earlier release (exclusion)
+    master = conn.execute(
+        "SELECT instrument_id FROM instrument WHERE NOT meta ? 'delisting_basis' LIMIT 1"
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO instrument_alias VALUES (%s,'nse','MASTERSYM',NULL,'2023-01-01',NULL)",
+        (master,),
+    )
+    row(conn, "d8", "MASTERSYM", date(2019, 1, 1))
+    assert extend_inferred_aliases(conn) == 1  # only the inferred instrument
+    start = conn.execute(
+        "SELECT valid_from FROM instrument_alias WHERE source_symbol='GONE'"
+    ).fetchone()[0]
+    assert start == date(2018, 4, 1) and ids["GONE"]
+    assert conn.execute(
+        "SELECT valid_from FROM instrument_alias WHERE source_symbol='MASTERSYM'"
+    ).fetchone()[0] == date(2023, 1, 1)
+    assert extend_inferred_aliases(conn) == 0  # nothing earlier left

@@ -83,7 +83,8 @@ def plan(conn: psycopg.Connection) -> list[Candidate]:
     end = data_end(conn)
     seen = bhavcopy_presence(conn)
     needed = conn.execute(
-        "SELECT symbol, min(effective_from), array_agg(DISTINCT component),"
+        "SELECT symbol, min(effective_from - (action = 'EXCLUDED')::int),"
+        " array_agg(DISTINCT component),"
         " coalesce((array_agg(company) FILTER (WHERE company <> ''"
         " AND company NOT LIKE 'parent:%'))[1], '')"
         " FROM index_release_row"
@@ -245,3 +246,31 @@ def attach_predecessor_symbol(
             "INSERT INTO instrument_alias VALUES (%s,'nse',%s,NULL,%s,%s)",
             (instrument_id, old_symbol, valid_from, changed_on),
         )
+
+
+def extend_inferred_aliases(conn: psycopg.Connection) -> int:
+    """Move the start of an INFERRED instrument's alias back to the earliest press-release evidence
+    (an exclusion proves membership the day before). Master-listed instruments are never touched.
+    Returns aliases changed."""
+    rows = conn.execute(
+        "SELECT a.instrument_id, a.source_symbol, a.valid_from,"
+        " (SELECT min(r.effective_from - (r.action = 'EXCLUDED')::int) FROM index_release_row r"
+        "  WHERE r.symbol = a.source_symbol AND r.effective_from IS NOT NULL)"
+        " FROM instrument_alias a JOIN instrument i USING (instrument_id)"
+        " WHERE a.source='nse' AND i.meta ? 'delisting_basis'"
+    ).fetchall()
+    changed = 0
+    for iid, symbol, start, earliest in rows:
+        if earliest is not None and earliest < start:
+            conn.execute(
+                "UPDATE instrument_alias SET valid_from=%s WHERE instrument_id=%s"
+                " AND source='nse' AND source_symbol=%s AND valid_from=%s",
+                (earliest, iid, symbol, start),
+            )
+            conn.execute(
+                "UPDATE instrument SET meta = jsonb_set(meta, '{alias_extended_from}', %s::jsonb)"
+                " WHERE instrument_id=%s",
+                (Jsonb({symbol: str(start)}), iid),
+            )
+            changed += 1
+    return changed

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import psycopg
 
-from algo.data.index_releases import store_release, unresolved
+from algo.data.index_releases import classification_counts, store_release, unresolved
 from algo.data.lake import LocalLake
 from algo.data.providers.nse_index_releases import extract_pages, parse_release
 from algo.data.store.migrate import migrate
@@ -36,9 +36,10 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         kinds[release.kind] = kinds.get(release.kind, 0) + 1
     print("documents by kind:", kinds)
     u = unresolved(conn)
-    print(f"\nMANUAL REVIEW documents ({len(u['manual_documents'])}):")
-    for doc, ann in u["manual_documents"]:
-        print(f"  {ann}  {doc}")
+    print("classification:", classification_counts(conn))
+    print(f"\nDocuments a person must read ({len(u['manual_documents'])}):")
+    for doc, ann, label, why in u["manual_documents"]:
+        print(f"  {ann}  {label:24} {doc}  - {why}")
     print(f"\nUnmapped / placeholder Nifty-200-component rows ({len(u['unmapped_rows'])}):")
     for status, sym, doc, eff in u["unmapped_rows"]:
         print(f"  {eff}  {status:20} {sym:14} {doc}")

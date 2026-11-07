@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -13,11 +13,16 @@ from algo.data.providers.nse_index_releases import PARSER_VERSION, Release
 SOURCE = "nse"
 
 
-def _map(conn: psycopg.Connection, symbol: str, on: date) -> tuple[int | None, str]:
+def _map(
+    conn: psycopg.Connection, symbol: str, on: date, action: str = "INCLUDED"
+) -> tuple[int | None, str]:
+    """An EXCLUDED row is dated the first day the stock is NOT a member, so its symbol must resolve
+    on the day before (its last day as a member); an INCLUDED row resolves on its own date."""
+    day = on - timedelta(days=1) if action == "EXCLUDED" else on
     row = conn.execute(
         "SELECT instrument_id FROM instrument_alias WHERE source=%s AND source_symbol=%s"
         " AND valid_from<=%s AND (valid_to IS NULL OR %s<valid_to)",
-        (SOURCE, symbol, on, on),
+        (SOURCE, symbol, day, day),
     ).fetchone()
     if row:
         return int(row[0]), "MAPPED"
@@ -33,15 +38,16 @@ def store_release(
     with conn.transaction():
         cur = conn.execute(
             "INSERT INTO index_release_document (doc_id,parser_version,announced,source_url,"
-            "source_hash,kind,sections,notes,parsed_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-            " ON CONFLICT DO NOTHING",
+            "source_hash,kind,sections,notes,parsed_at,classification,classification_reason,"
+            "extracted_text) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
             (doc_id, PARSER_VERSION, release.announced, source_url, source_hash, release.kind,
-             Jsonb(list(release.sections)), Jsonb(list(release.notes)), require_utc(now)),
+             Jsonb(list(release.sections)), Jsonb(list(release.notes)), require_utc(now),
+             release.classification, release.classification_reason, release.extracted_text),
         )  # fmt: skip
         if cur.rowcount == 0:
             return 0
         for r in release.rows:
-            iid, status = _map(conn, r.symbol, r.effective_from or release.announced)
+            iid, status = _map(conn, r.symbol, r.effective_from or release.announced, r.action)
             conn.execute(
                 "INSERT INTO index_release_row (doc_id,parser_version,page,section_no,section_name,"
                 "component,action,symbol,company,effective_from,related_symbol,raw_text,"
@@ -55,11 +61,14 @@ def store_release(
 
 
 def unresolved(conn: psycopg.Connection) -> dict[str, list[tuple[str, ...]]]:
-    """What a person must look at: documents we could not place, and component rows whose symbol
-    is not (yet) a known instrument."""
+    """What a person must look at: documents we could not place (with the reason), and component
+    rows whose symbol is not (yet) a known instrument. NOT_RELEVANT documents are not listed."""
     manual = conn.execute(
-        "SELECT doc_id, announced::text FROM index_release_document WHERE kind='MANUAL_REVIEW'"
-        " AND parser_version=%s ORDER BY announced",
+        "SELECT doc_id, announced::text, classification, classification_reason"
+        " FROM index_release_document WHERE kind='MANUAL_REVIEW' AND parser_version=%s"
+        " AND classification IN ('MANUAL_REVIEW_REQUIRED','UNSUPPORTED_FORMAT',"
+        "'SOURCE_UNAVAILABLE')"
+        " ORDER BY announced",
         (PARSER_VERSION,),
     ).fetchall()
     rows = conn.execute(
@@ -74,9 +83,20 @@ def unresolved(conn: psycopg.Connection) -> dict[str, list[tuple[str, ...]]]:
     }
 
 
+def classification_counts(conn: psycopg.Connection) -> dict[str, int]:
+    return dict(
+        conn.execute(
+            "SELECT classification, count(*) FROM index_release_document WHERE parser_version=%s"
+            " GROUP BY 1 ORDER BY 1",
+            (PARSER_VERSION,),
+        ).fetchall()
+    )
+
+
 def remap(conn: psycopg.Connection) -> int:
-    """Re-resolve rows still UNMAPPED after instruments/aliases were added. Returns rows fixed."""
-    on = "COALESCE(r.effective_from, DATE '9999-12-31')"
+    """Re-resolve rows still UNMAPPED after instruments/aliases were added (same day rule as
+    `_map`). Returns rows fixed."""
+    on = "COALESCE(r.effective_from, DATE '9999-12-31') - (r.action = 'EXCLUDED')::int"
     return conn.execute(
         "UPDATE index_release_row r SET instrument_id=a.instrument_id, mapping_status='MAPPED'"
         " FROM instrument_alias a WHERE r.mapping_status='UNMAPPED_SYMBOL' AND a.source=%s"
