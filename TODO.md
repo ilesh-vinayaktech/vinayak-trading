@@ -399,3 +399,8 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 - Stopping condition status: all discrepancies classified; strict-mode blocks listed in docs/universe-evidence-review.md; forward (month-to-month) and backward (from current lists) reconstructions both exist; fresh-clone + mutation to be re-run after this commit.
 - [ ] Still open (bounded, optional): hand-transcribe the 11 placeholder/demerger notices (Jio 2023-07, ITC Hotels, Siemens, Tata Motors, HUL spin-off, Vedanta) so their effective dates enter the database.
 - [ ] NEXT: TRI ingestion (Nifty 200 TRI primary, Nifty 50 TRI secondary, Nifty 200 price diagnostic only; gross and net kept separate).
+
+### TRI endpoint investigation (2026-11-07) - see docs/tri-endpoint-report.md
+- [x] Contract identified (POST /BackPage/getTotalReturnIndexString, cinfo string, dd-Mon-yyyy, JSON in text/html, no cookies needed); series verified as Nifty 200 TOTAL RETURN to the basis point vs the 30 Oct 2026 factsheet (QTD, YTD, 1y, 5y, since inception); history from 2004-01-01 = 1000; Net TRI NOT published for Nifty 200; server does not enforce the UI's 1-year limit (we comply anyway).
+- **Finding about OUR data:** the TRI has a value for Sunday 2026-02-01 (Budget special session); our bhavcopy/calendar has no such day. Daily bars miss special weekend/muhurat sessions - fix before relying on session calendars (backtest dates, benchmark alignment).
+- [ ] Next: capture Nifty 200 TRI 2004..today (<=365-day windows, raw to lake), parse, validate, ingest via data/benchmark.py, re-verify; then Nifty 50 (+NTR), then Nifty 200 price index (diagnostic).
