@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
+      - run: sudo apt-get install -y poppler-utils  # pdftotext, used to read NSE press releases
       - run: uv sync --frozen
       - run: make check
   nightly-mutation:
