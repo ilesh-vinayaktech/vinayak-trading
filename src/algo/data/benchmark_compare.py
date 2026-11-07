@@ -78,3 +78,46 @@ def compare(a: Mapping[date, Decimal], b: Mapping[date, Decimal], top: int = 20)
         percentile(absd, 0.99), tuple(Divergence(*t) for t in worst),
         float(a[aligned[-1]] / a[first] - 1), float(b[aligned[-1]] / b[first] - 1),
     )  # fmt: skip
+
+
+@dataclass(frozen=True)
+class Wedge:
+    """Total-return minus price-return daily, over the dates both series can be compared on."""
+
+    compared: int
+    only_price: tuple[date, ...]
+    only_tri: tuple[date, ...]
+    misaligned: tuple[date, ...]
+    price_beats_tri: tuple[tuple[date, float], ...]  # price rose more than TRI beyond rounding
+    wedge_days: int  # days where TRI exceeds price beyond rounding
+    top5pct_share: float  # share of the total wedge carried by the largest 5% of days
+    by_year: tuple[tuple[int, float], ...]  # summed daily wedge per year (~ dividend yield)
+    largest: tuple[Divergence, ...]  # biggest |wedge| days, ret_a = TRI, ret_b = price
+
+
+def wedge(price: Mapping[date, Decimal], tri: Mapping[date, Decimal], top: int = 20) -> Wedge:
+    """A dividend-paying index must have TRI return >= price return on every day, except for the
+    rounding of two-decimal levels (reported per date as `price_beats_tri`, never hidden)."""
+    lo, hi = max(min(price), min(tri)), min(max(price), max(tri))
+    rp, rt = daily_returns(price), daily_returns(tri)
+    only_p = tuple(sorted(d for d in price if lo <= d <= hi and d not in tri))
+    only_t = tuple(sorted(d for d in tri if lo <= d <= hi and d not in price))
+    both = sorted(d for d in rp if d in rt and lo < d <= hi)
+    aligned = [d for d in both if rp[d][0] == rt[d][0]]
+    misaligned = tuple(d for d in both if rp[d][0] != rt[d][0])
+    diffs = {d: rt[d][1] - rp[d][1] for d in aligned}
+    tol = {d: float(Decimal("0.02") / min(price[rp[d][0]], tri[rt[d][0]])) for d in aligned}
+    neg = tuple((d, diffs[d]) for d in aligned if diffs[d] < -tol[d])
+    pos = sorted((diffs[d] for d in aligned if diffs[d] > tol[d]), reverse=True)
+    total = sum(pos)
+    k = max(1, math.ceil(0.05 * len(pos))) if pos else 0
+    years: dict[int, float] = {}
+    for d in aligned:
+        years[d.year] = years.get(d.year, 0.0) + diffs[d]
+    worst = sorted(aligned, key=lambda d: -abs(diffs[d]))[:top]
+    share = sum(pos[:k]) / total if total else 0.0
+    return Wedge(
+        len(aligned), only_p, only_t, misaligned, neg, len(pos), share,
+        tuple(sorted(years.items())),
+        tuple(Divergence(d, rt[d][1], rp[d][1], diffs[d]) for d in worst),
+    )  # fmt: skip

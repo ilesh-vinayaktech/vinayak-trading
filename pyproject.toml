@@ -83,6 +83,7 @@ paths_to_mutate = [
   "src/algo/data/providers/niftyindices_archive.py",
   "src/algo/data/universe_monthly.py",
   "src/algo/data/providers/niftyindices_tri.py",
+  "src/algo/data/providers/niftyindices_price.py",
   "src/algo/data/benchmark_validate.py",
   "src/algo/data/benchmark_compare.py",
   "src/algo/data/sessions.py",

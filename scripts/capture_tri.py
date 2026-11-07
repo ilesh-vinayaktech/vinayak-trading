@@ -3,7 +3,7 @@ of at most 365 days, each raw response stored UNTOUCHED in the lake. Sequential,
 stops at once on any refusal, resumable. Every request is logged (body, status, bytes, rows,
 sha256, normalized hash).
 usage: capture_tri.py --lake data/lake --index "Nifty 200" --dataset tri_nifty200
-       [--start 2004-01-01]"""
+       [--kind tri|price] [--start 2004-01-01]"""
 
 import argparse
 import hashlib
@@ -16,27 +16,24 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from algo.data.lake import LocalLake
+from algo.data.providers import niftyindices_price as price_ep
+from algo.data.providers import niftyindices_tri as tri_ep
 from algo.data.providers.niftyindices_archive import OK, RETRY, backoff_seconds, classify
-from algo.data.providers.niftyindices_tri import (
-    ENDPOINT,
-    ENDPOINT_VERSION,
-    PARSER_VERSION,
-    TriError,
-    normalized_hash,
-    parse_response,
-    request_body,
-    windows,
-)  # fmt: skip
+from algo.data.providers.niftyindices_tri import TriError, normalized_hash, request_body, windows
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
 ap = argparse.ArgumentParser()
 ap.add_argument("--lake", required=True, type=Path)
 ap.add_argument("--index", required=True)
 ap.add_argument("--dataset", required=True)
+ap.add_argument("--kind", choices=("tri", "price"), default="tri")
 ap.add_argument("--start", default="2004-01-01", type=date.fromisoformat)
 ap.add_argument("--end", default=None, type=date.fromisoformat)
 ap.add_argument("--delay", default=6.0, type=float)
 a = ap.parse_args()
+ep = price_ep if a.kind == "price" else tri_ep
+ENDPOINT, ENDPOINT_VERSION, PARSER_VERSION = ep.ENDPOINT, ep.ENDPOINT_VERSION, ep.PARSER_VERSION
+parse_response = ep.parse_response
 end = a.end or datetime.now(UTC).date()
 lake = LocalLake(a.lake)
 log_path = a.lake / "raw" / "niftyindices" / a.dataset / "capture_log.jsonl"

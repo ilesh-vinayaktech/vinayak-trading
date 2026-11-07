@@ -59,3 +59,75 @@ def test_percentile_and_correlation():
     assert correlation([1, 2, 3], [2, 4, 6]) == pytest.approx(1.0)
     assert correlation([1, 2, 3], [3, 2, 1]) == pytest.approx(-1.0)
     assert math.isnan(correlation([1, 1, 1], [1, 2, 3]))
+
+
+def test_wedge_is_the_dividend_part_and_flags_a_price_that_outruns_the_tri():
+    from algo.data.benchmark_compare import wedge
+
+    price = s((1, 1000), (2, 1010), (3, 1000), (4, 1010), (5, 1020), (6, 1030))
+    tri = s((1, 1000), (2, 1010), (3, 1000), (4, 1020.1), (5, 1030.2), (6, 1030))
+    w = wedge(price, tri, top=2)
+    assert w.compared == 5 and not w.only_price and not w.only_tri and not w.misaligned
+    assert w.wedge_days == 1  # day 4 only: a dividend reinvested
+    assert [d for d, _ in w.price_beats_tri] == [date(2024, 1, 6)]  # price +0.98% vs TRI 0.0%
+    assert w.top5pct_share == pytest.approx(1.0)  # the whole positive wedge is on one day
+    assert w.by_year[0][0] == 2024 and len(w.largest) == 2
+    assert w.largest[0].day in (date(2024, 1, 4), date(2024, 1, 6))
+
+
+def test_wedge_reports_missing_and_misaligned_sessions_and_handles_no_wedge():
+    from algo.data.benchmark_compare import wedge
+
+    price = s((1, 100), (2, 101), (3, 102), (4, 103), (5, 104))
+    tri = {d: v for d, v in price.items() if d != date(2024, 1, 3)}
+    w = wedge(price, tri)
+    assert w.only_price == (date(2024, 1, 3),) and w.misaligned == (date(2024, 1, 4),)
+    assert w.wedge_days == 0 and w.top5pct_share == 0.0 and not w.price_beats_tri
+
+
+A_EDGE = s((2, 100), (3, 101), (4, 102), (5, 103), (6, 104))
+B_EDGE = s((1, 100), (3, 101), (4, 102.5), (5, 103.5), (7, 105))
+
+
+def test_dates_on_the_edge_of_the_overlap_are_reported_for_either_side():
+    c = compare(A_EDGE, B_EDGE)
+    assert (c.overlap, c.only_a, c.only_b) == (
+        (date(2024, 1, 2), date(2024, 1, 6)),
+        (date(2024, 1, 2), date(2024, 1, 6)),
+        (),
+    )
+    r = compare(B_EDGE, A_EDGE)
+    assert r.only_b == (date(2024, 1, 2), date(2024, 1, 6)) and r.only_a == ()
+
+
+def test_wedge_edges_and_error_messages():
+    from algo.data.benchmark_compare import wedge
+
+    w = wedge(A_EDGE, B_EDGE)
+    assert w.only_price == (date(2024, 1, 2), date(2024, 1, 6)) and w.only_tri == ()
+    assert wedge(B_EDGE, A_EDGE).only_tri == (date(2024, 1, 2), date(2024, 1, 6))
+    with pytest.raises(ValueError, match="^the series do not overlap$"):
+        compare(s((1, 1), (2, 2)), s((2, 1), (3, 2)))  # they share one date only
+    with pytest.raises(ValueError, match="^fewer than two comparable dates$"):
+        compare(s((1, 1), (2, 2), (3, 3)), s((1, 1), (2, 3), (4, 3)))
+    two = compare(s((1, 100), (2, 101), (3, 103)), s((1, 100), (2, 102), (3, 103)))
+    assert two.compared == 2  # exactly two comparable dates is enough
+
+
+def test_wedge_concentration_uses_the_largest_five_percent_of_days_in_order():
+    from algo.data.benchmark_compare import wedge
+
+    n = 100
+    price = {
+        date(2024, 1, 1) + __import__("datetime").timedelta(days=i): D(1000) for i in range(n + 1)
+    }
+    tri, level = {}, D(1000)
+    for i, d in enumerate(sorted(price)):
+        level = level * (1 + D(i) / D(1000)) if i else level
+        tri[d] = level
+    w = wedge(price, tri)
+    assert w.wedge_days == 100
+    top5 = sum(i / 1000 for i in range(100, 95, -1))
+    total = sum(i / 1000 for i in range(1, 101))
+    assert w.top5pct_share == pytest.approx(top5 / total, rel=1e-6)
+    assert w.largest[0].day == max(price)

@@ -188,3 +188,32 @@ refuses hours without a VERIFIED status and VERIFIED without hours. All 28 sessi
 `config/exchange_sessions.json` are EVIDENCED / UNCONFIRMED / UNKNOWN / ASSUMPTION. The regular rule
 is the current 09:15-15:30 and is not verified for earlier years. 2022-08-08 (quarantined bhavcopy)
 stays listed as unresolved in every benchmark validation report.
+
+## Nifty 200 Price Index (2026-11-07)
+
+**Endpoint.** `POST /BackPage/getHistoricaldatatabletoString`, same `cinfo` body as the TRI endpoint
+(`{'name':'NIFTY 200','startDate':..,'endDate':..,'indexName':'Nifty 200'}`; read from the site's
+IISLComponet.js). Reply: JSON array (text/html), `INDEX_NAME`, `HistoricalDate` ('30 Oct 2026'),
+`OPEN`/`HIGH`/`LOW` ('-' in early years), `CLOSE` (2 decimals), per-response `RequestNumber`.
+Only `CLOSE` is stored as the level. The 365-day limit is client-side only (a 3.8-year request was
+answered); we use windows of at most 365 days anyway. A repeated request returned identical rows
+(excluding `RequestNumber`); revision behaviour over time is still untested.
+
+**Identity.** `index_id NIFTY_200`, `series_type PRICE_RETURN`, `frequency DAILY`,
+`source NSE_INDICES`; stored as benchmark 4, return_type `PRICE`, separate from the gross TRI
+(benchmark 1). Coverage 2004-01-01 (1000.00, same base as the TRI) to 2026-11-06, 5,673 observations,
+the same dates as the gross TRI. 23 windows, no row outside its window, no duplicates.
+Dataset hash `f12eb1f3...`.
+
+**Factsheet (PRICE return column, not total return):** 5/5 within tolerance - QTD 0.1063 (0.11),
+YTD -9.2858 (-9.29), 1y -8.2045 (-8.20), 5y CAGR 7.1382 (7.14), since inception 11.9603 (11.95).
+
+**Price vs gross TRI daily returns** (`scripts/compare_price_tri.py`, `data/reports/price_vs_tri.json`):
+5,672 dates compared; none missing on either side, none misaligned. Summed daily wedge (TRI - price)
+is 0.9-2.6% a year (2004: 2.58%, 2026 to date: 0.90%), i.e. a dividend-yield-sized gap, with 37% of
+it on the top 5% of days (lumpy, as dividends are). 15 of the 20 largest-wedge days are dividend
+ex-dates in our corporate actions. **Unresolved:** on 395 days from 2011-10 the price return exceeds
+the TRI return by up to 0.005%, more than two-decimal rounding explains; the mechanism is unknown
+(a similar tiny-rise pattern was seen in the Nifty 50 net/gross ratio). Cumulative returns differ by
+design. Still open and listed in every report: the quarantined 2022-08-08 bhavcopy; session kinds and
+hours unverified; only the Sep 2026 methodology is held.

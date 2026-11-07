@@ -29,11 +29,14 @@ from algo.data.benchmark_validate import (
     validate_series,
 )  # fmt: skip
 from algo.data.lake import LocalLake
-from algo.data.providers.niftyindices_tri import Observation, normalized_hash, parse_response
+from algo.data.providers import niftyindices_price, niftyindices_tri
+from algo.data.providers.niftyindices_tri import Observation, normalized_hash
 from algo.data.store.migrate import migrate
 
 METHODOLOGY = "Nifty Indices Methodology Document, September 2026 (20260821)"
-SOURCE = "niftyindices.com /BackPage/getTotalReturnIndexString"
+SERIES_TYPE = {"gross": "GROSS_TRI", "net": "NET_TRI", "price": "PRICE_RETURN"}
+SOURCES = {"gross": "niftyindices.com /BackPage/getTotalReturnIndexString",
+           "price": "niftyindices.com /BackPage/getHistoricaldatatabletoString"}  # fmt: skip
 COMMON_UNRESOLVED = [
     "historical revision behaviour: only a same-day repeat was compared (identical); a later "
     "re-fetch must be compared before concluding history is never revised",
@@ -60,7 +63,7 @@ ap.add_argument("--lake", required=True, type=Path)
 ap.add_argument("--dataset", required=True)
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--factsheet", required=True, type=Path)
-ap.add_argument("--series", choices=("gross", "net"), required=True)
+ap.add_argument("--series", choices=("gross", "net", "price"), required=True)
 ap.add_argument("--name", required=True)
 ap.add_argument("--symbol", required=True)
 ap.add_argument("--base-date", type=date.fromisoformat)
@@ -78,6 +81,7 @@ if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
 lake, now = LocalLake(a.lake), datetime.now(UTC)
 net = a.series == "net"
+parse_response = (niftyindices_price if a.series == "price" else niftyindices_tri).parse_response
 
 loaded = []
 for p in sorted((a.lake / "raw" / "niftyindices" / a.dataset).glob("dt=*")):
@@ -118,7 +122,8 @@ if "FAIL" in states.values():
     bad = [f"{c.name}: {c.detail}" for c in checks_all if states[c.name] == "FAIL"]
     raise SystemExit("validation failed, nothing ingested:\n  " + "\n  ".join(bad))
 
-rtype = "NET_TOTAL_RETURN" if net else "TOTAL_RETURN"
+SOURCE = SOURCES.get(a.series, SOURCES["gross"])
+rtype = {"net": "NET_TOTAL_RETURN", "price": "PRICE"}.get(a.series, "TOTAL_RETURN")
 with psycopg.connect(a.db, autocommit=True) as conn:
     migrate(conn)
     row = conn.execute(
@@ -135,12 +140,16 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                         now=now)  # fmt: skip
     stored = levels(conn, bid)
     cfg: dict[str, Any] = json.loads(a.factsheet.read_text())
+    pct_field = "price_return_pct" if a.series == "price" else "total_return_pct"
+    want = "gross" if a.series == "price" else a.series  # the price column sits on the gross checks
     checks = [ReturnCheck(c["label"], date.fromisoformat(c["base"]), date.fromisoformat(c["end"]),
-                          c["kind"], Decimal(c["total_return_pct"]), Decimal(c["tolerance_pp"]))
-              for c in cfg["checks"] if c.get("series", "gross") == a.series]  # fmt: skip
+                          c["kind"], Decimal(c[pct_field]), Decimal(c["tolerance_pp"]))
+              for c in cfg["checks"]
+              if c.get("series", "gross") == want and pct_field in c]  # fmt: skip
     results = reconcile_returns(stored, checks)
     report = {
-        "series": {"index": cfg["index"], "series_type": "NET_TRI" if net else "GROSS_TRI",
+        "series": {"index": cfg["index"], "index_id": cfg["index"],
+                   "series_type": SERIES_TYPE[a.series],
                    "frequency": "DAILY", "source": "NSE_INDICES", "start_date": str(first_day),
                    "end_date": str(max(stored))},
         "windows": len(loaded), "observations": len(stored),
