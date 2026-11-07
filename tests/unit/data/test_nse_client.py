@@ -17,6 +17,9 @@ def server():
             state["seen"].append(dict(self.headers))
             codes = state["script"].get(self.path, [200])
             code = codes[min(n, len(codes)) - 1]
+            if code == 0:  # drop the connection without a response (RemoteDisconnected)
+                self.close_connection = True
+                return
             self.send_response(code)
             self.end_headers()
             if code == 200:
@@ -125,3 +128,19 @@ def test_not_published_is_the_shared_provider_error(server):
     server["script"]["/x"] = [404]
     with pytest.raises(NotPublishedError):
         client([]).get(server["base"] + "/x")
+
+
+def test_a_dropped_connection_is_retried_like_other_transient_trouble(server):
+    server["script"]["/f"] = [0, 0, 200]
+    sleeps = []
+    assert client(sleeps, min_interval=0).get(server["base"] + "/f") == b"payload"
+    assert [s for s in sleeps if s] == [1.0, 2.0] and server["hits"]["/f"] == 3
+
+
+def test_a_connection_that_keeps_dropping_is_raised_after_the_retries(server):
+    import http.client
+
+    server["script"]["/f"] = [0]
+    with pytest.raises(http.client.RemoteDisconnected):
+        client([], retries=2, min_interval=0).get(server["base"] + "/f")
+    assert server["hits"]["/f"] == 3

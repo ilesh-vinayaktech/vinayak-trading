@@ -3,6 +3,7 @@ calls, retry with exponential backoff on 429/5xx/network, typed errors carrying 
 
 from __future__ import annotations
 
+import http.client
 import http.cookiejar
 import time
 import urllib.error
@@ -74,7 +75,12 @@ class NseClient:
                 if e.code != 429 and e.code < 500:
                     raise NseHttpError(e.code, url) from e
                 err: Exception = NseHttpError(e.code, url)
-            except (urllib.error.URLError, TimeoutError) as e:
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                ConnectionError,
+                http.client.HTTPException,
+            ) as e:
                 err = e
             if attempt == self.retries:
                 raise err
