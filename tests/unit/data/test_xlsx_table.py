@@ -79,4 +79,4 @@ def test_a_binary_double_artefact_is_shortened_but_real_precision_is_kept():
          "1.2345678901234567e-05"]
     ]  # fmt: skip
     assert xt._number("12345678901234567") == "12345678901234567"  # repr would need an exponent
-    assert xt._number("abcdefghijklmnopq") == "abcdefghijklmnopq"  # not a number: untouched
+    assert xt._number("xxxxxxxxxxxxxxxxx") == "xxxxxxxxxxxxxxxxx"  # not a number: untouched
