@@ -155,7 +155,12 @@ def test_demerger_factor_hand_computed():
 
 @pytest.mark.parametrize(
     ("ratio", "child", "prev"),
-    [(D(0), D(100), D(1000)), (D(1), D(0), D(1000)), (D(1), D(100), D(0)), (D(-1), D(100), D(1000))],
+    [
+        (D(0), D(100), D(1000)),
+        (D(1), D(0), D(1000)),
+        (D(1), D(100), D(0)),
+        (D(-1), D(100), D(1000)),
+    ],
 )
 def test_demerger_factor_rejects_non_positive_inputs(ratio, child, prev):
     with pytest.raises(ValueError, match="^ratio and prices must be positive$"):
@@ -164,7 +169,9 @@ def test_demerger_factor_rejects_non_positive_inputs(ratio, child, prev):
 
 @pytest.mark.parametrize(("ratio", "child"), [(D(1), D(1000)), (D(2), D(600)), (D(1), D(1001))])
 def test_demerger_value_must_be_below_the_parent_close(ratio, child):
-    with pytest.raises(ValueError, match="^demerged value must be below the parent's previous close$"):
+    with pytest.raises(
+        ValueError, match="^demerged value must be below the parent's previous close$"
+    ):
         demerger_factor(ratio, child, D(1000))
 
 
@@ -191,7 +198,9 @@ def test_rights_factor_rejects_non_positive_inputs(new, held, sub, prev):
 
 @pytest.mark.parametrize("sub", [D(1400), D(1500)])
 def test_rights_issue_not_below_market_is_rejected(sub):
-    with pytest.raises(ValueError, match="^issue price at or above market: no adjustment, check the inputs$"):
+    with pytest.raises(
+        ValueError, match="^issue price at or above market: no adjustment, check the inputs$"
+    ):
         rights_factor(D(1), D(15), sub, D(1400))
 
 

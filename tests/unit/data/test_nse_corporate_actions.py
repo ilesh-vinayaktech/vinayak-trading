@@ -133,29 +133,45 @@ def test_row_without_ex_date_is_skipped_and_bad_json_raises():
     [  # real subjects found in the full Nifty 200 history that the first parser missed
         ("Bonus - 1:1", [("bonus", "ok", D(2), D(1), None)]),
         ("Bonus-1:3", [("bonus", "ok", D(4), D(3), None)]),
-        ("Bonus - 1:1 And Face Value Split From Rs. 10 To Rs. 2",
-         [("bonus", "ok", D(2), D(1), None), ("split", "ok", D(10), D(2), None)]),
-        ("Div-Rs.5.50 Pr Sh/Bon 5:1purpose Revised",
-         [("dividend", "ok", None, None, D("5.50")), ("bonus", "ok", D(6), D(1), None)]),
+        (
+            "Bonus - 1:1 And Face Value Split From Rs. 10 To Rs. 2",
+            [("bonus", "ok", D(2), D(1), None), ("split", "ok", D(10), D(2), None)],
+        ),
+        (
+            "Div-Rs.5.50 Pr Sh/Bon 5:1purpose Revised",
+            [("dividend", "ok", None, None, D("5.50")), ("bonus", "ok", D(6), D(1), None)],
+        ),
         ("Dividend Rs - 9.40 Per Share", [("dividend", "ok", None, None, D("9.40"))]),
         ("Dividend Rs -7.65 Per Share", [("dividend", "ok", None, None, D("7.65"))]),
         ("Annual General Meeting/Dividend Re -1 Per Share", [("dividend", "ok", None, None, D(1))]),
-        ("Annual General Meeting/Dividend Re- 0.40 Per Share",
-         [("dividend", "ok", None, None, D("0.40"))]),
+        (
+            "Annual General Meeting/Dividend Re- 0.40 Per Share",
+            [("dividend", "ok", None, None, D("0.40"))],
+        ),
         ("Annual General Meeting/Dividend Rs- 7 Per Share", [("dividend", "ok", None, None, D(7))]),
         ("Agm/Div-17.50 Per Share", [("dividend", "ok", None, None, D("17.50"))]),
         ("Dividend-Rs.29/ Per Share", [("dividend", "ok", None, None, D(29))]),
-        ("3rd Int Div-Rs.2/- Per Shrd Revised/Purpose Revised",
-         [("dividend", "ok", None, None, D(2))]),
+        (
+            "3rd Int Div-Rs.2/- Per Shrd Revised/Purpose Revised",
+            [("dividend", "ok", None, None, D(2))],
+        ),
         ("Div-Fin Re.0.75+Int Re.1/Purpose Revised", [("dividend", "ok", None, None, D("1.75"))]),
-        ("Annual General Meeting / Dividend - Rs 3/- Per Share / Bonus - 1:2",
-         [("dividend", "ok", None, None, D(3)), ("bonus", "ok", D(3), D(2), None)]),
-        ("Annual General Meeting / Dividend - Rs 5.25/- Per Share / Annual Book Closure",
-         [("dividend", "ok", None, None, D("5.25"))]),
-        ("Annual General Meeting/Dividend Rs.10/- Per Share/Election Of Directors",
-         [("dividend", "ok", None, None, D(10))]),
-        ("Annual Book Closure And 2nd Interim Dividend Re.0.60 Per Share (Purpose Revised)",
-         [("dividend", "ok", None, None, D("0.60"))]),
+        (
+            "Annual General Meeting / Dividend - Rs 3/- Per Share / Bonus - 1:2",
+            [("dividend", "ok", None, None, D(3)), ("bonus", "ok", D(3), D(2), None)],
+        ),
+        (
+            "Annual General Meeting / Dividend - Rs 5.25/- Per Share / Annual Book Closure",
+            [("dividend", "ok", None, None, D("5.25"))],
+        ),
+        (
+            "Annual General Meeting/Dividend Rs.10/- Per Share/Election Of Directors",
+            [("dividend", "ok", None, None, D(10))],
+        ),
+        (
+            "Annual Book Closure And 2nd Interim Dividend Re.0.60 Per Share (Purpose Revised)",
+            [("dividend", "ok", None, None, D("0.60"))],
+        ),
     ],
 )
 def test_real_variants_found_in_full_history(subject, expected):

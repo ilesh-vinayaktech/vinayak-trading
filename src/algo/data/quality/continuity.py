@@ -38,7 +38,11 @@ def continuity_issues(
         if expected != 1:
             if abs(ratio / expected - 1) > tol:
                 issues.append(
-                    Issue("action_without_discontinuity", d1, f"expected x{expected:.4f}, saw x{ratio:.4f}")
+                    Issue(
+                        "action_without_discontinuity",
+                        d1,
+                        f"expected x{expected:.4f}, saw x{ratio:.4f}",
+                    )
                 )
         elif abs(ratio - 1) > jump:
             issues.append(Issue("unexplained_jump", d1, f"close-to-close x{ratio:.4f}"))

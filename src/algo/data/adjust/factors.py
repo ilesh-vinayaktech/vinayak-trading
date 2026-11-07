@@ -55,7 +55,9 @@ def dividend_factor(amount: Decimal, prev_close: Decimal) -> Decimal:
     return 1 - amount / prev_close
 
 
-def demerger_factor(child_per_parent: Decimal, child_price: Decimal, parent_prev_close: Decimal) -> Decimal:
+def demerger_factor(
+    child_per_parent: Decimal, child_price: Decimal, parent_prev_close: Decimal
+) -> Decimal:
     """Parent keeps (1 - value handed out per parent share / cum price). Price only: the parent's
     share count does not change."""
     if child_per_parent <= 0 or child_price <= 0 or parent_prev_close <= 0:
@@ -69,7 +71,7 @@ def demerger_factor(child_per_parent: Decimal, child_price: Decimal, parent_prev
 def rights_factor(
     new: Decimal, held: Decimal, subscription_price: Decimal, prev_close: Decimal
 ) -> Decimal:
-    """Theoretical ex-rights price over the cum price. `new` new shares per `held` held (NSE A:B)."""
+    """Theoretical ex-rights price / cum price. `new` new shares per `held` held (NSE A:B)."""
     if min(new, held, subscription_price, prev_close) <= 0:
         raise ValueError("ratio and prices must be positive")
     if subscription_price >= prev_close:

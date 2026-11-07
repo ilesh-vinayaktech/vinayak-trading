@@ -24,7 +24,8 @@ _AMT = re.compile(r"r[se]\.?\s*-?\s*(\d+(?:,\d{3})*(?:\.\d+)?)", re.I)
 _BARE_DIV = re.compile(r"\bdiv\w*\s*-?\s*(\d+(?:\.\d+)?)(?=\s*(?:per\b|$))", re.I)  # Div-17.50
 _NOISE = re.compile(
     r"^[\W_]*$|^per sh|\b(agm|egm|meeting|genaral|generalmeeting|book closure|bc (end )?dates?"
-    r"|e-?voting|election|elctn|elec\b|registrar|transfer agent|purpose revised|revised)\b|^an+[au]+l"
+    r"|e-?voting|election|elctn|elec\b|registrar|transfer agent|purpose revised|revised)\b"
+    r"|^an+[au]+l"
 )
 _PCT = re.compile(r"\d+(?:\.\d+)?\s*%")
 _REVIEW_WORDS = (

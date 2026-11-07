@@ -21,9 +21,9 @@ import psycopg
 from algo.core.clock import require_utc
 from algo.data.adjust.factors import (
     PRICE_KINDS,
-    Built,
     SPLIT_KINDS,
     ActionRecord,
+    Built,
     build_adjustments,
     factor_on,
 )
@@ -64,7 +64,9 @@ class AdjBar:
 class History:
     bars: list[AdjBar]
     unapplied: list[ActionRecord] = field(default_factory=list)  # unpriced: prices may be wrong
-    provisional: list[ActionRecord] = field(default_factory=list)  # applied but unverified estimates
+    provisional: list[ActionRecord] = field(
+        default_factory=list
+    )  # applied but unverified estimates
     adjustment_version: str = ""  # fingerprint of every input that shaped these prices
 
     @property
@@ -90,7 +92,9 @@ class Loaded:
 
     def _build(self, adjust: str) -> Built:
         if adjust not in self._built:
-            kinds = (*SPLIT_KINDS, *PRICE_KINDS) + (("dividend",) if adjust == "total_return" else ())
+            kinds = (*SPLIT_KINDS, *PRICE_KINDS) + (
+                ("dividend",) if adjust == "total_return" else ()
+            )
             closes = list(zip(self.days, (r[4] for r in self.rows), strict=True))
 
             def prev_close_on(ex: date) -> Decimal:
@@ -184,4 +188,6 @@ class BarReader:
         as_of: datetime | None = None,
         strict: bool = False,
     ) -> History:
-        return self.load(instrument_id, strict=strict).history(start, end, adjust=adjust, as_of=as_of)
+        return self.load(instrument_id, strict=strict).history(
+            start, end, adjust=adjust, as_of=as_of
+        )

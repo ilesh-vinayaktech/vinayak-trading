@@ -104,4 +104,6 @@ def test_issue_details_name_the_numbers():
     s = series(100, 70)
     assert continuity_issues(s, [])[0].detail == "close-to-close x0.7000"
     t = series(100, 101)
-    assert continuity_issues(t, [split(t[1][0], "0.5")])[0].detail == "expected x0.5000, saw x1.0100"
+    assert (
+        continuity_issues(t, [split(t[1][0], "0.5")])[0].detail == "expected x0.5000, saw x1.0100"
+    )

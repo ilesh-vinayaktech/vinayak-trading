@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from decimal import Decimal
 from datetime import UTC, date, datetime, time
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -102,7 +102,9 @@ def records_for(
             out.append(ActionRecord(ex, kind, status, num, den, amount, kt))
         elif treatment == "factor":
             provisional = res_status == "provisional"
-            out.append(ActionRecord(ex, "resolved", "ok", Decimal(1), factor, None, kt, provisional))
+            out.append(
+                ActionRecord(ex, "resolved", "ok", Decimal(1), factor, None, kt, provisional)
+            )
         # treatment == "ignore": a documented decision that no price adjustment is needed
     return out
 

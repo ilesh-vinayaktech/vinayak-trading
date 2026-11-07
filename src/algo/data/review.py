@@ -65,7 +65,8 @@ class Resolved:
 _QUEUE = """
 SELECT c.instrument_id, a.source_symbol, c.ex_date, c.kind,
        array_agg(DISTINCT c.subject), array_agg(DISTINCT c.reason),
-       pb.close, xb.close, r.treatment, r.factor, r.method, r.status, r.confirmed_by, r.source_url, r.note
+       pb.close, xb.close, r.treatment, r.factor, r.method, r.status, r.confirmed_by,
+       r.source_url, r.note
 FROM corporate_action c
 JOIN instrument_alias a ON a.instrument_id=c.instrument_id AND a.source='nse' AND a.valid_to IS NULL
 LEFT JOIN LATERAL (SELECT close FROM bar_1d b WHERE b.instrument_id=c.instrument_id
@@ -92,13 +93,31 @@ def review_queue(
 ) -> list[ReviewItem]:
     out = []
     for row in conn.execute(_QUEUE):
-        (iid, sym, ex, kind, subjects, reasons, prev, exc, treatment, factor, method, status, by, url, note) = row
+        (
+            iid,
+            sym,
+            ex,
+            kind,
+            subjects,
+            reasons,
+            prev,
+            exc,
+            treatment,
+            factor,
+            method,
+            status,
+            by,
+            url,
+            note,
+        ) = row
         if (kinds and kind not in kinds) or (symbols and sym not in symbols):
             continue
         res = Resolution(treatment, factor, method, status, by, url, note) if treatment else None
         if res is not None and not include_resolved:
             continue
-        out.append(ReviewItem(iid, sym, ex, kind, sorted(subjects), sorted(reasons), prev, exc, res))
+        out.append(
+            ReviewItem(iid, sym, ex, kind, sorted(subjects), sorted(reasons), prev, exc, res)
+        )
     return out
 
 
@@ -116,7 +135,8 @@ def _instrument(conn: psycopg.Connection, symbol: str) -> int:
 def _prev_close(conn: psycopg.Connection, iid: int, ex: date) -> Decimal:
     row = conn.execute(
         "SELECT close FROM bar_1d WHERE instrument_id=%s "
-        "AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY ts DESC, dataset_version DESC LIMIT 1",
+        "AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s "
+        "ORDER BY ts DESC, dataset_version DESC LIMIT 1",
         (iid, ex),
     ).fetchone()
     if row is None:
@@ -214,7 +234,9 @@ def resolve(
     verifying = status in ("verified", "no_adjustment_verified")
     if verifying:
         if method == "gap":
-            raise ResolveError("a gap estimate cannot be verified: use an exact method with a source")
+            raise ResolveError(
+                "a gap estimate cannot be verified: use an exact method with a source"
+            )
         _need_source(source_type, source_url)
     conn.execute(
         "INSERT INTO action_resolution (instrument_id,ex_date,kind,treatment,factor,method,inputs,"
@@ -222,7 +244,8 @@ def resolve(
         "confirmed_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (iid, ex_date, kind, "ignore" if factor is None else "factor", factor, method,
          Jsonb(json.loads(json.dumps(inputs))), note, by, require_utc(now), status, source_type,
-         source_url, source_hash, by if verifying else None, require_utc(now) if verifying else None),
+         source_url, source_hash, by if verifying else None,
+         require_utc(now) if verifying else None),
     )  # fmt: skip
     if method == "gap":
         return Resolved(
@@ -242,8 +265,10 @@ SELECT (SELECT (ts AT TIME ZONE 'Asia/Kolkata')::date FROM bar_1d WHERE instrume
 _PEERS = """
 SELECT b1.close / b0.close
 FROM index_snapshot s
-JOIN bar_1d b0 ON b0.instrument_id=s.instrument_id AND (b0.ts AT TIME ZONE 'Asia/Kolkata')::date=%(d0)s
-JOIN bar_1d b1 ON b1.instrument_id=s.instrument_id AND (b1.ts AT TIME ZONE 'Asia/Kolkata')::date=%(d1)s
+JOIN bar_1d b0 ON b0.instrument_id=s.instrument_id
+  AND (b0.ts AT TIME ZONE 'Asia/Kolkata')::date=%(d0)s
+JOIN bar_1d b1 ON b1.instrument_id=s.instrument_id
+  AND (b1.ts AT TIME ZONE 'Asia/Kolkata')::date=%(d1)s
 WHERE s.index_id='NIFTY200' AND s.instrument_id<>%(i)s
   AND NOT EXISTS (SELECT 1 FROM corporate_action c WHERE c.instrument_id=s.instrument_id
                   AND c.ex_date > %(d0)s AND c.ex_date <= %(d1)s)
@@ -258,7 +283,8 @@ def _gap_factor(
         raise ResolveError(f"no bar on both sides of {ex}: cannot measure the gap")
     own = conn.execute(
         "SELECT (SELECT close FROM bar_1d WHERE instrument_id=%s AND (ts AT TIME ZONE "
-        "'Asia/Kolkata')::date=%s ORDER BY dataset_version DESC LIMIT 1), (SELECT close FROM bar_1d "
+        "'Asia/Kolkata')::date=%s ORDER BY dataset_version DESC LIMIT 1), "
+        "(SELECT close FROM bar_1d "
         "WHERE instrument_id=%s AND (ts AT TIME ZONE 'Asia/Kolkata')::date=%s ORDER BY "
         "dataset_version DESC LIMIT 1)",
         (iid, d0, iid, d1),
@@ -272,7 +298,9 @@ def _gap_factor(
     market = statistics.median(ratios)  # exact Decimal arithmetic (SQL percentile_cont is float)
     factor = observed / market
     if not 0 < factor < 1:
-        raise ResolveError(f"no price drop to explain (observed {observed:.4f}, market {market:.4f})")
+        raise ResolveError(
+            f"no price drop to explain (observed {observed:.4f}, market {market:.4f})"
+        )
     return factor, {"observed": str(observed), "market_median": str(market), "peers": str(n)}
 
 
