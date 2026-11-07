@@ -10,6 +10,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from algo.backtest.engine import RunResult, Trade
+from algo.backtest.validation.registry import validation_passed
 from algo.core.clock import require_utc
 from algo.strategy.lifecycle import RunSummary
 
@@ -98,7 +99,7 @@ def save_run(conn: psycopg.Connection, r: RunResult, now: datetime) -> int:
 
 
 def summary(
-    conn: psycopg.Connection, run_id: int, *, validation_protocol_passed: bool = False
+    conn: psycopg.Connection, run_id: int, *, validation_protocol_passed: bool | None = None
 ) -> RunSummary:
     row = conn.execute(
         "SELECT reader_mode, jsonb_array_length(provisional_events), "
@@ -111,6 +112,10 @@ def summary(
     ).fetchone()
     if row is None:
         raise LookupError(f"no backtest run {run_id}")
+    if (
+        validation_protocol_passed is None
+    ):  # default: only a stored, passing, confirmed report counts
+        validation_protocol_passed = validation_passed(conn, run_id)
     return RunSummary(
         row[0], row[1], row[2], row[3], row[4], validation_protocol_passed, row[5], row[6], row[7]
     )

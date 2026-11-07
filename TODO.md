@@ -156,8 +156,10 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 - [ ] T: hand-computed tiny scenarios per rule (each row of §10 fidelity table is a test); cost fixtures computed by hand; determinism (same inputs → identical hash of trades, 5 runs, varied xdist ordering); golden backtest on sample data (stored values; CI fails on drift); expired futures can't trade; halted instrument can't fill; fill never outside circuit; 2x cost ≥ 1x cost drag.
 
 ### 3.5 Validation protocol (spec §10)
-- [ ] Pre-registration record + trial counter; frozen holdout opened once (enforced, audited); walk-forward (rolling/anchored, purged+embargoed CV for ML); ±20% robustness grid; regime/period breakdown; Deflated Sharpe, PBO (CSCV), bootstrap CIs; capacity at 1x/3x; benchmark comparison; acceptance thresholds in config.
-- [ ] T: each statistic against known reference values (published DSR examples, synthetic series with known Sharpe); holdout second-open attempt rejected; promotion blocked when any gate missing.
+- [x] BUILT (2026-11-07): pre-registration + trial counter + holdout opened once (`validation/registry.py`, migration 010); walk-forward rolling/anchored with embargo (`walkforward.py`); ±20% grid, plateau, by-year, concentration (`robustness.py`); PSR/DSR/expected-max-SR/PBO(CSCV)/stationary-bootstrap CIs (`stats.py`); `ScaledCosts` for 2x costs; pass/fail gates, missing evidence fails (`gates.py`, `config/validation_thresholds.json`). See `docs/validation.md`.
+- [ ] Still to build: the orchestrator that runs a real strategy through all of this and assembles `Evidence` (needs the first strategy, Stage 4); regime labels beyond calendar year; benchmark series loader; capacity run at 3x capital; purged CV for ML.
+- [ ] **OWNER: confirm or change `config/validation_thresholds.json` (status `provisional`) BEFORE the first strategy is validated.** A pass against provisional thresholds does not lift the promotion blocker.
+- [x] T: statistics pinned to independently computed reference values; holdout second-open rejected; promotion blocked when any gate evidence is missing. Mutation 88-93% on the pure validation modules.
 
 ### 3.6 Financial ledger **(P0)** (used by backtest, paper, live)
 - [ ] Tables: `cash_ledger`, `position_ledger`, `fee_ledger`, `realized_pnl`, `unrealized_pnl`, `margin_ledger`; every row references source event (fill id / charge id / corporate action id). Double-entry style, append-only; broker-reported vs internal stored separately + reconciliation diff table.
@@ -304,3 +306,9 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 - [ ] Acceptance test: reconcile to REAL contract notes (`reconcile_note` is ready) and to Zerodha's brokerage calculator. Needs sample contract notes from the owner.
 - [ ] Open questions from the published page: the footnote "SEBI charges will be reduced to Rs 15 per crore" (recorded verbatim, wording unexplained, not applied); IPFT listed separately by Zerodha although NSE's 306.99 + 0.01 = 307 suggests it is inside 0.00307%.
 - [ ] Not yet: intraday product in the engine, equity futures (STT history 0.01/0.0125/0.02/0.05% is in the fetched circulars), intraday/quote data for stronger execution simulation.
+
+
+## Validation protocol (priority 3) - toolkit DONE, no strategy validated yet (2026-11-07)
+- [x] Statistics, walk-forward, robustness, cost stress, gates, registry (details in `docs/validation.md`). 765 tests, 100% line+branch, validation package floored at 100%.
+- [x] `summary()` now looks up a stored report: only a PASSING report made against CONFIRMED thresholds clears `validation_protocol_passed`.
+- [ ] Owner confirms thresholds; the first strategy (Stage 4) is the first real user of the toolkit.

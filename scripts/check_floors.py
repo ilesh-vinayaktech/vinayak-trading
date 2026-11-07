@@ -10,6 +10,7 @@ FLOORS = {
     "src/algo/ledger": 100,
     "src/algo/data/adjust": 100,
     "src/algo/backtest/costs": 100,
+    "src/algo/backtest/validation": 100,
     "src/algo/platform_state": 100,
     "src/algo/core/money.py": 100,
 }

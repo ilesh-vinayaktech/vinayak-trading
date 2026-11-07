@@ -1,0 +1,24 @@
+{
+  "status": "provisional",
+  "note": "Starting values proposed by the engineer; the owner must confirm or change them BEFORE the first strategy is validated. Changing them after seeing a result invalidates that result.",
+  "long_only": {
+    "min_oos_sharpe": 0.8,
+    "min_dsr": 0.95,
+    "max_pbo": 0.5,
+    "max_drawdown_vs_benchmark": 1.5,
+    "owner_max_drawdown": 0.35,
+    "plateau_tolerance": 0.3,
+    "max_top3_concentration": 0.6,
+    "min_sharpe_over_benchmark": 0.0
+  },
+  "market_neutral": {
+    "min_oos_sharpe": 1.0,
+    "min_dsr": 0.95,
+    "max_pbo": 0.5,
+    "max_drawdown_vs_benchmark": 1.5,
+    "owner_max_drawdown": 0.2,
+    "plateau_tolerance": 0.3,
+    "max_top3_concentration": 0.6,
+    "min_sharpe_over_benchmark": 0.0
+  }
+}

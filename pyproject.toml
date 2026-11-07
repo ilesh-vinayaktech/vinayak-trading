@@ -72,6 +72,11 @@ paths_to_mutate = [
   "src/algo/backtest/costs/slippage.py",
   "src/algo/backtest/costs/policy.py",
   "src/algo/backtest/costs/reconcile.py",
+  "src/algo/backtest/costs/scaled.py",
+  "src/algo/backtest/validation/stats.py",
+  "src/algo/backtest/validation/walkforward.py",
+  "src/algo/backtest/validation/robustness.py",
+  "src/algo/backtest/validation/gates.py",
 ]
 tests_dir = ["tests/unit/"]
 also_copy = ["src/", "tests/", "config/"]
