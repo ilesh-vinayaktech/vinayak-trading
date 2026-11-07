@@ -273,3 +273,15 @@ Historical data → validation → Timescale → strategy (sandboxed) → backte
 
 ## Owner research on demergers (received 2026-11-07, NOT yet used)
 ABB India 78.19/21.81 (1:5), Reliance 95.32/4.68 (1:1), Siemens 76.18/23.82 (1:1), HUL 98.09/1.91 (broker source only), Vedanta 52.34 + four others; ITC, Tata Motors, GMR, NMDC documents located but numbers not extracted; Motherson none found. These are TAX cost allocations, not price factors. Open decision: which price-adjustment basis to adopt per policy (docs/adjustment-policy.md: COST_ALLOCATION vs PRICE_ADJUSTMENT vs TOTAL_RETURN_ENTITLEMENT). Until decided and each figure read from the primary filing, all 10 stay PROVISIONAL.
+
+
+## Owner priorities for the next stage (2026-11-07) - do not let these slip
+1. **Financial ledger**: backtest positions, cash, dividends, fees and corporate-action entitlements must reconcile (cash_ledger / position_ledger / fee_ledger, every row traceable to its event; backtest P&L == ledger P&L).
+2. **Realistic costs**: brokerage, STT, exchange transaction charges, GST, SEBI charges, stamp duty and slippage from a versioned `cost_schedule` with historically applicable rates (replaces the flagged placeholder).
+3. **Validation protocol**: walk-forward, out-of-sample, parameter sensitivity, multiple-testing controls (deflated Sharpe, PBO) before ANY strategy promotion. Research-mode results never authorize paper/live.
+4. **Mutation-test the DB-backed modules first** (reader, review, engine, store, pipeline) before trusting strict-mode correctness - needs a shared test database harness so a mutant run does not start a container.
+5. Demergers: price-adjust per the evidence hierarchy in `docs/adjustment-policy.md` (exchange-determined base price first); read each primary filing; unresolved ones stay PROVISIONAL / unresolved. Never fall back to `gap` for a verified factor.
+6. Add a git remote and run CI before merging / deploying (CI has never run).
+
+## Repo hygiene lesson
+An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, its tests and the fixtures from the first commit AND from ruff. Caught only by verifying from a clean clone. Keep that verification (fresh clone -> `uv sync --frozen` -> `make check`) as a pre-merge step.
