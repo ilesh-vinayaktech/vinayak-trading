@@ -72,3 +72,15 @@ def unresolved(conn: psycopg.Connection) -> dict[str, list[tuple[str, ...]]]:
         "manual_documents": [tuple(r) for r in manual],
         "unmapped_rows": [tuple(r) for r in rows],
     }
+
+
+def remap(conn: psycopg.Connection) -> int:
+    """Re-resolve rows still UNMAPPED after instruments/aliases were added. Returns rows fixed."""
+    on = "COALESCE(r.effective_from, DATE '9999-12-31')"
+    return conn.execute(
+        "UPDATE index_release_row r SET instrument_id=a.instrument_id, mapping_status='MAPPED'"
+        " FROM instrument_alias a WHERE r.mapping_status='UNMAPPED_SYMBOL' AND a.source=%s"
+        f" AND a.source_symbol=r.symbol AND a.valid_from <= {on}"
+        f" AND (a.valid_to IS NULL OR {on} < a.valid_to)",
+        (SOURCE,),
+    ).rowcount
