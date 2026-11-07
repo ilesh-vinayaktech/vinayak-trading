@@ -11,14 +11,18 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Thresholds:
-    min_oos_sharpe: float
+    min_oos_sharpe: float  # annualised, net of costs, aggregate walk-forward OOS
     min_dsr: float
     max_pbo: float
-    max_drawdown_vs_benchmark: float
-    owner_max_drawdown: float  # fraction, e.g. 0.35 = 35%
-    plateau_tolerance: float
-    max_top3_concentration: float
-    min_sharpe_over_benchmark: float
+    max_drawdown_vs_benchmark: float  # |strategy max DD| / |benchmark max DD|, same dates
+    owner_max_drawdown: float  # absolute cap, fraction (0.25 = 25%)
+    plateau_tolerance: float  # worst neighbour must keep >= (1 - tol) of the base Sharpe
+    max_top3_concentration: float  # applied separately to instruments, months and trades
+    min_sharpe_over_benchmark: float  # strategy annualised Sharpe minus benchmark's
+    min_oos_days: float
+    min_regimes: float
+    max_window_share: float  # largest single walk-forward window's share of positive window gains
+    min_benchmark_drawdown: float  # below this the drawdown ratio is unstable: not applicable
 
 
 def load_thresholds(path: Path, style: str) -> tuple[Thresholds, str]:
@@ -35,16 +39,21 @@ def load_thresholds(path: Path, style: str) -> tuple[Thresholds, str]:
 
 @dataclass(frozen=True)
 class Evidence:
-    oos_sharpe: float | None = None  # annualised, net of realistic costs, walk-forward OOS
+    oos_sharpe: float | None = None
     dsr: float | None = None
     pbo: float | None = None
     max_drawdown: float | None = None  # negative fraction
-    benchmark_max_drawdown: float | None = None  # negative fraction
+    benchmark_max_drawdown: float | None = None  # negative fraction, same dates and frequency
     benchmark_sharpe: float | None = None
     plateau_drop: float | None = None  # worst fractional Sharpe loss across +/-20% parameters
     sharpe_2x_costs: float | None = None
     sharpe_3x_capital: float | None = None
-    top3_concentration: float | None = None
+    top3_instrument: float | None = None  # share of total positive P&L from the 3 best instruments
+    top3_month: float | None = None
+    top3_trade: float | None = None
+    oos_days: float | None = None
+    regimes: float | None = None  # distinct market regimes inside the OOS windows
+    window_share: float | None = None
 
 
 @dataclass(frozen=True)
@@ -74,35 +83,56 @@ def _gate(name: str, value: float | None, ok, detail: str) -> Gate:  # type: ign
     return Gate(name, bool(ok(value)), detail.format(v=value))
 
 
+def _drawdown_gate(e: Evidence, t: Thresholds) -> Gate:
+    if e.max_drawdown is None or e.benchmark_max_drawdown is None:
+        return Gate("max_drawdown", False, "evidence missing")
+    dd, bench = abs(e.max_drawdown), abs(e.benchmark_max_drawdown)
+    if dd > t.owner_max_drawdown:
+        return Gate("max_drawdown", False, f"{dd:.1%} > owner cap {t.owner_max_drawdown:.0%}")
+    if bench < t.min_benchmark_drawdown:  # ratio unstable: only the absolute cap applies
+        return Gate("max_drawdown", True, f"{dd:.1%}; ratio n/a (benchmark DD {bench:.1%})")
+    ratio = dd / bench
+    ok = ratio <= t.max_drawdown_vs_benchmark + 1e-9
+    return Gate(
+        "max_drawdown",
+        ok,
+        f"{dd:.1%} is {ratio:.2f}x benchmark (limit {t.max_drawdown_vs_benchmark})",
+    )
+
+
 def evaluate(e: Evidence, t: Thresholds, status: str = "") -> Report:
-    dd_limit: float | None = None
-    if e.benchmark_max_drawdown is not None:
-        dd_limit = min(
-            abs(e.benchmark_max_drawdown) * t.max_drawdown_vs_benchmark, t.owner_max_drawdown
-        )
     over_bench = (
         None if e.oos_sharpe is None or e.benchmark_sharpe is None
         else e.oos_sharpe - e.benchmark_sharpe
     )  # fmt: skip
+    top = t.max_top3_concentration
     gates = (
+        _gate("oos_days", e.oos_days, lambda v: v >= t.min_oos_days,
+              f"{{v:.0f}} OOS observations < required {t.min_oos_days:.0f}"),
+        _gate("regimes", e.regimes, lambda v: v >= t.min_regimes,
+              f"{{v:.0f}} regimes < required {t.min_regimes:.0f}"),
+        _gate("window_share", e.window_share, lambda v: v <= t.max_window_share,
+              f"one window supplies {{v:.0%}} of gains (> {t.max_window_share:.0%})"),
         _gate("oos_sharpe", e.oos_sharpe, lambda v: v >= t.min_oos_sharpe,
               f"{{v:.2f}} < required {t.min_oos_sharpe}"),
         _gate("deflated_sharpe", e.dsr, lambda v: v >= t.min_dsr,
               f"{{v:.3f}} < required {t.min_dsr}"),
         _gate("overfitting_probability", e.pbo, lambda v: v <= t.max_pbo,
               f"{{v:.2f}} > allowed {t.max_pbo}"),
-        _gate("max_drawdown",
-              None if e.max_drawdown is None or dd_limit is None else abs(e.max_drawdown),
-              lambda v: v <= (dd_limit or 0), f"{{v:.1%}} > limit {dd_limit}"),
-        _gate("beats_benchmark", over_bench, lambda v: v > t.min_sharpe_over_benchmark,
-              "Sharpe edge over benchmark {v:.2f} too small"),
+        _drawdown_gate(e, t),
+        _gate("beats_benchmark", over_bench, lambda v: v >= t.min_sharpe_over_benchmark,
+              f"Sharpe edge over benchmark {{v:.2f}} < required {t.min_sharpe_over_benchmark}"),
         _gate("parameter_plateau", e.plateau_drop, lambda v: v <= t.plateau_tolerance,
               f"{{v:.0%}} Sharpe lost at a neighbouring setting (> {t.plateau_tolerance:.0%})"),
         _gate("survives_2x_costs", e.sharpe_2x_costs, lambda v: v > 0,
               "Sharpe {v:.2f} at 2x costs"),
         _gate("survives_3x_capital", e.sharpe_3x_capital, lambda v: v > 0,
               "Sharpe {v:.2f} at 3x capital"),
-        _gate("concentration", e.top3_concentration, lambda v: v <= t.max_top3_concentration,
-              f"{{v:.0%}} of gains from 3 items (> {t.max_top3_concentration:.0%})"),
+        _gate("concentration_instrument", e.top3_instrument, lambda v: v <= top,
+              f"{{v:.0%}} of gains from 3 instruments (> {top:.0%})"),
+        _gate("concentration_month", e.top3_month, lambda v: v <= top,
+              f"{{v:.0%}} of gains from 3 months (> {top:.0%})"),
+        _gate("concentration_trade", e.top3_trade, lambda v: v <= top,
+              f"{{v:.0%}} of gains from 3 trades (> {top:.0%})"),
     )  # fmt: skip
     return Report(gates, status)

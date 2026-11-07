@@ -24,8 +24,8 @@ from algo.strategy.lifecycle import promotion_blockers
 from tests.support.bt import NOW, REALISTIC, cfg, flat, hold, make_env, put_bars
 
 pytestmark = pytest.mark.integration
-T = Thresholds(0.8, 0.95, 0.5, 1.5, 0.35, 0.3, 0.6, 0.0)
-GOOD = Evidence(1.1, 0.97, 0.2, -0.2, -0.3, 0.5, 0.1, 0.6, 0.9, 0.4)
+T = Thresholds(0.8, 0.95, 0.2, 1.25, 0.25, 0.3, 0.5, 0.2, 252, 2, 0.5, 0.02)
+GOOD = Evidence(1.1, 0.97, 0.1, -0.15, -0.2, 0.5, 0.1, 0.6, 0.9, 0.4, 0.3, 0.2, 500, 3, 0.3)
 HOLD = (date(2024, 1, 1), date(2024, 12, 31))
 
 
@@ -128,4 +128,4 @@ def test_only_a_passing_report_on_confirmed_thresholds_lifts_the_validation_bloc
         "SELECT n_trials, jsonb_array_length(gates), evidence->>'oos_sharpe' FROM validation_report"
         " WHERE passed AND thresholds_status='confirmed'"
     ).fetchone()
-    assert stored == (3, 9, "1.1")
+    assert stored == (3, 14, "1.1")
