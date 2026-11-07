@@ -93,6 +93,7 @@ class Wedge:
     top5pct_share: float  # share of the total wedge carried by the largest 5% of days
     by_year: tuple[tuple[int, float], ...]  # summed daily wedge per year (~ dividend yield)
     largest: tuple[Divergence, ...]  # biggest |wedge| days, ret_a = TRI, ret_b = price
+    daily: tuple[tuple[date, float], ...]  # TRI minus price return, every comparable date
 
 
 def wedge(price: Mapping[date, Decimal], tri: Mapping[date, Decimal], top: int = 20) -> Wedge:
@@ -120,4 +121,5 @@ def wedge(price: Mapping[date, Decimal], tri: Mapping[date, Decimal], top: int =
         len(aligned), only_p, only_t, misaligned, neg, len(pos), share,
         tuple(sorted(years.items())),
         tuple(Divergence(d, rt[d][1], rp[d][1], diffs[d]) for d in worst),
+        tuple((d, diffs[d]) for d in aligned),
     )  # fmt: skip

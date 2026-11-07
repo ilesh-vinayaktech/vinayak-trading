@@ -5,8 +5,8 @@
             Writes the evidence file.
   --fetch   for those dates inside our bar history, fetch the official bhavcopy (sequential, slow)
             and load it through the normal pipeline with a calendar that includes the sessions.
-usage: special_sessions.py --lake data/lake --db postgresql://... --dataset tri_nifty200
-       (--build|--fetch)"""
+usage: special_sessions.py --lake data/lake --db postgresql://... (--build|--fetch)
+       [--dataset tri_nifty200 tri_nifty50]"""
 
 import argparse
 import json
@@ -27,7 +27,7 @@ CONFIG = Path("config/exchange_sessions.json")
 ap = argparse.ArgumentParser()
 ap.add_argument("--lake", required=True, type=Path)
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
-ap.add_argument("--dataset", default="tri_nifty200")
+ap.add_argument("--dataset", nargs="+", default=["tri_nifty200"])
 g = ap.add_mutually_exclusive_group(required=True)
 g.add_argument("--build", action="store_true")
 g.add_argument("--fetch", action="store_true")
@@ -37,33 +37,41 @@ if not a.db:
 lake, now = LocalLake(a.lake), datetime.now(UTC)
 
 if a.build:
-    obs = []
-    for part in sorted((a.lake / "raw" / "niftyindices" / a.dataset).glob("dt=*")):
-        ws = date.fromisoformat(part.name[3:])
-        obs += parse_response(lake.get(lake.versions("niftyindices", a.dataset, ws)[-1]))
-    digest = normalized_hash(obs)
-    evidence = (
-        f"{a.dataset}: the index has a value on this date (it is computed on every day the "
-        "capital market segment is open - Nifty Indices methodology, Sep 2026)"
-    )
-    entries = build_entries((o.day for o in obs), evidence, digest)
+    # every day any listed series has a value; the entry cites the FIRST series that has it
+    obs: dict[date, str] = {}
+    digests: dict[str, str] = {}
+    for ds in a.dataset:
+        got = []
+        for part in sorted((a.lake / "raw" / "niftyindices" / ds).glob("dt=*")):
+            ws = date.fromisoformat(part.name[3:])
+            got += parse_response(lake.get(lake.versions("niftyindices", ds, ws)[-1]))
+        digests[ds] = normalized_hash(got)
+        for o in got:
+            obs.setdefault(o.day, ds)
+    entries = []
+    for ds in a.dataset:
+        evidence = (
+            f"{ds}: the index has a value on this date (it is computed on every day the "
+            "capital market segment is open - Nifty Indices methodology, Sep 2026)"
+        )
+        entries += build_entries((d for d, src in obs.items() if src == ds), evidence, digests[ds])
     with psycopg.connect(a.db) as conn:
         rows = conn.execute(
             "SELECT DISTINCT partition FROM partition_load WHERE status='not_published'"
         )
         unpublished = {r[0] for r in rows}
-    have = {o.day for o in obs}
-    for d in sorted(have & unpublished):
+    for d in sorted(set(obs) & unpublished):
         if d.weekday() < 5:
             entries.append({
                 "date": str(d), "weekday": d.strftime("%A"), "kind": "SPECIAL",
                 "kind_status": "UNCONFIRMED (weekday, TRI value, no bhavcopy: probably Muhurat)",
                 "hours": None, "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-                "evidence": evidence, "evidence_sha256": digest,
+                "evidence": f"{obs[d]}: value on a weekday with no bhavcopy",
+                "evidence_sha256": digests[obs[d]],
             })  # fmt: skip
     entries.sort(key=lambda e: e["date"])
     CONFIG.write_text(json.dumps({
-        "exchange": "NSE_CM", "derived_from": a.dataset, "tri_normalized_sha256": digest,
+        "exchange": "NSE_CM", "derived_from": a.dataset, "normalized_sha256": digests,
         "limitation": "weekday special sessions before the bar history starts (2019-10) cannot be "
                       "identified without historical holiday lists; weekend sessions are complete "
                       "for the whole TRI history",

@@ -1,9 +1,55 @@
 {
  "exchange": "NSE_CM",
- "derived_from": "tri_nifty200",
- "tri_normalized_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f",
+ "derived_from": [
+  "tri_nifty200",
+  "tri_nifty50"
+ ],
+ "normalized_sha256": {
+  "tri_nifty200": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f",
+  "tri_nifty50": "d1fbca3296bd068909b3746d4db463d11c2c0e1a6135e4915a6725e12f3e94c4"
+ },
  "limitation": "weekday special sessions before the bar history starts (2019-10) cannot be identified without historical holiday lists; weekend sessions are complete for the whole TRI history",
  "sessions": [
+  {
+   "date": "1999-11-07",
+   "weekday": "Sunday",
+   "kind": "SPECIAL",
+   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "hours": null,
+   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
+   "evidence": "tri_nifty50: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
+   "evidence_sha256": "d1fbca3296bd068909b3746d4db463d11c2c0e1a6135e4915a6725e12f3e94c4"
+  },
+  {
+   "date": "2003-03-22",
+   "weekday": "Saturday",
+   "kind": "SPECIAL",
+   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "hours": null,
+   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
+   "evidence": "tri_nifty50: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
+   "evidence_sha256": "d1fbca3296bd068909b3746d4db463d11c2c0e1a6135e4915a6725e12f3e94c4"
+  },
+  {
+   "date": "2003-10-25",
+   "weekday": "Saturday",
+   "kind": "SPECIAL",
+   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "hours": null,
+   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
+   "evidence": "tri_nifty50: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
+   "evidence_sha256": "d1fbca3296bd068909b3746d4db463d11c2c0e1a6135e4915a6725e12f3e94c4"
+  },
+  {
+   "date": "2003-11-15",
+   "weekday": "Saturday",
+   "kind": "SPECIAL",
+   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "hours": null,
+   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
+   "evidence": "tri_nifty50: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
+   "evidence_sha256": "d1fbca3296bd068909b3746d4db463d11c2c0e1a6135e4915a6725e12f3e94c4"
+  },
   {
    "date": "2004-04-17",
    "weekday": "Saturday",
@@ -218,10 +264,10 @@
    "date": "2021-11-04",
    "weekday": "Thursday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekday with a TRI value but no bhavcopy: probably Muhurat)",
+   "kind_status": "UNCONFIRMED (weekday, TRI value, no bhavcopy: probably Muhurat)",
    "hours": null,
    "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
+   "evidence": "tri_nifty200: value on a weekday with no bhavcopy",
    "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
   },
   {

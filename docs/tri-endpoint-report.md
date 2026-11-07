@@ -214,6 +214,24 @@ is 0.9-2.6% a year (2004: 2.58%, 2026 to date: 0.90%), i.e. a dividend-yield-siz
 it on the top 5% of days (lumpy, as dividends are). 15 of the 20 largest-wedge days are dividend
 ex-dates in our corporate actions. **Unresolved:** on 395 days from 2011-10 the price return exceeds
 the TRI return by up to 0.005%, more than two-decimal rounding explains; the mechanism is unknown
-(a similar tiny-rise pattern was seen in the Nifty 50 net/gross ratio). Cumulative returns differ by
+(the later audit found no date overlap with the Nifty 50 net/gross rises and the opposite dividend ex-date association: 8% of these days against a 40% base rate). Cumulative returns differ by
 design. Still open and listed in every report: the quarantined 2022-08-08 bhavcopy; session kinds and
 hours unverified; only the Sep 2026 methodology is held.
+
+## Cross-index and session-calendar audit (2026-11-07)
+
+Outputs in `docs/benchmark-audit/` (`scripts/audit_benchmarks.py`, deterministic: a re-run on the same
+inputs reproduced every output hash): `benchmark_alignment_report.json`,
+`session_reconciliation_report.json`, `benchmark_unresolved_findings.json`,
+`benchmark_evidence_report.md`, `audit_manifest.json`. A benchmark value is never used as evidence that
+the exchange traded; independent evidence is the bhavcopy (2019-10-01 onward) and the holiday feed
+(current year only). All 6,805 observed dates carry an explicit outcome: 1,752 confirmed regular,
+10 confirmed special (bhavcopy), 5,020 weekday-rule provisional (no independent evidence), 22
+benchmark-only sessions (weekend/Muhurat, evidence circular), 1 quarantined (2022-08-08). No
+confirmed trading session lacks a value and no series has a gap another series fills. Four
+Nifty 50 weekend values before 2004 (1999-11-07, 2003-03-22, 2003-10-25, 2003-11-15) were first
+flagged INVESTIGATE because the sessions file had been built from Nifty 200 only; they are now
+listed (kind unconfirmed, evidence Nifty 50 TRI only). Price-vs-TRI (395 days) and net-vs-gross (41
+days) anomalies share no dates (0 against 2.9 expected by chance), their magnitudes are uncorrelated
+(0.04) and they differ in ex-date association, so no shared mechanism is indicated; both are
+below 0.01% a day and classed LOW, unresolved.
