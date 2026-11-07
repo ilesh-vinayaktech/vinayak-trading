@@ -21,6 +21,7 @@ from algo.core.money import snap_down
 from algo.data.adjust.factors import ActionRecord
 from algo.data.reader import BarReader, UnadjustableError
 from algo.data.store.instruments import InstrumentRepo, NotFoundError
+from algo.ledger.ledger import Ledger
 from algo.strategy.base import Mode, Strategy, Targets
 from algo.strategy.context import Context, DataAccess, PortfolioView
 
@@ -91,6 +92,15 @@ class RunResult:
     dividends_received: Decimal = Decimal(0)
     final_cash: Decimal = Decimal(0)
     final_positions: dict[int, Decimal] = field(default_factory=dict)
+    ledger: Ledger | None = None  # the canonical books: cash, positions, fees, P&L
+    reconciliation: list[str] = field(default_factory=list)  # empty = the ledger agrees with itself
+    pnl: dict[str, str] = field(
+        default_factory=dict
+    )  # realized / unrealized / dividends / fees / net
+
+    @property
+    def ledger_reconciled(self) -> bool:
+        return self.ledger is not None and not self.reconciliation
 
     @property
     def accounting_complete(self) -> bool:
@@ -102,6 +112,11 @@ class RunResult:
             "equity": [[str(d), str(v)] for d, v in self.equity],
             "trades": [[t.seq, str(t.day), t.instrument_id, t.side, str(t.qty), str(t.price),
                         str(t.cost)] for t in self.trades],
+            "ledger": [
+                [e.seq, str(e.day), e.ledger, e.kind, e.instrument_id, str(e.qty),
+                 str(e.amount), e.ref]
+                for e in (self.ledger.entries if self.ledger else [])
+            ],
         }  # fmt: skip
         return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
 
@@ -168,7 +183,7 @@ def run_backtest(
     days = sorted({d for ld in loaded.values() for d in ld.days if cfg.start <= d <= cfg.end})
 
     # --- the loop -----------------------------------------------------------------------------
-    pos: dict[int, Decimal] = {}
+    ledger = Ledger(cfg.initial_cash, cfg.start)
     last_close: dict[int, Decimal] = {}
     targets: Targets = {}
     rebalance, prev_day, seq = False, None, 0
@@ -176,41 +191,41 @@ def run_backtest(
     for i, day in enumerate(days):
         # 1. corporate actions with ex-date since the previous session
         for iid in loaded:
-            held = pos.get(iid, Decimal(0))
-            if held == 0:
+            if ledger.qty(iid) == 0:
                 continue
-            for a in acts[iid]:
+            for k, a in enumerate(acts[iid]):
                 if (prev_day is not None and a.ex_date <= prev_day) or a.ex_date > day:
                     continue
+                ref = f"action:{iid}:{a.ex_date}:{a.kind}:{k}"
                 if a.kind in ("bonus", "split") and a.status == "ok" and a.num and a.den:
-                    pos[iid] = pos[iid] * a.num / a.den
+                    ledger.apply_split(day, iid, a.num, a.den, ref)
                 elif a.kind == "dividend" and a.status == "ok" and a.amount:
-                    cash += held * a.amount
-                    res.dividends_received += held * a.amount
+                    res.dividends_received += ledger.credit_dividend(day, iid, a.amount, ref)
                 else:
+                    ledger.flag_unmodelled(day, iid, a.kind, ref)
                     res.unmodelled.append({"instrument_id": iid, "ex_date": str(a.ex_date),
-                                           "kind": a.kind, "qty": str(held)})  # fmt: skip
+                                           "kind": a.kind,
+                                           "qty": str(ledger.qty(iid))})  # fmt: skip
         # 2. execute the previous close's decision at today's open (RAW prices)
         if rebalance:
             rebalance = False
             tradable = [iid for iid in loaded if day in px[iid]]
             open_ = {iid: px[iid][day][0] for iid in tradable}
-            equity_open = cash + sum(
-                (q * open_.get(iid, last_close.get(iid, Decimal(0))) for iid, q in pos.items()),
-                Decimal(0),
-            )
+            marks = {
+                iid: open_.get(iid, last_close.get(iid, Decimal(0))) for iid in ledger.quantities()
+            }
+            equity_open = ledger.equity(marks)
             want = {
                 iid: snap_down(targets.get(iid, Decimal(0)) * equity_open / open_[iid], step[iid])
                 for iid in tradable
-                if iid in targets or pos.get(iid, 0) != 0
+                if iid in targets or ledger.qty(iid) != 0
             }
             cap = {
                 iid: snap_down(cfg.max_participation * px[iid][day][2], step[iid]) for iid in want
             }
             for side in ("SELL", "BUY"):  # sells first: they fund the buys
                 for iid in sorted(want):
-                    cur = pos.get(iid, Decimal(0))
-                    delta = want[iid] - cur
+                    delta = want[iid] - ledger.qty(iid)
                     if (side == "SELL") != (delta < 0) or delta == 0:
                         continue
                     sign = 1 if side == "BUY" else -1
@@ -218,22 +233,21 @@ def run_backtest(
                     qty = min(abs(delta), cap[iid])
                     if side == "BUY":
                         affordable = snap_down(
-                            cash / (price * (1 + cfg.cost.commission_bps / BPS)), step[iid]
+                            ledger.cash / (price * (1 + cfg.cost.commission_bps / BPS)), step[iid]
                         )
                         qty = min(qty, affordable)
                     if qty <= 0:
                         continue
-                    value = qty * price
-                    cost = value * cfg.cost.commission_bps / BPS
-                    cash += -(value + cost) if side == "BUY" else value - cost
-                    pos[iid] = cur + sign * qty
+                    fee = qty * price * cfg.cost.commission_bps / BPS
                     seq += 1
-                    res.trades.append(Trade(seq, day, iid, side, qty, price, cost))
+                    post = ledger.buy if side == "BUY" else ledger.sell
+                    post(day, iid, qty, price, fee, f"trade:{seq}")
+                    res.trades.append(Trade(seq, day, iid, side, qty, price, fee))
         # 3. mark to market at the close (RAW)
         for iid in loaded:
             if day in px[iid]:
                 last_close[iid] = px[iid][day][1]
-        equity = cash + sum((q * last_close[iid] for iid, q in pos.items()), Decimal(0))
+        equity = ledger.equity(last_close)
         res.equity.append((day, equity))
         # 4. decide on this close; the order goes in at the next open
         if i < len(days) - 1:
@@ -241,7 +255,7 @@ def run_backtest(
             ctx = Context(
                 clock,
                 DataAccess(loaded, clock, req.adjust),
-                PortfolioView.of(cash, pos, equity),
+                PortfolioView.of(ledger.cash, ledger.quantities(), equity),
                 cfg.mode.value,
             )
             if not started:
@@ -252,6 +266,11 @@ def run_backtest(
                 _validate(new, set(loaded), cfg)
                 targets, rebalance = dict(new), True
         prev_day = day
-    res.final_cash, res.final_positions = cash, {k: v for k, v in pos.items() if v != 0}
+    res.final_cash, res.final_positions = ledger.cash, ledger.quantities()
+    res.ledger = ledger
+    p = ledger.pnl(last_close)
+    res.pnl = {"realized": str(p.realized), "unrealized": str(p.unrealized),
+               "dividends": str(p.dividends), "fees": str(p.fees), "net": str(p.net)}  # fmt: skip
+    res.reconciliation = ledger.reconcile(last_close)
     res.metrics = metrics(res.equity)
     return res

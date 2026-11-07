@@ -24,7 +24,8 @@ def save_run(conn: psycopg.Connection, r: RunResult, now: datetime) -> int:
         cols = (
             "strategy_id,strategy_version,params,params_hash,code_version,reader_mode,config,"
             "cost_model,adjustment_versions,provisional_events,unapplied_events,blocked_instruments,"
-            "unmodelled_events,accounting_complete,dividends_received,metrics,result_hash,created_at"
+            "unmodelled_events,accounting_complete,dividends_received,metrics,result_hash,created_at,"
+            "ledger_reconciled,reconciliation,pnl"
         )
         values = (
             r.strategy_id, r.strategy_version, Jsonb(json.loads(r.params_json)), r.params_hash,
@@ -32,9 +33,10 @@ def save_run(conn: psycopg.Connection, r: RunResult, now: datetime) -> int:
             _j(r.adjustment_versions), _j(r.provisional), _j(r.unapplied), _j(r.blocked),
             _j(r.unmodelled), r.accounting_complete, r.dividends_received, _j(r.metrics),
             r.result_hash, require_utc(now),
+            r.ledger_reconciled, _j(r.reconciliation), _j(r.pnl),
         )  # fmt: skip
         row = conn.execute(
-            f"INSERT INTO backtest_run ({cols}) VALUES ({','.join(['%s'] * 18)}) RETURNING run_id",
+            f"INSERT INTO backtest_run ({cols}) VALUES ({','.join(['%s'] * 21)}) RETURNING run_id",
             values,
         ).fetchone()
         assert row is not None
@@ -50,6 +52,13 @@ def save_run(conn: psycopg.Connection, r: RunResult, now: datetime) -> int:
         cur.executemany(
             "INSERT INTO backtest_equity VALUES (%s,%s,%s)", [(run_id, d, v) for d, v in r.equity]
         )
+        cur.executemany(
+            "INSERT INTO backtest_ledger VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            [
+                (run_id, e.seq, e.day, e.ledger, e.kind, e.instrument_id, e.qty, e.amount, e.ref)
+                for e in (r.ledger.entries if r.ledger else [])
+            ],
+        )
     return int(run_id)
 
 
@@ -59,9 +68,10 @@ def summary(
     row = conn.execute(
         "SELECT reader_mode, jsonb_array_length(provisional_events), "
         "jsonb_array_length(unapplied_events), accounting_complete, "
-        "(cost_model->>'placeholder')::boolean FROM backtest_run WHERE run_id=%s",
+        "(cost_model->>'placeholder')::boolean, ledger_reconciled "
+        "FROM backtest_run WHERE run_id=%s",
         (run_id,),
     ).fetchone()
     if row is None:
         raise LookupError(f"no backtest run {run_id}")
-    return RunSummary(row[0], row[1], row[2], row[3], row[4], validation_protocol_passed)
+    return RunSummary(row[0], row[1], row[2], row[3], row[4], validation_protocol_passed, row[5])

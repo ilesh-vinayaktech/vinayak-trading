@@ -285,3 +285,10 @@ ABB India 78.19/21.81 (1:5), Reliance 95.32/4.68 (1:1), Siemens 76.18/23.82 (1:1
 
 ## Repo hygiene lesson
 An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, its tests and the fixtures from the first commit AND from ruff. Caught only by verifying from a clean clone. Keep that verification (fresh clone -> `uv sync --frozen` -> `make check`) as a pre-merge step.
+
+
+## Financial ledger (priority 1) - DONE for backtests (2026-11-07)
+- [x] `ledger/ledger.py`: event-sourced, append-only, triple-entry, average-cost; duplicate-booking guard; unmodelled actions flagged; `reconcile()` re-derives all balances from entries (+ price-free accounting identity + valuation check). Engine now has NO balances of its own - cash/positions/equity/P&L all come from the ledger.
+- [x] Every run persists the full ledger (`backtest_ledger`, migration 008), the canonical P&L view `backtest_ledger_pnl`, `ledger_reconciled`, `reconciliation`, `pnl`; a run whose ledger does not reconcile cannot support promotion.
+- [x] Tests: hand-computed postings, exact entry contents, tamper detection for every check, Hypothesis random sequences, 12 seeded engine fuzz runs (random walks + random targets + costs). Mutation score on the ledger 98.8% (668/676); suite-wide 96.8% (1618/1672).
+- [ ] Still to build: broker-reported vs internal ledger + reconciliation diffs (needs live/paper OMS), margin ledger, slippage cost reporting, per-fee-type entries (arrives with the versioned cost schedule - priority 2), persisting unrealized P&L marks per day.

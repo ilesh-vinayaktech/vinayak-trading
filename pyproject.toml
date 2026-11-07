@@ -65,6 +65,7 @@ paths_to_mutate = [
   "src/algo/core/money.py",
   "src/algo/core/clock.py",
   "src/algo/data/lake.py",
+  "src/algo/ledger/ledger.py",
 ]
 tests_dir = ["tests/unit/"]
 also_copy = ["src/", "tests/"]

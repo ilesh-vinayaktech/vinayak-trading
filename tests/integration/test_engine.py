@@ -291,3 +291,132 @@ def test_cash_limits_a_buy_when_the_target_is_not_affordable(env):
     put_bars(conn, a, flat(100))
     r = run_backtest(conn, hold((a, 1)), cfg(initial_cash=D(250)))
     assert r.final_positions == {a: D(2)} and r.final_cash == D(50)  # floor(250/100)
+
+
+# ---- the financial ledger is the single source of truth -----------------------------------------
+def assert_books_agree(r):
+    assert r.reconciliation == [] and r.ledger_reconciled
+    p = {k: D(v) for k, v in r.pnl.items()}
+    assert abs(p["net"] - (r.equity[-1][1] - r.config.initial_cash)) <= D("1e-9")
+    assert r.final_cash == r.ledger.cash and r.final_positions == r.ledger.quantities()
+
+
+def test_realized_pnl_is_hand_computed_from_the_ledger(env):
+    conn, a, _ = env
+    put_bars(conn, a, {**flat(100, DAYS[:2]), **flat(110, DAYS[2:])})
+    s = Scripted(HoldParams(ids=(a,), weights=(D(1),)), [{a: D(1)}, {}])  # buy, then exit
+    r = run_backtest(conn, s, cfg())
+    assert [(t.side, t.qty, t.price) for t in r.trades] == [
+        ("BUY", D(100), D(100)),
+        ("SELL", D(100), D(110)),
+    ]
+    assert r.pnl == {
+        "realized": "1000",
+        "unrealized": "0",
+        "dividends": "0",
+        "fees": "0",
+        "net": "1000",
+    }
+    assert r.final_cash == D(11000) and r.final_positions == {}
+    assert_books_agree(r)
+
+
+def test_fees_and_unrealized_pnl_are_separated_and_the_identity_holds(env):
+    conn, a, _ = env
+    put_bars(conn, a, {**flat(100, DAYS[:5]), **flat(120, DAYS[5:])})
+    r = run_backtest(conn, hold((a, 1)), cfg(cost=CostModel("t", D(10), D(5), False)))
+    p = {k: D(v) for k, v in r.pnl.items()}
+    assert p["fees"] == sum((t.cost for t in r.trades), D(0)) > 0
+    assert p["realized"] == 0 and p["unrealized"] > 0  # still holding: gain is unrealized
+    assert p["net"] == p["unrealized"] - p["fees"]
+    assert_books_agree(r)
+
+
+def test_every_trade_and_action_is_traceable_in_the_ledger(env):
+    conn, a, _ = env
+    put_bars(conn, a, {**flat(100, DAYS[:4]), **flat(50, DAYS[4:])})
+    add_action(conn, a, DAYS[4], "bonus", num=D(2), den=D(1))
+    add_action(conn, a, DAYS[6], "dividend", amount=D(1))
+    r = run_backtest(conn, hold((a, 1)), cfg(cost=CostModel("t", D(10), D(0), False)))
+    refs = {e.ref for e in r.ledger.entries}
+    assert len(r.trades) > 1  # the bonus and the dividend cash trigger rebalancing trades
+    assert refs == {
+        "initial",
+        *(f"trade:{t.seq}" for t in r.trades),  # every trade is in the ledger, and nothing else is
+        f"action:{a}:{DAYS[4]}:bonus:0",
+        f"action:{a}:{DAYS[6]}:dividend:1",
+    }
+    buy = [(e.ledger, e.kind) for e in r.ledger.entries if e.ref == "trade:1"]
+    assert sorted(buy) == [
+        ("cash", "BUY"),
+        ("cash", "FEE"),
+        ("fee", "COMMISSION"),
+        ("position", "BUY"),
+    ]
+    split = next(e for e in r.ledger.entries if e.kind == "SPLIT")
+    assert split.qty == r.trades[0].qty and split.amount == 0  # share count doubles, cost unchanged
+    assert r.dividends_received == sum(e.amount for e in r.ledger.entries if e.kind == "DIVIDEND")
+    assert_books_agree(r)
+
+
+def test_held_through_an_unmodellable_action_is_flagged_in_the_ledger_not_hidden(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    provisional_demerger(conn, a, DAYS[6])
+    r = run_backtest(conn, hold((a, 1)), cfg())
+    (e,) = r.ledger.unmodelled()
+    assert (e.kind, e.instrument_id, e.qty) == ("UNMODELLED:resolved", a, D(100))
+    assert e.ref == f"action:{a}:{DAYS[6]}:resolved:0" and r.reconciliation == []
+    assert not r.accounting_complete
+
+
+def test_a_corrupted_ledger_is_reported_on_the_run(env):
+    from dataclasses import replace
+
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, hold((a, 1)), cfg())
+    r.ledger.entries[1] = replace(r.ledger.entries[1], amount=r.ledger.entries[1].amount + D(1))
+    assert r.ledger.reconcile({a: D(100)}) != []
+
+
+def test_ledger_changes_change_the_result_hash(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, hold((a, 1)), cfg())
+    h = r.result_hash
+    r.ledger.entries[0] = type(r.ledger.entries[0])(
+        1, DAYS[0], "cash", "INITIAL", None, D(0), D(9999), "initial"
+    )
+    assert r.result_hash != h
+
+
+@pytest.mark.parametrize("seed", range(12))
+def test_books_agree_on_random_price_paths_and_random_targets(env, seed):
+    """Fuzz: seeded random walks, random daily targets, costs on. The ledger must always reconcile,
+    never overspend, and net P&L must equal the change in equity."""
+    import random
+
+    conn, a, b = env
+    rng = random.Random(seed)
+    for iid in (a, b):
+        price = D(rng.randint(20, 400))
+        bars = {}
+        for d in DAYS:
+            price = max(D(1), price + D(rng.randint(-15, 15)))
+            bars[d] = (price, price + D(rng.randint(-5, 5)) if price > 6 else price)
+        put_bars(conn, iid, bars, vol=rng.choice([50, 400, 10_000_000]))
+    script = []
+    for _ in range(9):
+        wa = D(rng.randint(0, 10)) / 10
+        wb = D(rng.randint(0, 10)) / 10
+        if wa + wb > 1:
+            wb = 1 - wa
+        script.append(rng.choice([None, {a: wa, b: wb}, {a: wa}, {}]))
+    s = Scripted(HoldParams(ids=(a, b), weights=(D(1), D(0))), script)
+    r = run_backtest(
+        conn, s, cfg(cost=CostModel("t", D(10), D(5), False), max_participation=D("0.5"))
+    )
+    assert_books_agree(r)
+    assert r.ledger.cash >= 0 and all(q > 0 for q in r.final_positions.values())
+    assert len(r.equity) == 10
