@@ -28,6 +28,40 @@ methodology PDF. Independent check: the three component lists are disjoint and t
 Nifty 200 list (50 + 50 + 100 = 200, no differences). They are loaded as dated snapshots and used for a
 **component-level** check (each component's last event vs its own current list, before the union).
 
+## Monthly constituent archive (2026-11-07)
+
+118 monthly archives (Jan 2017 - Oct 2026, 321 MB) are stored untouched with checksums
+(`scripts/capture_monthly_archive.py`: sequential, 7 s delay, stops on refusal; the log records 3 x HTTP 504
+and a clean resume). They are parsed (`scripts/parse_monthly_snapshots.py`, 0 parser problems) into 410
+month-end snapshots. **Snapshots are month-end evidence, not events**: they are kept apart from the
+press-release events and no effective date is derived from them.
+
+**Coverage limit:** the archive is comprehensive (32-43 index PDFs a month) only through March 2022. After
+that NSE publishes only Nifty 50, Bank, Financial Services, Midcap Select, IT (and Next 50 from April 2024).
+So official month-end evidence for **Nifty 200 and Midcap 100 exists only for 2017-01 .. 2022-03**.
+
+**Month-to-month reconciliation** (`scripts/reconcile_monthly.py`; snapshot k + press-release events between
+the two report dates vs snapshot k+1; every finding with nearby events is in
+`data/reports/monthly_reconciliation.csv`):
+
+| Index | Snapshots | Transitions | Reconcile exactly |
+|---|---:|---:|---:|
+| Nifty 50 (2017-01 .. 2026-10) | 118 | 117 | 105 |
+| Nifty Next 50 | 94 | 93 | 89 |
+| Nifty 100 | 63 | 62 | 59 |
+| Nifty Midcap 100 | 63 | 62 | 55 |
+| Nifty 200 | 63 | 62 | 54 |
+
+The remaining findings cluster: **2018-04 (101)** = the Midcap 100 definition change; **2021-09 (52)** = the
+Sep 2021 review is in `pr_ind_prs23082021`, a SCANNED image we cannot read (needs OCR; no tesseract here);
+2018-02 (18), 2017-09 (14), 2018-06 (8) and smaller ones. The Sep 2020 cluster (58) disappeared once the
+parser accepted LETTERED section headings (`a) NIFTY 50`) - a parser gap, not a missing source.
+
+Also found: counts of 51 / 101 / 201 are real - the Tata Motors DVR (`TATAMTRDVR`) is a second share class of
+one company inside Nifty 50, Nifty 100 and Nifty 200 in some periods, so "50 / 100 / 200" counts SYMBOLS only
+approximately. The Nifty 200 PDF also lists a member that none of Nifty 50 / Next 50 / Midcap 100 lists on
+the same date (33 union mismatches), so "Nifty 200 = union of the three" is not exact historically.
+
 ## Still unresolved
 
 | Kind | Count | Meaning |

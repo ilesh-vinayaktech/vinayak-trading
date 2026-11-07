@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-PARSER_VERSION = "4"  # 2: wrapped dates; 3: sub-headings in a section; 4: explicit classification
+PARSER_VERSION = "5"  # 2: wrapped dates; 3: sub-headings; 4: classification; 5: lettered sections
 
 # Component indices of Nifty 200 (= Nifty 100 + Midcap 100; Nifty 100 = Nifty 50 + Next 50).
 COMPONENTS = {
@@ -31,7 +31,14 @@ KIND_NO_STRUCTURE = "MANUAL_REVIEW"  # nothing we can place (incl. scanned image
 _DATE = r"([A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4})"
 _EFFECTIVE = re.compile(r"(?:effective\s+(?:from\s+)?|w\.e\.f\.?\s+)" + _DATE)
 _HEADER_DATE = re.compile(r"Mumbai[,:]?\s+" + _DATE)
-_SECTION = re.compile(r"^\s*(\d+)\)\s+(\S.*?)\s*$", re.M)
+_SECTION = re.compile(r"^\s*(\d+|[A-Za-z])\)\s+(\S.*?)\s*$", re.M)
+
+
+def section_number(label: str) -> int:
+    """'3' -> 3; a lettered heading 'b' -> 102 (offset so it never collides with a numbered one)."""
+    return int(label) if label.isdigit() else 100 + ord(label.lower()) - 96
+
+
 _ACTION = re.compile(
     r"(?:companies|company|stocks?)\s+(?:is|are)\s+being\s+(excluded|included)", re.I
 )
@@ -161,7 +168,7 @@ def parse_release(pages: list[str], announced: date) -> Release:
             if r and action:
                 off = s.end() + line_m.start()
                 rows.append(Row(
-                    page=text.count("\f", 0, off) + 1, section_no=int(s.group(1)),
+                    page=text.count("\f", 0, off) + 1, section_no=section_number(s.group(1)),
                     section_name=name, component=canon(name), action=action,
                     symbol=r.group(3), company=r.group(2).strip(),
                     effective_from=effective_at(s.start()), raw_text=line.strip(),

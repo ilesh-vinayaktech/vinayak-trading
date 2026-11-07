@@ -129,3 +129,78 @@ def test_digits_inside_an_industry_label_are_not_mistaken_for_prices():
     s = parse_snapshot([page])
     assert s.problems == () and s.rows[0].price == D("2791.20") and s.rows[0].weight == D("100.00")
     assert "2" in s.rows[0].industry and "3" in s.rows[0].industry
+
+
+# ---- precision tests -------------------------------------------------------------------------------
+import subprocess  # noqa: E402
+
+TITLE_WORDS = [(384.0, 57.0, 400.0, 66.0, "Constituents"), (451.0, 57.0, 460.0, 66.0, "of"),
+               (464.0, 57.0, 490.0, 66.0, "NIFTY"), (505.0, 57.0, 530.0, 66.0, "50")]  # fmt: skip
+DATE_WORDS = [(500.0, 79.0, 520.0, 88.0, "March"), (531.0, 79.0, 545.0, 88.0, "31,"),
+              (546.0, 79.0, 570.0, 88.0, "2020")]  # fmt: skip
+
+
+def row_words(y, sym, name_words, ind_words, price_x=425.0, num_y=None):
+    out = [(28.0, y + 2, 60.0, y + 9, sym)]
+    out += [(x, yy, x + 20, yy + 8, w) for x, yy, w in name_words]
+    out += [(x, yy, x + 20, yy + 8, w) for x, yy, w in ind_words]
+    ny = y if num_y is None else num_y
+    out += [(price_x, ny, price_x + 25, ny + 8, "10.00"), (495.0, ny, 520.0, ny + 8, "100"),
+            (554.0, ny, 570.0, ny + 8, "100.00")]  # fmt: skip
+    return out
+
+
+def test_without_header_words_default_columns_apply_and_numbers_start_right_of_them():
+    # defaults: edge 225, numbers only from edge + 100 = 325 on; a '2' inside the name is text
+    words = TITLE_WORDS + DATE_WORDS + row_words(
+        142.0, "AAA", [(105.0, 142.0, "Alpha"), (150.0, 142.0, "2")], [(230.0, 144.0, "POWER")], price_x=325.0
+    )  # fmt: skip
+    s = parse_snapshot([words])
+    assert s.problems == () and len(s.rows) == 1
+    r = s.rows[0]
+    assert (r.name, r.industry, r.price) == (
+        "Alpha 2",
+        "POWER",
+        D("10.00"),
+    )  # price AT the edge counts
+
+
+def test_wrapped_names_and_multi_word_industries_keep_reading_order():
+    headers = [(133.0, 116.0, 160.0, 124.0, "Security"), (289.0, 117.0, 320.0, 124.0, "Industry"),
+               (393.0, 117.0, 410.0, 124.0, "Close"), (519.0, 112.0, 560.0, 120.0, "Weightage")]  # fmt: skip
+    # name words on one visual line have slightly different y; reading order is by line, then x
+    name = [(125.0, 142.2, "Corp"), (105.0, 142.4, "Beta"), (105.0, 150.0, "Ltd.")]
+    industry = [
+        (260.0, 143.0, "BETA"),
+        (230.0, 147.0, "ALPHA"),
+        (221.0, 145.0, "FIRST"),
+    ]  # x=221 is the edge
+    s = parse_snapshot(
+        [TITLE_WORDS + DATE_WORDS + headers + row_words(142.0, "AAA", name, industry)]
+    )
+    assert s.problems == ()
+    assert s.rows[0].name == "Beta Corp Ltd."  # not "Corp Beta Ltd."
+    assert s.rows[0].industry == "FIRST ALPHA BETA"  # a word exactly on the edge is industry, by x
+
+
+def test_a_missing_title_or_date_is_refused_separately():
+    with pytest.raises(ValueError, match="not a constituents report"):
+        parse_snapshot([DATE_WORDS])  # date but no title
+    with pytest.raises(ValueError, match="not a constituents report"):
+        parse_snapshot([TITLE_WORDS])  # title but no date
+
+
+def test_a_page_with_text_but_no_symbols_gives_no_rows_instead_of_crashing():
+    s = parse_snapshot([TITLE_WORDS + DATE_WORDS + [(200.0, 200.0, 240.0, 208.0, "lowercase")]])
+    assert s.rows == () and s.problems == ("no constituents found",)
+    assert (s.index_name, s.component) == ("NIFTY 50", "NIFTY_50")
+
+
+def test_the_title_is_taken_from_the_title_line_and_the_date_from_its_own_line():
+    s = parse_snapshot([TITLE_WORDS + DATE_WORDS + [(28.0, 144.0, 60.0, 151.0, "AAA")]])
+    assert (s.index_name, s.as_of) == ("NIFTY 50", date(2020, 3, 31))
+
+
+def test_a_corrupt_pdf_fails_loudly():
+    with pytest.raises(subprocess.CalledProcessError):
+        extract_words(b"this is not a pdf")

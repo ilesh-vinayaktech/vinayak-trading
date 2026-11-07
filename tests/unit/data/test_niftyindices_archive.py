@@ -72,3 +72,24 @@ def test_a_zip_is_accepted_only_when_sound_and_holding_pdfs():
     corrupt[40] ^= 0xFF  # flip a byte inside the stored member
     r = check_zip(bytes(corrupt))
     assert not r.ok and "corrupt member a.pdf" in r.reason
+
+
+def test_each_zip_rejection_carries_its_exact_fields():
+    from algo.data.providers.niftyindices_archive import ZipCheck
+
+    assert check_zip(b"junk") == ZipCheck(False, (), "not a zip file")
+    assert check_zip(make_zip({"readme.txt": b"hi"})) == ZipCheck(
+        False, ("readme.txt",), "no PDFs inside"
+    )
+    bad = check_zip(b"PK\x03\x04truncated")
+    assert bad.ok is False and bad.names == () and bad.reason.startswith("bad zip: ")
+    corrupt = bytearray(make_zip({"a.pdf": b"A" * 200}))
+    corrupt[40] ^= 0xFF
+    assert check_zip(bytes(corrupt)) == ZipCheck(False, (), "corrupt member a.pdf")
+
+
+def test_challenge_text_is_found_anywhere_in_the_first_4000_bytes_and_bad_bytes_do_not_crash():
+    assert classify(200, "text/html", b"x" * 3990 + b"captcha") == STOP
+    assert classify(200, "text/html", b"x" * 4000 + b"captcha") == OK  # beyond what we inspect
+    assert classify(200, "text/html", b"\xff\xfe CAPTCHA") == STOP  # undecodable bytes are ignored
+    assert classify(200, "application/zip", b"PK\x03\x04") == OK

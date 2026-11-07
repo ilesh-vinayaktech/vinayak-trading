@@ -1,0 +1,46 @@
+
+
+2. Replacements on account of semi-annual review of indices
+
+Further, the Index Maintenance Sub-Committee (IMSC) has decided to make the following
+replacement of stocks in various indices as part of its periodic review. These changes shall become
+effective from September 25, 2020 (close of September 24, 2020).
+
+a)      NIFTY 50
+
+The following companies are being excluded:
+
+     Sr. No.                   Company Name                             Symbol
+       1     Bharti Infratel Ltd.                                  INFRATEL
+       2     Zee Entertainment Enterprises Ltd.                    ZEEL
+
+The following companies are being included:
+
+     Sr. No.                  Company Name                               Symbol
+       1     Divi's Laboratories Ltd.                              DIVISLAB
+       2     SBI Life Insurance Company Ltd.                       SBILIFE
+
+The above replacements will also be applicable to NIFTY50 Equal Weight Index.
+
+b)      NIFTY Next 50
+
+The following companies are being excluded:
+
+     Sr. No.                    Company Name                             Symbol
+       1       Divi's Laboratories Ltd.                            DIVISLAB
+       2       NHPC Ltd.                                           NHPC
+       3       Page Industries Ltd.                                PAGEIND
+       4       SBI Life Insurance Company Ltd.                     SBILIFE
+       5       Shriram Transport Finance Co. Ltd.                  SRTRANSFIN
+The following companies are being included:
+
+     Sr. No.                     Company Name                   Symbol
+       1       Adani Green Energy Ltd.                     ADANIGREEN
+       2       Alkem Laboratories Ltd.                     ALKEM
+       3       Bharti Infratel Ltd.                        INFRATEL
+       4       Larsen & Toubro Infotech Ltd.               LTI
+       5       Tata Consumer Products Ltd.                 TATACONSUM
+
+c)      NIFTY 500
+
+The following companies are being excluded:

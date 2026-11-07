@@ -104,9 +104,22 @@ def test_nifty_200_is_compared_with_the_union_of_its_components():
         ("i:3", "in the Nifty 50 / Next 50 / Midcap 100 snapshots but not in Nifty 200")
     ]
     assert union_checks(snaps[:3]) == [] and union_checks([snap("NIFTY_200", M1, 1)]) == []
-    legacy = union_checks([snap("NIFTY_50", M1, 1), snap("NIFTY_NEXT_50", M1, 2),
-                           snap("MIDCAP_100_FULL", M1, 3), snap("NIFTY_200", M1, 1, 2, 3)])  # fmt: skip
-    assert legacy == []  # before 2018-04 the Full Midcap 100 is the third component
+    old = D(2017, 9, 29)
+    legacy = union_checks([snap("NIFTY_50", old, 1), snap("NIFTY_NEXT_50", old, 2),
+                           snap("MIDCAP_100_FULL", old, 3), snap("MIDCAP_100_FREE_FLOAT", old, 7),
+                           snap("NIFTY_200", old, 1, 2, 3)])  # fmt: skip
+    assert legacy == []  # before 2018-04 the FULL Midcap 100 is the third component, not free-float
+    after = D(2018, 4, 30)
+    assert union_checks([snap("NIFTY_50", after, 1), snap("NIFTY_NEXT_50", after, 2),
+                         snap("MIDCAP_100_FULL", after, 7), snap("NIFTY_200", after, 1, 2)]) == []  # fmt: skip
+
+
+def test_a_second_share_class_is_named_in_the_count_finding_not_hidden():
+    s = Snap("NIFTY_50", M1, {f"i:{i}": f"S{i}" for i in range(50)} | {"i:99": "TATAMTRDVR"})
+    out = count_checks([s])
+    assert len(out) == 1 and out[0].detail == (
+        "51 constituents, expected [50]; includes a second share class: TATAMTRDVR"
+    )
 
 
 def test_usual_sizes_are_expected_but_only_for_the_indices_we_know():

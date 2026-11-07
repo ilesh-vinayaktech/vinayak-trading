@@ -345,3 +345,23 @@ def test_pdf_extraction_gives_exactly_the_pages_and_fails_loudly_on_garbage():
     assert len(pages) == 2 and all(p.strip() for p in pages)  # two real pages, no phantom third
     with pytest.raises(subprocess.CalledProcessError):
         extract_pages(b"this is not a pdf")
+
+
+def test_lettered_section_headings_are_read_like_numbered_ones():
+    r = parse_release(load("lettered_sections_2020_08_20"), date(2020, 8, 20))
+    assert r.kind == KIND_REPLACEMENT_TABLES and r.effective_dates == (date(2020, 9, 25),)
+    comp = {(x.component, x.action) for x in r.component_rows}
+    assert {("NIFTY_50", "EXCLUDED"), ("NIFTY_50", "INCLUDED")} <= comp
+    assert {("NIFTY_NEXT_50", "EXCLUDED"), ("NIFTY_NEXT_50", "INCLUDED")} <= comp
+    nifty50 = [x for x in r.component_rows if x.component == "NIFTY_50"]
+    assert nifty50 and all(x.effective_from == date(2020, 9, 25) for x in nifty50)
+    assert {x.section_no for x in r.rows if x.component == "NIFTY_50"} == {
+        101
+    }  # a) -> 101, no clash
+    assert {x.section_no for x in r.rows if x.component == "NIFTY_NEXT_50"} == {102}
+
+
+def test_section_numbers_for_letters_never_collide_with_numbers():
+    from algo.data.providers.nse_index_releases import section_number
+
+    assert section_number("7") == 7 and section_number("a") == 101 and section_number("B") == 102

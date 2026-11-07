@@ -21,6 +21,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from algo.data.universe_derive import BOUNDARY
+
 EXPECTED = {
     "NIFTY_50": {50}, "NIFTY_NEXT_50": {50}, "NIFTY_100": {100}, "NIFTY_200": {200},
     "MIDCAP_100": {100}, "MIDCAP_100_FULL": {100},
@@ -123,7 +125,8 @@ def union_checks(snaps: list[Snap]) -> list[Diff]:
     out: list[Diff] = []
     for d, comp in sorted(by_date.items()):
         n200 = comp.get("NIFTY_200")
-        mid = comp.get("MIDCAP_100") or comp.get("MIDCAP_100_FULL")
+        # Nifty 200 used the Full Midcap 100 until the 2018-04-02 definition change
+        mid = comp.get("MIDCAP_100_FULL") if d < BOUNDARY else comp.get("MIDCAP_100")
         parts = [comp.get("NIFTY_50"), comp.get("NIFTY_NEXT_50"), mid]
         if n200 is None or any(p is None for p in parts):
             continue
@@ -145,7 +148,9 @@ def count_checks(snaps: list[Snap]) -> list[Diff]:
     for s in sorted(snaps, key=lambda x: (x.component, x.as_of)):
         want = EXPECTED.get(series(s.component))
         if want is not None and len(s.members) not in want:
-            why = f"{len(s.members)} constituents, expected {sorted(want)}"
+            dvr = sorted(sym for sym in s.members.values() if sym.endswith("DVR"))
+            note = f"; includes a second share class: {', '.join(dvr)}" if dvr else ""
+            why = f"{len(s.members)} constituents, expected {sorted(want)}{note}"
             out.append(Diff("COUNT_ANOMALY", series(s.component), None, s.as_of, "", "", why))
     return out
 
