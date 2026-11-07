@@ -29,6 +29,9 @@ if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
 out = Path(f"docs/benchmark-release-{a.version}")
 sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()  # noqa: E731
+EXTRA = [Path("config/session_secondary_evidence.json"),
+         Path("docs/session-evidence/legacy_bhavcopy_check.json"),
+         Path("docs/recovery/bhavcopy_2022-08-08.json")]  # fmt: skip
 FILES = ["benchmark_alignment_report.json", "session_reconciliation_report.json",
          "benchmark_unresolved_findings.json", "benchmark_eligibility.json",
          "benchmark_evidence_report.md", "audit_manifest.json"]  # fmt: skip
@@ -64,7 +67,8 @@ def current() -> dict:
         "benchmarks": bms,
         "audit_file_sha256": {f: sha(a.audit / f) for f in FILES},
         "calendar_inputs": {"sessions_file_sha256": sha("config/exchange_sessions.json"),
-                            "evidence_manifest_sha256": sha("docs/evidence-manifest.json")},
+                            "evidence_manifest_sha256": sha("docs/evidence-manifest.json"),
+                            **{f"{p.name}_sha256": sha(p) for p in EXTRA if p.exists()}},
         "eligibility": {n: {"state": b["state"], "uses": {u: x["eligible"] for u, x in b["uses"].items()}}
                         for n, b in elig["benchmarks"].items()},
         "instrument_level_blocked_dates": elig["instrument_level_blocked_dates"],

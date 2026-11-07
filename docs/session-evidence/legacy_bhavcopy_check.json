@@ -1,0 +1,666 @@
+{
+ "dates_checked": 22,
+ "note": "NSE legacy bhavcopy archive; confirms that the exchange traded on the date. It does not establish the purpose of the session or its opening and closing times.",
+ "results": [
+  {
+   "bytes": 21545,
+   "date": "1999-11-07",
+   "existence_confirmed": true,
+   "file_dates": [
+    "1999-11-07"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 901,
+    "date": "1999-11-09",
+    "file_dates": [
+     "1999-11-09"
+    ],
+    "symbols_in_both": 901
+   },
+   "previous_session": {
+    "close_equals_prev_close": 893,
+    "date": "1999-11-05",
+    "file_dates": [
+     "1999-11-05"
+    ],
+    "symbols_in_both": 893
+   },
+   "retrieved_at": "2026-11-07T16:56:49.899532+00:00",
+   "rows": 919,
+   "sha256": "760b07704908d746d0998eca700ccc03f45b1cc1a13e053421afcd09bf578aed",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/1999/NOV/cm07NOV1999bhav.csv.zip",
+   "weekday": "Sunday"
+  },
+  {
+   "bytes": 16966,
+   "date": "2003-03-22",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2003-03-22"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 635,
+    "date": "2003-03-24",
+    "file_dates": [
+     "2003-03-24"
+    ],
+    "symbols_in_both": 635
+   },
+   "previous_session": {
+    "close_equals_prev_close": 643,
+    "date": "2003-03-21",
+    "file_dates": [
+     "2003-03-21"
+    ],
+    "symbols_in_both": 643
+   },
+   "retrieved_at": "2026-11-07T16:57:13.869615+00:00",
+   "rows": 663,
+   "sha256": "e5d2945d42252863d097d4bdc3641c64405b676f4ddb38f6d84274746d6128f0",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2003/MAR/cm22MAR2003bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 17577,
+   "date": "2003-10-25",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2003-10-25"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 629,
+    "date": "2003-10-27",
+    "file_dates": [
+     "2003-10-27"
+    ],
+    "symbols_in_both": 629
+   },
+   "previous_session": {
+    "close_equals_prev_close": 627,
+    "date": "2003-10-24",
+    "file_dates": [
+     "2003-10-24"
+    ],
+    "symbols_in_both": 627
+   },
+   "retrieved_at": "2026-11-07T16:57:32.754921+00:00",
+   "rows": 632,
+   "sha256": "8fceb833426e045d9b6f44439fe2f935d848fa5f442d571db27bf3d9e6869f13",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2003/OCT/cm25OCT2003bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 18767,
+   "date": "2003-11-15",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2003-11-15"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 663,
+    "date": "2003-11-17",
+    "file_dates": [
+     "2003-11-17"
+    ],
+    "symbols_in_both": 663
+   },
+   "previous_session": {
+    "close_equals_prev_close": 666,
+    "date": "2003-11-14",
+    "file_dates": [
+     "2003-11-14"
+    ],
+    "symbols_in_both": 666
+   },
+   "retrieved_at": "2026-11-07T16:57:49.905315+00:00",
+   "rows": 668,
+   "sha256": "7c9c7974e6086906f57e44dde7194cb84c6422562757a6d0b6c3297c3cfeeca0",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2003/NOV/cm15NOV2003bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 20699,
+   "date": "2004-04-17",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2004-04-17"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 729,
+    "date": "2004-04-19",
+    "file_dates": [
+     "2004-04-19"
+    ],
+    "symbols_in_both": 729
+   },
+   "previous_session": {
+    "close_equals_prev_close": 734,
+    "date": "2004-04-16",
+    "file_dates": [
+     "2004-04-16"
+    ],
+    "symbols_in_both": 734
+   },
+   "retrieved_at": "2026-11-07T16:58:08.693430+00:00",
+   "rows": 739,
+   "sha256": "6287db389cf4a5a6c9cb744479850bef59ecf8ec0870223eb733c70167fa138e",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2004/APR/cm17APR2004bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 22880,
+   "date": "2004-10-09",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2004-10-09"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 791,
+    "date": "2004-10-11",
+    "file_dates": [
+     "2004-10-11"
+    ],
+    "symbols_in_both": 791
+   },
+   "previous_session": {
+    "close_equals_prev_close": 795,
+    "date": "2004-10-08",
+    "file_dates": [
+     "2004-10-08"
+    ],
+    "symbols_in_both": 795
+   },
+   "retrieved_at": "2026-11-07T16:58:27.096578+00:00",
+   "rows": 796,
+   "sha256": "77c569cfcab83dfbd79942c35c7d20a724d19fda78b3e677af00bfa17a930446",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2004/OCT/cm09OCT2004bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 24121,
+   "date": "2005-06-04",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2005-06-04"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 822,
+    "date": "2005-06-06",
+    "file_dates": [
+     "2005-06-06"
+    ],
+    "symbols_in_both": 822
+   },
+   "previous_session": {
+    "close_equals_prev_close": 820,
+    "date": "2005-06-03",
+    "file_dates": [
+     "2005-06-03"
+    ],
+    "symbols_in_both": 820
+   },
+   "retrieved_at": "2026-11-07T16:58:44.035431+00:00",
+   "rows": 822,
+   "sha256": "5505cee467e8d04bf9df16585563d82808057b5cbbbc322845da9e0b73956add",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2005/JUN/cm04JUN2005bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 25010,
+   "date": "2005-11-26",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2005-11-26"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 859,
+    "date": "2005-11-28",
+    "file_dates": [
+     "2005-11-28"
+    ],
+    "symbols_in_both": 859
+   },
+   "previous_session": {
+    "close_equals_prev_close": 858,
+    "date": "2005-11-25",
+    "file_dates": [
+     "2005-11-25"
+    ],
+    "symbols_in_both": 858
+   },
+   "retrieved_at": "2026-11-07T16:59:02.513532+00:00",
+   "rows": 859,
+   "sha256": "79c48869fee00596421ef7f26985299e9688735a7ffb21d60c697acc2af74a8e",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2005/NOV/cm26NOV2005bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 27080,
+   "date": "2006-04-29",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2006-04-29"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 919,
+    "date": "2006-05-02",
+    "file_dates": [
+     "2006-05-02"
+    ],
+    "symbols_in_both": 919
+   },
+   "previous_session": {
+    "close_equals_prev_close": 916,
+    "date": "2006-04-28",
+    "file_dates": [
+     "2006-04-28"
+    ],
+    "symbols_in_both": 916
+   },
+   "retrieved_at": "2026-11-07T16:59:20.087365+00:00",
+   "rows": 923,
+   "sha256": "6c72a6d89ba3f72d2ef208040305474803d1f87bb8d5ce8720087bd1bca6ba6d",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2006/APR/cm29APR2006bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 23959,
+   "date": "2006-06-25",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2006-06-25"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 875,
+    "date": "2006-06-26",
+    "file_dates": [
+     "2006-06-26"
+    ],
+    "symbols_in_both": 875
+   },
+   "previous_session": {
+    "close_equals_prev_close": 875,
+    "date": "2006-06-23",
+    "file_dates": [
+     "2006-06-23"
+    ],
+    "symbols_in_both": 875
+   },
+   "retrieved_at": "2026-11-07T16:59:43.977349+00:00",
+   "rows": 876,
+   "sha256": "bc941b920afbdc6b0c01b08897c428a3e9bf1c7faf7f6923cebe9721dcdaade5",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2006/JUN/cm25JUN2006bhav.csv.zip",
+   "weekday": "Sunday"
+  },
+  {
+   "bytes": 26755,
+   "date": "2006-10-21",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2006-10-21"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 935,
+    "date": "2006-10-23",
+    "file_dates": [
+     "2006-10-23"
+    ],
+    "symbols_in_both": 935
+   },
+   "previous_session": {
+    "close_equals_prev_close": 935,
+    "date": "2006-10-20",
+    "file_dates": [
+     "2006-10-20"
+    ],
+    "symbols_in_both": 935
+   },
+   "retrieved_at": "2026-11-07T17:00:02.024859+00:00",
+   "rows": 939,
+   "sha256": "dc4d1c64b47c6ad91216ef6e6f8bb074ce9f44bc932f06bafeb3c5d810d88fb9",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2006/OCT/cm21OCT2006bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 36188,
+   "date": "2009-10-17",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2009-10-17"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1269,
+    "date": "2009-10-20",
+    "file_dates": [
+     "2009-10-20"
+    ],
+    "symbols_in_both": 1269
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1275,
+    "date": "2009-10-16",
+    "file_dates": [
+     "2009-10-16"
+    ],
+    "symbols_in_both": 1275
+   },
+   "retrieved_at": "2026-11-07T17:00:20.081844+00:00",
+   "rows": 1278,
+   "sha256": "25cec9691f51b4db2d7e2d93438990b22fc4a4d0c3d549f86bb153772054e383",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2009/OCT/cm17OCT2009bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 35935,
+   "date": "2010-02-06",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2010-02-06"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1291,
+    "date": "2010-02-08",
+    "file_dates": [
+     "2010-02-08"
+    ],
+    "symbols_in_both": 1291
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1298,
+    "date": "2010-02-05",
+    "file_dates": [
+     "2010-02-05"
+    ],
+    "symbols_in_both": 1298
+   },
+   "retrieved_at": "2026-11-07T17:00:43.984601+00:00",
+   "rows": 1299,
+   "sha256": "9fe0dbb1a28e9cea488e11156e91bda97a2f8dc7844b6d2684333c262579e7fe",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2010/FEB/cm06FEB2010bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 44560,
+   "date": "2012-01-07",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2012-01-07"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1346,
+    "date": "2012-01-09",
+    "file_dates": [
+     "2012-01-09"
+    ],
+    "symbols_in_both": 1346
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1349,
+    "date": "2012-01-06",
+    "file_dates": [
+     "2012-01-06"
+    ],
+    "symbols_in_both": 1349
+   },
+   "retrieved_at": "2026-11-07T17:01:01.976669+00:00",
+   "rows": 1362,
+   "sha256": "362f4b7f085270a98c9e2866630546e4e7f3a7fa847b32d91f246b93f5a4655d",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2012/JAN/cm07JAN2012bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 46289,
+   "date": "2012-03-03",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2012-03-03"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1380,
+    "date": "2012-03-05",
+    "file_dates": [
+     "2012-03-05"
+    ],
+    "symbols_in_both": 1380
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1382,
+    "date": "2012-03-02",
+    "file_dates": [
+     "2012-03-02"
+    ],
+    "symbols_in_both": 1382
+   },
+   "retrieved_at": "2026-11-07T17:01:19.995225+00:00",
+   "rows": 1394,
+   "sha256": "28e7a70cf73bc77720128bad6d96c54474cc4d65508a2c9647c83d3fbf13a1c4",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2012/MAR/cm03MAR2012bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 44089,
+   "date": "2012-04-28",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2012-04-28"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1327,
+    "date": "2012-04-30",
+    "file_dates": [
+     "2012-04-30"
+    ],
+    "symbols_in_both": 1327
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1325,
+    "date": "2012-04-27",
+    "file_dates": [
+     "2012-04-27"
+    ],
+    "symbols_in_both": 1325
+   },
+   "retrieved_at": "2026-11-07T17:01:37.966482+00:00",
+   "rows": 1338,
+   "sha256": "da259ede3aee053c0ee73901aa9eddafebaec13df6933059d7f21e193b5a6c66",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2012/APR/cm28APR2012bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 45935,
+   "date": "2012-09-08",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2012-09-08"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1376,
+    "date": "2012-09-10",
+    "file_dates": [
+     "2012-09-10"
+    ],
+    "symbols_in_both": 1376
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1380,
+    "date": "2012-09-07",
+    "file_dates": [
+     "2012-09-07"
+    ],
+    "symbols_in_both": 1380
+   },
+   "retrieved_at": "2026-11-07T17:01:55.960440+00:00",
+   "rows": 1388,
+   "sha256": "14d062b0c733a2f41817c66d04cf694c2204c7e57c25006cdcc91a3ab8dd0cab",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2012/SEP/cm08SEP2012bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 41913,
+   "date": "2013-05-11",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2013-05-11"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1257,
+    "date": "2013-05-13",
+    "file_dates": [
+     "2013-05-13"
+    ],
+    "symbols_in_both": 1257
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1258,
+    "date": "2013-05-10",
+    "file_dates": [
+     "2013-05-10"
+    ],
+    "symbols_in_both": 1258
+   },
+   "retrieved_at": "2026-11-07T17:02:13.982929+00:00",
+   "rows": 1267,
+   "sha256": "9d0bc68811ef4c569703ae745161e5fe4d22a6baee88bbd9d276d0045536092d",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2013/MAY/cm11MAY2013bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 45000,
+   "date": "2013-11-03",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2013-11-03"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1275,
+    "date": "2013-11-05",
+    "file_dates": [
+     "2013-11-05"
+    ],
+    "symbols_in_both": 1275
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1281,
+    "date": "2013-11-01",
+    "file_dates": [
+     "2013-11-01"
+    ],
+    "symbols_in_both": 1281
+   },
+   "retrieved_at": "2026-11-07T17:02:32.047007+00:00",
+   "rows": 1315,
+   "sha256": "267e018ec74534baaf8438002272daea16362e485e994c1dfb9bab9b0eee3bb3",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2013/NOV/cm03NOV2013bhav.csv.zip",
+   "weekday": "Sunday"
+  },
+  {
+   "bytes": 45943,
+   "date": "2014-03-22",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2014-03-22"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1358,
+    "date": "2014-03-24",
+    "file_dates": [
+     "2014-03-24"
+    ],
+    "symbols_in_both": 1358
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1366,
+    "date": "2014-03-21",
+    "file_dates": [
+     "2014-03-21"
+    ],
+    "symbols_in_both": 1366
+   },
+   "retrieved_at": "2026-11-07T17:02:56.015195+00:00",
+   "rows": 1375,
+   "sha256": "a83a1b9924ccc4b2c396fca69235027fced18f210f6c009dc5f22a324f7e9410",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2014/MAR/cm22MAR2014bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 55728,
+   "date": "2015-02-28",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2015-02-28"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1502,
+    "date": "2015-03-02",
+    "file_dates": [
+     "2015-03-02"
+    ],
+    "symbols_in_both": 1502
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1505,
+    "date": "2015-02-27",
+    "file_dates": [
+     "2015-02-27"
+    ],
+    "symbols_in_both": 1505
+   },
+   "retrieved_at": "2026-11-07T17:03:14.055186+00:00",
+   "rows": 1534,
+   "sha256": "17741347f64e1ec11d188da503f5aa8ee48ebd45661b383e560f68519f08fb55",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2015/FEB/cm28FEB2015bhav.csv.zip",
+   "weekday": "Saturday"
+  },
+  {
+   "bytes": 58677,
+   "date": "2016-10-30",
+   "existence_confirmed": true,
+   "file_dates": [
+    "2016-10-30"
+   ],
+   "file_stored": true,
+   "next_session": {
+    "close_equals_prev_close": 1603,
+    "date": "2016-11-01",
+    "file_dates": [
+     "2016-11-01"
+    ],
+    "symbols_in_both": 1603
+   },
+   "previous_session": {
+    "close_equals_prev_close": 1609,
+    "date": "2016-10-28",
+    "file_dates": [
+     "2016-10-28"
+    ],
+    "symbols_in_both": 1609
+   },
+   "retrieved_at": "2026-11-07T17:03:32.100043+00:00",
+   "rows": 1626,
+   "sha256": "c2c0d671d8d4bbc8d20dbd5e18ebcb57267c603c3db8c8c69746fc73e86c624c",
+   "url": "https://nsearchives.nseindia.com/content/historical/EQUITIES/2016/OCT/cm30OCT2016bhav.csv.zip",
+   "weekday": "Sunday"
+  }
+ ]
+}

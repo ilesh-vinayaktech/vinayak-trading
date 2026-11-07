@@ -37,6 +37,7 @@ from algo.data.benchmark_audit import (
 from algo.data.benchmark_compare import correlation, wedge
 from algo.data.benchmark_eligibility import DAILY, INTRADAY, assess
 from algo.data.lake import LocalLake
+from algo.data.providers.nse_bhavcopy_legacy import parse as parse_legacy
 from algo.data.providers.nse_holidays import parse_holidays
 from algo.data.sessions import REGULAR_HOURS, calendar
 
@@ -123,13 +124,31 @@ with psycopg.connect(a.db) as conn:
         "SELECT DISTINCT ex_date FROM corporate_action WHERE kind='dividend'"))  # fmt: skip
     bar_days = dict(conn.execute("SELECT ts::date, count(*) FROM bar_1d GROUP BY 1").fetchall())
 
+LEGACY = Path("docs/session-evidence/legacy_bhavcopy_check.json")
+SECONDARY = Path("config/session_secondary_evidence.json")
+legacy_confirmed: dict[date, dict[str, Any]] = {}
+if LEGACY.exists():  # re-verify every cited file in the lake before trusting the record
+    for e_ in json.loads(LEGACY.read_text())["results"]:
+        d_ = date.fromisoformat(e_["date"])
+        if not e_.get("existence_confirmed"):
+            continue
+        m_ = lake.versions("nse", "bhav_legacy", d_)[-1]
+        if m_.checksum != e_["sha256"] or parse_legacy(lake.get(m_)).days != {d_}:
+            raise SystemExit(
+                f"{d_}: the stored legacy bhavcopy no longer matches the evidence record"
+            )
+        legacy_confirmed[d_] = {"url": e_["url"], "sha256": e_["sha256"],
+                                "retrieved_at": e_["retrieved_at"], "rows": e_["rows"]}  # fmt: skip
+secondary = json.loads(SECONDARY.read_text())["entries"] if SECONDARY.exists() else []
 ev = Evidence(
-    frozenset(p for p, s in latest if s in ("loaded", "noop")),
+    frozenset(p for p, s in latest if s in ("loaded", "noop")) | frozenset(legacy_confirmed),
     frozenset(p for p, s in latest if s == "not_published"),
     frozenset(p for p, s in latest if s == "quarantined"),
     min(p for p, _ in latest), max(p for p, _ in latest),
 )  # fmt: skip
 evidence_summary = {
+    "legacy_bhavcopy_confirmed_sessions": legacy_confirmed,
+    "secondary_evidence_on_purpose_and_hours": secondary,
     "bhavcopy_range": [ev.first, ev.last], "loaded": len(ev.traded),
     "not_published": len(ev.not_published), "quarantined": sorted(ev.quarantined),
     "note": "weekends are requested only for listed special sessions; before the range there is no "
@@ -321,14 +340,26 @@ findings = [
     ),
     item(
         "U03",
-        "Special-session kinds unconfirmed; some evidenced only by the benchmark",
+        "Special-session kinds are unconfirmed and their hours unknown"
+        + (
+            "; some are evidenced only by the benchmark"
+            if exceptions[BENCHMARK_ONLY_SESSION]
+            else ""
+        ),
         "MEDIUM",
         "UNRESOLVED",
         "session-evidence",
-        f"{len(listed)} listed sessions, kinds UNCONFIRMED, hours UNKNOWN; "
-        f"{len(exceptions[BENCHMARK_ONLY_SESSION])} have no bhavcopy, so their only evidence is the "
-        "benchmark (circular).",
-        [f"{refs_['S']}#benchmark_only_sessions", "config/exchange_sessions.json"],
+        f"{len(listed)} listed sessions; existence is confirmed by an exchange bhavcopy for "
+        f"{len(listed) - len(exceptions[BENCHMARK_ONLY_SESSION])} of them "
+        f"({len(legacy_confirmed)} via the legacy archive), but every kind is UNCONFIRMED and every "
+        f"opening and closing time UNKNOWN. {len(secondary)} have secondary (broker bulletin) "
+        "claims about purpose and hours, recorded but not promoted.",
+        [
+            f"{refs_['S']}#evidence",
+            "config/exchange_sessions.json",
+            "config/session_secondary_evidence.json",
+            "docs/session-evidence/legacy_bhavcopy_check.json",
+        ],
         False,
     ),
     item(

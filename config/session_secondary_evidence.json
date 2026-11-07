@@ -1,0 +1,22 @@
+{
+ "note": "SECONDARY evidence about the purpose and hours of special sessions: broker/press notices, not exchange circulars. It never changes kind_status or hours_status in exchange_sessions.json (which stay UNCONFIRMED / UNKNOWN); it is recorded so the claim is traceable and can be checked against the official circular later.",
+ "retrieved": "2026-11-07",
+ "entries": [
+  {
+   "date": "2015-02-28",
+   "claimed_kind": "Union Budget day session on a Saturday, described as regular trading",
+   "claimed_hours": "between 9am to 3.30pm (as written; the regular open was 09:15, so this is not a precise open time)",
+   "source": "Zerodha market bulletin 52900 (20 Feb 2015), which links a BSE notice (20150220-23) that was not opened; it names no NSE circular",
+   "url": "https://zerodha.com/marketintel/bulletin/52900/markets-to-remain-open-on-saturday-feb-28th-2015-presentation-of-union-budget",
+   "status": "SECONDARY_UNVERIFIED"
+  },
+  {
+   "date": "2016-10-30",
+   "claimed_kind": "Diwali Muhurat trading (equities, equity F&O, currency F&O, commodities)",
+   "claimed_hours": "6.30 pm to 7.30 pm",
+   "source": "Zerodha market bulletin 53006 (20 Oct 2016); cites no exchange circular. Press reports (Business Standard/PTI) appear in search results with the same window but were not opened",
+   "url": "https://zerodha.com/marketintel/bulletin/53006/muhurat-trading-session-on-account-of-diwali",
+   "status": "SECONDARY_UNVERIFIED"
+  }
+ ]
+}

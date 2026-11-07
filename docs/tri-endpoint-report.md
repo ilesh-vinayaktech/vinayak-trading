@@ -256,3 +256,26 @@ research must exclude 2022-08-08.
 audit-output hashes, calendar inputs, eligibility and unresolved findings in
 `docs/benchmark-release-1.0/release.json`; `--verify` fails on any drift. A correction creates a new
 release version; this one is never rewritten.
+
+## 2022-08-08 and the benchmark-only sessions (2026-11-07) -> benchmark-release-1.1
+
+**2022-08-08 recovered.** The quarantined file was a genuine `.xlsx` that NSE served under the CSV URL:
+2,255 rows, all dated 08-Aug-2022, same columns as the CSV. `providers/xlsx_table.py` (stdlib) reads it;
+a spreadsheet stores numbers as binary doubles (277.90 as `277.89999999999998`), so a number with more
+than 15 significant digits is replaced by the shortest decimal that round-trips, shorter numbers kept
+verbatim. Verification (`scripts/recover_bhavcopy.py`, `docs/recovery/bhavcopy_2022-08-08.json`): no
+duplicate main-board symbols, no OHLC/volume/turnover violations, no price with more than 4 decimals,
+PREV_CLOSE chain against the exchange's own 2022-08-05 and 2022-08-10 files 100% (1,943 and 1,947
+symbols), no instrument with bars on both neighbours missing, median stock move and all three index
+returns positive. Loaded 1,710 bars (neighbours 1,696 and 1,701); every loaded bar equals its xlsx row;
+263 symbols have no instrument in the master (neighbours 258/259). The raw file and sha256
+(`431a71e2...`) were never altered. Incident: a manifest was overwritten by an `xxd` argument mistake
+and restored under owner approval (`docs/recovery/incident_b0a7e50.json`).
+
+**The 22 benchmark-only sessions.** NSE's own legacy bhavcopy archive (`cmDDMONYYYYbhav.csv.zip`) holds
+a file for every one of them (1999-11-07 ... 2016-10-30), each dated exactly the session date, and for
+each the PREVCLOSE chain to the session before and after is 100% (`docs/session-evidence/`). Existence is
+therefore independently confirmed for all 22; **kind and hours are not**. Two secondary (broker bulletin)
+claims are recorded but not promoted (`config/session_secondary_evidence.json`): 2015-02-28 Union Budget
+Saturday, "between 9am to 3.30pm"; 2016-10-30 Diwali Muhurat 6.30-7.30 pm. No NSE circular was found for
+any of the 22; kind_status stays UNCONFIRMED and hours_status UNKNOWN for all 32 listed sessions.
