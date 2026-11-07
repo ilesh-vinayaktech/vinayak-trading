@@ -312,3 +312,10 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 - [x] Statistics, walk-forward, robustness, cost stress, gates, registry (details in `docs/validation.md`). 765 tests, 100% line+branch, validation package floored at 100%.
 - [x] `summary()` now looks up a stored report: only a PASSING report made against CONFIRMED thresholds clears `validation_protocol_passed`.
 - [ ] Owner confirms thresholds; the first strategy (Stage 4) is the first real user of the toolkit.
+
+
+## Benchmark loader (2026-11-07) - storage DONE, official TRI data NOT YET LOADED
+- [x] `data/benchmark.py` + migration 012: benchmark / benchmark_observation, immutable (DB trigger), PRICE / TOTAL_RETURN / NET_TOTAL_RETURN never mixed, conflicting re-ingest rejected, exact-date alignment (a gap is an error), `dataset_hash` + `references()` for report refs, `gate_returns()` refuses non-TOTAL_RETURN series.
+- [ ] **Acquire official historical TRI levels** (primary: Nifty 200 TRI gross; secondary: Nifty 50 TRI gross; diagnostic: Nifty 200 price) from NSE Indices, store the raw files in the lake, ingest. Do NOT approximate a TRI from a dividend yield. Until then benchmark gates fail for missing evidence.
+- [ ] **Point-in-time universe**: Nifty 200 membership must reflect additions/removals over time (we only hold the current snapshot) - required before any strategy result is trusted (survivorship bias).
+- [ ] Not yet: information ratio / beta reporting, lag/`methodology_version` handling across index methodology changes.
