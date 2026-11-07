@@ -64,8 +64,8 @@ Clusters found and resolved by reading the evidence (not by tuning):
   Nifty 100, Midcap 100 and Nifty 200 (5/5, 10/10, 6/6 changes) and a visual check of page 10. Provisional;
   no date was invented. The REIT/InvIT revocation in the 15 Sep release does not touch these indices.
 
-Still open: **2018-04 (101)** = the Midcap 100 definition change (expected, modelled as a boundary);
-2017-09 (8), 2017-12 (6), 2017-05 (4), 2023-08, 2026-04, 2026-06 (4 each).
+Still open at that point: 2018-04 (the definition change), 2017-09, 2017-12, 2017-05, 2023-08, 2026-04, 2026-06.
+Those smaller clusters were then CLASSIFIED (below), not "fixed".
 
 Also found: counts of 51 / 101 / 201 are real - the Tata Motors DVR (`TATAMTRDVR`) is a second share class of
 one company inside Nifty 50, Nifty 100 and Nifty 200 in some periods, so "50 / 100 / 200" counts SYMBOLS only
@@ -139,3 +139,60 @@ unambiguous, never guessed.
 Component-level reconstruction before the union; reading the 24 documents; finding releases published
 outside the press-release index (the Midcap 100 / Nifty 200 constituent files and factsheet archive);
 benchmark TRI history; verified cost schedules; confirmed validation thresholds.
+
+
+## Status against the stopping condition (2026-11-07)
+
+**Every finding now has a category** (`scripts/reconcile_monthly.py`, `data/reports/monthly_reconciliation.csv`):
+
+| Category | Count | Meaning |
+|---|---:|---|
+| METHODOLOGY_BOUNDARY | 92 | the 2018-04-02 Midcap 100 definition change - versioned, not an ordinary discrepancy |
+| SHARE_CLASS | 90 | symbol counts of 51/101/201: the Tata Motors DVR is a second share class of one company |
+| UNION_MISMATCH | 33 | Nifty 200 snapshot vs the union of its three components (not exact historically) |
+| PLACEHOLDER | 15 | DUMMY symbols of demerged entities (Jio Financial, Siemens Energy, Tata Motors, HUL, Vedanta) |
+| EVIDENCE_GAP | 13 | JIOFIN (Aug 2023), ITC Hotels (Jan-Feb 2025) and 11 count anomalies in months with a placeholder/successor |
+| IDENTITY_SPLIT | 0 | the Sep 2017 / Dec 2017 / May 2017 / Aug 2023 (Nestle) clusters were the SAME stock keyed two ways |
+
+The identity fix is not cosmetic: those windows listed one symbol as both an addition and a removal; the
+two sources keyed it by instrument id vs printed symbol because inferred aliases start later than the 2017
+snapshots. One symbol = one key is now used for the comparison (symbols that belong to two companies are
+excluded from the shortcut).
+
+**All three scanned releases are read and classified** (OCR + visual check, `config/transcriptions/`):
+23 Aug 2021 (constituent changes, matches the snapshots exactly), 24 Sep 2018 (Nifty CPSE only),
+19 Jun 2023 (consultation notice: Next 50 methodology change "kept on hold" - NOT a methodology change and
+NOT a constituent event; no effective date).
+
+**The 20 text documents still in the manual queue:** 6 from 2017-2021 and 3 from 2023-2024 have ZERO
+unexplained findings in the 120 days after them in every index that has snapshots (so they hide no
+unaccounted change; Midcap 100 / Nifty 200 cannot be checked after 2022-03). The other 11 are
+placeholder/demerger notices (Jio Financial 2023-07; ITC Hotels 2024-12/2025-02; Siemens Energy 2025-06;
+Tata Motors 2025-10/11; HUL spin-off 2025-11/2026-02; Vedanta x4 2026-06). Their effect is visible in the
+snapshots (DUMMY symbols, a short-lived successor listing) but their exact effective dates are NOT in the
+database: **strict mode must block those windows** (listed below).
+
+**Confirmed coverage** (every month-to-month transition reconciles, or differs only by an explained
+placeholder / share-class artefact). Confirmed means consistent at MONTH-END resolution; exact
+within-month dates still rest on the press releases.
+
+| Index | Range with snapshots | Confirmed | Not confirmed at |
+|---|---|---|---|
+| Nifty 200 | 2017-01 .. 2022-03 | 62/62 | - |
+| Nifty 100 | 2017-01 .. 2022-03 | 62/62 | - |
+| Midcap 100 | 2017-01 .. 2022-03 | 61/62 | 2018-04-30 (definition change) |
+| Full Midcap 100 | 2017-07 .. 2018-03 | 8/8 | - |
+| Nifty 50 | 2017-01 .. 2026-10 | 114/117 | 2023-08-31, 2025-01-31, 2025-02-28 |
+| Nifty Next 50 | 2017-01 .. 2022-03, 2024-04 .. 2026-10 | 92/93 | 2024-04-30; NO snapshots 2022-04 .. 2024-03 |
+
+**Not covered at all by official month-end evidence:** Nifty 200 and Midcap 100 after 2022-03; Next 50 from
+2022-04 to 2024-03. Those rest on press releases plus today's lists and must carry LOWER confidence.
+58/62 (the earlier figure) was an interim count; the table above is after classification and the identity
+fix, and it is still a statement about 2017-2022, not about the whole history.
+
+**Strict mode blocks:** every window listed under "Not confirmed" or "Not covered", the 11 placeholder
+windows, and any interval resting on an event with no effective date. Nothing here is declared as coverage
+or verified membership.
+
+**Frozen evidence:** `docs/evidence-manifest.json` (354 files, overall sha256 `ae6b7027...`; full list in
+`data/reports/evidence_manifest_full.json`) - parser versions: releases 6, monthly snapshots 2.

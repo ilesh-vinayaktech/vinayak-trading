@@ -15,15 +15,8 @@ from psycopg.types.json import Jsonb
 from algo.data.index_releases import map_symbol
 from algo.data.providers.nse_index_releases import PARSER_VERSION, canon
 
-REQUIRED = (
-    "doc_id",
-    "announced",
-    "effective_from",
-    "source_sha256",
-    "method",
-    "verification",
-    "rows",
-)
+REQUIRED = ("doc_id", "announced", "source_sha256", "method", "verification", "rows")
+CLASSES = ("PARSED", "NOT_RELEVANT")
 
 
 class TranscriptionError(Exception):
@@ -41,7 +34,17 @@ def store_transcription(
         raise TranscriptionError("a transcription must say how it was checked")
     if doc["source_sha256"] != actual_sha256:
         raise TranscriptionError("the stored original differs from the one that was transcribed")
-    doc_id, effective = doc["doc_id"], date.fromisoformat(doc["effective_from"])
+    label = doc.get("classification", "PARSED")
+    if label not in CLASSES:
+        raise TranscriptionError(f"classification must be one of {CLASSES}")
+    if doc["rows"] and label != "PARSED":
+        raise TranscriptionError("a transcription with constituent rows is PARSED")
+    if not doc["rows"] and (label == "PARSED" or not doc.get("summary")):
+        raise TranscriptionError("a transcription with no rows must be NOT_RELEVANT and say why")
+    if doc["rows"] and "effective_from" not in doc:
+        raise TranscriptionError("transcribed rows need their effective_from")
+    doc_id = doc["doc_id"]
+    effective = date.fromisoformat(doc["effective_from"]) if doc["rows"] else date.min
     row = conn.execute(
         "SELECT 1 FROM index_release_document WHERE doc_id=%s AND parser_version=%s",
         (doc_id, PARSER_VERSION),
@@ -62,13 +65,16 @@ def store_transcription(
                  f"OCR: {r['company']} {r['symbol']}", iid, status),
             )  # fmt: skip
             stored += cur.rowcount
-        if stored:
-            conn.execute(
-                "UPDATE index_release_document SET classification='PARSED',"
-                " classification_reason=%s, notes = notes || %s::jsonb"
-                " WHERE doc_id=%s AND parser_version=%s",
-                (f"scanned image, transcribed: {doc['method']}",
-                 Jsonb([{"transcription": doc["method"], "verification": doc["verification"]}]),
-                 doc_id, PARSER_VERSION),
-            )  # fmt: skip
+        note = {"transcription": doc["method"], "verification": doc["verification"]}
+        if doc.get("summary"):
+            note["summary"] = doc["summary"]
+        reason = f"scanned image, transcribed: {doc['method']}" + (
+            f" - {doc['summary']}" if doc.get("summary") else ""
+        )
+        conn.execute(
+            "UPDATE index_release_document SET classification=%s, classification_reason=%s,"
+            " notes = notes || %s::jsonb WHERE doc_id=%s AND parser_version=%s"
+            " AND NOT (notes @> %s::jsonb)",
+            (label, reason, Jsonb([note]), doc_id, PARSER_VERSION, Jsonb([note])),
+        )
     return stored

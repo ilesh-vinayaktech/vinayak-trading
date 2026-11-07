@@ -59,3 +59,47 @@ def test_a_transcription_of_a_different_file_or_without_checks_is_refused(conn):
     with pytest.raises(TranscriptionError, match="has not been parsed yet"):
         store_transcription(conn, {**DOC, "doc_id": "pr_other"}, actual_sha256="abc")
     assert conn.execute("SELECT count(*) FROM index_release_row").fetchone()[0] == 0
+
+
+def test_a_scan_that_changes_no_constituents_is_classified_not_relevant_with_its_reason(conn):
+    make_env(conn)
+    scanned(conn)
+    none = {"doc_id": "pr_scan", "announced": "2023-06-19", "source_sha256": "abc", "method": "OCR + visual",
+            "verification": ["read in full"], "rows": [], "classification": "NOT_RELEVANT",
+            "summary": "consultation notice; methodology change kept on hold"}  # fmt: skip
+    assert store_transcription(conn, none, actual_sha256="abc") == 0
+    cls, why, notes = conn.execute(
+        "SELECT classification, classification_reason, notes FROM index_release_document"
+    ).fetchone()
+    assert cls == "NOT_RELEVANT" and "kept on hold" in why and len(notes) == 1
+    assert store_transcription(conn, none, actual_sha256="abc") == 0
+    assert (
+        len(conn.execute("SELECT notes FROM index_release_document").fetchone()[0]) == 1
+    )  # not duplicated
+
+
+@pytest.mark.parametrize(
+    ("change", "msg"),
+    [
+        ({"classification": "PARSED"}, "no rows must be NOT_RELEVANT"),
+        ({"classification": "NOT_RELEVANT", "summary": ""}, "no rows must be NOT_RELEVANT"),
+        ({"classification": "WEIRD"}, "classification must be one of"),
+    ],
+)
+def test_a_rowless_transcription_must_be_not_relevant_and_explained(conn, change, msg):
+    make_env(conn)
+    scanned(conn)
+    base = {"doc_id": "pr_scan", "announced": "2023-06-19", "source_sha256": "abc", "method": "m",
+            "verification": ["v"], "rows": [], "classification": "NOT_RELEVANT", "summary": "why"}  # fmt: skip
+    with pytest.raises(TranscriptionError, match=msg):
+        store_transcription(conn, {**base, **change}, actual_sha256="abc")
+
+
+def test_rows_must_be_parsed_and_dated(conn):
+    make_env(conn)
+    scanned(conn)
+    with pytest.raises(TranscriptionError, match="constituent rows is PARSED"):
+        store_transcription(conn, {**DOC, "classification": "NOT_RELEVANT"}, actual_sha256="abc")
+    nodate = {k: v for k, v in DOC.items() if k != "effective_from"}
+    with pytest.raises(TranscriptionError, match="need their effective_from"):
+        store_transcription(conn, nodate, actual_sha256="abc")

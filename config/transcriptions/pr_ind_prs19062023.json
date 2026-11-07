@@ -1,0 +1,13 @@
+{
+ "doc_id": "pr_ind_prs19062023",
+ "announced": "2023-06-19",
+ "source_sha256": "03a9a561f6aecc243ae92367fd4e69b3e5dc0756eadda5cd8707946566db69f0",
+ "classification": "NOT_RELEVANT",
+ "summary": "Market consultation notice: the Nifty Next 50 stock-selection methodology revision 'has been kept on hold until further communication'. No methodology change, no constituent event, no effective date.",
+ "method": "OCR (rapidocr-onnxruntime, 300 dpi render of the scanned PDF)",
+ "verification": [
+  "OCR text read in full",
+  "visual check of the original page image (for 2023-06-19 the image supplied the final sentence the OCR had dropped)"
+ ],
+ "rows": []
+}

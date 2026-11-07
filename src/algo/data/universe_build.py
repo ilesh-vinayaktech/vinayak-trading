@@ -170,25 +170,47 @@ def _write(conn: psycopg.Connection, d: Derived, urls: dict[str, str], hashes: d
               source_url=urls[doc], source_hash=hashes[doc], now=now)  # fmt: skip
 
 
+def symbol_identity(conn: psycopg.Connection) -> dict[str, int]:
+    """symbol -> instrument id, for symbols that belong to exactly ONE instrument at any date. The
+    reconciliation compares two sources that both print symbols, so one symbol must be one key
+    whatever date each source was resolved at (alias validity can lag the evidence)."""
+    return {
+        r[0]: r[1]
+        for r in conn.execute(
+            "SELECT source_symbol, min(instrument_id) FROM instrument_alias WHERE source='nse'"
+            " GROUP BY source_symbol HAVING count(DISTINCT instrument_id) = 1"
+        )
+    }
+
+
+def _key(identity: dict[str, int], symbol: str) -> str:
+    return f"i:{identity[symbol]}" if symbol in identity else f"s:{symbol}"
+
+
 def load_monthly_snapshots(conn: psycopg.Connection) -> list[Snap]:
     """Parsed month-end snapshots (current parser version). A constituent is keyed by its permanent
     instrument id when its symbol resolved, else by the printed symbol, so nothing is dropped."""
     rows = conn.execute(
-        "SELECT s.component, s.as_of, c.instrument_id, c.symbol FROM index_monthly_snapshot s"
+        "SELECT s.component, s.as_of, c.symbol FROM index_monthly_snapshot s"
         " JOIN index_monthly_constituent c USING (snapshot_id)"
         " WHERE s.parser_version=%s AND s.component IS NOT NULL ORDER BY s.as_of, s.component",
         (MONTHLY_PARSER_VERSION,),
     ).fetchall()
+    identity = symbol_identity(conn)
     grouped: dict[tuple[str, date], dict[str, str]] = {}
-    for component, as_of, iid, symbol in rows:
-        grouped.setdefault((component, as_of), {})[f"i:{iid}" if iid else f"s:{symbol}"] = symbol
+    for component, as_of, symbol in rows:
+        grouped.setdefault((component, as_of), {})[_key(identity, symbol)] = symbol
     return [Snap(c, d, m) for (c, d), m in grouped.items()]
 
 
 def monthly_events(conn: psycopg.Connection) -> list[Ev]:
     """Press-release component events (voided releases excluded), in the snapshot vocabulary."""
     events, *_ = load_inputs(conn)
-    return [Ev(e.key, e.symbol, e.component, e.action, e.effective, e.doc_id) for e in events]
+    identity = symbol_identity(conn)
+    return [
+        Ev(_key(identity, e.symbol), e.symbol, e.component, e.action, e.effective, e.doc_id)
+        for e in events
+    ]
 
 
 def reconcile_monthly(conn: psycopg.Connection) -> tuple[list[Snap], list[Diff]]:

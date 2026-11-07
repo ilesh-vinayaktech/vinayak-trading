@@ -1,0 +1,13 @@
+{
+ "doc_id": "pr_ind_prs24092018",
+ "announced": "2018-09-24",
+ "source_sha256": "5611630fbe185e91523c0909af7e0edd4361a7362c23bc3517c969d9a3551b3f",
+ "classification": "NOT_RELEVANT",
+ "summary": "Concerns the NIFTY CPSE index only (out: CONCOR, GAIL, ENGINERSIN; in: NBCC, NLCINDIA, NTPC, SJVN; effective 2018-10-26). Not a Nifty 200 component index.",
+ "method": "OCR (rapidocr-onnxruntime, 300 dpi render of the scanned PDF)",
+ "verification": [
+  "OCR text read in full",
+  "visual check of the original page image (for 2023-06-19 the image supplied the final sentence the OCR had dropped)"
+ ],
+ "rows": []
+}

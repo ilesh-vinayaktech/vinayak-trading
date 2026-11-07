@@ -175,3 +175,89 @@ def reconcile(snaps: list[Snap], events: list[Ev]) -> list[Diff]:
         out += transitions(c, snaps, events)
     out += union_checks(snaps) + count_checks(snaps)
     return out
+
+
+def categorize(diffs: list[Diff]) -> list[tuple[Diff, str]]:
+    """A category for every finding, so none is left unexplained or silently accepted:
+
+    METHODOLOGY_BOUNDARY  the month of the 2018-04-02 Midcap 100 definition change
+    IDENTITY_SPLIT        one symbol is both added and removed in the same window: the two sources
+                          keyed the same stock differently (an identity artefact, not a change)
+    PLACEHOLDER           a DUMMY... symbol of a demerged entity
+    SHARE_CLASS           a second share class (DVR)
+    EVIDENCE_GAP          nothing explains it: a release is missing, unread or wrongly parsed
+    """
+    both = {
+        (d.component, d.end, d.symbol)
+        for d in diffs
+        if d.kind == "UNEXPLAINED_ADD"
+        and any(o.kind == "UNEXPLAINED_REMOVE" and (o.component, o.end, o.symbol)
+                == (d.component, d.end, d.symbol) for o in diffs)
+    }  # fmt: skip
+    out = []
+    for d in diffs:
+        if d.kind in ("UNEXPLAINED_ADD", "UNEXPLAINED_REMOVE", "EVENT_NOT_OBSERVED"):
+            if (d.end.year, d.end.month) == (BOUNDARY.year, BOUNDARY.month):
+                cat = "METHODOLOGY_BOUNDARY"
+            elif (d.component, d.end, d.symbol) in both:
+                cat = "IDENTITY_SPLIT"
+            elif d.symbol.startswith("DUMMY"):
+                cat = "PLACEHOLDER"
+            elif d.symbol.endswith("DVR"):
+                cat = "SHARE_CLASS"
+            else:
+                cat = "EVIDENCE_GAP"
+        elif d.kind == "COUNT_ANOMALY":
+            cat = "SHARE_CLASS" if "second share class" in d.detail else "EVIDENCE_GAP"
+        else:
+            cat = d.kind
+        out.append((d, cat))
+    return out
+
+
+@dataclass(frozen=True)
+class Span:
+    start: date  # first snapshot of a run
+    end: date  # last snapshot of the run
+    months: int
+
+
+@dataclass(frozen=True)
+class Coverage:
+    component: str
+    first: date
+    last: date
+    snapshots: int
+    transitions: int
+    clean: int
+    confirmed: tuple[Span, ...]  # runs of consecutive snapshots whose every transition reconciles
+    unconfirmed: tuple[date, ...]  # snapshot dates whose incoming transition does not reconcile
+
+
+UNCONFIRMING = ("UNEXPLAINED_ADD", "UNEXPLAINED_REMOVE", "EVENT_NOT_OBSERVED")
+
+
+def coverage(snaps: list[Snap], categorized: list[tuple[Diff, str]]) -> list[Coverage]:
+    """Per index, the date ranges that are CONFIRMED (every monthly transition agrees with the
+    press-release events, or differs only by an explained placeholder/share-class artefact) and the
+    snapshot dates that are not. Everything else must be treated as unresolved by strict mode."""
+    bad: dict[str, set[date]] = defaultdict(set)
+    for d, cat in categorized:
+        if d.kind in UNCONFIRMING and cat not in ("PLACEHOLDER", "SHARE_CLASS"):
+            bad[d.component].add(d.end)
+    out = []
+    for comp in sorted({series(s.component) for s in snaps}):
+        dates = sorted(s.as_of for s in snaps if series(s.component) == comp)
+        runs: list[list[date]] = [[dates[0]]]
+        unconfirmed = []
+        for prev, cur in zip(dates, dates[1:], strict=False):
+            if cur in bad[comp] or (cur - prev).days > 45:
+                unconfirmed.append(cur)
+                runs.append([cur])
+            else:
+                runs[-1].append(cur)
+        spans = tuple(Span(r[0], r[-1], len(r)) for r in runs if len(r) > 1)
+        transitions = len(dates) - 1
+        out.append(Coverage(comp, dates[0], dates[-1], len(dates), transitions,
+                            transitions - len(unconfirmed), spans, tuple(unconfirmed)))  # fmt: skip
+    return out

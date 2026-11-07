@@ -4,6 +4,7 @@ from algo.data.universe_monthly import (
     Diff,
     Ev,
     Snap,
+    categorize,
     count_checks,
     gap_checks,
     reconcile,
@@ -147,3 +148,61 @@ def test_reconcile_runs_every_check():
     assert reconcile([snap("NIFTY_50", M1, 1)], []) == [
         Diff("COUNT_ANOMALY", "NIFTY_50", None, M1, "", "", "1 constituents, expected [50]")
     ]
+
+
+def test_every_finding_gets_a_category_and_none_is_silently_accepted():
+    def d(kind, comp, end, sym, detail=""):
+        return Diff(kind, comp, None, end, f"i:{sym}", sym, detail)
+
+    june = D(2019, 6, 28)
+    diffs = [
+        d("UNEXPLAINED_ADD", "NIFTY_50", june, "HDFC"), d("UNEXPLAINED_REMOVE", "NIFTY_50", june, "HDFC"),
+        d("UNEXPLAINED_ADD", "NIFTY_50", june, "DUMMYX"), d("UNEXPLAINED_ADD", "NIFTY_50", june, "TATAMTRDVR"),
+        d("UNEXPLAINED_REMOVE", "NIFTY_50", june, "ABC"), d("EVENT_NOT_OBSERVED", "NIFTY_50", june, "DEF"),
+        d("UNEXPLAINED_ADD", "MIDCAP_100", D(2018, 4, 30), "XYZ"),
+        d("COUNT_ANOMALY", "NIFTY_50", june, "", "51 constituents, expected [50]; includes a second share class: TATAMTRDVR"),
+        d("COUNT_ANOMALY", "NIFTY_50", june, "", "49 constituents, expected [50]"),
+        d("UNION_MISMATCH", "NIFTY_200", june, "Q"),
+    ]  # fmt: skip
+    got = [c for _, c in categorize(diffs)]
+    assert got == ["IDENTITY_SPLIT", "IDENTITY_SPLIT", "PLACEHOLDER", "SHARE_CLASS", "EVIDENCE_GAP",
+                   "EVIDENCE_GAP", "METHODOLOGY_BOUNDARY", "SHARE_CLASS", "EVIDENCE_GAP", "UNION_MISMATCH"]  # fmt: skip
+    assert categorize([]) == []
+    # the same symbol added in one index and removed in ANOTHER is not an identity split
+    other = [
+        d("UNEXPLAINED_ADD", "NIFTY_100", june, "ZZZ"),
+        d("UNEXPLAINED_REMOVE", "NIFTY_50", june, "ZZZ"),
+    ]
+    assert [c for _, c in categorize(other)] == ["EVIDENCE_GAP", "EVIDENCE_GAP"]
+
+
+def test_coverage_lists_confirmed_runs_and_the_snapshots_that_break_them():
+    from algo.data.universe_monthly import coverage
+
+    dates = [
+        D(2020, 1, 31),
+        D(2020, 2, 28),
+        D(2020, 3, 31),
+        D(2020, 4, 30),
+        D(2020, 5, 29),
+        D(2020, 8, 31),
+    ]
+    snaps = [snap("NIFTY_50", d, 1) for d in dates]
+    bad = Diff("UNEXPLAINED_ADD", "NIFTY_50", D(2020, 2, 28), D(2020, 3, 31), "i:1", "S1", "x")
+    placeholder = Diff(
+        "UNEXPLAINED_ADD", "NIFTY_50", D(2020, 3, 31), D(2020, 4, 30), "i:2", "DUMMYX", "x"
+    )
+    share = Diff(
+        "UNEXPLAINED_REMOVE", "NIFTY_50", D(2020, 3, 31), D(2020, 4, 30), "i:3", "TATADVR", "x"
+    )
+    count = Diff("COUNT_ANOMALY", "NIFTY_50", None, D(2020, 5, 29), "", "", "51 constituents")
+    cov = coverage(snaps, categorize([bad, placeholder, share, count]))[0]
+    assert (cov.component, cov.first, cov.last, cov.snapshots, cov.transitions) == (
+        "NIFTY_50", D(2020, 1, 31), D(2020, 8, 31), 6, 5,
+    )  # fmt: skip
+    assert cov.unconfirmed == (D(2020, 3, 31), D(2020, 8, 31))  # the bad one, and a 3-month gap
+    assert cov.clean == 3  # placeholder, share-class and count findings do not break a run
+    assert [(s.start, s.end, s.months) for s in cov.confirmed] == [
+        (D(2020, 1, 31), D(2020, 2, 28), 2), (D(2020, 3, 31), D(2020, 5, 29), 3),
+    ]  # fmt: skip
+    assert coverage([], []) == []

@@ -392,3 +392,10 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 - [x] Scanned Sep 2021 release: re-fetched (same bytes); date documented on page 1 and in pr_ind_prs15092021; local OCR (rapidocr, throwaway env - NOT a project dependency) transcribed to `config/transcriptions/pr_ind_prs23082021.json`; EXACT match with the Aug->Sep 2021 official snapshots on all 5 indices + visual check; loaded PROVISIONAL via `scripts/apply_transcriptions.py` (hash-checked, idempotent). The SNAPSHOT_INFERRED_UNDATED fallback was not needed.
 - Reconcile exactly now: Nifty 50 107/117, Next 50 90/93, Nifty 100 60/62, Midcap 100 58/62, Nifty 200 58/62. Remaining: 2018-04 (definition change), 2017-09 (8), 2017-12 (6), 2017-05 (4), 2023-08 / 2026-04 / 2026-06 (4 each).
 - [ ] Other scanned releases still UNSUPPORTED: pr_ind_prs24092018, pr_ind_prs19062023 (Next 50 methodology) - same OCR route if needed. Strict-mode rule stands: undated/unverified intervals must block, never be filled.
+
+### Constituent-history round 4 (2026-11-07) - evidence FROZEN (not verified)
+- [x] All findings categorised (`categorize`); identity fix (one symbol = one key) removed the Sep/Dec/May 2017 and Nestle clusters; per-index coverage report (`coverage`); 3 scanned releases read (2 not relevant, 1 constituent changes) with OCR + visual check; zero-row transcriptions supported.
+- [x] Evidence manifest `docs/evidence-manifest.json` (`scripts/freeze_evidence.py`).
+- Stopping condition status: all discrepancies classified; strict-mode blocks listed in docs/universe-evidence-review.md; forward (month-to-month) and backward (from current lists) reconstructions both exist; fresh-clone + mutation to be re-run after this commit.
+- [ ] Still open (bounded, optional): hand-transcribe the 11 placeholder/demerger notices (Jio 2023-07, ITC Hotels, Siemens, Tata Motors, HUL spin-off, Vedanta) so their effective dates enter the database.
+- [ ] NEXT: TRI ingestion (Nifty 200 TRI primary, Nifty 50 TRI secondary, Nifty 200 price diagnostic only; gross and net kept separate).

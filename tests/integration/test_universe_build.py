@@ -180,3 +180,22 @@ def test_monthly_snapshots_reconcile_against_release_events_with_identity_kept(w
     assert ("UNEXPLAINED_ADD", "s:GONEX", "MIDCAP_100") in got  # visible even though unresolved
     assert ("UNEXPLAINED_ADD", f"i:{a}", "MIDCAP_100") not in got  # the INCLUDED event explains it
     assert ("UNEXPLAINED_REMOVE", f"i:{b}", "MIDCAP_100") in got  # b left, no event says so
+
+
+def test_a_symbol_has_one_identity_whatever_date_each_source_was_resolved_at(world):
+    from algo.data.universe_build import symbol_identity
+
+    conn, a, b = world
+    conn.execute(
+        "INSERT INTO instrument_alias VALUES (%s,'nse','LATE',NULL,'2030-01-01',NULL)", (a,)
+    )
+    conn.execute(
+        "INSERT INTO instrument_alias VALUES (%s,'nse','REUSED',NULL,'2000-01-01','2010-01-01')",
+        (a,),
+    )
+    conn.execute(
+        "INSERT INTO instrument_alias VALUES (%s,'nse','REUSED',NULL,'2012-01-01',NULL)", (b,)
+    )
+    ident = symbol_identity(conn)
+    assert ident["LATE"] == a  # valid only from 2030, yet it names this instrument at any date
+    assert "REUSED" not in ident  # two companies used it: the date decides, so no shortcut
