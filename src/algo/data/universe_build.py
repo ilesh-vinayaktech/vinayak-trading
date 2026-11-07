@@ -7,9 +7,11 @@ from datetime import date, datetime
 
 import psycopg
 
+from algo.data.providers.nse_index_monthly import PARSER_VERSION as MONTHLY_PARSER_VERSION
 from algo.data.providers.nse_index_releases import PARSER_VERSION
 from algo.data.universe import add_event
 from algo.data.universe_derive import BOUNDARY, M2, CEvent, Derived, Report, build_report
+from algo.data.universe_monthly import Diff, Ev, Snap, reconcile
 
 SNAPSHOT_INDEX = "NIFTY200"
 BACKWARD = "derived:backward-from-current-snapshot"
@@ -166,3 +168,29 @@ def _write(conn: psycopg.Connection, d: Derived, urls: dict[str, str], hashes: d
     add_event(conn, index_id=d.index_id, instrument_id=int(d.key[2:]), symbol=d.symbol,
               event_type=d.event_type, announcement_date=d.announced, effective_from=d.effective,
               source_url=urls[doc], source_hash=hashes[doc], now=now)  # fmt: skip
+
+
+def load_monthly_snapshots(conn: psycopg.Connection) -> list[Snap]:
+    """Parsed month-end snapshots (current parser version). A constituent is keyed by its permanent
+    instrument id when its symbol resolved, else by the printed symbol, so nothing is dropped."""
+    rows = conn.execute(
+        "SELECT s.component, s.as_of, c.instrument_id, c.symbol FROM index_monthly_snapshot s"
+        " JOIN index_monthly_constituent c USING (snapshot_id)"
+        " WHERE s.parser_version=%s AND s.component IS NOT NULL ORDER BY s.as_of, s.component",
+        (MONTHLY_PARSER_VERSION,),
+    ).fetchall()
+    grouped: dict[tuple[str, date], dict[str, str]] = {}
+    for component, as_of, iid, symbol in rows:
+        grouped.setdefault((component, as_of), {})[f"i:{iid}" if iid else f"s:{symbol}"] = symbol
+    return [Snap(c, d, m) for (c, d), m in grouped.items()]
+
+
+def monthly_events(conn: psycopg.Connection) -> list[Ev]:
+    """Press-release component events (voided releases excluded), in the snapshot vocabulary."""
+    events, *_ = load_inputs(conn)
+    return [Ev(e.key, e.symbol, e.component, e.action, e.effective, e.doc_id) for e in events]
+
+
+def reconcile_monthly(conn: psycopg.Connection) -> tuple[list[Snap], list[Diff]]:
+    snaps = load_monthly_snapshots(conn)
+    return snaps, reconcile(snaps, monthly_events(conn))

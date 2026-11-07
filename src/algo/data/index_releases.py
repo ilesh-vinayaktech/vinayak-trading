@@ -13,7 +13,7 @@ from algo.data.providers.nse_index_releases import PARSER_VERSION, Release
 SOURCE = "nse"
 
 
-def _map(
+def map_symbol(
     conn: psycopg.Connection, symbol: str, on: date, action: str = "INCLUDED"
 ) -> tuple[int | None, str]:
     """An EXCLUDED row is dated the first day the stock is NOT a member, so its symbol must resolve
@@ -47,7 +47,9 @@ def store_release(
         if cur.rowcount == 0:
             return 0
         for r in release.rows:
-            iid, status = _map(conn, r.symbol, r.effective_from or release.announced, r.action)
+            iid, status = map_symbol(
+                conn, r.symbol, r.effective_from or release.announced, r.action
+            )
             conn.execute(
                 "INSERT INTO index_release_row (doc_id,parser_version,page,section_no,section_name,"
                 "component,action,symbol,company,effective_from,related_symbol,raw_text,"
@@ -95,7 +97,7 @@ def classification_counts(conn: psycopg.Connection) -> dict[str, int]:
 
 def remap(conn: psycopg.Connection) -> int:
     """Re-resolve rows still UNMAPPED after instruments/aliases were added (same day rule as
-    `_map`). Returns rows fixed."""
+    `map_symbol`). Returns rows fixed."""
     on = "COALESCE(r.effective_from, DATE '9999-12-31') - (r.action = 'EXCLUDED')::int"
     return conn.execute(
         "UPDATE index_release_row r SET instrument_id=a.instrument_id, mapping_status='MAPPED'"

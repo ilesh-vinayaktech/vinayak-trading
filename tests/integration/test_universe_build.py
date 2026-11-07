@@ -150,3 +150,33 @@ def test_component_lists_are_loaded_and_checked_against_each_components_own_hist
     assert got == [
         ("BBB", "NIFTY_NEXT_50: last event is EXCLUDED but the current list says member")
     ]
+
+
+def test_monthly_snapshots_reconcile_against_release_events_with_identity_kept(world):
+    from algo.data.providers.nse_index_monthly import PARSER_VERSION as MV
+    from algo.data.universe_build import load_monthly_snapshots, monthly_events, reconcile_monthly
+
+    conn, a, b = world
+
+    def snapshot(component, as_of, rows):
+        sid = conn.execute(
+            "INSERT INTO index_monthly_snapshot (index_name,component,as_of,zip_hash,pdf_name,pdf_hash,"
+            "parser_version,problems,parsed_at) VALUES ('n',%s,%s,'z','p','h',%s,'[]',now())"
+            " RETURNING snapshot_id", (component, as_of, MV)).fetchone()[0]  # fmt: skip
+        for iid, sym in rows:
+            conn.execute("INSERT INTO index_monthly_constituent VALUES (%s,%s,'n','i',1,1,1,1,%s,%s)",
+                         (sid, sym, iid, "MAPPED" if iid else "UNMAPPED_SYMBOL"))  # fmt: skip
+
+    snapshot("MIDCAP_100", D(2019, 2, 28), [(b, "BBB")])
+    snapshot("MIDCAP_100", D(2019, 3, 29), [(a, "AAA"), (None, "GONEX")])  # AAA joined 2019-03-29
+    snaps = load_monthly_snapshots(conn)
+    assert {(s.component, s.as_of): dict(s.members) for s in snaps} == {
+        ("MIDCAP_100", D(2019, 2, 28)): {f"i:{b}": "BBB"},
+        ("MIDCAP_100", D(2019, 3, 29)): {f"i:{a}": "AAA", "s:GONEX": "GONEX"},
+    }
+    assert [e.key for e in monthly_events(conn)].count(f"i:{a}") == 2  # MIDCAP_100 + NIFTY_200 rows
+    _, diffs = reconcile_monthly(conn)
+    got = {(d.kind, d.key, d.component) for d in diffs}
+    assert ("UNEXPLAINED_ADD", "s:GONEX", "MIDCAP_100") in got  # visible even though unresolved
+    assert ("UNEXPLAINED_ADD", f"i:{a}", "MIDCAP_100") not in got  # the INCLUDED event explains it
+    assert ("UNEXPLAINED_REMOVE", f"i:{b}", "MIDCAP_100") in got  # b left, no event says so

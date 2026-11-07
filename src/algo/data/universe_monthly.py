@@ -1,0 +1,172 @@
+"""Reconcile official month-end SNAPSHOTS with press-release EVENTS, component by component.
+
+For consecutive snapshots k and k+1 of one index: start from k, apply the events whose effective
+date falls in (date_k, date_k+1] (a change effective on day D is in the close-of-day snapshot of any
+date >= D), and compare with k+1. Whatever differs is a finding, never silently fixed:
+
+  UNEXPLAINED_ADD / UNEXPLAINED_REMOVE   the snapshot changed with no event that explains it
+  EVENT_NOT_OBSERVED                      an event's effect is not in the next snapshot
+  UNION_MISMATCH                          Nifty 200 snapshot vs its components in the same month
+  COUNT_ANOMALY                           a snapshot does not have the index's usual size
+  GAP                                     a month with no snapshot (the window spans two months)
+
+Snapshots are month-END evidence: they say nothing about the days between, and no event date is
+manufactured from them. Free-float and plain 'Midcap 100' are one index (renamed 2018-04-02); the
+Full Midcap 100 is a different index and stays separate."""
+
+from __future__ import annotations
+
+from collections import defaultdict
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from datetime import date, timedelta
+
+EXPECTED = {
+    "NIFTY_50": {50}, "NIFTY_NEXT_50": {50}, "NIFTY_100": {100}, "NIFTY_200": {200},
+    "MIDCAP_100": {100}, "MIDCAP_100_FULL": {100},
+}  # fmt: skip
+CONTEXT_DAYS = 45
+
+
+def series(component: str) -> str:
+    """The Free-float Midcap 100 and Nifty Midcap 100 are one index under two names."""
+    return "MIDCAP_100" if component == "MIDCAP_100_FREE_FLOAT" else component
+
+
+@dataclass(frozen=True)
+class Snap:
+    component: str
+    as_of: date
+    members: Mapping[str, str]  # key ("i:<id>" or "s:<SYMBOL>") -> symbol as printed
+
+
+@dataclass(frozen=True)
+class Ev:
+    key: str
+    symbol: str
+    component: str
+    action: str  # INCLUDED | EXCLUDED
+    effective: date
+    doc: str
+
+
+@dataclass(frozen=True)
+class Diff:
+    kind: str
+    component: str
+    start: date | None  # previous snapshot date
+    end: date  # snapshot date the finding is about
+    key: str
+    symbol: str
+    detail: str
+    context: tuple[str, ...] = ()  # nearby events for this key, to read mid-month changes
+
+
+def _context(events: Iterable[Ev], key: str, around: date) -> tuple[str, ...]:
+    lo, hi = around - timedelta(days=CONTEXT_DAYS), around + timedelta(days=CONTEXT_DAYS)
+    return tuple(
+        f"{e.effective} {e.component} {e.action} ({e.doc})"
+        for e in sorted(events, key=lambda x: x.effective)
+        if e.key == key and lo <= e.effective <= hi
+    )
+
+
+def transitions(component: str, snaps: list[Snap], events: list[Ev]) -> list[Diff]:
+    """Snapshot k + events in (date_k, date_k+1]  vs  snapshot k+1, for one index."""
+    snaps = sorted((s for s in snaps if series(s.component) == component), key=lambda s: s.as_of)
+    evs = [e for e in events if series(e.component) == component]
+    out: list[Diff] = []
+    for prev, cur in zip(snaps, snaps[1:], strict=False):
+        window = sorted(
+            (e for e in evs if prev.as_of < e.effective <= cur.as_of), key=lambda e: e.effective
+        )
+        predicted = dict(prev.members)
+        last_action: dict[str, str] = {}
+        for e in window:
+            last_action[e.key] = e.action
+            if e.action == "INCLUDED":
+                predicted[e.key] = e.symbol
+            else:
+                predicted.pop(e.key, None)
+        names = {**prev.members, **cur.members, **{e.key: e.symbol for e in window}}
+        far = " (snapshots >45 days apart)" if (cur.as_of - prev.as_of).days > 45 else ""
+        for key in sorted(set(cur.members) ^ set(predicted)):
+            in_cur = key in cur.members
+            action = last_action.get(key)
+            if in_cur and action == "EXCLUDED":
+                kind, why = (
+                    "EVENT_NOT_OBSERVED",
+                    "a removal event is in the window, yet it is still a member",
+                )
+            elif not in_cur and action == "INCLUDED":
+                kind, why = (
+                    "EVENT_NOT_OBSERVED",
+                    "an inclusion event is in the window, yet it is not a member",
+                )
+            elif in_cur:
+                kind, why = "UNEXPLAINED_ADD", "in the snapshot, but no event adds it"
+            else:
+                kind, why = (
+                    "UNEXPLAINED_REMOVE",
+                    "was a member, no event removes it, yet it is gone",
+                )
+            out.append(Diff(kind, component, prev.as_of, cur.as_of, key, names[key], why + far,
+                            _context(evs, key, cur.as_of)))  # fmt: skip
+    return out
+
+
+def union_checks(snaps: list[Snap]) -> list[Diff]:
+    """Nifty 200 snapshot against the union of its components in the same month."""
+    by_date: dict[date, dict[str, Snap]] = defaultdict(dict)
+    for s in snaps:
+        by_date[s.as_of][series(s.component)] = s
+    out: list[Diff] = []
+    for d, comp in sorted(by_date.items()):
+        n200 = comp.get("NIFTY_200")
+        mid = comp.get("MIDCAP_100") or comp.get("MIDCAP_100_FULL")
+        parts = [comp.get("NIFTY_50"), comp.get("NIFTY_NEXT_50"), mid]
+        if n200 is None or any(p is None for p in parts):
+            continue
+        union: dict[str, str] = {}
+        for p in parts:
+            assert p is not None
+            union.update(p.members)
+        for key in sorted(set(union) - set(n200.members)):
+            why = "in the Nifty 50 / Next 50 / Midcap 100 snapshots but not in Nifty 200"
+            out.append(Diff("UNION_MISMATCH", "NIFTY_200", None, d, key, union[key], why))
+        for key in sorted(set(n200.members) - set(union)):
+            why = "in the Nifty 200 snapshot but in none of its three components"
+            out.append(Diff("UNION_MISMATCH", "NIFTY_200", None, d, key, n200.members[key], why))
+    return out
+
+
+def count_checks(snaps: list[Snap]) -> list[Diff]:
+    out = []
+    for s in sorted(snaps, key=lambda x: (x.component, x.as_of)):
+        want = EXPECTED.get(series(s.component))
+        if want is not None and len(s.members) not in want:
+            why = f"{len(s.members)} constituents, expected {sorted(want)}"
+            out.append(Diff("COUNT_ANOMALY", series(s.component), None, s.as_of, "", "", why))
+    return out
+
+
+def gap_checks(component: str, snaps: list[Snap], start: date, end: date) -> list[Diff]:
+    """Month-ends in [start, end] that have no snapshot for this index."""
+    have = {(s.as_of.year, s.as_of.month) for s in snaps if series(s.component) == component}
+    out, y, m = [], start.year, start.month
+    while (y, m) <= (end.year, end.month):
+        if (y, m) not in have:
+            out.append(
+                Diff("GAP", component, None, date(y, m, 1), "", "", "no snapshot for this month")
+            )
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def reconcile(snaps: list[Snap], events: list[Ev]) -> list[Diff]:
+    comps = sorted({series(s.component) for s in snaps})
+    out: list[Diff] = []
+    for c in comps:
+        out += transitions(c, snaps, events)
+    out += union_checks(snaps) + count_checks(snaps)
+    return out
