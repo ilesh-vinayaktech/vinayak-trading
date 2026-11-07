@@ -104,3 +104,37 @@ def test_file_date_reports_the_single_date_a_file_really_holds():
     assert file_date(b"A,B\n1,2\n") is None  # no DATE1 column: a blank date cannot parse
     assert file_date(b"\xff\xfe") is None  # not text
     assert file_date((hdr + "A, EQ, notadate, 1\n").encode()) is None
+
+
+def _xlsx_of(csv_bytes: bytes) -> bytes:
+    """The same table as a spreadsheet, as NSE served 2022-08-08 under the CSV url."""
+    import csv
+    import io
+    import zipfile
+
+    ns = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    rows = list(csv.reader(io.StringIO(csv_bytes.decode())))
+    cols = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    body = "".join(
+        f'<row r="{i}">' + "".join(
+            f'<c r="{cols[j]}{i}" t="inlineStr"><is><t>{v}</t></is></c>' for j, v in enumerate(r)
+        ) + "</row>" for i, r in enumerate(rows, 1)
+    )  # fmt: skip
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr(
+            "xl/worksheets/sheet1.xml", f"<worksheet {ns}><sheetData>{body}</sheetData></worksheet>"
+        )
+    return buf.getvalue()
+
+
+def test_a_spreadsheet_served_under_the_csv_url_parses_to_the_same_bars_and_date():
+    from algo.data.providers.nse_bhavcopy import file_date
+
+    x = _xlsx_of(RAW)
+    assert x != RAW and x[:2] == b"PK"
+    assert list(P.parse("bhav", D0, x)) == list(P.parse("bhav", D0, RAW))
+    assert file_date(x) == D0 == file_date(RAW)
+    assert file_date(b"PK\x03\x04junk") is None  # an unreadable spreadsheet has no date
+    with pytest.raises(ParseError, match="not a readable xlsx"):
+        P.parse("bhav", D0, b"PK\x03\x04junk")

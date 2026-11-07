@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 from algo.core.calendar import SessionCalendar
 from algo.data.bars import Bar, Freq
 from algo.data.providers.base import NotPublishedError, ParseError
+from algo.data.providers.xlsx_table import is_xlsx, xlsx_to_csv
 
 URL = "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{ddmmyyyy}.csv"
 SERIES = frozenset({"EQ", "BE", "BZ"})
@@ -28,18 +29,24 @@ def _opt(v: str | None) -> Decimal | None:
     return None if v in (None, "", "-") else _dec(v)
 
 
+def _text(raw: bytes) -> str:
+    """The file as CSV text. NSE has served a spreadsheet (.xlsx bytes) under the CSV URL; its cells
+    are read exactly as stored. The raw bytes in the lake are never altered."""
+    return (xlsx_to_csv(raw) if is_xlsx(raw) else raw).decode("utf-8")
+
+
 def file_date(raw: bytes) -> date | None:
     """The single trading date a bhavcopy file actually holds (its DATE1 column), or None when the
     file is empty, has no such column or mixes dates. NSE re-serves the last session's file on
     holidays, and a Muhurat session's data can appear in the NEXT holiday's file."""
     try:
-        reader = csv.DictReader(io.StringIO(raw.decode("utf-8")))
+        reader = csv.DictReader(io.StringIO(_text(raw)))
         reader.fieldnames = [h.strip() for h in reader.fieldnames or []]
         days = {
             datetime.strptime((r.get("DATE1") or "").strip(), "%d-%b-%Y").replace(tzinfo=UTC).date()
             for r in reader
         }
-    except (UnicodeDecodeError, ValueError, csv.Error):
+    except (UnicodeDecodeError, ValueError, csv.Error, ParseError):
         return None
     return days.pop() if len(days) == 1 else None
 
@@ -65,7 +72,7 @@ class NseBhavcopy:
 
     def parse(self, dataset: str, d: date, raw: bytes) -> Iterable[Bar]:
         try:
-            reader = csv.DictReader(io.StringIO(raw.decode("utf-8")))
+            reader = csv.DictReader(io.StringIO(_text(raw)))
             reader.fieldnames = [h.strip() for h in reader.fieldnames or []]
             missing = REQUIRED - set(reader.fieldnames)
             if missing:
