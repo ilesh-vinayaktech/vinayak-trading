@@ -177,3 +177,14 @@ listed separately in `owner_accepted_findings`, bound to the dataset hash (any c
 are all in 2004-2009 high-volatility sessions; none is a special session; two (2008-01-21) coincide
 with split ex-dates of non-Nifty-50 names. Not investigated against constituent composition or
 rebalancing; it is a consistency check between related indices, not independent verification.
+
+## Session metadata (2026-11-07)
+
+`SessionCalendar.session_info(d)` keeps four facts apart: **existence** (EVIDENCED from the
+sessions file / RULE weekday / NONE closed), **kind_status** (CONFIRMED | UNCONFIRMED), **hours**
+and **hours_status** (VERIFIED | UNKNOWN | RULE), and **bar_visibility** (RULE | ASSUMPTION - regular
+hours are applied to an unknown-hours session only so bars can be made visible). `sessions.load`
+refuses hours without a VERIFIED status and VERIFIED without hours. All 28 sessions in
+`config/exchange_sessions.json` are EVIDENCED / UNCONFIRMED / UNKNOWN / ASSUMPTION. The regular rule
+is the current 09:15-15:30 and is not verified for earlier years. 2022-08-08 (quarantined bhavcopy)
+stays listed as unresolved in every benchmark validation report.

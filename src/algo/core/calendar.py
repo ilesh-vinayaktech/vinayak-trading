@@ -3,11 +3,29 @@ Bar timestamps are bar-OPEN, UTC. A bar is visible only after it closes."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from algo.core.clock import require_utc
+
+
+@dataclass(frozen=True)
+class SessionInfo:
+    """What is known about one day's session, kept apart so nothing provisional reads as verified.
+    existence: EVIDENCED (listed from data) | RULE (weekday, not a holiday) | NONE (closed).
+    kind_status: CONFIRMED | UNCONFIRMED | NOT_APPLICABLE.
+    hours_status: VERIFIED | RULE (the regular session) | UNKNOWN (not documented).
+    bar_visibility: RULE | ASSUMPTION (regular hours applied only so bars can be made visible)."""
+
+    day: date
+    session_type: str
+    existence: str
+    kind_status: str
+    hours: tuple[time, time] | None
+    hours_status: str
+    bar_visibility: str
 
 
 class SessionCalendar:
@@ -21,12 +39,15 @@ class SessionCalendar:
         holidays: Iterable[date] = (),
         special: dict[date, tuple[time, time]] | None = None,
         special_kinds: dict[date, str] | None = None,
+        special_status: Mapping[date, tuple[str, str]] | None = None,
     ) -> None:
         self.tz = ZoneInfo(tz)
         self.open_t, self.close_t = open_t, close_t
         self.holidays = frozenset(holidays)
         self.special = special or {}  # Muhurat etc: date -> (open, close)
         self.special_kinds = special_kinds or {}  # date -> "SPECIAL" | "MUHURAT" (default SPECIAL)
+        # date -> (kind_status, hours_status); absent means unconfirmed kind and unknown hours
+        self.special_status = special_status or {}
 
     def _hours(self, d: date) -> tuple[time, time] | None:
         if d in self.special:
@@ -41,6 +62,18 @@ class SessionCalendar:
         if d in self.special:
             return self.special_kinds.get(d, "SPECIAL")
         return "CLOSED" if self._hours(d) is None else "REGULAR"
+
+    def session_info(self, d: date) -> SessionInfo:
+        kind = self.session_type(d)
+        if d in self.special:
+            ks, hs = self.special_status.get(d, ("UNCONFIRMED", "UNKNOWN"))
+            verified = hs == "VERIFIED"
+            return SessionInfo(d, kind, "EVIDENCED", ks, self.special[d] if verified else None,
+                               hs, "RULE" if verified else "ASSUMPTION")  # fmt: skip
+        if kind == "CLOSED":
+            return SessionInfo(d, kind, "NONE", "NOT_APPLICABLE", None, "NOT_APPLICABLE", "RULE")
+        return SessionInfo(d, kind, "RULE", "NOT_APPLICABLE", (self.open_t, self.close_t), "RULE",
+                           "RULE")  # fmt: skip
 
     def is_trading_day(self, d: date) -> bool:
         return self._hours(d) is not None
@@ -91,7 +124,8 @@ def nse(
     holidays: Iterable[date] = (),
     special: dict[date, tuple[time, time]] | None = None,
     special_kinds: dict[date, str] | None = None,
+    special_status: Mapping[date, tuple[str, str]] | None = None,
 ) -> SessionCalendar:
     return SessionCalendar(
-        "Asia/Kolkata", time(9, 15), time(15, 30), holidays, special, special_kinds
+        "Asia/Kolkata", time(9, 15), time(15, 30), holidays, special, special_kinds, special_status
     )
