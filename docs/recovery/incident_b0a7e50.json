@@ -1,0 +1,18 @@
+{
+ "incident": "accidental overwrite of the lake manifest for nse/bhav/dt=2022-08-08 version 1",
+ "cause": "a diagnostic command `xxd <v0001.bin> <v0001.manifest.json>` was run with an unquoted two-file glob; xxd's second positional argument is its OUTPUT file, so the manifest was replaced by a hex dump of the raw file",
+ "raw_file_affected": false,
+ "raw_file_sha256": "431a71e2774243590bcdf24379599e8d299eae811dacce54af98fb3054194f7d",
+ "raw_file_bytes": 233582,
+ "corrupted_manifest_backup": "/tmp/myvendor-trading-recovery/incident-b0a7e50/v0001.manifest.corrupted",
+ "corrupted_manifest_sha256": "effab30d5572ec98324e23a4d9940e97292d2e1a28b06128fbadbe6e88215ed6",
+ "corrupted_manifest_bytes": 992730,
+ "restored_from": "the manifest text printed by `cat` earlier in the same session (before the overwrite), staged outside the lake and validated: valid JSON, checksum field equals the sha256 of the raw file, size field equals the raw file length",
+ "restored_at_utc": "2026-11-07T16:49:07Z",
+ "restoration_method": "install to v0001.manifest.json.restore in the same directory, then atomic rename, approved by the owner",
+ "verification": {
+  "lake.versions": "1 version, checksum 431a71e27742",
+  "lake.get": "sha256 re-verified, 233582 bytes"
+ },
+ "release_impact": "benchmark-release-1.0 untouched (its inputs were hashed in the database and audit outputs, not this manifest)"
+}

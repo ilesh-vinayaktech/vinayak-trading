@@ -65,3 +65,18 @@ def test_a_sheet_without_shared_strings_is_fine():
 def test_elements_in_a_row_that_are_not_cells_are_ignored():
     raw = make('<row r="1"><extLst/><c r="A1"><v>1</v></c></row><other/>')
     assert xt.xlsx_rows(raw) == [["1"]]
+
+
+def test_a_binary_double_artefact_is_shortened_but_real_precision_is_kept():
+    row = (
+        '<row r="1"><c r="A1"><v>277.89999999999998</v></c><c r="B1"><v>108.10</v></c>'
+        '<c r="C1"><v>-2254.8000000000002</v></c><c r="D1"><v>1687369</v></c>'
+        '<c r="E1" t="n"><v>0.30000000000000004</v></c><c r="F1" t="str"><v>277.89999999999998</v></c>'
+        '<c r="G1"><v>1.2345678901234567e-05</v></c></row>'
+    )
+    assert xt.xlsx_rows(make(row)) == [
+        ["277.9", "108.10", "-2254.8", "1687369", "0.30000000000000004", "277.89999999999998",
+         "1.2345678901234567e-05"]
+    ]  # fmt: skip
+    assert xt._number("12345678901234567") == "12345678901234567"  # repr would need an exponent
+    assert xt._number("abcdefghijklmnopq") == "abcdefghijklmnopq"  # not a number: untouched

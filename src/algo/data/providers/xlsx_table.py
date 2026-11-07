@@ -1,8 +1,10 @@
 """Minimal, dependency-free reader for the first sheet of an .xlsx file, used when an exchange
-publishes a table as a spreadsheet although the URL says CSV. Cell text is taken EXACTLY as stored
-in the XML (a number stays '108.1', never a float), so converting to CSV loses nothing. The raw
-file is never modified; this only reads it. Inputs are untrusted: sizes are capped and only the
-two parts needed (the sheet and the shared strings) are opened."""
+publishes a table as a spreadsheet although the URL says CSV. Cell text is taken as stored in the
+XML, with ONE normalisation: a spreadsheet stores numbers as binary doubles, so 277.90 can be
+stored as '277.89999999999998'. A number with more than 15 significant digits is a double artefact
+(Excel itself shows 15) and is replaced by the shortest decimal that round-trips to the same double
+('277.9'). Shorter numbers are kept verbatim ('108.10'). The raw file is never modified; this only
+reads it. Inputs are untrusted: sizes are capped and only the two parts needed are opened."""
 
 from __future__ import annotations
 
@@ -32,6 +34,18 @@ def _read(z: zipfile.ZipFile, name: str) -> bytes:
     if info.file_size > MAX_PART_BYTES:
         raise ParseError(f"{name}: {info.file_size} bytes exceeds the {MAX_PART_BYTES} cap")
     return z.read(name)
+
+
+def _number(text: str) -> str:
+    """Undo the binary-double artefact of a spreadsheet number (see the module docstring)."""
+    digits = text.lstrip("-").replace(".", "")
+    if len(digits) <= 15 or "e" in text.lower():
+        return text
+    try:
+        short = repr(float(text))
+    except ValueError:
+        return text
+    return text if "e" in short else short
 
 
 def _col(letters: str) -> int:
@@ -86,7 +100,7 @@ def xlsx_rows(raw: bytes) -> list[list[str]]:
                     except (ValueError, IndexError) as e:
                         raise ParseError(f"bad shared string index {v!r}") from e
                 else:
-                    text = v
+                    text = _number(v) if kind in (None, "n") else v
             cells[_col(m.group(1))] = text
         width = max(cells) + 1 if cells else 0
         rows.append([cells.get(i, "") for i in range(width)])

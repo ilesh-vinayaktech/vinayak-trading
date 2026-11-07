@@ -1,0 +1,157 @@
+{
+ "bars_loaded": 1710,
+ "benchmark_returns_same_day": {
+  "1": {
+   "previous": "2022-08-05",
+   "return": 0.007199
+  },
+  "2": {
+   "previous": "2022-08-05",
+   "return": 0.007825
+  },
+  "4": {
+   "previous": "2022-08-05",
+   "return": 0.006816
+  }
+ },
+ "benchmark_sign_agrees_with_median_stock_move": true,
+ "date": "2022-08-08",
+ "distinct_date1_values": [
+  "08-Aug-2022"
+ ],
+ "duplicate_symbols_within_main_board": 0,
+ "exchange_cross_checks": {
+  "previous_session_close_vs_this_prev_close": {
+   "agreement": 1.0,
+   "closes_equal": 1943,
+   "in_here_not_neighbour": 30,
+   "in_neighbour_not_here": 0,
+   "mismatching_symbols_sample": [],
+   "neighbour": "2022-08-05",
+   "symbols_in_both": 1943
+  },
+  "this_close_vs_next_session_prev_close": {
+   "agreement": 1.0,
+   "closes_equal": 1947,
+   "in_here_not_neighbour": 26,
+   "in_neighbour_not_here": 2,
+   "mismatching_symbols_sample": [],
+   "neighbour": "2022-08-10",
+   "symbols_in_both": 1947
+  }
+ },
+ "incident": {
+  "cause": "a diagnostic command `xxd <v0001.bin> <v0001.manifest.json>` was run with an unquoted two-file glob; xxd's second positional argument is its OUTPUT file, so the manifest was replaced by a hex dump of the raw file",
+  "corrupted_manifest_backup": "/tmp/myvendor-trading-recovery/incident-b0a7e50/v0001.manifest.corrupted",
+  "corrupted_manifest_bytes": 992730,
+  "corrupted_manifest_sha256": "effab30d5572ec98324e23a4d9940e97292d2e1a28b06128fbadbe6e88215ed6",
+  "incident": "accidental overwrite of the lake manifest for nse/bhav/dt=2022-08-08 version 1",
+  "raw_file_affected": false,
+  "raw_file_bytes": 233582,
+  "raw_file_sha256": "431a71e2774243590bcdf24379599e8d299eae811dacce54af98fb3054194f7d",
+  "release_impact": "benchmark-release-1.0 untouched (its inputs were hashed in the database and audit outputs, not this manifest)",
+  "restoration_method": "install to v0001.manifest.json.restore in the same directory, then atomic rename, approved by the owner",
+  "restored_at_utc": "2026-11-07T16:49:07Z",
+  "restored_from": "the manifest text printed by `cat` earlier in the same session (before the overwrite), staged outside the lake and validated: valid JSON, checksum field equals the sha256 of the raw file, size field equals the raw file length",
+  "verification": {
+   "lake.get": "sha256 re-verified, 233582 bytes",
+   "lake.versions": "1 version, checksum 431a71e27742"
+  }
+ },
+ "load_reconciliation": {
+  "bars_loaded": 1710,
+  "file_symbols_resolved_to_an_instrument": 1710,
+  "file_symbols_without_an_instrument_count": 263,
+  "instruments_loaded_but_without_a_bar_on_either_neighbour": 10,
+  "instruments_with_bars_on_both_neighbouring_days_but_not_loaded": [],
+  "loaded_bars_missing_or_different_vs_the_xlsx_row": [],
+  "main_board_rows_in_file": 1973,
+  "neighbour_bar_counts": [
+   1696,
+   1701
+  ],
+  "neighbour_days_symbols_without_an_instrument_count": [
+   258,
+   259
+  ]
+ },
+ "median_eq_move": 0.00167,
+ "non_positive_or_negative_volume": [],
+ "ohlc_violations": [],
+ "pipeline": {
+  "rows": 0,
+  "status": "noop"
+ },
+ "prices_with_more_than_4_decimals": [],
+ "raw_bytes": 233582,
+ "raw_format": "xlsx (zip)",
+ "retrieved_at": "2026-11-06T18:09:57.324861+00:00",
+ "rows_all_series": 2255,
+ "rows_main_board": 1973,
+ "series_counts": {
+  "BE": 127,
+  "BZ": 32,
+  "E1": 3,
+  "EQ": 1814,
+  "GB": 50,
+  "GS": 11,
+  "IV": 3,
+  "MF": 4,
+  "N1": 3,
+  "N2": 10,
+  "N3": 4,
+  "N4": 7,
+  "N5": 7,
+  "N6": 10,
+  "N7": 5,
+  "N8": 7,
+  "N9": 7,
+  "NA": 5,
+  "NB": 4,
+  "NC": 3,
+  "ND": 5,
+  "NE": 6,
+  "NF": 4,
+  "NG": 3,
+  "NH": 2,
+  "NI": 4,
+  "NJ": 4,
+  "NK": 2,
+  "NL": 5,
+  "NN": 2,
+  "NO": 5,
+  "NP": 1,
+  "NQ": 3,
+  "NR": 2,
+  "NS": 1,
+  "NV": 1,
+  "NY": 1,
+  "RR": 3,
+  "SM": 60,
+  "ST": 3,
+  "W3": 1,
+  "X1": 1,
+  "Y3": 1,
+  "Y5": 1,
+  "Y7": 1,
+  "Y9": 1,
+  "YH": 1,
+  "YI": 1,
+  "YK": 2,
+  "YO": 1,
+  "YP": 2,
+  "YV": 1,
+  "YW": 1,
+  "YY": 1,
+  "YZ": 1,
+  "Z2": 1,
+  "Z3": 1,
+  "Z7": 1,
+  "Z8": 1,
+  "ZG": 1
+ },
+ "sha256": "431a71e2774243590bcdf24379599e8d299eae811dacce54af98fb3054194f7d",
+ "source_url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_08082022.csv",
+ "symbols_in_both_neighbours_but_missing_here": [],
+ "turnover_vs_qty_x_avg_price_mismatch": []
+}

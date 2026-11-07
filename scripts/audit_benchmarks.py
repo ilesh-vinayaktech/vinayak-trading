@@ -124,7 +124,7 @@ with psycopg.connect(a.db) as conn:
     bar_days = dict(conn.execute("SELECT ts::date, count(*) FROM bar_1d GROUP BY 1").fetchall())
 
 ev = Evidence(
-    frozenset(p for p, s in latest if s == "loaded"),
+    frozenset(p for p, s in latest if s in ("loaded", "noop")),
     frozenset(p for p, s in latest if s == "not_published"),
     frozenset(p for p, s in latest if s == "quarantined"),
     min(p for p, _ in latest), max(p for p, _ in latest),
@@ -190,18 +190,26 @@ window = [d for d in sorted(set(bar_days) | set(ev.not_published) | ev.quarantin
 special = {
     "date": SPECIAL_DATE, "weekday": SPECIAL_DATE.strftime("%A"),
     "benchmark_values": {short[n]: lv.get(SPECIAL_DATE) for n, lv in sorted(series.items())},
-    "bhavcopy_status": "quarantined" if SPECIAL_DATE in ev.quarantined else "other",
+    "bhavcopy_status": "quarantined" if SPECIAL_DATE in ev.quarantined
+    else "loaded" if SPECIAL_DATE in ev.traded else "other",
     "bars_per_day_around": {d: bar_days.get(d, 0) for d in window},
     "bhavcopy_status_around": {d: ("loaded" if d in ev.traded else "not_published" if
                                d in ev.not_published else "quarantined" if d in ev.quarantined
                                else "none") for d in window},
     "benchmark_observation_exists": all(SPECIAL_DATE in lv for lv in series.values()),
-    "exchange_traded_independently_shown": False,
-    "affects": "EVERY instrument history (no daily bar exists for the date; neighbouring days have "
-               f"{bar_days.get(date(2022, 8, 5), 0)} and {bar_days.get(date(2022, 8, 10), 0)} "
-               "instruments) as well as the session-level reconciliation; the benchmark series are "
-               "unaffected. Nothing was fabricated.",
-    "note": "the benchmark values are the only evidence that the day was a session",
+    "exchange_traded_independently_shown": SPECIAL_DATE in ev.traded,
+    "affects": (
+        "resolved: the exchange's own file was recovered (docs/recovery/bhavcopy_2022-08-08.json)"
+        if SPECIAL_DATE in ev.traded else
+        "EVERY instrument history (no daily bar exists for the date; neighbouring days have "
+        f"{bar_days.get(date(2022, 8, 5), 0)} and {bar_days.get(date(2022, 8, 10), 0)} "
+        "instruments) as well as the session-level reconciliation; the benchmark series are "
+        "unaffected. Nothing was fabricated."),
+    "note": (
+        "the day's existence is shown by the exchange's own bhavcopy and by the PREV_CLOSE chain of "
+        "the 2022-08-05 and 2022-08-10 files"
+        if SPECIAL_DATE in ev.traded else
+        "the benchmark values are the only evidence that the day was a session"),
 }  # fmt: skip
 
 # ---------------------------------------------------------------- historical hours
@@ -291,13 +299,15 @@ def item(id_: str, title: str, sev: str, status: str, cat: str, detail: str, evi
 findings = [
     item(
         "U01",
-        "2022-08-08 bhavcopy quarantined",
-        "HIGH",
-        "UNRESOLVED",
+        "2022-08-08 bhavcopy quarantined"
+        if SPECIAL_DATE not in ev.traded
+        else "2022-08-08 bhavcopy recovered from the spreadsheet NSE served",
+        "HIGH" if SPECIAL_DATE not in ev.traded else "INFO",
+        "UNRESOLVED" if SPECIAL_DATE not in ev.traded else "RESOLVED",
         "session-evidence",
         special["affects"],
-        [f"{refs_['S']}#special_2022_08_08"],
-        True,
+        [f"{refs_['S']}#special_2022_08_08", "docs/recovery/bhavcopy_2022-08-08.json"],
+        SPECIAL_DATE not in ev.traded,
     ),
     item(
         "U02",
@@ -491,7 +501,7 @@ SCOPE = {  # id -> (applies_to, blocks)
 }  # fmt: skip
 for f_ in findings:
     f_["applies_to"], f_["blocks"] = SCOPE[f_["id"]]
-    f_["blocked_dates"] = [SPECIAL_DATE] if f_["id"] == "U01" else []
+    f_["blocked_dates"] = [SPECIAL_DATE] if f_["id"] == "U01" and f_["status"] != "RESOLVED" else []
 unresolved_report = {"audit": "benchmark_unresolved_findings", "gate_activation": "NOT decided here",
                      "findings": findings}  # fmt: skip
 
@@ -500,7 +510,7 @@ eligibility = {
     "audit": "benchmark_eligibility",
     "states": ["DATA_INGESTED", "RESEARCH_ELIGIBLE", "BENCHMARK_GATE_ELIGIBLE"],
     "gate_activation": "NOT decided here; the gate stays disabled",
-    "instrument_level_blocked_dates": [SPECIAL_DATE],
+    "instrument_level_blocked_dates": [] if SPECIAL_DATE in ev.traded else [SPECIAL_DATE],
     "benchmarks": {
         n: {"dataset_hash": hashes[n], **assess(short[n], vals[n], findings)}
         for n in sorted(series)
@@ -607,7 +617,9 @@ for n in sorted(series):
     )
 md += [
     "",
-    f"Instrument-level research must exclude {SPECIAL_DATE} (no bars, quarantined bhavcopy).",
+    "Instrument-level research must exclude: "
+    + (", ".join(str(x) for x in eligibility["instrument_level_blocked_dates"]) or "no date")
+    + ".",
     "",
     "## Unresolved findings",
     "",
