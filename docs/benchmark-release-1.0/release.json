@@ -1,0 +1,209 @@
+{
+ "audit_file_sha256": {
+  "audit_manifest.json": "94a64802e76906b9f5efc22b827c96f2126eeee5e49d9fd70554e0c1379582d1",
+  "benchmark_alignment_report.json": "32a809bc4e6cedf6771fdad79a94b805f6199d0488a3f2c1b1ba6e746a9e0c3d",
+  "benchmark_eligibility.json": "a4b4afb5440ced7bc057ce46cf2db1ebfcb83fb0b9ce6566d198a134a487c394",
+  "benchmark_evidence_report.md": "0b51c1b81e584161a37632a3298a22bb74b42cf9e4865f0857a01e3e8f4f4634",
+  "benchmark_unresolved_findings.json": "a579189f92d0b3a0615013599aa1a1586362e45f998c8acacdf4f4ae5e8c75df",
+  "session_reconciliation_report.json": "e2c4bc36fda15bf81fd4f6c6b4b0b9d0c7c385d9ac0147fb557c93b0899e96f5"
+ },
+ "benchmarks": {
+  "1": {
+   "dataset_hash": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+   "index_symbol": "NIFTY 200",
+   "name": "Nifty 200 Total Return Index (gross)",
+   "observations": 5673,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-07T16:36:05.365008+00:00",
+    "dataset_hash": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 6
+   }
+  },
+  "2": {
+   "dataset_hash": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+   "index_symbol": "NIFTY 50",
+   "name": "Nifty 50 Total Return Index (gross)",
+   "observations": 6805,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-07T16:36:06.148597+00:00",
+    "dataset_hash": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 7
+   }
+  },
+  "3": {
+   "dataset_hash": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+   "index_symbol": "NIFTY 50",
+   "name": "Nifty 50 Net Total Return Index",
+   "observations": 6676,
+   "return_type": "NET_TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-07T16:00:12.396115+00:00",
+    "dataset_hash": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "owner_accepted_findings": [
+     {
+      "check": "no_abrupt_net_gross_jump",
+      "detail_sha256": "c9f9d88beb7fd44b1b8278f5570ecf52c36b3d1505e5cb6995eb987c9a078d61",
+      "label": "EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED",
+      "reason": "all 11 flagged dates are ex-dates of a bonus issue by a large Nifty 50 member (RELIANCE, ITC, INFY, TCS, BAJFINANCE, HDFCBANK) and the methodology taxes bonus-share income in net only; the tax amount per date was not recomputed, so this is plausible, not independently validated",
+      "state": "ACCEPTED_WITH_EVIDENCE"
+     },
+     {
+      "check": "net_never_gains_on_gross",
+      "detail_sha256": "311265a70d801f3df05ae4ba95f7dd6db13c5846e31f744fd64623796b3e175f",
+      "label": "UNRESOLVED_DIVIDEND_ASSOCIATED_ANOMALY",
+      "reason": "41 rises of 0.002-0.006% in net/gross, above the ~0.0003% 2-decimal rounding bound; 38 of 41 fall on a dividend ex-date versus 34% of all days; the mechanism is not established",
+      "state": "UNRESOLVED"
+     }
+    ],
+    "passed": false,
+    "report_version": "2",
+    "technical_validation_passed": false,
+    "validation_id": 4
+   }
+  },
+  "4": {
+   "dataset_hash": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521",
+   "index_symbol": "NIFTY 200",
+   "name": "Nifty 200 Price Index",
+   "observations": 5673,
+   "return_type": "PRICE",
+   "validation": {
+    "created_at": "2026-11-07T16:36:07.107082+00:00",
+    "dataset_hash": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 8
+   }
+  }
+ },
+ "calendar_inputs": {
+  "evidence_manifest_sha256": "977731a25dbeccf07d679f675c7789e1574e1925465af0757a2df313253ab551",
+  "sessions_file_sha256": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6"
+ },
+ "code_commit": "8c90a8da419d72671d0799813c80fc3ad9c8297a",
+ "eligibility": {
+  "B1_NIFTY200_GROSS_TRI": {
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": false
+   }
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": false
+   }
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": false
+   }
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": false
+   }
+  }
+ },
+ "gate_activation": "NOT enabled; a separate decision",
+ "instrument_level_blocked_dates": [
+  "2022-08-08"
+ ],
+ "release": "1.0",
+ "unresolved_findings": [
+  {
+   "id": "U01",
+   "severity": "HIGH",
+   "status": "UNRESOLVED",
+   "title": "2022-08-08 bhavcopy quarantined"
+  },
+  {
+   "id": "U02",
+   "severity": "HIGH",
+   "status": "UNRESOLVED",
+   "title": "Historical session hours are not verified"
+  },
+  {
+   "id": "U03",
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Special-session kinds unconfirmed; some evidenced only by the benchmark"
+  },
+  {
+   "id": "U04",
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Weekday sessions before the bhavcopy history rest on the calendar rule"
+  },
+  {
+   "id": "U05",
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Price return exceeds gross TRI by up to 0.005% on some days"
+  },
+  {
+   "id": "U06",
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Net TRI gains on gross TRI on 41 days (0.002-0.006%)"
+  },
+  {
+   "id": "U07",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "11 net/gross jumps on bonus ex-dates: explained, not numerically reconciled"
+  },
+  {
+   "id": "U08",
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Gross and net independence unknown; net is a non-resident institutional measure"
+  },
+  {
+   "id": "U09",
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Revision behaviour of the endpoints untested"
+  },
+  {
+   "id": "U10",
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Only the Sep 2026 methodology document is held"
+  },
+  {
+   "id": "U11",
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible"
+  },
+  {
+   "id": "U16",
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Large daily moves seen by one series only"
+  }
+ ]
+}
