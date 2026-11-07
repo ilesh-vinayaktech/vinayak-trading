@@ -30,6 +30,10 @@ QUARANTINED_NO_VALUE = "QUARANTINED_NO_VALUE"
 EXPECTED_CLOSED = "EXPECTED_CLOSED"  # holiday list or no bhavcopy published
 EXPECTED_NO_SESSION = "EXPECTED_NO_SESSION"  # an ordinary weekend
 UNCONFIRMED_NO_VALUE = "UNCONFIRMED_NO_VALUE"  # weekday, no value, no independent closure evidence
+EXPECTED_CLOSED_INFERRED = "EXPECTED_CLOSED_INFERRED"  # no value; exchange files chain over the day
+ARCHIVE_GAP_SESSION_LIKELY = (
+    "ARCHIVE_GAP_SESSION_LIKELY"  # no value; exchange files imply a session
+)
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,8 @@ class Evidence:
     quarantined: frozenset[date]  # a file exists but is unusable
     first: date  # range over which bhavcopies were requested
     last: date
+    closed_inferred: frozenset[date] = frozenset()  # exchange files chain over the day (inferred)
+    archive_gap: frozenset[date] = frozenset()  # exchange files imply a session, file missing
 
 
 def observed_outcome(d: date, info: SessionInfo, ev: Evidence) -> tuple[str, str]:
@@ -51,6 +57,8 @@ def observed_outcome(d: date, info: SessionInfo, ev: Evidence) -> tuple[str, str
         if weekend or info.existence == "NONE":
             return INVESTIGATE, "bhavcopy exists on a day no session is listed"
         return CONFIRMED_REGULAR, "bhavcopy exists on a weekday session"
+    if d in ev.closed_inferred or d in ev.archive_gap:
+        return INVESTIGATE, "value on a day the exchange's own files show no confirmed session"
     if info.existence == "EVIDENCED":
         return BENCHMARK_ONLY_SESSION, "listed session; the only evidence is the benchmark itself"
     if weekend:
@@ -69,6 +77,10 @@ def missing_outcome(d: date, info: SessionInfo, ev: Evidence, elsewhere: bool) -
         return QUARANTINED_NO_VALUE
     if elsewhere:
         return ALIGNMENT_GAP
+    if d in ev.archive_gap:
+        return ARCHIVE_GAP_SESSION_LIKELY
+    if d in ev.closed_inferred:
+        return EXPECTED_CLOSED_INFERRED
     if d in ev.not_published or info.existence == "NONE" and d.weekday() < 5:
         return EXPECTED_CLOSED
     if d.weekday() >= 5:

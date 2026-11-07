@@ -3,8 +3,8 @@
 either side of each (to chain PREVCLOSE). Sequential, slow, resumable; every raw archive is stored
 untouched in the lake (dataset bhav_legacy); a 404 is recorded (not retried, not worked around); any
 other refusal stops the run. Writes docs/session-evidence/legacy_bhavcopy_check.json.
-usage: capture_legacy_bhav.py --lake data/lake --sessions config/exchange_sessions.json
-       --db postgresql://... [--delay 6]"""
+usage: capture_legacy_bhav.py --lake data/lake --db postgresql://... [--delay 6]
+       [--weekdays START END [--phase holidays|all]]   (default: the listed sessions)"""
 
 import argparse
 import json
@@ -23,6 +23,19 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--lake", required=True, type=Path)
 ap.add_argument("--sessions", type=Path, default=Path("config/exchange_sessions.json"))
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
+ap.add_argument(
+    "--weekdays",
+    nargs=2,
+    type=date.fromisoformat,
+    metavar=("START", "END"),
+    help="instead of the listed sessions: every weekday in the range",
+)
+ap.add_argument(
+    "--phase",
+    choices=("holidays", "all"),
+    default="holidays",
+    help="holidays: weekdays no benchmark series has a value for, plus their neighbours",
+)
 ap.add_argument("--delay", type=float, default=6.0)
 ap.add_argument(
     "--out", type=Path, default=Path("docs/session-evidence/legacy_bhavcopy_check.json")
@@ -81,6 +94,30 @@ def neighbour(d: date, step: int) -> date | None:
             return x
     return None
 
+
+if a.weekdays:
+    from algo.data.benchmark import levels
+
+    with psycopg.connect(a.db) as conn:
+        have_value: set[date] = set()
+        for (bid,) in conn.execute("SELECT benchmark_id FROM benchmark"):
+            have_value |= set(levels(conn, bid))
+    start, end = a.weekdays
+    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    days = [d for d in days if d.weekday() < 5]
+    cand = [d for d in days if d not in have_value]
+    order = cand + ([d for d in days if d in have_value] if a.phase == "all" else [])
+    print(
+        f"{len(days)} weekdays, {len(cand)} with no benchmark value; fetching {len(order)}",
+        flush=True,
+    )
+    for i, d in enumerate(order, 1):
+        got = fetch(d)
+        if not got and d in cand:
+            neighbour(d, -1), neighbour(d, 1)  # the sessions either side, to chain
+        if i % 25 == 0 or d in cand:
+            print(i, d, "file" if got else "no file", flush=True)
+    raise SystemExit(0)
 
 with psycopg.connect(a.db) as conn:
     traded = {r[0] for r in conn.execute(

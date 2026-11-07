@@ -279,3 +279,22 @@ therefore independently confirmed for all 22; **kind and hours are not**. Two se
 claims are recorded but not promoted (`config/session_secondary_evidence.json`): 2015-02-28 Union Budget
 Saturday, "between 9am to 3.30pm"; 2016-10-30 Diwali Muhurat 6.30-7.30 pm. No NSE circular was found for
 any of the 22; kind_status stays UNCONFIRMED and hours_status UNKNOWN for all 32 listed sessions.
+
+## Historical Exchange Calendar Evidence - phase 1: weekday closures (2026-11-07)
+
+Ledger: `docs/calendar-evidence/historical_calendar_evidence.json`
+(`scripts/capture_legacy_bhav.py --weekdays ...`, `scripts/build_calendar_evidence.py`; raw files in the
+lake as `nse/bhav_legacy`, immutable). Four questions are kept apart: did the exchange trade (this ledger),
+session kind (not established), opening and closing times (not established), and whether instrument-level
+data is present (the stored file). A dated file proves trading; a missing file proves nothing alone.
+
+Phase 1 covered the 264 weekdays in 1999-06-30..2019-09-30 on which none of the four benchmark series has
+a value, plus the sessions either side. Result: all 264 are **CLOSED_INFERRED_BY_CHAIN** - the confirmed
+sessions either side chain (the later file's PREVCLOSE equals the earlier file's CLOSE) for 100% of at least
+627 common symbols, so no session happened in between. About 13 a year, as expected for exchange holidays.
+No archive gaps, no conflicts with any benchmark value. 515 weekdays are TRADED_CONFIRMED (their own file).
+This is inference from exchange files, **not an official holiday notice**; none was retrieved.
+
+Remaining: 4,505 weekdays with a benchmark value are still WEEKDAY_RULE_PROVISIONAL because their own file
+has not been fetched (about 4,500 requests at 6 s, resumable). The audit already reads the ledger
+(`closed_inferred`, `archive_gap`); a re-run on identical inputs is deterministic.

@@ -140,11 +140,32 @@ if LEGACY.exists():  # re-verify every cited file in the lake before trusting th
         legacy_confirmed[d_] = {"url": e_["url"], "sha256": e_["sha256"],
                                 "retrieved_at": e_["retrieved_at"], "rows": e_["rows"]}  # fmt: skip
 secondary = json.loads(SECONDARY.read_text())["entries"] if SECONDARY.exists() else []
+CALENDAR = Path("docs/calendar-evidence/historical_calendar_evidence.json")
+ledger_closed: set[date] = set()
+ledger_gap: set[date] = set()
+if (
+    CALENDAR.exists()
+):  # exchange-file calendar evidence; every cited file is re-verified in the lake
+    for k_, r_ in json.loads(CALENDAR.read_text())["dates"].items():
+        d_ = date.fromisoformat(k_)
+        if r_["status"] == "TRADED_CONFIRMED":
+            m_ = lake.versions("nse", "bhav_legacy", d_)[-1]
+            if m_.checksum != r_["instrument_bhavcopy"]["sha256"] or parse_legacy(
+                lake.get(m_)
+            ).days != {d_}:
+                raise SystemExit(f"{d_}: the stored bhavcopy no longer matches the calendar ledger")
+            legacy_confirmed.setdefault(d_, {"url": m_.url, "sha256": m_.checksum,
+                                             "retrieved_at": m_.fetched_at, "rows": r_["instrument_bhavcopy"]["rows"]})  # fmt: skip
+        elif r_["status"] == "CLOSED_INFERRED_BY_CHAIN":
+            ledger_closed.add(d_)
+        elif r_["status"] == "SESSION_LIKELY_ARCHIVE_GAP":
+            ledger_gap.add(d_)
 ev = Evidence(
     frozenset(p for p, s in latest if s in ("loaded", "noop")) | frozenset(legacy_confirmed),
     frozenset(p for p, s in latest if s == "not_published"),
     frozenset(p for p, s in latest if s == "quarantined"),
     min(p for p, _ in latest), max(p for p, _ in latest),
+    closed_inferred=frozenset(ledger_closed), archive_gap=frozenset(ledger_gap),
 )  # fmt: skip
 evidence_summary = {
     "legacy_bhavcopy_confirmed_sessions": legacy_confirmed,

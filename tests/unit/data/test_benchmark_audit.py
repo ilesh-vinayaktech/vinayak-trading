@@ -259,3 +259,23 @@ def test_overlap_correlation_needs_three_common_dates_and_uses_the_intersection_
     ex = anomaly_overlap({}, {}, g, g, frozenset(days[:1]))
     assert ex["ex_date_share_all_common_dates"] == 0.25 and ex["expected_by_chance"] == 0.0
     assert ex["direction"].startswith("both are days on which the less dividend-inclusive")
+
+
+def test_exchange_file_chains_classify_values_and_gaps_on_inferred_days():
+    from algo.data.benchmark_audit import ARCHIVE_GAP_SESSION_LIKELY, EXPECTED_CLOSED_INFERRED
+
+    d1, d2, d3 = date(2024, 1, 8), date(2024, 1, 9), date(2024, 1, 11)
+    ev = Evidence(frozenset(), frozenset(), frozenset(), date(2024, 1, 2), date(2024, 1, 31),
+                  closed_inferred=frozenset({d1}), archive_gap=frozenset({d2}))  # fmt: skip
+    why = "value on a day the exchange's own files show no confirmed session"
+    assert observed_outcome(d1, INFO(d1), ev) == (INVESTIGATE, why)
+    assert observed_outcome(d2, INFO(d2), ev) == (INVESTIGATE, why)
+    assert observed_outcome(d3, INFO(d3), ev)[0] == WEEKDAY_RULE_PROVISIONAL
+    assert missing_outcome(d1, INFO(d1), ev, False) == EXPECTED_CLOSED_INFERRED
+    assert missing_outcome(d2, INFO(d2), ev, False) == ARCHIVE_GAP_SESSION_LIKELY
+    assert missing_outcome(d1, INFO(d1), ev, True) == ALIGNMENT_GAP  # another series has a value
+    traded = Evidence(frozenset({d1}), frozenset(), frozenset(), date(2024, 1, 2), date(2024, 1, 31),
+                      closed_inferred=frozenset({d1}))  # fmt: skip
+    assert (
+        observed_outcome(d1, INFO(d1), traded)[0] == CONFIRMED_REGULAR
+    )  # a file beats an inference
