@@ -124,3 +124,134 @@ def test_published_returns_are_recomputed_with_a_stated_convention_and_tolerance
         reconcile_returns(
             lv, [ReturnCheck("x", date(2020, 1, 1), date(2021, 1, 1), "weird", D(1), D(1))]
         )
+
+
+# ---- net total-return validation ------------------------------------------------------------------
+from algo.data.benchmark_validate import validate_net  # noqa: E402
+
+D1, D2, D3, D4 = date(2000, 1, 3), date(2000, 1, 4), date(2000, 1, 5), date(2000, 1, 6)
+
+
+def lv(**kw):
+    return {d: D(str(v)) for d, v in kw.items()}
+
+
+def test_a_base_level_of_none_is_not_checked_but_the_first_date_still_is():
+    v = validate_series([win(B, B, ob(B, "1256.38"))], base_date=B, base_level=None)
+    assert v.passed and "base_level" not in {c.name for c in v.checks}
+
+
+def test_a_consistent_net_series_passes_every_check():
+    gross = {D1: D("1000.00"), D2: D("1010.00"), D3: D("1020.00"), D4: D("1030.00")}
+    net = {
+        D1: D("1000.00"),
+        D2: D("1009.90"),
+        D3: D("1019.80"),
+        D4: D("1029.70"),
+    }  # tax only subtracts
+    v = validate_net(gross, net)
+    assert v.passed and v.failures() == [] and v.levels == net
+    assert check(v, "net_populated").detail == "first valid net date 2000-01-03, last 2000-01-06"
+
+
+def test_net_that_starts_later_than_gross_is_fine_but_gaps_and_strays_after_it_are_not():
+    gross = {D1: D("1000"), D2: D("1010"), D3: D("1020"), D4: D("1030")}
+    late = validate_net(gross, {D3: D("1020.00"), D4: D("1029.70")})  # starts when it starts
+    assert late.passed
+    holey = validate_net(gross, {D1: D("1000"), D3: D("1019")})  # D2 has gross but no net
+    assert (
+        not check(holey, "net_contiguous").passed
+        and "2000-01-04" in check(holey, "net_contiguous").detail
+    )
+    stray = validate_net({D1: D("1000")}, {D1: D("1000"), D2: D("999")})
+    assert (
+        not check(stray, "net_dates_in_gross").passed
+        and "2000-01-04" in check(stray, "net_dates_in_gross").detail
+    )
+
+
+def test_net_must_start_at_gross_and_never_gain_on_it():
+    gross = {D1: D("1000"), D2: D("1010"), D3: D("1020")}
+    wrong_start = validate_net(gross, {D1: D("990"), D2: D("1000"), D3: D("1010")})
+    assert not check(wrong_start, "net_starts_at_gross").passed
+    gains = validate_net(gross, {D1: D("1000"), D2: D("1000"), D3: D("1020")})  # ratio rises on D3
+    assert (
+        not check(gains, "net_never_gains_on_gross").passed
+        and "2000-01-05" in check(gains, "net_never_gains_on_gross").detail
+    )
+    rounding = validate_net(
+        {D1: D("20000.00"), D2: D("20100.00")}, {D1: D("20000.00"), D2: D("20099.99")}
+    )
+    assert check(
+        rounding, "net_never_gains_on_gross"
+    ).passed  # a 2-decimal rounding wobble is tolerated
+
+
+def test_an_abrupt_change_of_the_net_gross_ratio_is_flagged_for_investigation():
+    gross = {D1: D("1000"), D2: D("1000"), D3: D("1000")}
+    v = validate_net(gross, {D1: D("1000"), D2: D("1000"), D3: D("990")})  # 1% drop in one day
+    assert not check(v, "no_abrupt_net_gross_jump").passed and v.largest_moves[0][1] == D3
+    assert float(v.largest_moves[0][0]) == pytest.approx(0.01)
+
+
+def test_an_empty_net_series_is_reported_and_gaps_are_listed():
+    assert not validate_net({D1: D("1")}, {}).passed
+    v = validate_net(
+        {D1: D("100"), date(2000, 2, 1): D("100")}, {D1: D("100"), date(2000, 2, 1): D("100")}
+    )
+    assert v.gaps == [(D1, date(2000, 2, 1))]
+
+
+def _checks():
+    from algo.data.benchmark_validate import Check
+
+    return [Check("ok", True, "fine"), Check("bad", False, "2 days ['a', 'b']")]
+
+
+def test_an_acceptance_is_recorded_but_the_check_still_fails():
+    from algo.data.benchmark_validate import check_states, parse_acceptances
+
+    cs = _checks()
+    f = parse_acceptances(["bad=ACCEPTED_WITH_EVIDENCE:LABEL:why: colon kept"], cs)
+    assert [(x.check, x.state, x.label, x.reason) for x in f] == [
+        ("bad", "ACCEPTED_WITH_EVIDENCE", "LABEL", "why: colon kept")
+    ]
+    assert len(f[0].detail_sha256) == 64
+    assert check_states(cs, f) == {"ok": "PASS", "bad": "ACCEPTED_WITH_EVIDENCE"}
+    assert check_states(cs, []) == {"ok": "PASS", "bad": "FAIL"}
+    assert check_states(cs, parse_acceptances(["bad=UNRESOLVED:L:r"], cs))["bad"] == "UNRESOLVED"
+
+
+def test_the_acceptance_hash_changes_when_the_flagged_dates_change():
+    from algo.data.benchmark_validate import Check, parse_acceptances
+
+    a = parse_acceptances(["bad=UNRESOLVED:L:r"], [Check("bad", False, "1 day ['x']")])
+    b = parse_acceptances(["bad=UNRESOLVED:L:r"], [Check("bad", False, "2 days ['x', 'y']")])
+    assert a[0].detail_sha256 != b[0].detail_sha256
+
+
+@pytest.mark.parametrize(
+    ("spec", "msg"),
+    [
+        ("bad", "malformed"),
+        ("bad=UNRESOLVED:only-two", "malformed"),
+        ("=UNRESOLVED:L:r", "malformed"),
+        ("nope=UNRESOLVED:L:r", "no such check"),
+        ("bad=MAYBE:L:r", "state must be"),
+        ("bad=UNRESOLVED::r", "must not be empty"),
+        ("bad=UNRESOLVED:L: ", "must not be empty"),
+        ("ok=UNRESOLVED:L:r", "nothing to accept"),
+    ],
+)
+def test_bad_acceptances_are_rejected(spec, msg):
+    from algo.data.benchmark_validate import parse_acceptances
+
+    with pytest.raises(ValueError, match=msg):
+        parse_acceptances([spec], _checks())
+
+
+def test_the_same_check_cannot_be_accepted_twice():
+    from algo.data.benchmark_validate import parse_acceptances
+
+    with pytest.raises(ValueError, match="twice"):
+        parse_acceptances(["bad=UNRESOLVED:L:r", "bad=UNRESOLVED:M:s"], _checks())

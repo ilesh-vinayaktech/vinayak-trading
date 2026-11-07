@@ -16,7 +16,8 @@
    "kind": "cumulative",
    "total_return_pct": "0.15",
    "price_return_pct": "0.11",
-   "tolerance_pp": "0.005"
+   "tolerance_pp": "0.005",
+   "series": "gross"
   },
   {
    "label": "YTD",
@@ -25,7 +26,8 @@
    "kind": "cumulative",
    "total_return_pct": "-8.49",
    "price_return_pct": "-9.29",
-   "tolerance_pp": "0.005"
+   "tolerance_pp": "0.005",
+   "series": "gross"
   },
   {
    "label": "1 year",
@@ -34,7 +36,8 @@
    "kind": "cumulative",
    "total_return_pct": "-7.35",
    "price_return_pct": "-8.20",
-   "tolerance_pp": "0.005"
+   "tolerance_pp": "0.005",
+   "series": "gross"
   },
   {
    "label": "5 years (CAGR)",
@@ -43,7 +46,8 @@
    "kind": "cagr",
    "total_return_pct": "8.26",
    "price_return_pct": "7.14",
-   "tolerance_pp": "0.02"
+   "tolerance_pp": "0.02",
+   "series": "gross"
   },
   {
    "label": "Since inception (CAGR)",
@@ -52,7 +56,8 @@
    "kind": "cagr",
    "total_return_pct": "13.42",
    "price_return_pct": "11.95",
-   "tolerance_pp": "0.02"
+   "tolerance_pp": "0.02",
+   "series": "gross"
   }
  ]
 }

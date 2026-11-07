@@ -132,3 +132,19 @@ def test_a_validation_is_tied_to_the_exact_data_it_was_made_on(conn, bm):
     with pytest.raises(BenchmarkError, match="no benchmark 999"):
         store_validation(conn, 999, report={}, passed=True, normalized_sha256="n", factsheet_sha256=None,
                          unresolved=[], now=NOW)  # fmt: skip
+
+
+def test_accepted_findings_are_voided_when_the_series_changes(conn, bm):
+    from algo.data.benchmark import accepted_findings, store_validation
+
+    put(conn, bm)
+    assert accepted_findings(conn, bm) == []  # no validation yet
+    f = [{"check": "c", "state": "UNRESOLVED", "label": "L", "reason": "r", "detail_sha256": "h"}]
+    store_validation(conn, bm, report={"owner_accepted_findings": f}, passed=False,
+                     normalized_sha256="n", factsheet_sha256=None, unresolved=[], now=NOW)  # fmt: skip
+    assert accepted_findings(conn, bm) == f
+    put(conn, bm, ROWS + [(date(2024, 1, 4), D(101))])
+    assert accepted_findings(conn, bm) == []  # the data moved on: re-validate and re-accept
+    store_validation(conn, bm, report={}, passed=True, normalized_sha256="n", factsheet_sha256=None,
+                     unresolved=[], now=NOW)  # fmt: skip
+    assert accepted_findings(conn, bm) == []  # a report without any

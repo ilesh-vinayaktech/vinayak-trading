@@ -1,0 +1,107 @@
+{
+ "index": "NIFTY_50",
+ "as_of": "2026-10-30",
+ "source": {
+  "dataset": "factsheet_nifty50",
+  "sha256": "3c98909d1e06ec7887f9288250edf7f88b20d069e84748eb1dfbbd998246c642",
+  "url": "https://www.niftyindices.com/Factsheet/ind_nifty50.pdf",
+  "document_date": "2026-10-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (rounding +/-0.005 pp); CAGRs also depend on the unstated day-count convention, so +/-0.02 pp is allowed and the actual difference is always reported",
+ "checks": [
+  {
+   "series": "gross",
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "1.95",
+   "price_return_pct": "1.91",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "series": "gross",
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-10.91",
+   "price_return_pct": "-11.77",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "series": "gross",
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-9.45",
+   "price_return_pct": "-10.38",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "series": "gross",
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "6.70",
+   "price_return_pct": "5.46",
+   "tolerance_pp": "0.02"
+  },
+  {
+   "series": "net",
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "1.94",
+   "price_return_pct": "1.91",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "series": "net",
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-11.24",
+   "price_return_pct": "-11.77",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "series": "net",
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-9.81",
+   "price_return_pct": "-10.38",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "series": "net",
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "5.61",
+   "price_return_pct": "5.46",
+   "tolerance_pp": "0.02"
+  }
+ ],
+ "not_reproducible": [
+  {
+   "series": "gross",
+   "label": "Since inception (CAGR)",
+   "published_pct": "12.15",
+   "note": "matches (12.16) only if the series is assumed to start at 1000 on the index base date 1995-11-03; the endpoint series begins 1999-06-30 at 1256.38, which gives 12.95. Not reproducible from the stored data."
+  },
+  {
+   "series": "net",
+   "label": "Since inception",
+   "published_pct": "-",
+   "note": "the factsheet publishes no since-inception net figure"
+  }
+ ]
+}

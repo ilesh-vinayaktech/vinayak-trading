@@ -174,3 +174,16 @@ def validated(conn: psycopg.Connection, benchmark_id: int) -> bool:
         (benchmark_id,),
     ).fetchone()
     return bool(row and row[0] and row[1] == dataset_hash(conn, benchmark_id))
+
+
+def accepted_findings(conn: psycopg.Connection, benchmark_id: int) -> list[dict[str, Any]]:
+    """Owner-accepted findings of the LATEST validation, only while it still covers the data as
+    stored now. A changed series voids every earlier acceptance."""
+    row = conn.execute(
+        "SELECT report, dataset_hash FROM benchmark_validation WHERE benchmark_id=%s"
+        " ORDER BY validation_id DESC LIMIT 1",
+        (benchmark_id,),
+    ).fetchone()
+    if not row or row[1] != dataset_hash(conn, benchmark_id):
+        return []
+    return list(row[0].get("owner_accepted_findings", []))

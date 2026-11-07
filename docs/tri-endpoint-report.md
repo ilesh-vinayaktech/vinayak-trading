@@ -149,3 +149,31 @@ convention reproduces both, so the factsheet's convention is unidentified. Kept 
 Nifty 50 gross TRI (check its `NTR_Value` net series, keep it separate), then the Nifty 200 price index as a
 diagnostic only. The benchmark gate stays disabled until the owner approves it and a later re-fetch has been
 compared for revisions.
+
+## Nifty 50 (gross and net) and the cross-index comparison (2026-11-07)
+
+**Nifty 50 gross** (benchmark 2): 1999-06-30..2026-11-06, 6,805 observations; factsheet 4/4. The
+published since-inception figure (12.15%) is not reproducible from the stored data (see ingest note).
+
+**Nifty 50 net** (benchmark 3): populated from 2000-01-03 only (empty in 1999); net == gross on that
+day; 6,676 observations; factsheet 4/4. Tax basis: non-resident institutional withholding, 23.92%
+currently, historical rates undocumented. Not a domestic-investor measure. Independence of gross and
+net is unknown (same row, same response). No backfill was done.
+
+Validation states (report v2): every check is PASS / FAIL / ACCEPTED_WITH_EVIDENCE / UNRESOLVED.
+`passed` and `technical_validation_passed` are false whenever a check fails; accepted findings are
+listed separately in `owner_accepted_findings`, bound to the dataset hash (any change voids them:
+`benchmark.accepted_findings`) and to a hash of the flagged dates. The net validation is therefore
+`passed=False`, and `validated()` is False for benchmark 3.
+
+| finding | state | label |
+|---|---|---|
+| 11 net/gross jumps > 0.3%, all on bonus ex-dates of large members | ACCEPTED_WITH_EVIDENCE | EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED |
+| 41 net/gross rises of 0.002-0.006% (38 on dividend ex-dates, 34% base rate) | UNRESOLVED | UNRESOLVED_DIVIDEND_ASSOCIATED_ANOMALY |
+
+**Nifty 200 vs Nifty 50 gross** (`scripts/compare_tri.py`, `data/reports/tri_cross_index.json`):
+5,672 dates compared, none missing on either side, none misaligned. Correlation of daily returns
+0.9877; max |difference| 1.72 pp (2009-05-20); 99th percentile 0.68 pp. The 20 largest divergences
+are all in 2004-2009 high-volatility sessions; none is a special session; two (2008-01-21) coincide
+with split ex-dates of non-Nifty-50 names. Not investigated against constituent composition or
+rebalancing; it is a consistency check between related indices, not independent verification.
