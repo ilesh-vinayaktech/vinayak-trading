@@ -29,6 +29,7 @@ class LegacyBhav:
     rows: int
     close: dict[tuple[str, str], Decimal]  # (symbol, series) -> CLOSE
     prev_close: dict[tuple[str, str], Decimal]  # (symbol, series) -> PREVCLOSE
+    duplicates: int = 0  # rows whose (symbol, series) already appeared in the file
 
 
 def _day(text: str) -> date:
@@ -60,10 +61,11 @@ def parse(raw: bytes) -> LegacyBhav:
         raise ParseError(f"missing columns {sorted(need - fields)}")
     days: set[date] = set()
     close, prev = {}, {}
-    n = 0
+    n = dup = 0
     for r in reader:
         r = {(k or "").strip(): (v or "").strip() for k, v in r.items()}
         key = (r["SYMBOL"], r["SERIES"])
+        dup += key in close
         try:
             close[key], prev[key] = Decimal(r["CLOSE"]), Decimal(r["PREVCLOSE"])
         except InvalidOperation as e:
@@ -72,7 +74,7 @@ def parse(raw: bytes) -> LegacyBhav:
         n += 1
     if n == 0:
         raise ParseError("no rows")
-    return LegacyBhav(frozenset(days), n, close, prev)
+    return LegacyBhav(frozenset(days), n, close, prev, dup)
 
 
 def chain(

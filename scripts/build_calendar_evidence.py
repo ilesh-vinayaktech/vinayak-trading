@@ -18,7 +18,9 @@ from pathlib import Path
 import psycopg
 
 from algo.data.benchmark import levels
-from algo.data.calendar_evidence import CHAIN_THRESHOLD, CLOSED, GAP, MIN_SYMBOLS, TRADED, classify
+from algo.data.calendar_evidence import (
+    CHAIN_THRESHOLD, CLOSED, GAP, MIN_SYMBOLS, TRADED, classify, file_findings,
+)  # fmt: skip
 from algo.data.lake import LocalLake
 from algo.data.providers.nse_bhavcopy_legacy import parse
 
@@ -46,6 +48,7 @@ missing = {date.fromisoformat(json.loads(x)["date"]) for x in (root / "capture_l
 days = [a.start + timedelta(days=i) for i in range((a.end - a.start).days + 1)]
 weekdays = [d for d in days if d.weekday() < 5]
 rec = classify(weekdays, files, missing)
+found, links = file_findings(files, rec)
 with psycopg.connect(a.db) as conn:
     series = {
         int(b): levels(conn, int(b))
@@ -65,6 +68,10 @@ for d in weekdays:
     if r.earlier:
         row["chain"] = {"earlier_session": str(r.earlier), "later_session": str(r.later),
                         "symbols_in_both": r.symbols_in_both, "close_equals_prev_close": r.symbols_equal}  # fmt: skip
+    if d in links:
+        a_, both_, eq_ = links[d]
+        row["chain_to_previous_session"] = {"previous_session": str(a_), "symbols_in_both": both_,
+                                            "close_equals_prev_close": eq_}  # fmt: skip
     per_date[str(d)] = row
     if r.status in (CLOSED, GAP) and row["benchmarks_with_value"]:
         conflicts.append(str(d))
@@ -80,6 +87,8 @@ doc = {
     "conflicts_closure_inferred_but_a_benchmark_has_a_value": conflicts,
     "traded_without_any_benchmark_value": sorted(d for d, r in per_date.items() if r["status"] == TRADED and not r["benchmarks_with_value"]),
     "archive_gap_dates": sorted(d for d, r in per_date.items() if r["status"] == GAP),
+    "file_findings": [{"kind": f.kind, "date": str(f.day), "detail": f.detail} for f in found],
+    "file_finding_counts": dict(sorted(Counter(f.kind for f in found).items())),
     "dates": per_date,
 }  # fmt: skip
 a.out.parent.mkdir(parents=True, exist_ok=True)

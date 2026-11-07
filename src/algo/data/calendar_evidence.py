@@ -65,3 +65,53 @@ def classify(
         chained = both >= MIN_SYMBOLS and eq / both >= CHAIN_THRESHOLD
         out[d] = Record(CLOSED if chained else GAP, a, b, both, eq)
     return out
+
+
+MIN_ROWS = 100  # a daily file with fewer rows than this is not a plausible end-of-day file
+CHAIN_BREAK = "CHAIN_BREAK"
+SHORT_FILE = "SHORT_FILE"
+DUPLICATE_ROWS = "DUPLICATE_ROWS"
+
+
+@dataclass(frozen=True)
+class Finding:
+    kind: str
+    day: date
+    detail: str
+
+
+def file_findings(
+    files: Mapping[date, LegacyBhav], records: Mapping[date, Record]
+) -> tuple[list[Finding], dict[date, tuple[date, int, int]]]:
+    """Findings about the files themselves, never forced into agreement:
+      FILE_DATE_MISMATCH  a file dated another day (from classify)
+      DUPLICATE_ROWS      the same (symbol, series) twice in one file
+      SHORT_FILE          implausibly few rows
+      CHAIN_BREAK         two consecutive confirmed sessions (only closures between them) whose
+                          PREVCLOSE/CLOSE chain falls below the threshold: a missing session, a
+                          corporate-action cluster or bad data
+    Also returns, per confirmed session, (previous session, symbols in both, symbols equal)."""
+    out: list[Finding] = []
+    links: dict[date, tuple[date, int, int]] = {}
+    confirmed = sorted(d for d, f in files.items() if f.days == {d})  # weekend sessions too
+    for d in sorted(files):
+        f = files[d]
+        if records.get(d) is not None and records[d].status == MISMATCH:
+            out.append(Finding(MISMATCH, d, f"file dated {sorted(f.days)}"))
+        if f.duplicates:
+            out.append(Finding(DUPLICATE_ROWS, d, f"{f.duplicates} repeated (symbol, series) rows"))
+        if f.rows < MIN_ROWS:
+            out.append(Finding(SHORT_FILE, d, f"{f.rows} rows"))
+    for a, b in zip(confirmed, confirmed[1:], strict=False):
+        between = [d for d in records if a < d < b]
+        if any(records[d].status != CLOSED for d in between):
+            continue  # a weekday between them is unexamined or unexplained: nothing to chain yet
+        both, eq = chain(files[a].close, files[b].prev_close)
+        links[b] = (a, both, eq)
+        if both < MIN_SYMBOLS or eq / both < CHAIN_THRESHOLD:
+            out.append(
+                Finding(
+                    CHAIN_BREAK, b, f"{eq}/{both} closes equal the next day's PREVCLOSE after {a}"
+                )
+            )
+    return out, links

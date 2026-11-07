@@ -70,3 +70,8 @@ def test_chain_counts_symbols_whose_prev_close_equals_the_earlier_close():
     later = {("A", "EQ"): D("10.0"), ("B", "EQ"): D("21"), ("D", "EQ"): D("1")}
     assert lg.chain(earlier, later) == (2, 1)
     assert lg.chain({}, later) == (0, 0)
+
+
+def test_repeated_symbol_series_rows_are_counted():
+    assert lg.parse(zipped(ROW1, ROW2)).duplicates == 0
+    assert lg.parse(zipped(ROW1, ROW2, ROW1)).duplicates == 1
