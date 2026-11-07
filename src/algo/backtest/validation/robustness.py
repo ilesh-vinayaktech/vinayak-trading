@@ -37,7 +37,7 @@ def plateau(base: float, neighbours: Sequence[float | None], tolerance: float = 
     An undefined neighbour counts as a collapse."""
     if base <= 0:
         return Plateau(base, min((n for n in neighbours if n is not None), default=0.0), 1.0, False)
-    vals = [-1e9 if n is None else n for n in neighbours]
+    vals = [0.0 if n is None else n for n in neighbours]  # undefined = Sharpe 0 = whole edge lost
     worst = min(vals, default=base)
     drop = max(0.0, (base - worst) / base)
     return Plateau(base, worst, drop, drop <= tolerance + 1e-9)

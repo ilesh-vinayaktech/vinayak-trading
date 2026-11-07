@@ -135,13 +135,14 @@ def save_report(
     evidence: Evidence,
     n_trials: int,
     now: datetime,
+    refs: Mapping[str, Any] | None = None,
 ) -> int:
     gates = [{"name": g.name, "passed": g.passed, "detail": g.detail} for g in report.gates]
     row = conn.execute(
         "INSERT INTO validation_report (experiment_id,run_id,passed,thresholds_status,n_trials,"
-        "evidence,gates,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING report_id",
+        "evidence,gates,created_at,refs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING report_id",
         (exp_id, run_id, report.passed, report.thresholds_status, n_trials,
-         Jsonb(vars(evidence)), Jsonb(gates), require_utc(now)),
+         Jsonb(vars(evidence)), Jsonb(gates), require_utc(now), Jsonb(dict(refs or {}))),
     ).fetchone()  # fmt: skip
     assert row is not None
     return int(row[0])

@@ -118,7 +118,14 @@ def test_only_a_passing_report_on_confirmed_thresholds_lifts_the_validation_bloc
     save_report(conn, exp, run, evaluate(bad, T, "confirmed"), bad, 3, NOW)
     assert not validation_passed(conn, run)  # a failing report does not count
 
-    save_report(conn, exp, run, evaluate(GOOD, T, "confirmed"), GOOD, 3, NOW)
+    refs = {"code_commit": "abc", "cost_schedule": "v1", "thresholds": "v2"}
+    save_report(conn, exp, run, evaluate(GOOD, T, "confirmed"), GOOD, 3, NOW, refs)
+    assert (
+        conn.execute(
+            "SELECT refs FROM validation_report WHERE passed AND thresholds_status='confirmed'"
+        ).fetchone()[0]
+        == refs
+    )
     assert validation_passed(conn, run)
     assert promotion_blockers(summary(conn, run)) == []
     assert (

@@ -157,7 +157,7 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 
 ### 3.5 Validation protocol (spec §10)
 - [x] BUILT (2026-11-07): pre-registration + trial counter + holdout opened once (`validation/registry.py`, migration 010); walk-forward rolling/anchored with embargo (`walkforward.py`); ±20% grid, plateau, by-year, concentration (`robustness.py`); PSR/DSR/expected-max-SR/PBO(CSCV)/stationary-bootstrap CIs (`stats.py`); `ScaledCosts` for 2x costs; pass/fail gates, missing evidence fails (`gates.py`, `config/validation_thresholds.json`). See `docs/validation.md`.
-- [ ] Still to build: the orchestrator that runs a real strategy through all of this and assembles `Evidence` (needs the first strategy, Stage 4); regime labels beyond calendar year; benchmark series loader; capacity run at 3x capital; purged CV for ML.
+- [ ] Evidence assembler built (`validation/evidence.py`, reports store `refs`); still to build: the runner that executes a real strategy through the walk-forward and feeds it (needs the first strategy, Stage 4); regime labels beyond calendar year; benchmark series loader; capacity run at 3x capital; purged CV for ML.
 - [ ] **OWNER: confirm or change `config/validation_thresholds.json` (status `provisional`) BEFORE the first strategy is validated.** A pass against provisional thresholds does not lift the promotion blocker.
 - [x] T: statistics pinned to independently computed reference values; holdout second-open rejected; promotion blocked when any gate evidence is missing. Mutation 88-93% on the pure validation modules.
 

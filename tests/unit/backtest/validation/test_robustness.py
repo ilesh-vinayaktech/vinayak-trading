@@ -30,6 +30,7 @@ def test_plateau_is_stable_when_neighbours_keep_enough_of_the_sharpe():
 
 def test_an_undefined_neighbour_counts_as_a_collapse_and_a_losing_base_is_never_stable():
     assert not plateau(1.0, [0.9, None]).stable
+    assert plateau(1.0, [0.9, None]).worst_drop == 1.0
     lost = plateau(-0.2, [-0.1, None, 0.3])
     assert not lost.stable and lost.worst == -0.1 and lost.worst_drop == 1.0
     assert plateau(0.0, [None]).worst == 0.0
