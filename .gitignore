@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.coverage*
+htmlcov/
+mutants/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.env
+*.sops.key
+/data/
+.hypothesis/

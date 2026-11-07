@@ -1,0 +1,143 @@
+"""NSE backfill, in stages (each resumable / idempotent):
+  universe  security master + symbol changes + Nifty 200 snapshot
+  actions   corporate actions for every Nifty 200 symbol (full history)
+  reparse   rebuild corporate_action from raw JSON already in the lake (no network)
+  bars      daily bars (sec_bhavdata_full, available from 2019-10) over --from/--to
+usage: backfill_nse.py --db URL --lake DIR --stage universe|actions|bars [--from D --to D]"""
+
+import argparse
+import sys
+from datetime import UTC, date, datetime
+from pathlib import Path
+
+import psycopg
+
+from algo.core.calendar import nse
+from algo.data.corporate_actions import ingest_symbol, reparse_symbol
+from algo.data.instrument_sync import apply_symbol_changes, load_index_snapshot, sync_equities
+from algo.data.lake import LocalLake
+from algo.data.pipeline import backfill
+from algo.data.providers.nse_bhavcopy import NseBhavcopy
+from algo.data.providers.nse_client import NseClient
+from algo.data.providers.nse_holidays import parse_holidays
+from algo.data.providers.nse_security_master import URL as MASTER_URL
+from algo.data.providers.nse_security_master import parse_security_master
+from algo.data.providers.nse_symbol_changes import parse_index_list, parse_symbol_changes
+from algo.data.store.migrate import migrate
+
+ARCH = "https://nsearchives.nseindia.com"
+N200 = f"{ARCH}/content/indices/ind_nifty200list.csv"
+SYMCHG = f"{ARCH}/content/equities/symbolchange.csv"
+HOLIDAYS = "https://www.nseindia.com/api/holiday-master?type=trading"
+WARM = "https://www.nseindia.com/companies-listing/corporate-filings-actions"
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--db", required=True)
+ap.add_argument("--lake", required=True, type=Path)
+ap.add_argument("--stage", required=True, choices=["universe", "actions", "reparse", "bars"])
+ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 10, 1))
+ap.add_argument("--to", dest="end", type=date.fromisoformat, default=datetime.now(UTC).date())
+a = ap.parse_args()
+
+now, lake = datetime.now(UTC), LocalLake(a.lake)
+client = NseClient(min_interval=1.5)
+
+
+def log(*m: object) -> None:
+    print(datetime.now(UTC).strftime("%H:%M:%S"), *m, flush=True)
+
+
+with psycopg.connect(a.db, autocommit=True) as conn:
+    migrate(conn)
+    row = conn.execute("SELECT exchange_id FROM exchange WHERE mic='XNSE'").fetchone()
+    if row is None:
+        row = conn.execute(
+            "INSERT INTO exchange (mic,country,timezone,currency,calendar_id) "
+            "VALUES ('XNSE','IN','Asia/Kolkata','INR','NSE') RETURNING exchange_id"
+        ).fetchone()
+    assert row is not None
+
+    def n200_symbols() -> list[str]:
+        raw = client.get(N200)
+        lake.put("nse", "index_nifty200", now.date(), raw, url=N200, fetched_at=now)
+        return [m.symbol for m in parse_index_list(raw)]
+
+    if a.stage == "universe":
+        raw = client.get(MASTER_URL)
+        lake.put("nse", "security_master", now.date(), raw, url=MASTER_URL, fetched_at=now)
+        r = sync_equities(conn, row[0], parse_security_master(raw), now.date())
+        log(f"security master: +{len(r.added)} new, {len(r.missing)} missing")
+        raw = client.get(SYMCHG)
+        lake.put("nse", "symbol_changes", now.date(), raw, url=SYMCHG, fetched_at=now)
+        s = apply_symbol_changes(conn, parse_symbol_changes(raw))
+        log(
+            f"symbol changes: applied={len(s.applied)} unchanged={len(s.unchanged)} "
+            f"not_in_universe={s.not_in_universe} conflicts={s.conflicts}"
+        )
+        stored, unknown = load_index_snapshot(conn, "NIFTY200", now.date(), n200_symbols())
+        log(f"nifty200 snapshot: stored={stored} unknown={unknown}")
+
+    elif a.stage == "actions":
+        client.warm(WARM)
+        syms = n200_symbols()
+        tot_ins = tot_unch = 0
+        for i, sym in enumerate(syms, 1):
+            try:
+                r = ingest_symbol(
+                    conn, lake, lambda u: client.get(u, accept="application/json"), sym, now
+                )
+            except Exception as e:  # keep going; failures are listed in the log
+                log(f"[{i}/{len(syms)}] {sym} FAILED {type(e).__name__}: {e}")
+                continue
+            if r is None:
+                log(f"[{i}/{len(syms)}] {sym} not in instrument master")
+                continue
+            tot_ins += r.inserted
+            tot_unch += r.unchanged
+            if i % 20 == 0:
+                log(f"[{i}/{len(syms)}] inserted={tot_ins} unchanged={tot_unch}")
+        q = "SELECT count(*) FROM corporate_action WHERE status='review'"
+        n_review = conn.execute(q).fetchone()[0]
+        log(f"actions done: inserted={tot_ins} unchanged={tot_unch} review={n_review}")
+
+    elif a.stage == "reparse":
+        q = (
+            "SELECT DISTINCT al.source_symbol FROM index_snapshot i JOIN instrument_alias al "
+            "USING (instrument_id) WHERE i.index_id='NIFTY200' AND al.source='nse' "
+            "AND al.valid_to IS NULL ORDER BY 1"
+        )
+        syms = [r[0] for r in conn.execute(q)]
+        ins = rep = 0
+        for sym in syms:
+            r = reparse_symbol(conn, lake, sym, now)
+            if r is not None:
+                ins += r.inserted
+                rep += r.replaced
+        n_review = conn.execute(
+            "SELECT count(*) FROM corporate_action WHERE status='review'"
+        ).fetchone()[0]
+        log(f"reparse done: symbols={len(syms)} rows={ins} replaced={rep} review={n_review}")
+
+    else:
+        client.warm(WARM)
+        try:
+            raw = client.get(HOLIDAYS, accept="application/json")
+            lake.put("nse", "holiday_master", now.date(), raw, url=HOLIDAYS, fetched_at=now)
+            hol = parse_holidays(raw)
+            n_hol, sp = len(hol.weekday_holidays), hol.special_review
+            log(f"holidays (current year): {n_hol}, special: {sp}")
+            cal = nse(hol.weekday_holidays)
+        except Exception as e:
+            log(f"holiday feed unavailable ({e}); relying on 404 detection")
+            cal = nse()
+        prov = NseBhavcopy(client.get, cal)
+        total: dict[str, int] = {}
+
+        def progress(d: date, status: str) -> None:
+            total[status] = total.get(status, 0) + 1
+            if sum(total.values()) % 25 == 0:
+                log(f"{d} {total}")
+
+        out = backfill(conn, lake, prov, "bhav", a.start, a.end, now, progress=progress)
+        log(f"bars done: {out}")
+    sys.stdout.flush()

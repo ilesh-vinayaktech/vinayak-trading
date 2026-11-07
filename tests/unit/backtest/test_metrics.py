@@ -1,0 +1,89 @@
+import math
+from datetime import date, timedelta
+from decimal import Decimal as D
+
+import pytest
+
+from algo.backtest.metrics import metrics
+
+
+def curve(*vals, start=date(2025, 1, 1)):
+    return [(start + timedelta(days=i), D(v)) for i, v in enumerate(vals)]
+
+
+def test_too_short_curve_has_no_metrics():
+    assert metrics([])["total_return"] is None and metrics(curve(100))["sharpe"] is None
+
+
+def test_hand_computed_values():
+    m = metrics(curve(100, 110, 99))  # +10%, -10%
+    assert m["total_return"] == pytest.approx(-0.01)
+    assert m["max_drawdown"] == pytest.approx(-0.10)
+    mean, sd = 0.0, math.sqrt((0.1**2 + 0.1**2) / 1)
+    assert m["vol"] == pytest.approx(sd * math.sqrt(252))
+    assert m["sharpe"] == pytest.approx(mean / sd * math.sqrt(252) if sd else 0)
+
+
+def test_cagr_uses_calendar_years():
+    m = metrics(curve(100, 121, start=date(2024, 1, 1)) + [(date(2026, 1, 1), D(144))])
+    assert m["cagr"] == pytest.approx(1.44 ** (1 / (731 / 365.25)) - 1)
+
+
+def test_flat_curve_has_zero_vol_and_no_sharpe():
+    m = metrics(curve(100, 100, 100))
+    assert m["vol"] == 0 and m["sharpe"] is None and m["max_drawdown"] == 0
+
+
+def test_single_return_has_zero_variance_not_a_crash():
+    assert metrics(curve(100, 105))["vol"] == 0
+
+
+# ---- independent cross-checks (mean != 0, so mean/Sharpe errors cannot hide) ----------------
+def test_values_match_an_independent_computation_with_a_non_zero_mean():
+    import statistics
+
+    c = curve(100, 102, 101, 105, 104, start=date(2025, 1, 1))
+    vals = [float(v) for _, v in c]
+    rets = [b / a - 1 for a, b in zip(vals, vals[1:], strict=False)]
+    m = metrics(c)
+    sd = statistics.stdev(rets)
+    assert m["vol"] == pytest.approx(sd * math.sqrt(252))
+    assert m["sharpe"] == pytest.approx(statistics.mean(rets) / sd * math.sqrt(252))
+    assert m["total_return"] == pytest.approx(104 / 100 - 1)
+    assert m["max_drawdown"] == pytest.approx(101 / 102 - 1)  # peak 102 -> trough 101
+    years = 4 / 365.25
+    assert m["cagr"] == pytest.approx(1.04 ** (1 / years) - 1)
+
+
+def test_drawdown_starts_from_the_first_value_not_the_second():
+    assert metrics(curve(100, 90, 95))["max_drawdown"] == pytest.approx(-0.10)
+
+
+def test_sharpe_sign_follows_the_mean_return():
+    assert metrics(curve(100, 101, 103, 106, 110))["sharpe"] > 0
+    assert metrics(curve(100, 99, 97, 94, 90))["sharpe"] < 0
+
+
+def test_result_keys_are_stable():
+    keys = {"total_return", "cagr", "vol", "sharpe", "max_drawdown"}
+    assert set(metrics(curve(100))) == keys and set(metrics(curve(100, 101, 102))) == keys
+
+
+def test_cagr_is_reported_for_periods_shorter_than_a_year_but_not_for_zero_length():
+    half_year = [(date(2025, 1, 1), D(100)), (date(2025, 7, 1), D(110))]
+    years = 181 / 365.25
+    assert metrics(half_year)["cagr"] == pytest.approx(1.1 ** (1 / years) - 1)
+    same_day = [(date(2025, 1, 1), D(100)), (date(2025, 1, 1), D(110))]
+    assert metrics(same_day)["cagr"] is None
+
+
+def test_a_curve_starting_at_zero_has_no_metrics_instead_of_crashing():
+    m = metrics([(date(2025, 1, 1), D(0)), (date(2026, 1, 1), D(110))])
+    assert set(m.values()) == {None}
+
+
+def test_a_wipe_out_is_reported_not_a_crash():
+    """Equity hitting zero is exactly when a report is needed; later values are meaningless."""
+    m = metrics(curve(100, 50, 0, 0, 0))
+    assert m["total_return"] == pytest.approx(-1.0) and m["max_drawdown"] == pytest.approx(-1.0)
+    assert m["vol"] is not None and m["cagr"] == pytest.approx(-1.0)
