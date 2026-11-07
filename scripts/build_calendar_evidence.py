@@ -19,7 +19,13 @@ import psycopg
 
 from algo.data.benchmark import levels
 from algo.data.calendar_evidence import (
-    CHAIN_THRESHOLD, CLOSED, GAP, MIN_SYMBOLS, TRADED, classify, file_findings,
+    CHAIN_THRESHOLD,
+    CLOSED,
+    GAP,
+    MIN_SYMBOLS,
+    TRADED,
+    classify,
+    file_findings,
 )  # fmt: skip
 from algo.data.lake import LocalLake
 from algo.data.providers.nse_bhavcopy_legacy import parse
