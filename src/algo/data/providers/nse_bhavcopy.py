@@ -28,6 +28,22 @@ def _opt(v: str | None) -> Decimal | None:
     return None if v in (None, "", "-") else _dec(v)
 
 
+def file_date(raw: bytes) -> date | None:
+    """The single trading date a bhavcopy file actually holds (its DATE1 column), or None when the
+    file is empty, has no such column or mixes dates. NSE re-serves the last session's file on
+    holidays, and a Muhurat session's data can appear in the NEXT holiday's file."""
+    try:
+        reader = csv.DictReader(io.StringIO(raw.decode("utf-8")))
+        reader.fieldnames = [h.strip() for h in reader.fieldnames or []]
+        days = {
+            datetime.strptime((r.get("DATE1") or "").strip(), "%d-%b-%Y").replace(tzinfo=UTC).date()
+            for r in reader
+        }
+    except (UnicodeDecodeError, ValueError, csv.Error):
+        return None
+    return days.pop() if len(days) == 1 else None
+
+
 class NseBhavcopy:
     name = "nse"
 

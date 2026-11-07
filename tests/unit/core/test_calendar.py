@@ -99,3 +99,22 @@ def test_session_times_do_not_depend_on_the_machine_timezone(monkeypatch):
     finally:
         monkeypatch.undo()
         _time.tzset()
+
+
+def test_session_types_come_from_the_data_not_from_the_weekday():
+    from datetime import date, time
+
+    from algo.core.calendar import nse
+
+    hol = [date(2026, 1, 26)]  # a Monday holiday
+    sat, sun = date(2025, 2, 1), date(2026, 2, 1)
+    special = {sat: (time(9, 15), time(15, 30)), sun: (time(9, 15), time(15, 30)),
+               date(2021, 11, 4): (time(18, 15), time(19, 15))}  # fmt: skip
+    cal = nse(hol, special, {date(2021, 11, 4): "MUHURAT"})
+    assert cal.session_type(date(2026, 1, 27)) == "REGULAR"  # an ordinary Tuesday
+    assert cal.session_type(date(2026, 1, 26)) == "CLOSED"  # holiday
+    assert cal.session_type(date(2026, 1, 31)) == "CLOSED"  # an ordinary Saturday
+    assert cal.session_type(sat) == "SPECIAL" and cal.session_type(sun) == "SPECIAL"
+    assert cal.session_type(date(2021, 11, 4)) == "MUHURAT"  # a weekday that is also a holiday
+    assert cal.is_trading_day(sun) and not cal.is_trading_day(date(2026, 1, 31))
+    assert nse().session_type(sun) == "CLOSED"  # without the evidence it is closed, as before

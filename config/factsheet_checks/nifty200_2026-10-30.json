@@ -1,0 +1,58 @@
+{
+ "index": "NIFTY_200",
+ "as_of": "2026-10-30",
+ "source": {
+  "dataset": "factsheet_nifty200",
+  "sha256": "bc0bc80de47a649ad7fa5e0e6aa30699e5db12f9ec4fbc6a40b58a8b94259550",
+  "url": "https://www.niftyindices.com/Factsheet/ind_nifty_200.pdf",
+  "document_date": "2026-10-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (rounding +/-0.005 pp); CAGRs also depend on the unstated day-count convention, so +/-0.02 pp is allowed and the actual difference is always reported",
+ "checks": [
+  {
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "0.15",
+   "price_return_pct": "0.11",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-8.49",
+   "price_return_pct": "-9.29",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-7.35",
+   "price_return_pct": "-8.20",
+   "tolerance_pp": "0.005"
+  },
+  {
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "8.26",
+   "price_return_pct": "7.14",
+   "tolerance_pp": "0.02"
+  },
+  {
+   "label": "Since inception (CAGR)",
+   "base": "2004-01-01",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "13.42",
+   "price_return_pct": "11.95",
+   "tolerance_pp": "0.02"
+  }
+ ]
+}

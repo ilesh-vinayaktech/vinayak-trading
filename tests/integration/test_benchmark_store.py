@@ -103,3 +103,32 @@ def test_the_dataset_hash_and_references_pin_exactly_what_was_used(conn, bm):
     assert dataset_hash(conn, bm) != h
     with pytest.raises(BenchmarkError, match="no benchmark 999"):
         references(conn, 999)
+
+
+def test_a_validation_is_tied_to_the_exact_data_it_was_made_on(conn, bm):
+    from algo.data.benchmark import store_validation, validated
+
+    put(conn, bm)
+    assert not validated(conn, bm)  # nothing recorded yet
+    vid = store_validation(conn, bm, report={"checks": {}}, passed=True, normalized_sha256="n",
+                           factsheet_sha256="f", unresolved=["revisions untested"], now=NOW)  # fmt: skip
+    assert vid > 0 and validated(conn, bm)
+    row = conn.execute(
+        "SELECT dataset_hash, passed, factsheet_sha256, unresolved FROM benchmark_validation"
+    ).fetchone()
+    assert (
+        row[0] == dataset_hash(conn, bm)
+        and row[1] is True
+        and row[2] == "f"
+        and row[3] == ["revisions untested"]
+    )
+    put(
+        conn, bm, ROWS + [(date(2024, 1, 4), D(101))]
+    )  # the series grows: the old report no longer covers it
+    assert not validated(conn, bm)
+    store_validation(conn, bm, report={}, passed=False, normalized_sha256="n2", factsheet_sha256=None,
+                     unresolved=[], now=NOW)  # fmt: skip
+    assert not validated(conn, bm)  # the latest report failed
+    with pytest.raises(BenchmarkError, match="no benchmark 999"):
+        store_validation(conn, 999, report={}, passed=True, normalized_sha256="n", factsheet_sha256=None,
+                         unresolved=[], now=NOW)  # fmt: skip

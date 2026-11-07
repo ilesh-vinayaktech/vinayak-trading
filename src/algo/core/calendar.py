@@ -20,11 +20,13 @@ class SessionCalendar:
         close_t: time,
         holidays: Iterable[date] = (),
         special: dict[date, tuple[time, time]] | None = None,
+        special_kinds: dict[date, str] | None = None,
     ) -> None:
         self.tz = ZoneInfo(tz)
         self.open_t, self.close_t = open_t, close_t
         self.holidays = frozenset(holidays)
         self.special = special or {}  # Muhurat etc: date -> (open, close)
+        self.special_kinds = special_kinds or {}  # date -> "SPECIAL" | "MUHURAT" (default SPECIAL)
 
     def _hours(self, d: date) -> tuple[time, time] | None:
         if d in self.special:
@@ -32,6 +34,13 @@ class SessionCalendar:
         if d.weekday() >= 5 or d in self.holidays:
             return None
         return self.open_t, self.close_t
+
+    def session_type(self, d: date) -> str:
+        """REGULAR (weekday), SPECIAL / MUHURAT (an evidenced extra session, weekday or weekend),
+        or CLOSED. Driven by the holiday and special-session DATA, never by the weekday alone."""
+        if d in self.special:
+            return self.special_kinds.get(d, "SPECIAL")
+        return "CLOSED" if self._hours(d) is None else "REGULAR"
 
     def is_trading_day(self, d: date) -> bool:
         return self._hours(d) is not None
@@ -79,6 +88,10 @@ class SessionCalendar:
 
 
 def nse(
-    holidays: Iterable[date] = (), special: dict[date, tuple[time, time]] | None = None
+    holidays: Iterable[date] = (),
+    special: dict[date, tuple[time, time]] | None = None,
+    special_kinds: dict[date, str] | None = None,
 ) -> SessionCalendar:
-    return SessionCalendar("Asia/Kolkata", time(9, 15), time(15, 30), holidays, special)
+    return SessionCalendar(
+        "Asia/Kolkata", time(9, 15), time(15, 30), holidays, special, special_kinds
+    )

@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Any
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 from algo.core.clock import require_utc
 
@@ -145,3 +146,31 @@ def gate_returns(conn: psycopg.Connection, benchmark_id: int, days: Sequence[dat
             f"{rtype} series cannot back a gate: use the gross TOTAL_RETURN series"
         )
     return aligned_returns(levels(conn, benchmark_id, days[0], days[-1]), days)
+
+
+def store_validation(
+    conn: psycopg.Connection, benchmark_id: int, *, report: dict[str, Any], passed: bool,
+    normalized_sha256: str, factsheet_sha256: str | None, unresolved: list[str], now: datetime,
+) -> int:  # fmt: skip
+    """Record a validation report for the series AS STORED NOW (its dataset hash is taken here)."""
+    _meta(conn, benchmark_id)  # raises for an unknown benchmark
+    row = conn.execute(
+        "INSERT INTO benchmark_validation (benchmark_id,created_at,dataset_hash,normalized_sha256,"
+        "factsheet_sha256,passed,report,unresolved) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"
+        " RETURNING validation_id",
+        (benchmark_id, require_utc(now), dataset_hash(conn, benchmark_id), normalized_sha256,
+         factsheet_sha256, passed, Jsonb(report), Jsonb(unresolved)),
+    ).fetchone()  # fmt: skip
+    assert row is not None
+    return int(row[0])
+
+
+def validated(conn: psycopg.Connection, benchmark_id: int) -> bool:
+    """True only if the LATEST validation passed AND was made against the data as stored now (a
+    changed series is not covered by an old report). Gates must not use a benchmark otherwise."""
+    row = conn.execute(
+        "SELECT passed, dataset_hash FROM benchmark_validation WHERE benchmark_id=%s"
+        " ORDER BY validation_id DESC LIMIT 1",
+        (benchmark_id,),
+    ).fetchone()
+    return bool(row and row[0] and row[1] == dataset_hash(conn, benchmark_id))

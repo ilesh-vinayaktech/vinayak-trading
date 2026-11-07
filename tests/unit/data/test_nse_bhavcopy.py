@@ -89,3 +89,18 @@ def test_file_holding_an_earlier_day_means_not_published():
     stale = RAW.replace(b"05-Nov-2026", b"04-Nov-2026")
     with pytest.raises(NotPublishedError):
         list(P.parse("bhav", D0, stale))
+
+
+def test_file_date_reports_the_single_date_a_file_really_holds():
+    from algo.data.providers.nse_bhavcopy import file_date
+
+    hdr = "SYMBOL, SERIES, DATE1, OPEN_PRICE\n"
+    one = (hdr + "A, EQ, 04-Nov-2021, 1\nB, EQ, 04-Nov-2021, 2\n").encode()
+    assert file_date(one) == date(2021, 11, 4)
+    assert (
+        file_date((hdr + "A, EQ, 03-Nov-2021, 1\nB, EQ, 04-Nov-2021, 2\n").encode()) is None
+    )  # mixed
+    assert file_date(hdr.encode()) is None  # no rows
+    assert file_date(b"A,B\n1,2\n") is None  # no DATE1 column: a blank date cannot parse
+    assert file_date(b"\xff\xfe") is None  # not text
+    assert file_date((hdr + "A, EQ, notadate, 1\n").encode()) is None
