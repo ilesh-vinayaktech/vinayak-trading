@@ -1,10 +1,8 @@
 from datetime import UTC, date, datetime
 from decimal import Decimal as D
 
-from algo.backtest.engine import (
-    BacktestConfig,
-    CostModel,
-)
+from algo.backtest.costs.policy import CostModel
+from algo.backtest.engine import BacktestConfig
 from algo.data.corporate_actions import knowledge_time_for
 from algo.data.review import resolve
 from algo.data.store.instruments import InstrumentRepo
@@ -13,6 +11,7 @@ from tests.support.strategies import HoldParams, HoldWeights
 
 DAYS = [date(2025, 6, d) for d in (2, 3, 4, 5, 6, 9, 10, 11, 12, 13)]
 ZERO = CostModel("zero", D(0), D(0), False)
+REALISTIC = CostModel("realistic-test", D(0), D(1), False)  # no commission, 1 bps slippage
 INGESTED = datetime(2026, 11, 6, tzinfo=UTC)
 NOW = datetime(2026, 11, 7, tzinfo=UTC)
 

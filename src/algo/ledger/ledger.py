@@ -20,7 +20,7 @@ With prices, also: equity - initial = realized + unrealized + dividends - fees.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -78,6 +78,7 @@ class Ledger:
         self._qty: dict[int, Decimal] = defaultdict(Decimal)
         self._cost: dict[int, Decimal] = defaultdict(Decimal)
         self._realized = self._dividends = self._fees = Decimal(0)
+        self._fees_by: dict[str, Decimal] = defaultdict(Decimal)
         self._booked: set[str] = set()
         self._add(day, "cash", "INITIAL", None, Decimal(0), initial_cash, "initial")
         self._booked.add("initial")
@@ -120,6 +121,7 @@ class Ledger:
             self._cost[iid] += amount
         elif ledger == "fee":
             self._fees += amount
+            self._fees_by[kind] += amount
         elif ledger == "pnl":
             self._realized += amount
 
@@ -130,23 +132,43 @@ class Ledger:
 
     # ---- postings ----------------------------------------------------------------------------
     def buy(
-        self, day: date, iid: int, qty: Decimal, price: Decimal, fee: Decimal, ref: str
+        self,
+        day: date,
+        iid: int,
+        qty: Decimal,
+        price: Decimal,
+        fee: Decimal,
+        ref: str,
+        *,
+        charges: Sequence[tuple[str, Decimal]] = (),
     ) -> None:
+        """`fee` is a single commission; `charges` are itemised (type, amount) lines, each booked as
+        its own fee entry with its own matching cash entry."""
         if qty <= 0 or price <= 0 or fee < 0:
             raise ValueError("buy needs qty > 0, price > 0, fee >= 0")
+        extra = self._check_charges(charges)
         value = qty * price
-        if value + fee > self._cash + TOL:
-            raise InsufficientCash(f"need {value + fee}, have {self._cash}")
+        if value + fee + extra > self._cash + TOL:
+            raise InsufficientCash(f"need {value + fee + extra}, have {self._cash}")
         self._book(ref)
         self._add(day, "position", "BUY", iid, qty, value, ref)
         self._add(day, "cash", "BUY", iid, Decimal(0), -value, ref)
-        self._fee(day, iid, fee, ref)
+        self._fee(day, iid, fee, charges, ref)
 
     def sell(
-        self, day: date, iid: int, qty: Decimal, price: Decimal, fee: Decimal, ref: str
+        self,
+        day: date,
+        iid: int,
+        qty: Decimal,
+        price: Decimal,
+        fee: Decimal,
+        ref: str,
+        *,
+        charges: Sequence[tuple[str, Decimal]] = (),
     ) -> None:
         if qty <= 0 or price <= 0 or fee < 0:
             raise ValueError("sell needs qty > 0, price > 0, fee >= 0")
+        self._check_charges(charges)
         held = self.qty(iid)
         if qty > held:
             raise InsufficientPosition(f"selling {qty} of {iid} but holding {held}")
@@ -157,12 +179,44 @@ class Ledger:
         self._add(day, "position", "SELL", iid, -qty, -removed, ref)
         self._add(day, "cash", "SELL", iid, Decimal(0), proceeds, ref)
         self._add(day, "pnl", "REALIZED", iid, Decimal(0), proceeds - removed, ref)
-        self._fee(day, iid, fee, ref)
+        self._fee(day, iid, fee, charges, ref)
 
-    def _fee(self, day: date, iid: int, fee: Decimal, ref: str) -> None:
+    @staticmethod
+    def _check_charges(charges: Sequence[tuple[str, Decimal]]) -> Decimal:
+        kinds = [k for k, _ in charges]
+        if len(set(kinds)) != len(kinds) or "COMMISSION" in kinds:
+            raise ValueError("charge types must be distinct and not COMMISSION")
+        if any(a < 0 for _, a in charges):
+            raise ValueError("charges cannot be negative")
+        return sum((a for _, a in charges), Decimal(0))
+
+    def _fee(
+        self, day: date, iid: int, fee: Decimal, charges: Sequence[tuple[str, Decimal]], ref: str
+    ) -> None:
         if fee > 0:
             self._add(day, "fee", "COMMISSION", iid, Decimal(0), fee, ref)
             self._add(day, "cash", "FEE", iid, Decimal(0), -fee, ref)
+        for kind, amount in charges:
+            if amount > 0:
+                self._add(day, "fee", kind, iid, Decimal(0), amount, ref)
+                self._add(day, "cash", f"FEE:{kind}", iid, Decimal(0), -amount, ref)
+
+    def post_charges(self, day: date, charges: Sequence[tuple[str, Decimal]], ref: str) -> None:
+        """Charges not tied to one trade (e.g. a contract-note-level top-up)."""
+        extra = self._check_charges(charges)
+        if extra <= 0:
+            raise ValueError("nothing to charge")
+        if extra > self._cash + TOL:
+            raise InsufficientCash(f"need {extra}, have {self._cash}")
+        self._book(ref)
+        for kind, amount in charges:
+            if amount > 0:
+                self._add(day, "fee", kind, None, Decimal(0), amount, ref)
+                self._add(day, "cash", f"FEE:{kind}", None, Decimal(0), -amount, ref)
+
+    def fee_breakdown(self) -> dict[str, Decimal]:
+        """Fees paid so far, by type (COMMISSION, STT, STAMP_DUTY, ...)."""
+        return {k: v for k, v in sorted(self._fees_by.items()) if v != 0}
 
     def apply_split(self, day: date, iid: int, num: Decimal, den: Decimal, ref: str) -> None:
         """Bonus / split: share count x num/den, total cost unchanged (average cost falls)."""
@@ -238,6 +292,14 @@ class Ledger:
         ):
             if abs(ours - theirs) > TOL:
                 out.append(f"{name}: running {ours} != entries {theirs}")
+        by_kind: dict[str, Decimal] = defaultdict(Decimal)
+        for e in self.entries:
+            if e.ledger == "fee":
+                by_kind[e.kind] += e.amount
+        for kind in sorted(set(by_kind) | set(self._fees_by)):
+            ours, theirs = self._fees_by.get(kind, zero), by_kind.get(kind, zero)
+            if abs(ours - theirs) > TOL:
+                out.append(f"fees[{kind}]: running {ours} != entries {theirs}")
         # Accounting identity from the entries alone (prices cancel out of it):
         #   (cash - initial) + cost basis - realized - dividends + fees == 0
         identity = (cash - initial) + sum(cost.values(), Decimal(0)) - realized - dividends + fees
@@ -287,7 +349,6 @@ class Ledger:
         buy_pos, buy_cash = g.get(("position", "BUY")), g.get(("cash", "BUY"))
         sell_pos, sell_cash = g.get(("position", "SELL")), g.get(("cash", "SELL"))
         real = g.get(("pnl", "REALIZED"))
-        fee, fee_cash = g.get(("fee", "COMMISSION")), g.get(("cash", "FEE"))
         if (buy_pos is None) != (buy_cash is None):
             problems.append(f"{ref}: BUY needs both a position and a cash entry")
         elif buy_pos and buy_cash and abs(buy_pos.amount + buy_cash.amount) > TOL:
@@ -301,7 +362,16 @@ class Ledger:
             and abs(real.amount - (sell_cash.amount + sell_pos.amount)) > TOL
         ):
             problems.append(f"{ref}: realized {real.amount} != proceeds - cost removed")
-        if (fee is None) != (fee_cash is None):
-            problems.append(f"{ref}: a fee needs both a fee and a cash entry")
-        elif fee and fee_cash and abs(fee.amount + fee_cash.amount) > TOL:
-            problems.append(f"{ref}: fee {fee.amount} != cash paid {-fee_cash.amount}")
+        fee_kinds = {k for (lg, k) in g if lg == "fee"} | {
+            "COMMISSION" if k == "FEE" else k[4:]
+            for (lg, k) in g
+            if lg == "cash" and (k == "FEE" or k.startswith("FEE:"))
+        }
+        for kind in sorted(fee_kinds):
+            fee = g.get(("fee", kind))
+            fee_cash = g.get(("cash", "FEE" if kind == "COMMISSION" else f"FEE:{kind}"))
+            label = "fee" if kind == "COMMISSION" else f"{kind} fee"
+            if (fee is None) != (fee_cash is None):
+                problems.append(f"{ref}: a {label} needs both a fee and a cash entry")
+            elif fee and fee_cash and abs(fee.amount + fee_cash.amount) > TOL:
+                problems.append(f"{ref}: {label} {fee.amount} != cash paid {-fee_cash.amount}")

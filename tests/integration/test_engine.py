@@ -3,7 +3,8 @@ from decimal import Decimal as D
 
 import pytest
 
-from algo.backtest.engine import CostModel, InvalidTargets, run_backtest
+from algo.backtest.costs.policy import CostModel
+from algo.backtest.engine import InvalidTargets, run_backtest
 from algo.data.review import resolve
 from algo.strategy.base import Mode, Strategy
 from tests.support.bt import (
@@ -420,3 +421,148 @@ def test_books_agree_on_random_price_paths_and_random_targets(env, seed):
     assert_books_agree(r)
     assert r.ledger.cash >= 0 and all(q > 0 for q in r.final_positions.values())
     assert len(r.equity) == 10
+
+
+# ---- schedule-based costs: every rupee explained --------------------------------------------------
+from pathlib import Path  # noqa: E402
+
+from algo.backtest.costs.policy import ScheduleCosts  # noqa: E402
+from algo.backtest.costs.schedule import NoScheduleForDate, ScheduleBook, load_schedules  # noqa: E402
+from algo.backtest.costs.slippage import SlippageModel  # noqa: E402
+
+CFG_DIR = Path(__file__).parents[2] / "config/cost_schedules"
+
+
+def sched(slippage=None, statuses=("assumed_backfill",)):
+    book = ScheduleBook(load_schedules(CFG_DIR), allowed_statuses=statuses)
+    return ScheduleCosts(book, slippage or SlippageModel())
+
+
+def test_a_delivery_buy_with_real_schedule_costs_is_hand_computed_to_the_paisa(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, hold((a, 1)), cfg(cost=sched()))
+    # 100 shares would cost 10,011.88 all-in (> Rs 10,000), so the engine buys 99:
+    #   STT 9.90 + exchange 0.30 + SEBI 0.01 + stamp 1.49 + GST 18% x (0 + 0.30 + 0.01) = 0.06
+    (t,) = r.trades
+    assert (t.qty, t.price, t.cost, t.slippage_bps) == (D(99), D(100), D("11.76"), D(0))
+    assert {ln.type: ln.amount for ln in t.charges.lines} == {
+        "BROKERAGE": D("0.00"), "STT": D("9.90"), "EXCHANGE_TRANSACTION": D("0.30"),
+        "SEBI_TURNOVER": D("0.01"), "STAMP_DUTY": D("1.49"), "GST": D("0.06"),
+    }  # fmt: skip
+    # the delivery contract note carries a Rs 0.01 minimum brokerage, posted once for the day
+    assert r.note_charges == [{"day": str(DAYS[1]), "type": "BROKERAGE", "amount": "0.01"}]
+    assert r.ledger.fee_breakdown() == {
+        "BROKERAGE": D("0.01"), "EXCHANGE_TRANSACTION": D("0.30"), "GST": D("0.06"),
+        "SEBI_TURNOVER": D("0.01"), "STAMP_DUTY": D("1.49"), "STT": D("9.90"),
+    }  # fmt: skip
+    assert r.final_cash == D(10000) - D(9900) - D("11.76") - D("0.01") == D("88.23")
+    assert D(r.pnl["fees"]) == D("11.77") and D(r.pnl["net"]) == D("-11.77")
+    assert r.reconciliation == []
+
+
+def test_a_round_trip_with_the_dp_charge_reconciles_to_the_rupee(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    s = Scripted(HoldParams(ids=(a,), weights=(D(1),)), [{a: D(1)}, {}])
+    r = run_backtest(conn, s, cfg(cost=sched()))
+    buy, sell = r.trades
+    # SELL 99 @ 100: STT 9.90 + exchange 0.30 + SEBI 0.01 + DP 15.34 (GST included) + GST 0.06 = 25.61
+    assert sell.cost == D("25.61") and sell.charges.amount("DP_CHARGE") == D("15.34")
+    assert sell.charges.amount("STAMP_DUTY") == 0  # stamp duty is buyer-side only
+    assert [n["day"] for n in r.note_charges] == [str(DAYS[1]), str(DAYS[2])]  # one note a day
+    assert D(r.pnl["fees"]) == D("11.76") + D("25.61") + D("0.01") + D("0.01")
+    assert r.final_cash == D(10000) - D("11.77") - D("25.62") and r.final_positions == {}
+    assert D(r.pnl["net"]) == D("-37.39") == r.equity[-1][1] - D(10000)
+    assert sum((t.cost for t in r.trades), D(0)) + D("0.02") == D(r.pnl["fees"])  # trades + notes
+    assert r.reconciliation == []
+
+
+def test_slippage_moves_the_fill_price_and_is_recorded_on_the_trade(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    s = Scripted(HoldParams(ids=(a,), weights=(D(1),)), [{a: D(1)}, {}])
+    r = run_backtest(conn, s, cfg(cost=sched(SlippageModel(base_bps=D(10)))))
+    buy, sell = r.trades
+    assert (buy.price, buy.slippage_bps) == (D("100.10"), D(10))
+    assert (sell.price, sell.slippage_bps) == (D("99.90"), D(10))
+    assert buy.qty == D(99)  # 100 x 100.10 + charges would exceed the cash
+    assert D(r.pnl["realized"]) == D(99) * (
+        D("99.90") - D("100.10")
+    )  # -19.8: the slippage round trip
+
+
+def test_slippage_grows_with_the_orders_share_of_the_bars_volume(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100), vol=400)  # cap = 5% of 400 = 20 shares = 5% participation
+    r = run_backtest(
+        conn, hold((a, 1)), cfg(cost=sched(SlippageModel(participation_bps_per_pct=D(2))))
+    )
+    assert r.trades[0].qty == 20 and r.trades[0].slippage_bps == D(10)  # 5% x 2 bps per 1%
+    assert r.trades[0].price == D("100.10")
+
+
+def test_volatility_and_illiquidity_use_only_sessions_before_the_execution_bar(env):
+    conn, a, _ = env
+    put_bars(conn, a, {d: (D(100), D(100)) for d in DAYS})
+    conn.execute(
+        "UPDATE bar_1d SET high=104, low=98 WHERE ts < %s", (datetime(2025, 6, 3, tzinfo=UTC),)
+    )
+    m = SlippageModel(
+        volatility_fraction=D("0.5"), illiquid_adv_threshold=D(10**12), illiquid_extra_bps=D(7)
+    )
+    r = run_backtest(conn, hold((a, 1)), cfg(cost=sched(m)))
+    # only the prior session (2 Jun) has a wide range: (104-98)/100 = 600 bps -> 0.5 x 600 = 300; +7
+    # illiquid. The execution bar (3 Jun) is flat: if its own range leaked in, this would be 7, not 307.
+    assert r.trades[0].slippage_bps == D(307)
+    # the execution bar's own range never feeds the estimate (that would be look-ahead)
+
+
+def test_no_schedule_for_the_trade_date_stops_the_run(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    with pytest.raises(NoScheduleForDate, match="statuses allowed: verified"):
+        run_backtest(conn, hold((a, 1)), cfg(cost=sched(statuses=("verified",))))
+    with pytest.raises(NoScheduleForDate):  # the current schedule starts 2026-03-01
+        run_backtest(conn, hold((a, 1)), cfg(cost=sched(statuses=("extracted_unverified",))))
+
+
+def test_the_run_records_which_schedules_it_used_and_that_they_are_unverified(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, hold((a, 1)), cfg(cost=sched()))
+    assert r.cost_info["schedules_used"] == [
+        {
+            "id": "nse-cash-delivery-zerodha-assumed-2020-07-01",
+            "version": "2026-11-07.1",
+            "status": "assumed_backfill",
+        }
+    ]
+    assert r.cost_info["unverified_schedules"] is True and r.cost_info["placeholder"] is False
+    assert r.cost_info["kind"] == "schedule" and r.cost_info["zero_slippage"] is True
+
+
+def test_the_flat_placeholder_still_works_and_is_marked_as_such(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, hold((a, 1)), cfg(cost=CostModel("t", D(10), D(5), True)))
+    assert r.cost_info["kind"] == "flat_bps" and r.cost_info["placeholder"] is True
+    assert r.cost_info["schedules_used"] == [{"id": "t", "version": "1", "status": "placeholder"}]
+    assert r.cost_info["unverified_schedules"] is False and r.note_charges == []
+
+
+def test_an_instruments_very_first_bar_has_no_history_so_volatility_and_liquidity_are_unknown(env):
+    """B first trades on the day the order executes: no prior sessions exist to estimate from."""
+    conn, a, b = env
+    put_bars(conn, a, flat(100))
+    put_bars(conn, b, flat(100, DAYS[1:]))
+    m = SlippageModel(
+        volatility_fraction=D(1), illiquid_adv_threshold=D(1), illiquid_extra_bps=D(9)
+    )
+    s = Scripted(HoldParams(ids=(a, b), weights=(D(1), D(0))), [{b: D(1)}])
+    r = run_backtest(conn, s, cfg(cost=sched(m)))
+    (t,) = r.trades
+    assert t.instrument_id == b and t.day == DAYS[1]
+    assert t.slippage_bps == D(
+        9
+    )  # range unknown => 0 bps; liquidity unknown => treated as illiquid

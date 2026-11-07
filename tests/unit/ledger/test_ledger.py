@@ -542,3 +542,178 @@ def test_valuation_gap_exactly_at_the_tolerance_passes_and_beyond_it_is_reported
     assert not has(lg.reconcile({A: D(120)}), "valuation")
     lg._cost[A] += 2 * TOL
     assert has(lg.reconcile({A: D(120)}), "valuation: equity - initial != net P&L by")
+
+
+# ---- itemised charges ---------------------------------------------------------------------------
+CH = [
+    ("STT", D("100")),
+    ("EXCHANGE_TRANSACTION", D("3.07")),
+    ("STAMP_DUTY", D("15")),
+    ("GST", D("0.57")),
+]
+
+
+def test_itemised_charges_each_get_a_fee_entry_and_a_matching_cash_entry():
+    lg = ledger(200000)
+    lg.buy(D2, A, D(100), D(1000), D(0), "trade:1", charges=CH)
+    assert lg.entries[1:] == [
+        Entry(2, D2, "position", "BUY", A, D(100), D(100000), "trade:1"),
+        Entry(3, D2, "cash", "BUY", A, D(0), D(-100000), "trade:1"),
+        Entry(4, D2, "fee", "STT", A, D(0), D(100), "trade:1"),
+        Entry(5, D2, "cash", "FEE:STT", A, D(0), D(-100), "trade:1"),
+        Entry(6, D2, "fee", "EXCHANGE_TRANSACTION", A, D(0), D("3.07"), "trade:1"),
+        Entry(7, D2, "cash", "FEE:EXCHANGE_TRANSACTION", A, D(0), D("-3.07"), "trade:1"),
+        Entry(8, D2, "fee", "STAMP_DUTY", A, D(0), D(15), "trade:1"),
+        Entry(9, D2, "cash", "FEE:STAMP_DUTY", A, D(0), D(-15), "trade:1"),
+        Entry(10, D2, "fee", "GST", A, D(0), D("0.57"), "trade:1"),
+        Entry(11, D2, "cash", "FEE:GST", A, D(0), D("-0.57"), "trade:1"),
+    ]
+    assert lg.cash == D(200000) - D(100000) - D("118.64")  # 100 + 3.07 + 15 + 0.57 of charges
+    assert lg.reconcile({A: D(1000)}) == []
+
+
+def test_the_fee_breakdown_and_totals_agree():
+    lg = ledger(200000)
+    lg.buy(D2, A, D(100), D(1000), D("2"), "trade:1", charges=CH + [("DP_CHARGE", D(0))])
+    lg.sell(
+        D3,
+        A,
+        D(100),
+        D(1100),
+        D(0),
+        "trade:2",
+        charges=[("STT", D(110)), ("DP_CHARGE", D("15.34"))],
+    )
+    assert lg.fee_breakdown() == {
+        "COMMISSION": D(2),
+        "DP_CHARGE": D("15.34"),  # the zero-amount DP line on the buy was skipped
+        "EXCHANGE_TRANSACTION": D("3.07"),
+        "GST": D("0.57"),
+        "STAMP_DUTY": D(15),
+        "STT": D(210),
+    }
+    assert lg.pnl({}).fees == sum(lg.fee_breakdown().values(), D(0)) == D("245.98")
+    assert lg.cash == D(200000) - 100000 + 110000 - D("245.98")
+    assert lg.pnl({}).realized == D(10000) and lg.reconcile({}) == []
+
+
+def test_charges_count_toward_the_cash_check_and_the_message_names_the_total():
+    lg = ledger(1000)
+    with pytest.raises(InsufficientCash, match="^need 1019.5, have 1000$"):
+        lg.buy(DAY, A, D(10), D(100), D("0.5"), "trade:1", charges=[("STT", D(19))])
+    assert len(lg.entries) == 1  # nothing posted
+    lg.buy(DAY, A, D(10), D(90), D(0), "trade:2", charges=[("STT", D(100))])  # exactly 1000: fine
+    assert lg.cash == 0
+
+
+@pytest.mark.parametrize(
+    "charges",
+    [[("STT", D(1)), ("STT", D(2))], [("COMMISSION", D(1))], [("STT", D(-1))]],
+    ids=["duplicate type", "COMMISSION reserved", "negative"],
+)
+def test_bad_charge_lists_are_rejected_before_anything_is_posted(charges):
+    lg = ledger()
+    lg.buy(DAY, B, D(1), D(10), D(0), "trade:0")
+    before = len(lg.entries)
+    for call in (
+        lambda: lg.buy(DAY, A, D(1), D(10), D(0), "trade:1", charges=charges),
+        lambda: lg.sell(DAY, B, D(1), D(10), D(0), "trade:2", charges=charges),
+    ):
+        with pytest.raises(
+            ValueError,
+            match="^charge types must be distinct and not COMMISSION$|^charges cannot be negative$",
+        ):
+            call()
+    assert len(lg.entries) == before and lg.qty(B) == 1
+
+
+def traded_with_charges():
+    lg = ledger(200000)
+    lg.buy(D2, A, D(100), D(1000), D(0), "trade:1", charges=CH)
+    return lg
+
+
+def test_a_forged_itemised_fee_is_detected_with_its_type_in_the_message():
+    lg = traded_with_charges()
+    i = next(n for n, e in enumerate(lg.entries) if e.ledger == "fee" and e.kind == "STT")
+    lg.entries[i] = replace(lg.entries[i], amount=lg.entries[i].amount + D(5))
+    p = lg.reconcile()
+    assert "trade:1: STT fee 105 != cash paid 100" in p and has(
+        p, "fees[STT]: running 100 != entries 105"
+    )
+
+
+def test_a_missing_counterpart_of_an_itemised_fee_is_detected():
+    lg = traded_with_charges()
+    lg.entries = [e for e in lg.entries if not (e.ledger == "cash" and e.kind == "FEE:STAMP_DUTY")]
+    assert "trade:1: a STAMP_DUTY fee needs both a fee and a cash entry" in lg.reconcile()
+    lg2 = traded_with_charges()
+    lg2.entries = [e for e in lg2.entries if not (e.ledger == "fee" and e.kind == "GST")]
+    assert "trade:1: a GST fee needs both a fee and a cash entry" in lg2.reconcile()
+
+
+def test_per_type_running_totals_that_drift_are_detected_and_exact_tolerance_passes():
+    lg = traded_with_charges()
+    lg._fees_by["STT"] += TOL
+    assert lg.reconcile() == []
+    lg._fees_by["STT"] += 2 * TOL
+    assert has(lg.reconcile(), "fees[STT]: running")
+    lg2 = traded_with_charges()
+    lg2._fees_by["INVENTED"] = D(7)  # a type with running money but no entries
+    assert has(lg2.reconcile(), "fees[INVENTED]: running 7 != entries 0")
+
+
+# ---- note-level charges (not tied to one trade) ------------------------------------------------
+def test_post_charges_books_itemised_fees_without_a_trade():
+    lg = ledger()
+    lg.post_charges(D2, [("BROKERAGE", D("0.01")), ("GST", D(0)), ("STT", D("2"))], "note:1")
+    assert lg.entries[1:] == [
+        Entry(2, D2, "fee", "BROKERAGE", None, D(0), D("0.01"), "note:1"),
+        Entry(3, D2, "cash", "FEE:BROKERAGE", None, D(0), D("-0.01"), "note:1"),
+        Entry(4, D2, "fee", "STT", None, D(0), D(2), "note:1"),  # the zero GST line is skipped
+        Entry(5, D2, "cash", "FEE:STT", None, D(0), D(-2), "note:1"),
+    ]
+    assert lg.cash == D("9997.99") and lg.fee_breakdown() == {"BROKERAGE": D("0.01"), "STT": D(2)}
+    assert lg.reconcile({}) == []
+
+
+def test_post_charges_refuses_nothing_to_charge_more_than_the_cash_and_a_repeat():
+    lg = ledger(5)
+    with pytest.raises(ValueError, match="^nothing to charge$"):
+        lg.post_charges(DAY, [("STT", D(0))], "note:1")
+    with pytest.raises(InsufficientCash, match="^need 5.01, have 5$"):
+        lg.post_charges(DAY, [("STT", D("5.01"))], "note:1")
+    with pytest.raises(ValueError, match="^charge types must be distinct and not COMMISSION$"):
+        lg.post_charges(DAY, [("STT", D(1)), ("STT", D(1))], "note:1")
+    assert len(lg.entries) == 1  # nothing was booked by the refusals
+    lg.post_charges(DAY, [("STT", D(5))], "note:1")  # exactly the cash: fine
+    assert lg.cash == 0
+    lg2 = ledger(10)
+    lg2.post_charges(DAY, [("STT", D(5))], "note:1")
+    with pytest.raises(DuplicateBooking):
+        lg2.post_charges(DAY, [("STT", D(1))], "note:1")
+
+
+# ---- more gaps found by mutation testing ---------------------------------------------------------
+def test_zero_amount_charges_leave_no_entries_at_all():
+    lg = ledger(200000)
+    lg.buy(D2, A, D(100), D(1000), D(0), "trade:1", charges=[("STT", D(100)), ("GST", D(0))])
+    assert all(e.amount != 0 for e in lg.entries if e.ledger == "fee")
+    assert [e.kind for e in lg.entries if e.ledger == "fee"] == ["STT"]
+    assert lg.fee_breakdown() == {"STT": D(100)}
+
+
+def test_two_note_level_postings_with_different_refs_are_both_accepted():
+    lg = ledger()
+    lg.post_charges(D2, [("BROKERAGE", D("0.01"))], "note:1")
+    lg.post_charges(D3, [("BROKERAGE", D("0.01"))], "note:2")
+    assert lg.fee_breakdown() == {"BROKERAGE": D("0.02")} and lg.reconcile({}) == []
+
+
+def test_a_cash_fee_entry_with_no_fee_entry_is_detected_for_each_naming_style():
+    lg = ledger()
+    lg.entries.append(Entry(2, DAY, "cash", "FEE", None, D(0), D(-3), "trade:7"))
+    lg.entries.append(Entry(3, DAY, "cash", "FEE:STT", None, D(0), D(-4), "trade:8"))
+    p = lg.reconcile()
+    assert "trade:7: a fee needs both a fee and a cash entry" in p
+    assert "trade:8: a STT fee needs both a fee and a cash entry" in p

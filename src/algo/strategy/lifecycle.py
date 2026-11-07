@@ -14,6 +14,8 @@ class RunSummary:
     placeholder_costs: bool
     validation_protocol_passed: bool  # walk-forward, deflated Sharpe, ... (not built yet)
     ledger_reconciled: bool  # the financial ledger agrees with itself (cash, positions, P&L)
+    unverified_cost_schedules: bool  # a cost schedule used was not verified (extracted / assumed)
+    zero_slippage: bool  # the run assumed frictionless execution
 
 
 def promotion_blockers(run: RunSummary) -> list[str]:
@@ -33,6 +35,10 @@ def promotion_blockers(run: RunSummary) -> list[str]:
         out.append("financial ledger does not reconcile")
     if run.placeholder_costs:
         out.append("placeholder cost model: costs are not the versioned cost schedule")
+    if run.unverified_cost_schedules:
+        out.append("cost schedules used are not verified (extracted or assumed rates)")
+    if run.zero_slippage:
+        out.append("zero slippage: a strategy must survive realistic execution costs")
     if not run.validation_protocol_passed:
         out.append("validation protocol (walk-forward, deflated Sharpe, ...) has not passed")
     return out
