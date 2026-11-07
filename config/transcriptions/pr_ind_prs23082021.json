@@ -1,0 +1,430 @@
+{
+ "doc_id": "pr_ind_prs23082021",
+ "announced": "2021-08-23",
+ "effective_from": "2021-09-30",
+ "source_sha256": "c9b9feef248ca89f7d8c8f12009e3d5c409eb4d6c793eee061fb93bf0af1231e",
+ "method": "OCR (rapidocr-onnxruntime, 300 dpi render of the scanned PDF)",
+ "effective_date_source": "page 1 of the document: 'These changes shall become effective from September 30, 2021 (close of September 29, 2021)'; also stated in pr_ind_prs15092021",
+ "verification": [
+  "exact match of every addition and removal with the official month-end snapshots 2021-08-31 -> 2021-09-30 for Nifty 50, Next 50, Nifty 100, Midcap 100, Nifty 200",
+  "visual check of page 10 (Midcap 100 tables) against the original image"
+ ],
+ "rows": [
+  {
+   "page": 2,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "EXCLUDED",
+   "symbol": "ABBOTINDIA",
+   "company": "Abbott India Ltd."
+  },
+  {
+   "page": 2,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "EXCLUDED",
+   "symbol": "ALKEM",
+   "company": "Alkem Laboratories Ltd."
+  },
+  {
+   "page": 2,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "EXCLUDED",
+   "symbol": "MRF",
+   "company": "MRF Ltd."
+  },
+  {
+   "page": 2,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "EXCLUDED",
+   "symbol": "PETRONET",
+   "company": "Petronet LNG Ltd."
+  },
+  {
+   "page": 3,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "EXCLUDED",
+   "symbol": "UBL",
+   "company": "United Breweries Ltd."
+  },
+  {
+   "page": 3,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "INCLUDED",
+   "symbol": "BANKBARODA",
+   "company": "Bank of Baroda"
+  },
+  {
+   "page": 3,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "INCLUDED",
+   "symbol": "CHOLAFIN",
+   "company": "Cholamandalam Investment and Fin. Co. Ltd."
+  },
+  {
+   "page": 3,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "INCLUDED",
+   "symbol": "JINDALSTEL",
+   "company": "Jindal Steel & Power Ltd."
+  },
+  {
+   "page": 3,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "INCLUDED",
+   "symbol": "PIIND",
+   "company": "PI Industries Ltd."
+  },
+  {
+   "page": 3,
+   "section_no": 1,
+   "section": "NIFTY Next 50",
+   "action": "INCLUDED",
+   "symbol": "SAIL",
+   "company": "Steel Authority of India Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "EXCLUDED",
+   "symbol": "ABBOTINDIA",
+   "company": "Abbott India Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "EXCLUDED",
+   "symbol": "ALKEM",
+   "company": "Alkem Laboratories Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "EXCLUDED",
+   "symbol": "MRF",
+   "company": "MRF Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "EXCLUDED",
+   "symbol": "PETRONET",
+   "company": "Petronet LNG Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "EXCLUDED",
+   "symbol": "UBL",
+   "company": "United Breweries Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "INCLUDED",
+   "symbol": "BANKBARODA",
+   "company": "Bank of Baroda"
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "INCLUDED",
+   "symbol": "CHOLAFIN",
+   "company": "Cholamandalam Investment and Fin. Co. Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "INCLUDED",
+   "symbol": "JINDALSTEL",
+   "company": "Jindal Steel & Power Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "INCLUDED",
+   "symbol": "PIIND",
+   "company": "PI Industries Ltd."
+  },
+  {
+   "page": 5,
+   "section_no": 3,
+   "section": "NIFTY 100",
+   "action": "INCLUDED",
+   "symbol": "SAIL",
+   "company": "Steel Authority of India Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "BANKBARODA",
+   "company": "Bank of Baroda"
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "BBTC",
+   "company": "Bombay Burmah Trading Corporation Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "CESC",
+   "company": "CESC Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "CHOLAFIN",
+   "company": "Cholamandalam Investment and Fin. Co.Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "GODREJAGRO",
+   "company": "Godrej Agrovet Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "IBULHSGFIN",
+   "company": "Indiabulls Housing Finance Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "JINDALSTEL",
+   "company": "Jindal Steel & Power Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "PIIND",
+   "company": "PI Industries Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "SAIL",
+   "company": "Steel Authority of India Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "VGUARD",
+   "company": "V-Guard Industries Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "ALKEM",
+   "company": "Alkem Laboratories Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "ASTRAL",
+   "company": "Astral Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "HINDCOPPER",
+   "company": "Hindustan Copper Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "INDIANB",
+   "company": "Indian Bank"
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "IRFC",
+   "company": "Indian Railway Finance Corporation Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "MRF",
+   "company": "MRF Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "NATIONALUM",
+   "company": "National Aluminium Co. Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "PETRONET",
+   "company": "Petronet LNG Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "TATACOMM",
+   "company": "Tata Communications Ltd."
+  },
+  {
+   "page": 10,
+   "section_no": 7,
+   "section": "NIFTY Midcap 100",
+   "action": "INCLUDED",
+   "symbol": "UBL",
+   "company": "United Breweries Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "EXCLUDED",
+   "symbol": "ABBOTINDIA",
+   "company": "Abbott India Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "EXCLUDED",
+   "symbol": "BBTC",
+   "company": "Bombay Burmah Trading Corporation Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "EXCLUDED",
+   "symbol": "CESC",
+   "company": "CESC Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "EXCLUDED",
+   "symbol": "GODREJAGRO",
+   "company": "Godrej Agrovet Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "EXCLUDED",
+   "symbol": "IBULHSGFIN",
+   "company": "Indiabulls Housing Finance Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "EXCLUDED",
+   "symbol": "VGUARD",
+   "company": "V-Guard Industries Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "INCLUDED",
+   "symbol": "ASTRAL",
+   "company": "Astral Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "INCLUDED",
+   "symbol": "HINDCOPPER",
+   "company": "Hindustan Copper Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "INCLUDED",
+   "symbol": "INDIANB",
+   "company": "Indian Bank"
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "INCLUDED",
+   "symbol": "IRFC",
+   "company": "Indian Railway Finance Corporation Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "INCLUDED",
+   "symbol": "NATIONALUM",
+   "company": "National Aluminium Co. Ltd."
+  },
+  {
+   "page": 14,
+   "section_no": 10,
+   "section": "NIFTY 200",
+   "action": "INCLUDED",
+   "symbol": "TATACOMM",
+   "company": "Tata Communications Ltd."
+  }
+ ]
+}

@@ -365,3 +365,16 @@ def test_section_numbers_for_letters_never_collide_with_numbers():
     from algo.data.providers.nse_index_releases import section_number
 
     assert section_number("7") == 7 and section_number("a") == 101 and section_number("B") == 102
+
+
+def test_headings_that_end_in_the_word_index_map_to_the_same_components():
+    assert canon("NIFTY 50 Index") == "NIFTY_50" and canon("NIFTY Next 50 Index") == "NIFTY_NEXT_50"
+    assert (
+        canon("NIFTY Midcap 100 Index") == "MIDCAP_100" and canon("NIFTY 200 Index") == "NIFTY_200"
+    )
+    assert canon("NIFTY Full Midcap 100 Index") == "MIDCAP_100_FULL"
+    assert canon("NIFTY Free Float Midcap 100 Index") == "MIDCAP_100_FREE_FLOAT"
+    assert (
+        canon("NIFTY 500 Index") is None and canon("NIFTY Midcap 150 Index") is None
+    )  # not components
+    assert canon("Index") is None

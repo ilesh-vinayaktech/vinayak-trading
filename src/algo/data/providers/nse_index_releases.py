@@ -11,7 +11,9 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-PARSER_VERSION = "5"  # 2: wrapped dates; 3: sub-headings; 4: classification; 5: lettered sections
+PARSER_VERSION = (
+    "6"  # 2: wrapped dates; 3: sub-headings; 4: classification; 5: lettered; 6: "... Index"
+)
 
 # Component indices of Nifty 200 (= Nifty 100 + Midcap 100; Nifty 100 = Nifty 50 + Next 50).
 COMPONENTS = {
@@ -127,7 +129,7 @@ def parse_date(s: str) -> date:
 
 def canon(name: str) -> str | None:
     key = re.sub(r"[^A-Z0-9]", "", name.upper())
-    return COMPONENTS.get(key)
+    return COMPONENTS.get(re.sub(r"INDEX$", "", key))  # 2017-18 headings read "NIFTY 50 Index"
 
 
 def parse_release(pages: list[str], announced: date) -> Release:

@@ -46,21 +46,33 @@ the two report dates vs snapshot k+1; every finding with nearby events is in
 
 | Index | Snapshots | Transitions | Reconcile exactly |
 |---|---:|---:|---:|
-| Nifty 50 (2017-01 .. 2026-10) | 118 | 117 | 105 |
-| Nifty Next 50 | 94 | 93 | 89 |
-| Nifty 100 | 63 | 62 | 59 |
-| Nifty Midcap 100 | 63 | 62 | 55 |
-| Nifty 200 | 63 | 62 | 54 |
+| Nifty 50 (2017-01 .. 2026-10) | 118 | 117 | 107 |
+| Nifty Next 50 | 94 | 93 | 90 |
+| Nifty 100 | 63 | 62 | 60 |
+| Nifty Midcap 100 | 63 | 62 | 58 |
+| Full Midcap 100 (pre-2018 only) | 9 | 8 | 7 |
+| Nifty 200 | 63 | 62 | 58 |
 
-The remaining findings cluster: **2018-04 (101)** = the Midcap 100 definition change; **2021-09 (52)** = the
-Sep 2021 review is in `pr_ind_prs23082021`, a SCANNED image we cannot read (needs OCR; no tesseract here);
-2018-02 (18), 2017-09 (14), 2018-06 (8) and smaller ones. The Sep 2020 cluster (58) disappeared once the
-parser accepted LETTERED section headings (`a) NIFTY 50`) - a parser gap, not a missing source.
+Clusters found and resolved by reading the evidence (not by tuning):
+* **Sep 2020 (58)**: parser did not accept LETTERED section headings (`a) NIFTY 50`).
+* **Feb 2018 (18), Jun 2018 (8), most of Sep 2017**: headings of the form "NIFTY 50 Index" were not mapped
+  to a component (parser v6).
+* **Sep 2021 (52)**: the review is in `pr_ind_prs23082021`, a SCANNED image. Re-fetched (identical bytes), the
+  effective date is stated on page 1 ("effective from September 30, 2021 (close of September 29, 2021)") and in
+  `pr_ind_prs15092021`; a local OCR transcription (`config/transcriptions/`, loaded by
+  `scripts/apply_transcriptions.py`) matches the official month-end snapshots EXACTLY for Nifty 50, Next 50,
+  Nifty 100, Midcap 100 and Nifty 200 (5/5, 10/10, 6/6 changes) and a visual check of page 10. Provisional;
+  no date was invented. The REIT/InvIT revocation in the 15 Sep release does not touch these indices.
+
+Still open: **2018-04 (101)** = the Midcap 100 definition change (expected, modelled as a boundary);
+2017-09 (8), 2017-12 (6), 2017-05 (4), 2023-08, 2026-04, 2026-06 (4 each).
 
 Also found: counts of 51 / 101 / 201 are real - the Tata Motors DVR (`TATAMTRDVR`) is a second share class of
 one company inside Nifty 50, Nifty 100 and Nifty 200 in some periods, so "50 / 100 / 200" counts SYMBOLS only
 approximately. The Nifty 200 PDF also lists a member that none of Nifty 50 / Next 50 / Midcap 100 lists on
-the same date (33 union mismatches), so "Nifty 200 = union of the three" is not exact historically.
+the same date (33 union mismatches), so "Nifty 200 = union of the three" is not exact historically. Treat
+that relationship as a CURRENT composition fact only; the directly published Nifty 200 snapshots (2017-01 ..
+2022-03) are kept as an independent series, and later periods are reconstructed with explicit coverage.
 
 ## Still unresolved
 
