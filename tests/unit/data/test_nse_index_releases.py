@@ -98,6 +98,7 @@ def test_index_names_map_to_canonical_components_across_spellings():
 def test_dates_parse_with_and_without_commas_and_abbreviations():
     assert parse_date("June 26, 2020") == parse_date("June 26 2020") == date(2020, 6, 26)
     assert parse_date("Mar 3, 2021") == date(2021, 3, 3)
+    assert parse_date("March\n   31,   2022") == date(2022, 3, 31)  # NSE wraps long dates
     with pytest.raises(ValueError, match="unparseable date"):
         parse_date("someday")
 
@@ -154,3 +155,13 @@ def test_an_exclusion_with_no_date_after_the_decision_is_left_for_a_person():
         + TABLE
     )
     assert parse_release([text], date(2025, 6, 25)).kind == KIND_NO_STRUCTURE
+
+
+def test_a_date_wrapped_across_two_lines_is_still_the_effective_date():
+    text = (
+        "Mumbai, February 24, 2022\n These changes shall become effective from March\n"
+        "31, 2022 (close of March 30, 2022).\n 1)  NIFTY Next 50\n The following company is being "
+        "excluded:\n   Sr. No.   Company Name   Symbol\n     1   Foo Ltd.     FOO\n"
+    )
+    r = parse_release([text], date(2022, 2, 24))
+    assert r.rows[0].effective_from == date(2022, 3, 31)

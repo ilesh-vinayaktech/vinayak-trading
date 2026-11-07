@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-PARSER_VERSION = "1"
+PARSER_VERSION = "2"  # 2: dates wrapped across lines ("March\n31, 2022") are read
 
 # Component indices of Nifty 200 (= Nifty 100 + Midcap 100; Nifty 100 = Nifty 50 + Next 50).
 COMPONENTS = {
@@ -28,7 +28,7 @@ KIND_REPLACEMENT_TABLES = "REPLACEMENT_TABLES"  # numbered sections with exclude
 KIND_COMPANY_NOTICE = "COMPANY_NOTICE"  # one corporate action, one table of affected index names
 KIND_NO_STRUCTURE = "MANUAL_REVIEW"  # nothing we can place (incl. scanned images)
 
-_DATE = r"([A-Z][a-z]+\.? \d{1,2},? \d{4})"
+_DATE = r"([A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4})"
 _EFFECTIVE = re.compile(r"(?:effective\s+(?:from\s+)?|w\.e\.f\.?\s+)" + _DATE)
 _HEADER_DATE = re.compile(r"Mumbai[,:]?\s+" + _DATE)
 _SECTION = re.compile(r"^\s*(\d+)\)\s+(\S.*?)\s*$", re.M)
@@ -78,7 +78,7 @@ def extract_pages(pdf: bytes) -> list[str]:
 
 
 def parse_date(s: str) -> date:
-    s = s.replace(".", "").replace(",", "")
+    s = " ".join(s.replace(".", "").replace(",", "").split())
     for fmt in ("%B %d %Y", "%b %d %Y"):
         try:
             return datetime.strptime(s, fmt).date()  # noqa: DTZ007 - calendar date, no time

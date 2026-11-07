@@ -215,3 +215,33 @@ def load_symbols(
                    "nse", last[1], require_utc(now))  # fmt: skip
             inserted += conn.execute(sql, row).rowcount
     return inserted
+
+
+def attach_predecessor_symbol(
+    conn: psycopg.Connection, *, instrument_id: int, old_symbol: str, valid_from: date,
+    changed_on: date, event: str, evidence: str, asserted_by: str,
+) -> None:  # fmt: skip
+    """Same company, earlier symbol: add the old symbol as an alias of the existing instrument
+    ([valid_from, changed_on)) and record the identity event on it. Raw bars are never rewritten."""
+    if event not in ("SYMBOL_CHANGE", "COMPANY_NAME_CHANGE"):
+        raise ValueError(
+            "a predecessor symbol is a SYMBOL_CHANGE / COMPANY_NAME_CHANGE, not a delisting"
+        )
+    if not (evidence.strip() and asserted_by.strip()):
+        raise ValueError("an identity link needs its evidence and who asserted it")
+    if valid_from >= changed_on:
+        raise ValueError("valid_from must be before the change date")
+    with conn.transaction():
+        cur = conn.execute(
+            "UPDATE instrument SET meta = jsonb_set(meta, '{identity_events}',"
+            " coalesce(meta->'identity_events', '[]'::jsonb) || %s::jsonb) WHERE instrument_id=%s",
+            (Jsonb([{"event": event, "old_symbol": old_symbol, "changed_on": str(changed_on),
+                     "evidence": evidence, "asserted_by": asserted_by,
+                     "status": "asserted_pending_isin_check"}]), instrument_id),
+        )  # fmt: skip
+        if cur.rowcount != 1:
+            raise ValueError(f"no instrument {instrument_id}")
+        conn.execute(
+            "INSERT INTO instrument_alias VALUES (%s,'nse',%s,NULL,%s,%s)",
+            (instrument_id, old_symbol, valid_from, changed_on),
+        )

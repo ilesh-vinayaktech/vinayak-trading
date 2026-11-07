@@ -173,3 +173,55 @@ def test_a_similarly_named_instrument_starting_soon_after_means_rename_not_delis
     assert got["MINDTREE"].action == CREATE  # an unrelated name starting nearby does not block it
     assert got["PEL"].company == "Piramal Enterprises Ltd."
     assert set(create_instruments(conn, list(got.values()))) == {"MINDTREE", "XY"}
+
+
+def test_a_predecessor_symbol_joins_the_same_instrument_and_its_history_loads(env):  # noqa: F811
+    from algo.data.delisted import attach_predecessor_symbol
+
+    conn, lake, prov, ids = env
+    run_partition(conn, lake, prov, "bhav", D0, NOW)
+    iid = ids["RELIANCE"]
+    attach_predecessor_symbol(conn, instrument_id=iid, old_symbol="OLDREL", valid_from=date(2000, 1, 1),
+                              changed_on=date(2010, 1, 1), event="SYMBOL_CHANGE",
+                              evidence="NSE circular X", asserted_by="owner")  # fmt: skip
+    meta = conn.execute(
+        "SELECT meta->'identity_events' FROM instrument WHERE instrument_id=%s", (iid,)
+    ).fetchone()[0]
+    assert meta[0]["old_symbol"] == "OLDREL" and meta[0]["status"] == "asserted_pending_isin_check"
+    assert (
+        conn.execute(
+            "SELECT instrument_id FROM instrument_alias WHERE source_symbol='OLDREL'"
+        ).fetchone()[0]
+        == iid
+    )
+    attach_predecessor_symbol(conn, instrument_id=iid, old_symbol="OLDER", valid_from=date(1990, 1, 1),
+                              changed_on=date(2000, 1, 1), event="COMPANY_NAME_CHANGE",
+                              evidence="e", asserted_by="owner")  # fmt: skip
+    assert (
+        len(
+            conn.execute(
+                "SELECT meta->'identity_events' FROM instrument WHERE instrument_id=%s", (iid,)
+            ).fetchone()[0]
+        )
+        == 2
+    )
+
+
+@pytest.mark.parametrize(
+    ("kw", "msg"),
+    [
+        ({"event": "DELISTING"}, "not a delisting"),
+        ({"evidence": " "}, "evidence and who asserted"),
+        ({"asserted_by": ""}, "evidence and who asserted"),
+        ({"valid_from": date(2011, 1, 1)}, "before the change date"),
+        ({"instrument_id": 999999}, "no instrument 999999"),
+    ],
+)
+def test_identity_links_are_validated(env, kw, msg):  # noqa: F811
+    from algo.data.delisted import attach_predecessor_symbol
+
+    conn, lake, prov, ids = env
+    args = dict(instrument_id=ids["RELIANCE"], old_symbol="OLD", valid_from=date(2000, 1, 1),
+                changed_on=date(2010, 1, 1), event="SYMBOL_CHANGE", evidence="e", asserted_by="owner")  # fmt: skip
+    with pytest.raises(ValueError, match=msg):
+        attach_predecessor_symbol(conn, **{**args, **kw})
