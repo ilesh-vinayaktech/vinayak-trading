@@ -68,13 +68,21 @@
    "observations": 5673,
    "stored_rows": 5673,
    "validation": {
-    "check_states": null,
+    "check_states": {
+     "base_level": "PASS",
+     "conflicting_values": "PASS",
+     "duplicate_dates": "PASS",
+     "first_observation": "PASS",
+     "inside_requested_window": "PASS",
+     "positive_levels": "PASS"
+    },
     "covers_current_dataset": true,
+    "factsheet_all_passed": true,
     "owner_accepted_findings": [],
     "passed": true,
-    "report_version": "legacy (pass/fail only, pre-states)",
+    "report_version": "2",
     "technical_validation_passed": true,
-    "validation_id": 1
+    "validation_id": 6
    },
    "weekend_observations": [
     "2004-04-17",
@@ -116,13 +124,20 @@
    "observations": 6805,
    "stored_rows": 6805,
    "validation": {
-    "check_states": null,
+    "check_states": {
+     "conflicting_values": "PASS",
+     "duplicate_dates": "PASS",
+     "first_observation": "PASS",
+     "inside_requested_window": "PASS",
+     "positive_levels": "PASS"
+    },
     "covers_current_dataset": true,
+    "factsheet_all_passed": true,
     "owner_accepted_findings": [],
     "passed": true,
-    "report_version": "legacy (pass/fail only, pre-states)",
+    "report_version": "2",
     "technical_validation_passed": true,
-    "validation_id": 2
+    "validation_id": 7
    },
    "weekend_observations": [
     "1999-11-07",
@@ -182,6 +197,7 @@
      "positive_levels": "PASS"
     },
     "covers_current_dataset": true,
+    "factsheet_all_passed": true,
     "owner_accepted_findings": [
      {
       "check": "no_abrupt_net_gross_jump",
@@ -255,11 +271,12 @@
      "positive_levels": "PASS"
     },
     "covers_current_dataset": true,
+    "factsheet_all_passed": true,
     "owner_accepted_findings": [],
     "passed": true,
     "report_version": "2",
     "technical_validation_passed": true,
-    "validation_id": 5
+    "validation_id": 8
    },
    "weekend_observations": [
     "2004-04-17",

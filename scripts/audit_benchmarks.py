@@ -35,6 +35,7 @@ from algo.data.benchmark_audit import (
     reconcile,
 )  # fmt: skip
 from algo.data.benchmark_compare import correlation, wedge
+from algo.data.benchmark_eligibility import DAILY, INTRADAY, assess
 from algo.data.lake import LocalLake
 from algo.data.providers.nse_holidays import parse_holidays
 from algo.data.sessions import REGULAR_HOURS, calendar
@@ -112,6 +113,7 @@ with psycopg.connect(a.db) as conn:
             "check_states": rep.get("check_states"),
             "owner_accepted_findings": rep.get("owner_accepted_findings", []),
             "covers_current_dataset": v[2] == dataset_hash(conn, i),
+            "factsheet_all_passed": all(r["passed"] for r in rep.get("factsheet", [])),
         }  # fmt: skip
     latest = conn.execute(
         "WITH l AS (SELECT DISTINCT ON (partition) partition, status FROM partition_load"
@@ -145,6 +147,12 @@ weekend = {d: (o, why, [short[s] for s in ser])
 
 # ---------------------------------------------------------------- the 41 vs 395 anomalies
 by = {refs[i]["return_type"] + refs[i]["index_symbol"]: names[i] for i in ids}
+
+
+def short_of(key: str) -> str:
+    return by[key].split("_")[0]
+
+
 n200_g, n200_p = series[by["TOTAL_RETURNNIFTY 200"]], series[by["PRICENIFTY 200"]]
 n50_g, n50_n = series[by["TOTAL_RETURNNIFTY 50"]], series[by["NET_TOTAL_RETURNNIFTY 50"]]
 w = wedge(n200_p, n200_g)
@@ -401,17 +409,21 @@ findings = [
         ["benchmark_validation (benchmark 2)"],
         False,
     ),
-    item(
-        "U12",
-        "Benchmark validations 1, 2 and 4 predate the PASS/FAIL/ACCEPTED report format",
-        "LOW",
-        "UNRESOLVED",
-        "provenance",
-        "their reports record pass/fail only.",
-        [f"{refs_['A']}#benchmarks"],
-        False,
-    ),
 ]
+legacy = sorted(n for n, v in vals.items() if str(v["report_version"]).startswith("legacy"))
+if legacy:
+    findings.append(
+        item(
+            "U12",
+            "Benchmark validations predate the PASS/FAIL/ACCEPTED report format",
+            "LOW",
+            "UNRESOLVED",
+            "provenance",
+            f"{legacy}: their reports record pass/fail only.",
+            [f"{refs_['A']}#benchmarks"],
+            False,
+        )
+    )
 if any(gaps.values()):
     findings.append(
         item(
@@ -466,11 +478,36 @@ if single:
             False,
         )
     )
+SCOPE = {  # id -> (applies_to, blocks)
+    "U01": (["ALL"], []), "U02": (["ALL"], [INTRADAY]), "U03": (["ALL"], [INTRADAY]),
+    "U04": (["ALL"], []),
+    "U05": ([short_of("TOTAL_RETURNNIFTY 200"), short_of("PRICENIFTY 200")], []),
+    "U06": ([short_of("TOTAL_RETURNNIFTY 50"), short_of("NET_TOTAL_RETURNNIFTY 50")], []),
+    "U07": ([short_of("NET_TOTAL_RETURNNIFTY 50")], []),
+    "U08": ([short_of("TOTAL_RETURNNIFTY 50"), short_of("NET_TOTAL_RETURNNIFTY 50")], []),
+    "U09": (["ALL"], []), "U10": (["ALL"], []), "U11": (["ALL"], []), "U12": (["ALL"], []),
+    "U13": (["ALL"], [DAILY]), "U14": (["ALL"], [DAILY]), "U15": (["ALL"], [DAILY]),
+    "U16": (["ALL"], []),
+}  # fmt: skip
+for f_ in findings:
+    f_["applies_to"], f_["blocks"] = SCOPE[f_["id"]]
+    f_["blocked_dates"] = [SPECIAL_DATE] if f_["id"] == "U01" else []
 unresolved_report = {"audit": "benchmark_unresolved_findings", "gate_activation": "NOT decided here",
                      "findings": findings}  # fmt: skip
 
 a.out.mkdir(parents=True, exist_ok=True)
+eligibility = {
+    "audit": "benchmark_eligibility",
+    "states": ["DATA_INGESTED", "RESEARCH_ELIGIBLE", "BENCHMARK_GATE_ELIGIBLE"],
+    "gate_activation": "NOT decided here; the gate stays disabled",
+    "instrument_level_blocked_dates": [SPECIAL_DATE],
+    "benchmarks": {
+        n: {"dataset_hash": hashes[n], **assess(short[n], vals[n], findings)}
+        for n in sorted(series)
+    },  # fmt: skip
+}
 outs = {
+    "benchmark_eligibility.json": eligibility,
     "benchmark_alignment_report.json": alignment_report,
     "session_reconciliation_report.json": session_report,
     "benchmark_unresolved_findings.json": unresolved_report,
@@ -555,6 +592,22 @@ md += [
     "## Historical session hours",
     "",
     hours["statement"],
+    "",
+    "## Eligibility (separate states; the gate stays disabled)",
+    "",
+    "| series | state | daily research | intraday research | gate |",
+    "|---|---|---|---|---|",
+]
+for n in sorted(series):
+    e = eligibility["benchmarks"][n]
+    u = e["uses"]
+    md.append(
+        f"| {n} | {e['state']} | {u['DAILY_RESEARCH']['eligible']} | "
+        f"{u['INTRADAY_RESEARCH']['eligible']} | {u['BENCHMARK_GATE']['eligible']} |"
+    )
+md += [
+    "",
+    f"Instrument-level research must exclude {SPECIAL_DATE} (no bars, quarantined bhavcopy).",
     "",
     "## Unresolved findings",
     "",

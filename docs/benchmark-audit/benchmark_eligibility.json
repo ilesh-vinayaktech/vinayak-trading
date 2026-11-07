@@ -1,0 +1,195 @@
+{
+ "audit": "benchmark_eligibility",
+ "benchmarks": {
+  "B1_NIFTY200_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+   "disclosed_check_findings": {},
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "U01: 2022-08-08 bhavcopy quarantined",
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark",
+      "U04: Weekday sessions before the bhavcopy history rest on the calendar rule",
+      "U05: Price return exceeds gross TRI by up to 0.005% on some days",
+      "U09: Revision behaviour of the endpoints untested",
+      "U10: Only the Sep 2026 methodology document is held",
+      "U11: Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible",
+      "U16: Large daily moves seen by one series only"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark"
+     ],
+     "eligible": false
+    }
+   }
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U06",
+    "U08",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+   "disclosed_check_findings": {},
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "U01: 2022-08-08 bhavcopy quarantined",
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark",
+      "U04: Weekday sessions before the bhavcopy history rest on the calendar rule",
+      "U06: Net TRI gains on gross TRI on 41 days (0.002-0.006%)",
+      "U08: Gross and net independence unknown; net is a non-resident institutional measure",
+      "U09: Revision behaviour of the endpoints untested",
+      "U10: Only the Sep 2026 methodology document is held",
+      "U11: Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible",
+      "U16: Large daily moves seen by one series only"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark"
+     ],
+     "eligible": false
+    }
+   }
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U06",
+    "U07",
+    "U08",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+   "disclosed_check_findings": {
+    "net_never_gains_on_gross": "UNRESOLVED",
+    "no_abrupt_net_gross_jump": "ACCEPTED_WITH_EVIDENCE"
+   },
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "technical validation did not pass (an accepted exception is not a pass)",
+      "U01: 2022-08-08 bhavcopy quarantined",
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark",
+      "U04: Weekday sessions before the bhavcopy history rest on the calendar rule",
+      "U06: Net TRI gains on gross TRI on 41 days (0.002-0.006%)",
+      "U08: Gross and net independence unknown; net is a non-resident institutional measure",
+      "U09: Revision behaviour of the endpoints untested",
+      "U10: Only the Sep 2026 methodology document is held",
+      "U11: Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible",
+      "U16: Large daily moves seen by one series only"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark"
+     ],
+     "eligible": false
+    }
+   }
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521",
+   "disclosed_check_findings": {},
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "U01: 2022-08-08 bhavcopy quarantined",
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark",
+      "U04: Weekday sessions before the bhavcopy history rest on the calendar rule",
+      "U05: Price return exceeds gross TRI by up to 0.005% on some days",
+      "U09: Revision behaviour of the endpoints untested",
+      "U10: Only the Sep 2026 methodology document is held",
+      "U11: Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible",
+      "U16: Large daily moves seen by one series only"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [
+      "U02: Historical session hours are not verified",
+      "U03: Special-session kinds unconfirmed; some evidenced only by the benchmark"
+     ],
+     "eligible": false
+    }
+   }
+  }
+ },
+ "gate_activation": "NOT decided here; the gate stays disabled",
+ "instrument_level_blocked_dates": [
+  "2022-08-08"
+ ],
+ "states": [
+  "DATA_INGESTED",
+  "RESEARCH_ELIGIBLE",
+  "BENCHMARK_GATE_ELIGIBLE"
+ ]
+}

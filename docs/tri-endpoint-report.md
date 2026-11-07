@@ -235,3 +235,24 @@ listed (kind unconfirmed, evidence Nifty 50 TRI only). Price-vs-TRI (395 days) a
 days) anomalies share no dates (0 against 2.9 expected by chance), their magnitudes are uncorrelated
 (0.04) and they differ in ex-date association, so no shared mechanism is indicated; both are
 below 0.01% a day and classed LOW, unresolved.
+
+## Benchmark Release 1.0 preparation (2026-11-07)
+
+**Legacy validations migrated.** Benchmarks 1, 2 and 4 were re-validated under the current report
+schema (validations 6, 7, 8; v2 states, technical result, factsheet reconciliation, unresolved list).
+No observation changed (0 newly stored; dataset hashes identical) and no status was edited; the old
+rows 1, 2, 5 remain as history. Every benchmark now has a current validation that covers its current
+dataset hash (`accepted_findings` voids any acceptance if the data changes - tested).
+
+**Eligibility** (`src/algo/data/benchmark_eligibility.py`, `benchmark_eligibility.json`): three
+separate states - DATA_INGESTED, RESEARCH_ELIGIBLE (per use: daily, intraday), BENCHMARK_GATE_ELIGIBLE.
+Each unresolved finding names the benchmarks it applies to and the uses it blocks; any unresolved
+finding blocks the gate and an accepted exception is not a technical pass. Result: all four series are
+RESEARCH_ELIGIBLE for daily research (the net series with its disclosed findings), none for intraday
+research (unverified historical hours, benchmark-only sessions), none for the gate. Instrument-level
+research must exclude 2022-08-08.
+
+**Frozen release.** `scripts/release_benchmarks.py --write` records dataset hashes, validation records,
+audit-output hashes, calendar inputs, eligibility and unresolved findings in
+`docs/benchmark-release-1.0/release.json`; `--verify` fails on any drift. A correction creates a new
+release version; this one is never rewritten.
