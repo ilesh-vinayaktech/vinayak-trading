@@ -68,6 +68,12 @@ def ctx_for(stub: Stub, day: date) -> Context:
     return Context(clock, stub, PortfolioView.of(D(100000), {}, D(100000)), "research")  # type: ignore[arg-type]
 
 
+def at(s, stub, day):
+    """Decide on `day` as a month start: a prior session in the previous month is observed first."""
+    s.on_schedule(ctx_for(stub, day.replace(day=1) - timedelta(days=1)))
+    return s.on_schedule(ctx_for(stub, day))
+
+
 def members(ids, start=date(2000, 1, 1)) -> IntervalMembership:
     return IntervalMembership([Interval(i, start, None) for i in ids])
 
@@ -81,7 +87,7 @@ def strat(ids, params=P):
 
 def run(ids, closes, day=LAST, params=P):
     s = Nifty200TrendMomentum(params, members(ids))
-    return s, s.on_schedule(ctx_for(Stub(closes), day))
+    return s, at(s, Stub(closes), day)
 
 
 def market(n_up=30, n_down=10):
@@ -157,18 +163,16 @@ def test_breadth_exactly_50_percent_may_hold():
     assert t and set(t) <= set(range(1, 11))
 
 
-def test_breadth_denominator_keeps_unready_members():
-    # 20 of 40 ready members are above their SMA: exactly 50%, so it holds. Two new listings with
-    # too little history stay in the denominator: 20/42 = 47.6% < 50%, so the portfolio is cash.
+def test_breadth_measures_the_market_not_data_coverage():
+    # 20 of 40 ready members are above their SMA: 50%, so it holds. Two new listings without enough
+    # history are reported but are NOT counted as bearish: breadth stays 20/40, not 20/42.
     closes = market(n_up=20, n_down=20)
-    _, t = run(list(closes), closes)
-    assert t
     short = {i: dict(list(trend("0.001").items())[-100:]) for i in (500, 501)}
     s, t = run(list(closes) + list(short), {**closes, **short})
     row = s.audit[-1]
-    assert row["insufficient_history"] == 2 and row["members"] == 42
-    assert row["breadth"] == D(20) / D(42) * 100
-    assert t == {}
+    assert row["insufficient_history"] == 2 and row["members"] == 42 and row["ready"] == 40
+    assert row["breadth"] == D(50)
+    assert t
 
 
 def test_missing_bar_is_visible_and_the_stock_cannot_be_selected():
@@ -203,14 +207,14 @@ def test_non_positive_close_is_a_data_gap_not_a_signal():
 def test_empty_membership_is_an_explicit_failure():
     s = Nifty200TrendMomentum(P, IntervalMembership([Interval(1, date(2030, 1, 1), None)]))
     with pytest.raises(DataNotReady, match="no members"):
-        s.on_schedule(ctx_for(Stub({1: trend("0.001")}), LAST))
+        at(s, Stub({1: trend("0.001")}), LAST)
 
 
 def test_too_little_market_history_is_an_explicit_failure():
     closes = {i: dict(list(trend("0.001").items())[:100]) for i in range(1, 6)}
     s = Nifty200TrendMomentum(P, members(range(1, 6)))
     with pytest.raises(DataNotReady, match="unready"):
-        s.on_schedule(ctx_for(Stub(closes), DAYS[99]))
+        at(s, Stub(closes), DAYS[99])
 
 
 def test_future_prices_do_not_change_earlier_signals():
@@ -231,8 +235,8 @@ def test_future_membership_does_not_change_earlier_portfolio():
         + [Interval(i, date(2000, 1, 1), None) for i in list(base)[10:]]
         + [Interval(777, t0 + timedelta(days=1), None)]
     )
-    a = Nifty200TrendMomentum(P, m1).on_schedule(ctx_for(Stub(base), t0))
-    b = Nifty200TrendMomentum(P, m2).on_schedule(ctx_for(Stub(base), t0))
+    a = at(Nifty200TrendMomentum(P, m1), Stub(base), t0)
+    b = at(Nifty200TrendMomentum(P, m2), Stub(base), t0)
     assert a == b and a
 
 
@@ -247,19 +251,18 @@ def test_membership_intervals_are_start_inclusive_end_exclusive():
     assert m.ever() == [1, 2]
 
 
-def test_rebalances_only_on_the_first_decision_of_each_month():
+def test_rebalances_only_on_month_starts_and_never_on_the_first_day_seen():
     closes = market()
     s = Nifty200TrendMomentum(P, members(list(closes)))
-    stub, calls = Stub(closes), []
-    for d in DAYS[500:560]:
-        t = s.on_schedule(ctx_for(stub, d))
-        if t is not None:
+    stub, window, calls = Stub(closes), DAYS[500:560], []
+    for d in window:
+        if s.on_schedule(ctx_for(stub, d)) is not None:
             calls.append(d)
-    firsts = [
-        min(d for d in DAYS[500:560] if (d.year, d.month) == ym)
-        for ym in sorted({(d.year, d.month) for d in DAYS[500:560]})
-    ]
-    assert calls == firsts
+    months = sorted({(d.year, d.month) for d in window})[
+        1:
+    ]  # the first month's start was not observed
+    assert calls == [min(d for d in window if (d.year, d.month) == ym) for ym in months]
+    assert window[0] not in calls and len(s.audit) == len(calls)
 
 
 def test_identical_input_gives_identical_output():
@@ -280,7 +283,7 @@ def test_baseline_has_no_trend_or_breadth_filter_and_is_otherwise_the_same():
     closes = market(n_up=8, n_down=12)  # breadth 40%: the filtered strategy is in cash
     ids = list(closes)
     base = PlainMomentum(PlainParams(), members(ids))
-    t = base.on_schedule(ctx_for(Stub(closes), LAST))
+    t = at(base, Stub(closes), LAST)
     assert len(t) == 20 and all(w == D("0.05") for w in t.values())
     assert base.requirements() == Nifty200TrendMomentum(P, members(ids)).requirements()
     assert base.id != Nifty200TrendMomentum.id

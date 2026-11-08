@@ -6,10 +6,13 @@ the strategy holds no database, broker or clock. Rules (fixed, versioned with `v
   * score: P[t-21] / P[t-L] - 1 on split/bonus-adjusted closes, t = the latest bar
   * a member is READY only with a bar on each of the last 253 market sessions (a session is a day
     on which at least half of the members have a bar) and positive closes. Others are INSUFFICIENT_
-    HISTORY (listed later) or DATA_GAP; both stay visible and stay in the breadth denominator.
-  * breadth = READY members above their own SMA(200) / ALL members x 100; below 50 -> cash
+    HISTORY (listed later) or DATA_GAP; both are reported, never silently dropped.
+  * breadth = READY members above their own SMA(200) / READY members x 100 (market condition only;
+    data coverage is a separate rule below); below 50 -> cash
   * selection: READY members above their SMA(trend), top N by score (ties: lower instrument id)
-  * weight 1/N each, the unfilled slots stay cash; first decision of each calendar month rebalances
+  * weight 1/N each, the unfilled slots stay cash; the first session of each calendar month
+    rebalances (decided at that close, filled at the next open). A run's first month-start is the
+    first month change it observes: it never rebalances on an arbitrary first day.
   * over 5% of members unready on a decision day is an explicit DataNotReady, never a quiet skip
 """
 
@@ -107,7 +110,7 @@ def decide(
         )
 
     above200 = sum(1 for c in closes.values() if c[-1] > _mean(c[-BREADTH_SMA:]))
-    breadth = Decimal(above200) / Decimal(len(members)) * 100
+    breadth = Decimal(above200) / Decimal(len(closes)) * 100
     ranked: list[tuple[Decimal, int]] = []
     for iid, c in closes.items():
         if trend_sma is not None and not c[-1] > _mean(c[-trend_sma:]):
@@ -126,7 +129,7 @@ def decide(
 
 
 class _Monthly(Strategy):
-    """Shared schedule: the first decision of each calendar month rebalances."""
+    """Shared schedule: the first session of each calendar month rebalances."""
 
     lookback: int
     holdings: int
@@ -136,7 +139,7 @@ class _Monthly(Strategy):
         super().__init__(params)
         self.membership = membership
         self.audit: list[dict[str, Any]] = []
-        self._month: tuple[int, int] | None = None
+        self._prev: date | None = None
 
     def universe(self, ctx: Context) -> list[int]:
         return self.membership.ever()
@@ -145,10 +148,10 @@ class _Monthly(Strategy):
         return Requirements(lookback_days=LOOKBACK_DAYS, adjust="split")
 
     def on_schedule(self, ctx: Context) -> Targets | None:
-        d = ctx.now().date()
-        if self._month == (d.year, d.month):
-            return None
-        self._month = (d.year, d.month)
+        d, prev = ctx.now().date(), self._prev
+        self._prev = d
+        if prev is None or (prev.year, prev.month) == (d.year, d.month):
+            return None  # not a month start (or the first session seen: month change unknown)
         targets, row = decide(ctx, self.membership, self.lookback, self.holdings, self.trend_sma)
         self.audit.append(row)
         return targets

@@ -1,0 +1,168 @@
+{
+  "NIFTY200_FAMILY_symbols (the ones this strategy can depend on)": {
+    "by_category": {
+      "DELISTED_NO_PRICES": 2,
+      "DELISTED_WITH_PRICES": 2,
+      "PLACEHOLDER": 2,
+      "REPLACED_ISIN": 1,
+      "UNRESOLVED": 4
+    },
+    "by_category_and_confidence": {
+      "DELISTED_NO_PRICES": {
+        "MEDIUM": 2
+      },
+      "DELISTED_WITH_PRICES": {
+        "MEDIUM": 2
+      },
+      "PLACEHOLDER": {
+        "HIGH": 2
+      },
+      "REPLACED_ISIN": {
+        "MEDIUM": 1
+      },
+      "UNRESOLVED": {
+        "LOW": 4
+      }
+    },
+    "family_rows": 151,
+    "prices_recoverable_from": {
+      "LEGACY_ARCHIVE": 3,
+      "MODERN_RAW_LAKE+LEGACY_ARCHIVE": 3
+    },
+    "rows_by_category": {
+      "DELISTED_NO_PRICES": 182,
+      "DELISTED_WITH_PRICES": 13,
+      "PLACEHOLDER": 132,
+      "REPLACED_ISIN": 158,
+      "UNRESOLVED": 598
+    },
+    "symbols": 11,
+    "touching_research_window": {
+      "DELISTED_WITH_PRICES": 2,
+      "PLACEHOLDER": 2,
+      "UNRESOLVED": 2
+    }
+  },
+  "OTHER_INDEX_ONLY_symbols (SME Emerge, Smallcap, Total Market, thematic ...)": {
+    "by_category": {
+      "ACTIVE_SAME_ISIN": 146,
+      "DELISTED_NO_PRICES": 66,
+      "DELISTED_WITH_PRICES": 3,
+      "PLACEHOLDER": 10,
+      "RENAMED_SAME_ISIN": 1,
+      "REPLACED_ISIN": 2,
+      "UNRESOLVED": 600
+    },
+    "by_category_and_confidence": {
+      "ACTIVE_SAME_ISIN": {
+        "HIGH": 12,
+        "MEDIUM": 134
+      },
+      "DELISTED_NO_PRICES": {
+        "LOW": 8,
+        "MEDIUM": 58
+      },
+      "DELISTED_WITH_PRICES": {
+        "MEDIUM": 3
+      },
+      "PLACEHOLDER": {
+        "HIGH": 10
+      },
+      "RENAMED_SAME_ISIN": {
+        "HIGH": 1
+      },
+      "REPLACED_ISIN": {
+        "MEDIUM": 2
+      },
+      "UNRESOLVED": {
+        "LOW": 600
+      }
+    },
+    "family_rows": 0,
+    "prices_recoverable_from": {
+      "LEGACY_ARCHIVE": 23,
+      "MODERN_RAW_LAKE": 8,
+      "MODERN_RAW_LAKE+LEGACY_ARCHIVE": 45,
+      "NONE": 590
+    },
+    "rows_by_category": {
+      "ACTIVE_SAME_ISIN": 1680,
+      "DELISTED_NO_PRICES": 2574,
+      "DELISTED_WITH_PRICES": 58,
+      "PLACEHOLDER": 240,
+      "RENAMED_SAME_ISIN": 42,
+      "REPLACED_ISIN": 40,
+      "UNRESOLVED": 4836
+    },
+    "symbols": 828,
+    "touching_research_window": {}
+  },
+  "all_symbols": {
+    "by_category": {
+      "ACTIVE_SAME_ISIN": 146,
+      "DELISTED_NO_PRICES": 68,
+      "DELISTED_WITH_PRICES": 5,
+      "PLACEHOLDER": 12,
+      "RENAMED_SAME_ISIN": 1,
+      "REPLACED_ISIN": 3,
+      "UNRESOLVED": 604
+    },
+    "by_category_and_confidence": {
+      "ACTIVE_SAME_ISIN": {
+        "HIGH": 12,
+        "MEDIUM": 134
+      },
+      "DELISTED_NO_PRICES": {
+        "LOW": 8,
+        "MEDIUM": 60
+      },
+      "DELISTED_WITH_PRICES": {
+        "MEDIUM": 5
+      },
+      "PLACEHOLDER": {
+        "HIGH": 12
+      },
+      "RENAMED_SAME_ISIN": {
+        "HIGH": 1
+      },
+      "REPLACED_ISIN": {
+        "MEDIUM": 3
+      },
+      "UNRESOLVED": {
+        "LOW": 604
+      }
+    },
+    "family_rows": 151,
+    "prices_recoverable_from": {
+      "LEGACY_ARCHIVE": 26,
+      "MODERN_RAW_LAKE": 8,
+      "MODERN_RAW_LAKE+LEGACY_ARCHIVE": 48,
+      "NONE": 590
+    },
+    "rows_by_category": {
+      "ACTIVE_SAME_ISIN": 1680,
+      "DELISTED_NO_PRICES": 2756,
+      "DELISTED_WITH_PRICES": 71,
+      "PLACEHOLDER": 372,
+      "RENAMED_SAME_ISIN": 42,
+      "REPLACED_ISIN": 198,
+      "UNRESOLVED": 5434
+    },
+    "symbols": 839,
+    "touching_research_window": {
+      "DELISTED_WITH_PRICES": 2,
+      "PLACEHOLDER": 2,
+      "UNRESOLVED": 2
+    }
+  },
+  "latest_modern_exchange_file": "2026-11-06",
+  "mapped_family_rows_identity_check": {
+    "INSTRUMENT_ISIN_MISSING": 18,
+    "ISIN_AGREES": 209,
+    "ISIN_CHANGED_SAME_ISSUER": 27,
+    "NO_ISIN_EVIDENCE": 59
+  },
+  "mapping_candidates": 178,
+  "nothing_was_written_to_the_database": true,
+  "research_start_used": "2020-10-01"
+}

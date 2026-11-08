@@ -1,0 +1,605 @@
+symbol,category,confidence,review_status,scope,family_rows,family_rows_since_research_start,release_rows,included,excluded,first_release_effective,last_release_effective,rows_since_research_start,touches_research_window,first_exchange_file,last_exchange_file,sessions_legacy,sessions_modern,isins_in_exchange_files,release_companies,components,merger_text_in_release,candidate_instrument_id,candidate_symbol,candidate_isin,candidate_name,candidate_status,candidate_bars,candidate_bar_range,prices_recoverable_from,relation_evidence,notes
+AAKAAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Aakaar Medical Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AARADHYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Aaradhya Disposal Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AATMAJ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Aatmaj Healthcare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ABHAPOWER,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Abha Power and Steel Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ABIRLANUVO,UNRESOLVED,LOW,UNREVIEWED,NIFTY200_FAMILY,12,0,32,0,32,2017-05-26,2017-05-26,0,False,2005-12-07,2017-07-04,2870,0,INE069A01017[2011-06-22..2017-07-04],Aditya Birla Nuvo Ltd.,"MIDCAP_100_FREE_FLOAT,MIDCAP_100_FULL,NIFTY_200",False,29,ABCAPITAL,INE674K01013,Aditya Birla Capital Limited,active,1763,2019-10-01..2026-11-06,LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['ABCAPITAL'],"stopped trading 2017-07-04; instrument(s) ['ABCAPITAL'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+ABSMARINE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,ABS Marine Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ACCENTMIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Accent Microcell Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ACCORD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2019-12-27,2021-06-30,6,False,,,0,0,,Accord Synergy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ACCPL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Accretion Pharmaceuticals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ACETEC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Acetech E-Commerce Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ACSAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Arvind and Company Shipping Agencies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ACTIVEINFR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Active Infrastructures Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ADISOFT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Adisoft Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AERON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Aeron Composite Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AESTHETIK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Aesthetik Engineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AGARWALFT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Agarwal Float Glass India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AGARWALTUF,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Agarwal Toughened Glass India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AGNI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Agni Green Power Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AGUL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,A G Universal Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AHIMSA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2025-03-28,2025-06-30,11,False,,,0,0,,Ahimsa Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AIMTRON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Aimtron Electronics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AISL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2018-04-02,2018-04-02,0,False,,,0,0,,ANI Integrated Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AKANKSHA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Akanksha Power and Infrastructure Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AKIKO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Akiko Global Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ALLETEC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,All E Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ALOKTEXT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,0,18,2017-03-31,2017-03-31,0,False,1999-06-30,2019-12-09,4836,51,INE270A01011[2011-06-22..2019-09-30],Alok Industries Ltd.,,False,128,ALOKINDS,INE270A01029,Alok Industries Limited,active,1666,2020-02-19..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['ALOKINDS'],"stopped trading 2019-12-09; instrument(s) ['ALOKINDS'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+ALPEXSOLAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Alpex Solar Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ALUWIND,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Aluwind Architectural Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMBAAUTO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Amba Auto Sales and Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMBANIORG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,30,18,12,2018-09-28,2023-06-30,18,False,,,0,0,,Ambani Organics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMBEY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Ambey Laboratories Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,ANB Metal Cast Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMEYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Ameya Precision Engineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMIABLE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Amiable Logistics (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AMJUMBO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,16,16,0,2018-06-29,2024-12-31,12,False,,,0,0,,A and M Jumbo Bags Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ANANTAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Anantam Highways Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ANDHRABANK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,36,0,36,2018-09-28,2019-12-27,0,False,2001-04-04,2020-03-19,4598,125,INE434A01013[2011-06-22..2019-09-30],Andhra Bank,,False,148,ANDHRAPAP,INE435A01051,ANDHRA PAPER LIMITED,active,1763,2019-10-01..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['ANDHRAPAP'],"stopped trading 2020-03-19; instrument(s) ['ANDHRAPAP'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+ANLON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Anlon Technology Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ANONDITA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Anondita Medicare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ANYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Anya Polytech & Fertilizers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+APEXECO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Apex Ecotech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+APRAMEYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Aprameya Engineering Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+APS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Australian Premium Solar (India) Limited,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+APSISAERO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Apsis Aerocom Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARABIAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Arabian Petroleum Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARCIIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,ARC Insulation & Insulators Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARIHANTACA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Arihant Academy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARISTO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Aristo Bio-Tech and Lifescience Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARMOUR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Armour Security (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARTEDZ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2019-06-28,2020-03-27,0,False,,,0,0,,Artedz Fabs Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ARUNAYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Arunaya Organics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ASCOM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,48,30,18,2020-03-27,2025-12-31,42,False,,,0,0,,Ascom Leasing & Investments Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ASHALOG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Ashapura Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ASHWINI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Ashwini Container Movers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ASLIND,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,20,8,12,2018-12-28,2023-12-29,12,False,,,0,0,,ASL Industries Ltd.,,False,2186,SPLIL,INE978G01016,SPL Industries Limited,active,1763,2019-10-01..2026-11-06,NONE,company-name similarity 0.93 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+ASPIRE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Aspire & Innovative Advertising Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ATCENERGY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,ATC Energies System Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ATMASTCO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Atmastco Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AURDIS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,0,12,2020-03-27,2020-06-26,0,False,,,0,0,,Aurangabad Distillery Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AUROIMPEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Auro Impex & Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AUSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Aditya Ultra Steel Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AVANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Avana Electrosystems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AVIANSH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Avi Ansh Textile Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AVIENCE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Avience Biomedicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AVONMPL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2018-12-28,2018-12-28,0,False,,,0,0,,Avon Moldplast Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AVPINFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,AVP Infracon Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+AVSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2023-12-29,2024-03-28,12,False,,,0,0,,AVSL Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BABAFOOD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2019-06-28,2019-12-27,0,False,,,0,0,,Baba Agro Food Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BABAFP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Baba Food Processing (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BAGDIGITAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,B.A.G. Convergence Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BAGMANE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,48,48,0,2026-09-30,2026-09-30,48,False,,,0,0,,Bagmane Prime Office REIT,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BALAJIPHOS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Balaji Phosphates Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BALCO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Solve Plastic Products Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BANSAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,0,6,2019-12-27,2019-12-27,0,False,,,0,0,,Bansal Multiflex Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BARFLEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Barflex Polyfilms Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BASILIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Basilic Fly Studio Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BAWEJA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Baweja Studios Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BEACON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Beacon Trusteeship Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BEWLTD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,BEW Engineering Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BHADORA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Bhadora Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BHINVIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Bharat Highways INVIT,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BIKEWO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Bikewo Green Tech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BIOPOL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Biopol Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BIRDYS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Grill Splendour Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BIRET,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,36,36,0,2026-09-30,2026-09-30,36,False,,,0,0,,Brookfield India Real Estate Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BLUEPEBBLE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Blue Pebble Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BLUEWATER,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Blue Water Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BMETRICS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,Bombay Metrics Supply Chain Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BMLL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Bio Medica Laboratories Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BOSS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Boss Packaging Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BRACEPORT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Brace Port Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BRANDMAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Brandman Retail Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BRIGHT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2018-09-28,2018-09-28,0,False,,,0,0,,Bright Solar Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+BULKCORP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Bulkcorp International Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+C2C,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,C2C Advanced Systems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CADSYS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2017-12-29,2017-12-29,0,False,,,0,0,,Cadsys (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CANARYS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Canarys Automations Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CAPINVIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Capital Infra Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CBAZAAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Net Avenue Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CEDAAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Cedaar Textile Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CELLECOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Cellecor Gadgets Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CELLPOINT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Cell Point (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CGRAPHICS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Creative Graphics Solutions India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CHAMUNDA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Chamunda Electrical Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CHANDAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Chandan Healthcare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CHAVDA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Chavda Infra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CHETANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Chetana Education Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CITIUSINVT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Citius TransNet Investment Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CKKRETAIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,C K K Retail Mart Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CKPLEISURE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,16,10,6,2018-06-29,2019-12-27,0,False,,,0,0,,CKP Leisure Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CKPPRODUCT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,6,18,2018-09-28,2020-06-26,0,False,,,0,0,,CKP Products Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CLASSICEIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Classic Electrodes (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CLAYCRAFT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Clay Craft India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CLOUD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Varanium Cloud Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CLSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Crop Life Science Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CMMIPL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2017-12-29,2017-12-29,0,False,,,0,0,,CMM Infraprojects Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CMNL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Chaman Metallics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CMRSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Cyber Media Research & Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+COMMITTED,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Committed Cargo Care Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CONNPLEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Connplex Cinemas Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CONTI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,12,0,2020-03-27,2020-06-26,0,False,,,0,0,,Continental Seeds and Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+COOLCAPS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,Cool Caps Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CPS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,C P S Shapers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CRAYONS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Crayons Advertising Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CSSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Clear Secured Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CUBEINVIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Cube Highways Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CUDML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Cash Ur Drive Marketing Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+CURIS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Curis Lifesciences Ltd.,,False,715,ERIS,INE406M01024,Eris Lifesciences Limited,active,1763,2019-10-01..2026-11-06,NONE,company-name similarity 0.91 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+CURRENT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Current Infraprojects Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DALMIABHA,UNRESOLVED,LOW,UNREVIEWED,NIFTY200_FAMILY,18,0,62,20,42,2017-03-31,2018-04-02,0,False,2013-01-09,2018-11-28,1429,0,INE439L01019[2013-01-09..2018-11-28],Dalmia Bharat Ltd.,"MIDCAP_100_FULL,NIFTY_200",False,554,DALBHARAT,INE00R701025,Dalmia Bharat Limited,active,1763,2019-10-01..2026-11-06,LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['DALBHARAT'],"stopped trading 2018-11-28; instrument(s) ['DALBHARAT'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+DANISH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Danish Power Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DCCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Dar Credit & Capital Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DCG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,DCG Cables & Wires Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DECCANTRAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Deccan Transcon Leasing Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DEEM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Deem Roll Tech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DELAPLEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Delaplex Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DELTIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Delta Autocorp Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DENEERS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,De Neers Tools Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DENTALKART,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Vasa Denticity Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DESTINY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2021-12-31,2026-06-30,12,False,,,0,0,,Destiny Logistics & Infra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DHANLAXMI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Dhanlaxmi Crop Science Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DHARARAIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Dhara Rail Projects Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DHARIWAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Dhariwalcorp Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DHTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Docmode Health Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DIGIKORE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Digikore Studios Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DIRL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2026-03-30,2026-06-30,12,False,,,0,0,,Dhanuka Infra Realty Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DISHMAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,30,0,30,2017-01-23,2017-01-23,0,False,2004-04-22,2017-05-29,3256,0,INE353G01020[2011-06-22..2017-05-29],Dishman Pharmaceuticals & Chemicals Ltd.,,False,568,DCAL,INE385W01011,Dishman Carbogen Amcis Limited,active,1763,2019-10-01..2026-11-06,LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['DCAL'],"stopped trading 2017-05-29; instrument(s) ['DCAL'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+DIVINEHIRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Divine Hira Jewellers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DIVYADHAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Divyadhan Recycling Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DKEGL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,D.K. Enterprises Global Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DPEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Divine Power Energy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DRL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,34,18,16,2018-06-29,2025-03-28,30,False,,,0,0,,Dhanuka Realty Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DRONE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Drone Destination Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DRSDILIP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,48,24,24,2019-03-29,2026-06-30,42,False,,,0,0,,DRS Dilip Roadlines Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DSML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,18,6,2018-09-28,2020-06-26,0,False,,,0,0,,Debock Sales and Marketing Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Diensten Tech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DUCOL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Ducol Organics And Colours Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DUDIGITAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,DU Digital Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DURLAX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Durlax Top Surface Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+DYNAMIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,Dynamic Services & Security Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+E2ERAIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,E To E Transportation Infrastructure Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ECOLINE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Ecoline Exim Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EEPL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Eppeltone Engineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EFACTOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,E Factor Experiences Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EFFWA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Effwa Infra & Research Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EFORCE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Electro Force (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ELGNZ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Eleganz Interiors Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EMAPARTNER,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,EMA Partners India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EMBASSY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,42,42,0,2026-09-30,2026-09-30,42,False,,,0,0,,EMBASSY OFFICE PARKS REIT | Embassy Office Parks REIT,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EMKAYTOOLS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2019-12-27,2020-06-26,0,False,,,0,0,,Emkay Taps and Cutting Tools Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EMMIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Energy Mission Machineries (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ENCOMPAS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Encompass Design India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ENFUSE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Enfuse Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ENSER,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Enser Communications Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ENVIRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Envirotech Systems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EPWINDIA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,EPW India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ESCONET,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Esconet Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ESFL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Essen Speciality Films Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ESPRIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Esprit Stones Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ETL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Emkay Tools Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ETML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Emerald Tyre Manufacturers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EXCELLENT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Excellent Wires and Packaging Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+EXIMROUTES,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Exim Routes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FALCONTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Falcon Technoprojects India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FELIX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,32,14,18,2018-04-02,2022-06-30,12,False,,,0,0,,Felix Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FIDEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Fidel Softech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FINBUD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Finbud Financial Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FIVECORE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2018-09-28,2018-09-28,0,False,,,0,0,,Five Core Electronics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FLYSBS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,FlySBS Aviation Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FOCE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-03-31,2022-03-31,6,False,,,0,0,,Foce India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FONEBOX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Fonebox Retail Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FORCAS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Forcas Studio Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FORGE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2017-12-29,2017-12-29,0,False,,,0,0,,Tirupati Forge Ltd.,,False,2375,TIRUPATIFL,INE319Y01024,Tirupati Forge Limited,active,1522,2020-08-04..2026-11-06,NONE,company-name similarity 1.00 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+FORGEAUTO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Forge Auto International Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FOURTHDIM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,2,2,0,2020-09-25,2020-09-25,0,False,,,0,0,,Fourth Dimension Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FRESHARA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Freshara Agro Exports Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FROG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Frog Cellsat Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+FWSTC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Flywings Simulator Training Centre Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GAJANAND,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Gajanand International Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GANESHIN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Ganesh Infraworld Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GANGABATH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Ganga Bath Fittings Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GCHOTELS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Grand Continent Hotels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GDL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,30,0,30,2019-09-27,2021-10-29,12,False,2005-03-31,2022-01-04,3596,526,INE852F01015[2011-06-22..2019-09-30],Gateway Distriparks Ltd.,,False,799,GATEWAY,INE079J01017,Gateway Distriparks Limited,active,1149,2022-03-22..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['GATEWAY'],"stopped trading 2022-01-04; instrument(s) ['GATEWAY'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+GENXAI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,GenXAI Analytics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GGBL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Ganesh Green Bharat Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GIRIRAJ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,28,16,12,2018-06-29,2022-03-31,18,False,,,0,0,,Giriraj Civil Developers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GJL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Grover Jewells Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GLOBALPET,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Global Pet Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Galaxy Medicare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GOLDKART,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2024-09-30,2026-06-30,17,False,,,0,0,,Goldkart Jewels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GOLDSTAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,18,6,2017-12-29,2021-06-30,6,False,,,0,0,,Goldstar Power Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GOYALSALT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Goyal Salt Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GPECO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,GP Eco Solutions India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GRAPHISAD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Graphisads Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GRCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Gayatri Rubbers And Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GREENCHEF,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Greenchef Appliances Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GREENLEAF,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Greenleaf Envirotech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GRETEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2019-09-27,2024-06-28,6,False,,,0,0,,Gretex Industries Ltd.,,False,1891,REFEX,INE056I01025,Refex Industries Limited,active,1763,2019-10-01..2026-11-06,NONE,company-name similarity 0.91 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+GSMFOILS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,GSM Foils Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GSPL,UNRESOLVED,LOW,UNREVIEWED,NIFTY200_FAMILY,12,12,180,48,132,2020-06-26,2026-05-12,172,True,2006-02-16,2026-05-11,3375,1719,INE246F01010[2011-06-22..2019-09-30],Gujarat State Petronet Ltd.,"MIDCAP_100,NIFTY_200",False,849,GNRL,INE207H01026,Gujarat Natural Resources Limited,active,139,2026-04-20..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,"rename/merger candidate(s) by name and timing ONLY: ['GNRL', 'GUJENERGY']","stopped trading 2026-05-11; instrument(s) ['GNRL', 'GUJENERGY'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+GSTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-09-30,2022-09-30,6,False,,,0,0,,Globesecure Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+GURUNANAK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Gurunanak Agriculture India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HAPPY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Happy Steels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HIGREEN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Hi-Green Carbon Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HOACFOODS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Hoac Foods India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HOLMARC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Holmarc Opto-Mechatronics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HOMESFY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Homesfy Realty Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HPTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,HP Telecom India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HRHNEXT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,HRH Next Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HUSYSLTD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,8,2,6,2019-03-29,2020-09-25,0,False,,,0,0,,Husys Consulting Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+HVAX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,HVAX Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IBLFL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,IBL Finance Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ICELCO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,IC Electricals Company Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IDEALTECHO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Ideal Technoplast Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IDENTICAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Identical Brains Studios Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IEML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Indian Emulsifiers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INDIFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Indifra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INFINIUM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Infinium Pharmachem Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INFLUX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Influx Healthtech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INFOLLION,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Infollion Research Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Interiors & More Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INNOMET,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Innomet Advanced Materials Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INNOVATIVE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2017-12-29,2024-06-28,18,False,,,0,0,,Innovative Tyres and Tubes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INSPIRE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Inspire Films Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INTEGRITY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Integrity Infrabuild Developers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+INVICTA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Invicta Diagnostic Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IPHL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Indian Phosphate Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IPSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Integrated Personnel Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ISHAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Ishan International Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ITALIANE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Italian Edibles Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ITTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Innovative Tyres & Tubes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+IWARE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Iware Supplychain Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JAINAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,Jainam Ferro Alloys (I) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JAINIK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Jainik Power Cables Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JAKHARIA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,36,18,18,2018-09-28,2026-03-30,30,False,,,0,0,,Jakharia Fabric Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JAYBEE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Jay Bee Laminations Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JAYESH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Jayesh Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JETKNIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,36,12,24,2020-03-27,2024-03-28,24,False,,,0,0,,Jet Knitwears Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JEYYAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Jeyyam Global Foods Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JFLLIFE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,JFL Life Sciences Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JIWANRAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Jiwanram Sheoduttrai Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+JYOTIGLOBL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Jyoti Global Plast Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+K2INFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,K2 Infragen Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KALANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Kalana Ispat Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KANDARP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Kandarp Digi Smart BPO Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KARNIKA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Karnika Industries Ltd.,,False,152,ANIKINDS,INE087B01017,Anik Industries Limited,active,1763,2019-10-01..2026-11-06,NONE,company-name similarity 0.91 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+KATARIA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Kataria Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KAYTEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Kaytex Fabrics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KCEIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Kay Cee Energy & Infra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KCK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-09-30,2022-09-30,6,False,,,0,0,,Kck Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KDL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Kore Digital Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Kundan Edifice Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KEN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Ken Enterprises Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KHFM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2019-06-28,2019-06-28,0,False,,,0,0,,Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KKJEWELS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Kabra Jewels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KKVAPOW,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2018-04-02,2024-12-31,12,False,,,0,0,,KKV Agro Powers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KLL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Kaushalya Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KODYTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Kody Technolab Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KONSTELEC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Konstelec Engineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KONTOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Kontor Space Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KORE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Jay Jalaram Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KRISHCA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Krishca Strapping Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KRMAYURVED,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,KRM Ayurveda Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KRT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Knowledge Realty Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+KTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Kalahridhaan Trendz Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+LAKSHYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Lakshya Powertech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+LAMOSAIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Lamosaic India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+LAWSIKHO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Addictive Learning Technology Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+LLOYDS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Lloyds Luxuries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+LRRPL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Lead Reclaim And Rubber Products Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MACOBSTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Macobs Technologies Ltd.,,False,49,ACSTECH,INE366C01021,ACS Technologies Limited,active,139,2026-04-20..2026-11-06,NONE,company-name similarity 0.91 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+MADHAVBAUG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,Vaidya Sane Ayurved Laboratories Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MADHUSUDAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Madhusudan Masala Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAGSON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Magson Retail And Distribution Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAHICKRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,4,4,0,2018-06-29,2018-06-29,0,False,,,0,0,,Mahickra Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAITREYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Maitreya Medicare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAKS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Maks Energy Solutions India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Mangalam Alloys Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MANAV,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2017-12-29,2022-12-30,12,False,,,0,0,,Manav Infra Projects Ltd.,,False,1382,MADHAVIPL,INE631R01026,Madhav Infra Projects Limited,active,139,2026-04-20..2026-11-06,NONE,company-name similarity 0.93 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+MANDEEP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Mandeep Auto Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MANILAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Manilam Industries India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MARC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Marc Technocrats Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MARCO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Marco Cables & Conductors Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MARINETRAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Marinetrans India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MARUSHIKA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Marushika Technology Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MASON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Mason Infratech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MASTER,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Master Components Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAXPOSURE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Maxposure Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAXVOLT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Maxvolt Energy Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MAYASHEEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Mayasheel Ventures Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MCON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Mcon Rasayan India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MDL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,28,16,12,2018-06-29,2023-09-29,24,False,,,0,0,,Marvel Decor Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MEDIORG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Medicamen Organics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MEDISTEP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Medistep Healthcare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MEGAFLEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Mega Flex Plastics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MEGATHERM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Megatherm Induction Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MGSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Matrix Geo Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MHHL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,4,4,0,2018-06-29,2018-06-29,0,False,,,0,0,,Mohini Health & Hygiene Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MICROPRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Micropro Software Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MIEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Manglam Infra & Engineering Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MILTON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2017-12-29,2019-06-28,0,False,,,0,0,,Milton Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MINDPOOL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2019-06-28,2024-06-28,12,False,,,0,0,,Mindpool Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MINDSPACE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,MINDSPACE BUSINESS PARKS REIT,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MMEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Moving Media Entertainment Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MOBILISE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Mobilise App Lab Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MONOLITH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Monolithisch India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MONOPHARMA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Mono Pharmacare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MOS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Mos Utility Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MOXSH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Moxsh Overseas Educon Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MPEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Manas Polymers and Energies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MPTODAY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2017-12-29,2017-12-29,0,False,,,0,0,,Madhya Pradesh Today Media Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MRIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Mahendra Realtors & Infrastructure Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MUNISH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Munish Forge Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MVKAGRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,M.V.K. Agro Food Product Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+MYMUDRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,My Mudra Fincorp Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NAMAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Naman In-Store (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NAMOEWASTE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Namo eWaste Management Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NANDANI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,8,6,2,2020-09-25,2021-01-01,6,False,,,0,0,,Nandani Creation Ltd.,,False,1134,JAIPURKURT,INE696V01013,Nandani Creation Limited,active,1285,2021-09-02..2026-11-06,NONE,company-name similarity 1.00 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+NEELAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Neelam Linens and Garments (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NEOCHEM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Neochem Bio Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NEPHROCARE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Nephro Care India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NEPTUNE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Neptune Petrochemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NEWJAISA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Newjaisa Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NFPSAMPOOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,NFP Sampoorna Foods Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NIDAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,Nidan Laboratories And Healthcare Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NIKITA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Nikita Papers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NIRMAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Nirman Agri Gentics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NMSTEEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Newmalayalam Steel Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NRVANDANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,N R Vandana Tex Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+NXST,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Nexus Select Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+OBSCP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,OBSC Perfection Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+OLIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Oneclick Logistics India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+OMFURN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2017-12-29,2023-03-31,12,False,,,0,0,,Omfurn India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ONDOOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,On Door Concepts Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ONYX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Onyx Biotec Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+OPTIVALUE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Optivalue Tek Consulting Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ORIANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Oriana Power Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+OSELDEVICE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Osel Devices Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+OWAIS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Owais Metal and Mineral Processing Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PARAGON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Paragon Fine and Speciality Chemical Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PARAMATRIX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Paramatrix Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PARAMOUNT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Paramount Dye Tec Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PARTH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Parth Electricals & Engineering Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PARTYCRUS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-06-30,2021-06-30,6,False,,,0,0,,Party Cruisers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PATILAUTOM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Patil Automation Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PATTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2023-06-30,2026-09-30,12,False,,,0,0,,Pattech Fitwell Tube Components Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PCCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Petro Carbon and Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PEL,UNRESOLVED,LOW,UNREVIEWED,NIFTY200_FAMILY,40,34,324,114,210,2017-03-31,2025-09-30,259,True,2012-09-21,2025-09-22,1734,1555,INE140A01024[2012-09-21..2019-09-30],Piramal Enterprises Ltd.,"MIDCAP_100,MIDCAP_100_FREE_FLOAT,NIFTY_100,NIFTY_200,NIFTY_NEXT_50",False,1761,PIRAMALFIN,INE202B01038,Piramal Finance Limited,active,248,2025-11-07..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['PIRAMALFIN'],"stopped trading 2025-09-22; instrument(s) ['PIRAMALFIN'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+PELATRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Pelatro Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PENTAGOLD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,28,16,12,2018-06-29,2023-03-31,12,False,,,0,0,,Penta Gold Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PENTAGON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Pentagon Rubber Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PERFECT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2019-12-27,2023-03-31,6,False,,,0,0,,Perfect Infraengineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PHANTOMFX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Phantom Digital Effects Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PHOGLOBAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Phoenix Overseas Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PLADAINFO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Plada Infotech Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+POLYSIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Polysil Irrigation Systems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+POSITRON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Positron Energy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+POWERFUL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,8,6,2,2018-12-28,2020-09-25,0,False,,,0,0,,Powerful Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PPSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Picturepost Studios Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRAMARA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Pramara Promotions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRANIK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Pranik Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRATHAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Pratham EPC Projects Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRECISION,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,Precision Metaliks Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PREMIUM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Premium Plast Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRESSTONIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Presstonic Engineering Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRIMECAB,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Prime Cable Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRITIKA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Pritika Engineering Components Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRIZOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Prizor Viztech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PRLIND,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Premier Roadlines Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PROFX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Pro FX Tech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PROLIFE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2019-03-29,2021-01-01,6,False,,,0,0,,Prolife Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PROPEQUITY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,P. E. Analytics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PROV,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Proventus Agrocom Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PSFL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Paramount Speciality Forgings Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PSRAJ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,P S Raj Steels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PULZ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2018-04-02,2022-12-30,12,False,,,0,0,,Pulz Electronics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PURPLEUTED,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Purple United Sales Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PURVFLEXI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Purv Flexipack Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+PUSHPA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Pushpa Jewellers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+QFIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Quality Foils (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+QLINE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Q-Line Biotech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+QUADPRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,Quadpro ITeS Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+QUESTLAB,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Quest Laboratories Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+QUICKTOUCH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Quicktouch Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+QVCEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,QVC Exports Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RADIOWALLA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Radiowalla Network Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RAJINDLTD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Rajputana Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RAJPUTANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Rajputana Biodiesel Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RAPIDFLEET,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Rapid Fleet Management Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RAPPID,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Rappid Valves (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RBMINFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,RBM Infracon Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RBS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Ramdevbaba Solvent Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RCDL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Rajgor Castor Derivatives Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+READYMIX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Readymix Construction Machinery Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+REFRACTORY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Refractory Shapes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+REMUS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Remus Pharmaceuticals Ltd.,,False,2158,SMSPHARMA,INE812G01025,SMS Pharmaceuticals Limited,active,1763,2019-10-01..2026-11-06,NONE,company-name similarity 0.90 ONLY (no ISIN/symbol evidence),never appears in any stored exchange file
+REXPIPES,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-12-31,2021-12-31,6,False,,,0,0,,Rex Pipes and Cables Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+REXPRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Rexpro Enterprises Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RFBL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,RFBL Flexi Pack Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RICHA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,Richa Info Systems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RIIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Raajmarg Infra Investment Trust,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RILINFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2022-09-30,2023-09-29,18,False,,,0,0,,Rachana Infrastructure Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RITEZONE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Rite Zone Chemcon India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RNFI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,RNFI Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RNPL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Renol Polychem Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ROCKINGDCE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Rockingdeals Circular Economy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ROXHITECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Rox Hi-Tech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ROYALARC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Royal Arc Electrodes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Rama Telecom Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+RULKA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Rulka Electricals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAAKSHI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Saakshi Medtech and Panels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SABAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Sabar Flex India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SACHEEROME,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Sacheerome Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SADHAV,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Sadhav Shipping Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAFEENTP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Safe Enterprises Retail Fixtures Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAHAJ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Sahaj Fashions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAHAJSOLAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Sahaj Solar Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAHANA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Sahana System Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAHASRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Sahasra Electronic Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAIFL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Sameera Agro And Infra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAJHOTELS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Saj Hotels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAKETH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2018-12-28,2018-12-28,0,False,,,0,0,,Saketh Exim Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAMAY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Samay Project Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SANGANI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Sangani Hospitals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAROJA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Saroja Pharma Industries India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SARTELE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Sar Televenture Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SATECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,S A Tech Software India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SATIPOLY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Sati Poly Plast Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SATKARTAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Sat Kartar Shopping Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SATTVAENGG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Sattva Engineering Construction Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAVY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Savy Infra and Logistics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SAWALIYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Sawaliya Food Products Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SCML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Sharp Chucks and Machines Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SDREAMS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,S D Retail Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SECL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2019-12-27,2025-12-31,18,False,,,0,0,,Salasar Exteriors and Contour Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Sungarner Energies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SELLOWRAP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Sellowrap Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SERVICE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Service Care Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SFCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,0,18,2017-01-23,2017-01-23,0,False,2013-11-07,2017-03-30,767,0,INE935O01010[2013-11-07..2017-03-30],Star Ferro & Cement Ltd.,,False,2205,STARCEMENT,INE460H01021,Star Cement Limited,active,1763,2019-10-01..2026-11-06,LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['STARCEMENT'],"stopped trading 2017-03-30; instrument(s) ['STARCEMENT'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+SFML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-03-28,2025-03-28,6,False,,,0,0,,Supreme Facility Management Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHANTHALA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Shanthala FMCG Products Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHEEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Sheel Biotech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHEETAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Sheetal Universal Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHERA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Shera Energy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHETHJI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Shreeji Global FMCG Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHIGAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,Shigan Quantum Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHIVASHRIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Shivashrit Foods Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHKSIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Shri Hare-Krishna Sponge Iron Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHREEDHAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Shreedhar Spinners Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHREEKARNI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Shree Karni Fabcom Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHREEOSFM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Shree OSFM E-Mobility Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHRIAHIMSA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Shri Ahimsa Naturals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHRIKANHA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Shri Kanha Stainless Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHRIRAMCIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,48,6,42,2021-03-31,2022-08-08,48,False,2005-04-04,2022-11-28,3585,825,INE722A01011[2011-06-22..2019-09-30],Shriram City Union Finance Ltd.,,False,2111,SHRIRAMFIN,INE721A01047,Shriram Finance Limited,active,1763,2019-10-01..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['SHRIRAMFIN'],"stopped trading 2022-11-28; instrument(s) ['SHRIRAMFIN'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+SHRITECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Shri Techtex Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHUBHLAXMI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2019-03-29,2019-03-29,0,False,,,0,0,,Shubhlaxmi Jewel Art Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHUBHSHREE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Shubhshree Biofuels Energy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SHYAMDHANI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Shyam Dhani Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SIDDHICOTS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Siddhi Cotspin Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SIDDHIKA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-06-30,2021-06-30,6,False,,,0,0,,Siddhika Coatings Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SIGNORIA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Signoria Creation Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SIIL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2017-12-29,2019-09-27,0,False,,,0,0,,Supreme (India) Impex Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SILKFLEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Silkflex Polymers (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SILKY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Silky Overseas Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SIMCA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Simca Advertising Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SJLOGISTIC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,S J Logistics (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SKML,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2017-12-29,2018-09-28,0,False,,,0,0,,Sri Krishna Metcom Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SKP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-09-30,2022-09-30,6,False,,,0,0,,SKP Bearing Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SKSTEXTILE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,10,4,6,2018-06-29,2022-12-30,6,False,,,0,0,,S K S Textiles Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SLONE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Slone Infosystems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SMARTEN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Smarten Power Systems Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SMVD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2018-04-02,2018-04-02,0,False,,,0,0,,SMVD Ploy Pack Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SNEHAA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Snehaa Organics Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SOCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Sundrex Oil Company Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SONAHISONA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2019-12-27,2023-03-31,12,False,,,0,0,,Sona Hi Sona Jewellers (Gujarat) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SONAMAC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Sona Machinery Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SONISOYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,10,4,6,2018-06-29,2021-01-01,6,False,,,0,0,,Soni Soya Products Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SONUINFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-06-30,2022-06-30,6,False,,,0,0,,Sonu Infratech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SOTAC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Sotac Pharmaceuticals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Shivalic Power Control Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPCON,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Srinibas Pradhan Constructions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPEB,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Speb Adhesives Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPECTSTM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Spectrum Talent Management Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPPPOLY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,SPP Polymer Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPRL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2022-06-30,2024-03-28,18,False,,,0,0,,SP Refractories Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SPUNWEB,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Spunweb Nonwoven Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SRIRAM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2019-09-27,2022-12-30,18,False,,,0,0,,Shri Ram Switchgears Ltd,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SRIVASAVI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Srivasavi Adhesive Tapes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SSEGL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Sathlokhar Synergys E&C Global Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SSFL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Srivari Spices And Foods Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SSINFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,4,4,0,2018-06-29,2018-06-29,0,False,,,0,0,,S.S. Infrastructure Development Consultants Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+STRIDERS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Striders Impex Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+STUDIOLSD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Studio LSD Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SUBAHOTELS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Suba Hotels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SUNLITE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Sunlite Recycling Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SUNREST,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Sunrest Lifescience Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SUNTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Suntech Infra Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SUPPETRO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,66,24,42,2017-09-29,2022-04-07,24,False,1999-06-30,2022-04-06,4943,591,INE663A01017[2011-06-22..2019-09-30],Supreme Petrochem Ltd.,,False,2187,SPLPETRO,INE663A01033,Supreme Petrochem Limited,active,1107,2022-05-24..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['SPLPETRO'],"stopped trading 2022-04-06; instrument(s) ['SPLPETRO'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+SUPREMEPWR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Supreme Power Equipment Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SURANI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,18,12,6,2019-06-28,2021-03-31,12,False,,,0,0,,Surani Steel Tubes Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SUREVIN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,0,6,2020-03-27,2020-03-27,0,False,,,0,0,,Surevin BPO Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SWASTIK,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Swastik Pipe Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SYLVANPLY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Sylvan Plyboard (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SYNOPTICS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Synoptics Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+SYSTANGO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Systango Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TAC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,TAC Infosec Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TANKUP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Tankup Engineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TAPIFRUIT,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Tapi Fruit Processing Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TATASTLLP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,90,42,48,2020-03-27,2023-11-17,72,False,2019-09-03,2023-11-16,19,1011,INE674A01014[2019-09-03..2019-09-30],Tata Steel Long Products Ltd.,,False,2317,TATATECH,INE142M01025,Tata Technologies Limited,active,729,2023-11-30..2026-11-06,MODERN_RAW_LAKE+LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['TATATECH'],"stopped trading 2023-11-16; instrument(s) ['TATATECH'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+TAURIAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Taurian MPS Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TBI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,TBI Corn Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Thaai Casting Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TEAMTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Teamtech Formwork Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TECHD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,TechD Cybersecurity Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TECHERA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,TechEra Engineering (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TECHLABS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-03-28,2024-03-28,6,False,,,0,0,,Trident Techlabs Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TECHNO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,0,12,2018-08-08,2018-08-08,0,False,2010-11-25,2018-08-07,1912,0,INE286K01024[2011-06-22..2018-08-07],Techno Electric & Engineering Company Ltd.,,False,2332,TECHNOE,INE285K01026,Techno Electric & Engineering Company Limited,active,1763,2019-10-01..2026-11-06,LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['TECHNOE'],"stopped trading 2018-08-07; instrument(s) ['TECHNOE'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+TEJA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Teja Engineering Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TEJASCARGO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Tejas Cargo India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TGL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Teerth Gopicon Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+THESL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Thinking Hats Entertainment Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TIMESCAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-03-31,2022-03-31,6,False,,,0,0,,Timescan Logistics (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TIRUPATI,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,30,18,12,2017-12-29,2022-12-30,24,False,,,0,0,,Shree Tirupati Balajee FIBC Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TRANSTEEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Transteel Seating Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TRANSWIND,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,0,6,2021-01-01,2021-01-01,6,False,,,0,0,,Transwind Infra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TRIDHYA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Tridhya Tech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TROM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Trom Industries Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TRUST,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Trust Fintech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TSC,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,TSC India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+TUBEINVEST,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,0,12,2017-05-26,2017-05-26,0,False,1999-06-30,2017-08-23,4521,0,INE149A01025[2011-06-22..2017-08-23],Tube Investments of India Ltd.,,False,2364,TIINDIA,INE974X01010,Tube Investments of India Limited,active,1763,2019-10-01..2026-11-06,LEGACY_ARCHIVE,rename/merger candidate(s) by name and timing ONLY: ['TIINDIA'],"stopped trading 2017-08-23; instrument(s) ['TIINDIA'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established"
+TUNWAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Tunwal E-Motors Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,14,12,2,2018-12-28,2021-03-31,6,False,,,0,0,,Ushanti Colour Chem Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UHTL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,United Heat Transfer Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UMA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-03-31,2023-03-31,6,False,,,0,0,,Uma Converter Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UNIHEALTH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Unihealth Consultancy Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UNILEX,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Unilex Colours and Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+URBAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Urban Enviro Waste Management Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+USASEEDS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Upsurge Seeds of Agriculture Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+USHAFIN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Usha Financial Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UTKAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Utkal Speciality Industries India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UTSSAV,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Utssav CZ Gold Jewels Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+UWCSL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2018-12-28,2022-12-30,6,False,,,0,0,,Ultra Wiring Connectivity System Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VALUE360,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Value 360 Communications Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VASA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,16,10,6,2018-06-29,2026-03-30,12,False,,,0,0,,Vasa Retail and Overseas Ltd | Vasa Retail and Overseas Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VDEAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Vdeal System Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VEEKAYEM,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-12-30,2022-12-30,6,False,,,0,0,,Veekayem Fashion and Apparels Ltd,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VELS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2023-06-30,2026-09-30,12,False,,,0,0,,Vels Film International Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VERA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,46,22,24,2018-06-29,2025-06-30,35,False,,,0,0,,Vera Synthetic Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VERITAAS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Veritaas Advertising Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VERTEXPLUS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Vertexplus Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VGINFOTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Virtual Galaxy Infotech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VIAZ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-06-30,2023-06-30,6,False,,,0,0,,Viaz Tyres Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VICTORYEV,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-03-30,2026-03-30,6,False,,,0,0,,Victory Electric Vehicles International Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VIESL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Vision Infra Equipment Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VIGOR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Vigor Plast India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VIJAYPD,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-12-31,2025-12-31,6,False,,,0,0,,Vijaypd Ceutical Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VILAS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Vilas Transcore Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VILINBIO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-09-29,2023-09-29,6,False,,,0,0,,Vilin Bio Med Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VINSYS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Vinsys IT Services India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VINYAS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Vinyas Innovative Technologies Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VISAMAN,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,12,6,6,2024-09-30,2026-09-30,12,False,,,0,0,,Visaman Global Sales Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VISHNUINFR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Vishnusurya Projects and Infra Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VISHWAS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Vishwas Agri Seeds Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VIVIDEL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Vivid Electromech Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VIVO,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2022-03-31,2022-03-31,6,False,,,0,0,,Vivo Collaboration Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VLINFRA,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,V.L.Infraprojects Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VMARCIND,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2021-06-30,2021-06-30,6,False,,,0,0,,V Marc India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VMOBILE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-09-30,2026-09-30,6,False,,,0,0,,Vinit Mobile Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VOLERCAR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-06-30,2025-06-30,5,False,,,0,0,,Voler Car Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VR,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,V R Infraspace Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+VSCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,24,12,12,2021-01-01,2022-06-30,24,False,,,0,0,,Vadivarhe Speciality Chemicals Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+WHITEFORCE,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2025-09-30,2025-09-30,6,False,,,0,0,,Happy Square Outsourcing Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+WINNY,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Winny Immigration & Education Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+WINSOL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Winsol Engineers Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+WOL3D,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-12-31,2024-12-31,6,False,,,0,0,,Wol 3D India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+WOMANCART,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Womancart Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+WTICAB,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Wise Travel India Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+YAAP,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2026-06-30,2026-06-30,6,False,,,0,0,,Yaap Digital Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+YASHOPTICS,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Yash Optics & Lens Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+YCCL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Yasons Chemex Care Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+YUDIZ,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Yudiz Solutions Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ZEAL,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2023-12-29,2023-12-29,6,False,,,0,0,,Zeal Global Services Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ZENITHDRUG,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-06-28,2024-06-28,6,False,,,0,0,,Zenith Drugs Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file
+ZTECH,UNRESOLVED,LOW,UNREVIEWED,OTHER_INDEX_ONLY,0,0,6,6,0,2024-09-30,2024-09-30,6,False,,,0,0,,Z-Tech (India) Ltd.,,False,,,,,,0,,NONE,,never appears in any stored exchange file

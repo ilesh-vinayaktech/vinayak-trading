@@ -82,12 +82,8 @@ def test_runs_end_to_end_and_the_books_reconcile(market):
     assert r.trades and r.ledger_reconciled and r.accounting_complete
     held = {i for i, q in r.final_positions.items() if q > 0}
     assert held <= set(ids[:14]) and len(held) == 14  # only up-trending names, 14 qualify
-    want = [START] + [
-        d for p, d in zip(DAYS[260:-2], DAYS[261:-1], strict=True) if d.month != p.month
-    ]
-    assert [a["day"] for a in s.audit] == [
-        str(d) for d in want
-    ]  # the initial allocation, then month starts
+    want = [d for p, d in zip(DAYS[260:-2], DAYS[261:-1], strict=True) if d.month != p.month]
+    assert [a["day"] for a in s.audit] == [str(d) for d in want]  # month starts only
     assert all(a["breadth"] >= 50 for a in s.audit)
     assert r.final_cash > 0  # 6 unfilled slots stay cash
 

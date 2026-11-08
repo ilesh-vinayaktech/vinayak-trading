@@ -22,6 +22,17 @@ crashes at regime turns, which the breadth filter may or may not mitigate.
 - Benchmark: Nifty 200 Gross TRI. Baseline: plain 12-1 momentum, top 20, same universe and costs.
 - Adjustment basis: split/bonus adjusted prices; total return reported separately.
 
+## Frozen design decisions (fixed, NOT optimization parameters)
+- Unfilled portfolio slots stay cash: weight 1/N per holding.
+- Breadth = READY members above SMA(200) / READY members (market condition only). Data coverage is a
+  separate rule: more than 5% of members unready on a decision day stops the run (DataNotReady). 5% is an
+  engineering tolerance, documented, never tuned.
+- Rebalance: first session of each calendar month, decided at that close, filled at the next open. A run's
+  first rebalance is its first observed month change, never an arbitrary first day.
+- Signals use split/bonus-adjusted closes; dividends reach P&L as ledger cash credits.
+- Baseline (plain 12-1 momentum, top 20) shares universe, schedule, execution, costs, capital and snapshot.
+- Synthetic/engineering runs are labelled ENGINEERING_TEST_ONLY and never enter the registry.
+
 ## Parameter grid (12 trials, the whole search)
 | Parameter | Values |
 |---|---|
