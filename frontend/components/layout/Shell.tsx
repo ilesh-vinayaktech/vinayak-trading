@@ -67,7 +67,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="hidden text-sm text-ink-soft md:block">Data, benchmark and research state</span>
           <ApiLight />
         </header>
-        <main id="main" className="mx-auto w-full max-w-7xl min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        <main id="main" className="w-full max-w-[1680px] min-w-0 flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
