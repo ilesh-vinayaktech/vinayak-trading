@@ -173,7 +173,7 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 ## Stage 4: First strategy (trend-filtered momentum, Nifty 200)
 - [x] Step 1-2 (2026-11-08): draft pre-registration `docs/stage4/preregistration-draft.md` (NOT registered; owner to confirm) and `scripts/stage4_readiness.py` -> `docs/stage4/readiness.json`: strict run NOT possible; blocking U1 (no point-in-time Nifty 200 membership), U2 (76+ unmapped delisted symbols), C1 (non-dividend corporate actions in review), K1 (no verified cost schedule), V1 (thresholds provisional), R1 (nothing registered).
 
-- [ ] Package `strategies/nifty200_momentum/` with `strategy.yaml`, params, tests (unit + look-ahead + replay).
+- [x] (2026-11-08) Track A: `src/algo/strategies/nifty200_momentum.py` (Nifty200TrendMomentum, PlainMomentum baseline, IntervalMembership, explicit DataNotReady), `src/algo/research/run.py` (Purpose labels, manifest; only ENGINEERING_TEST_ONLY runs exist), unit tests incl. look-ahead/membership-leak/breadth/ties/missing-bar, engine integration tests incl. split-not-a-crash with control and byte-identical replay. Synthetic data only; nothing registered.
 - [ ] Pre-register hypothesis/universe/params; run validation protocol; store tear sheet; write pass/fail report.
 - [ ] Benchmarks: buy-and-hold Nifty, 12-1 momentum baseline; 2x cost result positive.
 - [ ] Lifecycle table + `stage_change` (approver, timestamp); promotion gates enforced in code. T: cannot enter Paper without Backtest-approved record; runner refuses non-live-stage strategy for live.
