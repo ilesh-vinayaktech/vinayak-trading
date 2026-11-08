@@ -1,0 +1,496 @@
+{
+ "indicators": [
+  {
+   "description": "Mean of the last N closes.",
+   "group": "Trend",
+   "label": "Simple Moving Average",
+   "levels": [],
+   "name": "sma",
+   "outputs": [
+    {
+     "color": "#2563eb",
+     "key": "value",
+     "kind": "line",
+     "label": "SMA"
+    }
+   ],
+   "pane": "overlay",
+   "params": [
+    {
+     "default": "20",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "500",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Weights recent closes more; seeded with the SMA.",
+   "group": "Trend",
+   "label": "Exponential Moving Average",
+   "levels": [],
+   "name": "ema",
+   "outputs": [
+    {
+     "color": "#f59e0b",
+     "key": "value",
+     "kind": "line",
+     "label": "EMA"
+    }
+   ],
+   "pane": "overlay",
+   "params": [
+    {
+     "default": "20",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "500",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Linearly weighted mean of the last N closes.",
+   "group": "Trend",
+   "label": "Weighted Moving Average",
+   "levels": [],
+   "name": "wma",
+   "outputs": [
+    {
+     "color": "#7c3aed",
+     "key": "value",
+     "kind": "line",
+     "label": "WMA"
+    }
+   ],
+   "pane": "overlay",
+   "params": [
+    {
+     "default": "20",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "500",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "SMA of the close with bands at N population standard deviations.",
+   "group": "Volatility",
+   "label": "Bollinger Bands",
+   "levels": [],
+   "name": "bb",
+   "outputs": [
+    {
+     "color": "#2563eb",
+     "key": "upper",
+     "kind": "line",
+     "label": "Upper"
+    },
+    {
+     "color": "#f59e0b",
+     "key": "basis",
+     "kind": "line",
+     "label": "Basis"
+    },
+    {
+     "color": "#2563eb",
+     "key": "lower",
+     "kind": "line",
+     "label": "Lower"
+    }
+   ],
+   "pane": "overlay",
+   "params": [
+    {
+     "default": "20",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "500",
+     "min": "1"
+    },
+    {
+     "default": "2",
+     "integer": false,
+     "key": "mult",
+     "label": "StdDev",
+     "max": "10",
+     "min": "0.1"
+    }
+   ]
+  },
+  {
+   "description": "ATR-based trailing stop that flips with the trend.",
+   "group": "Trend",
+   "label": "Supertrend",
+   "levels": [],
+   "name": "supertrend",
+   "outputs": [
+    {
+     "color": "#089981",
+     "key": "up",
+     "kind": "line",
+     "label": "Up trend"
+    },
+    {
+     "color": "#f23645",
+     "key": "down",
+     "kind": "line",
+     "label": "Down trend"
+    }
+   ],
+   "pane": "overlay",
+   "params": [
+    {
+     "default": "10",
+     "integer": true,
+     "key": "length",
+     "label": "ATR length",
+     "max": "200",
+     "min": "1"
+    },
+    {
+     "default": "3",
+     "integer": false,
+     "key": "mult",
+     "label": "Factor",
+     "max": "20",
+     "min": "0.1"
+    }
+   ]
+  },
+  {
+   "description": "Wilder's stop-and-reverse dots.",
+   "group": "Trend",
+   "label": "Parabolic SAR",
+   "levels": [],
+   "name": "psar",
+   "outputs": [
+    {
+     "color": "#0f172a",
+     "key": "value",
+     "kind": "dots",
+     "label": "SAR"
+    }
+   ],
+   "pane": "overlay",
+   "params": [
+    {
+     "default": "0.02",
+     "integer": false,
+     "key": "start",
+     "label": "Start",
+     "max": "1",
+     "min": "0.001"
+    },
+    {
+     "default": "0.02",
+     "integer": false,
+     "key": "inc",
+     "label": "Increment",
+     "max": "1",
+     "min": "0.001"
+    },
+    {
+     "default": "0.2",
+     "integer": false,
+     "key": "max",
+     "label": "Maximum",
+     "max": "1",
+     "min": "0.01"
+    }
+   ]
+  },
+  {
+   "description": "Wilder's RSI of the close (0-100).",
+   "group": "Momentum",
+   "label": "Relative Strength Index",
+   "levels": [
+    "30",
+    "70"
+   ],
+   "name": "rsi",
+   "outputs": [
+    {
+     "color": "#7c3aed",
+     "key": "value",
+     "kind": "line",
+     "label": "RSI"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "14",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "200",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Fast EMA minus slow EMA, its signal line and the histogram.",
+   "group": "Momentum",
+   "label": "MACD",
+   "levels": [
+    "0"
+   ],
+   "name": "macd",
+   "outputs": [
+    {
+     "color": "#94a3b8",
+     "key": "hist",
+     "kind": "histogram",
+     "label": "Histogram"
+    },
+    {
+     "color": "#2563eb",
+     "key": "macd",
+     "kind": "line",
+     "label": "MACD"
+    },
+    {
+     "color": "#f59e0b",
+     "key": "signal",
+     "kind": "line",
+     "label": "Signal"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "12",
+     "integer": true,
+     "key": "fast",
+     "label": "Fast",
+     "max": "200",
+     "min": "1"
+    },
+    {
+     "default": "26",
+     "integer": true,
+     "key": "slow",
+     "label": "Slow",
+     "max": "400",
+     "min": "1"
+    },
+    {
+     "default": "9",
+     "integer": true,
+     "key": "signal",
+     "label": "Signal",
+     "max": "200",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Position of the close within the recent high-low range.",
+   "group": "Momentum",
+   "label": "Stochastic",
+   "levels": [
+    "20",
+    "80"
+   ],
+   "name": "stoch",
+   "outputs": [
+    {
+     "color": "#2563eb",
+     "key": "k",
+     "kind": "line",
+     "label": "%K"
+    },
+    {
+     "color": "#f59e0b",
+     "key": "d",
+     "kind": "line",
+     "label": "%D"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "14",
+     "integer": true,
+     "key": "k",
+     "label": "%K length",
+     "max": "200",
+     "min": "1"
+    },
+    {
+     "default": "3",
+     "integer": true,
+     "key": "d",
+     "label": "%D smoothing",
+     "max": "50",
+     "min": "1"
+    },
+    {
+     "default": "3",
+     "integer": true,
+     "key": "smooth",
+     "label": "%K smoothing",
+     "max": "50",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Wilder-smoothed true range.",
+   "group": "Volatility",
+   "label": "Average True Range",
+   "levels": [],
+   "name": "atr",
+   "outputs": [
+    {
+     "color": "#d97706",
+     "key": "value",
+     "kind": "line",
+     "label": "ATR"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "14",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "200",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Trend strength with +DI and -DI.",
+   "group": "Trend",
+   "label": "Average Directional Index",
+   "levels": [
+    "20",
+    "25"
+   ],
+   "name": "adx",
+   "outputs": [
+    {
+     "color": "#f23645",
+     "key": "adx",
+     "kind": "line",
+     "label": "ADX"
+    },
+    {
+     "color": "#089981",
+     "key": "plus",
+     "kind": "line",
+     "label": "+DI"
+    },
+    {
+     "color": "#2563eb",
+     "key": "minus",
+     "kind": "line",
+     "label": "-DI"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "14",
+     "integer": true,
+     "key": "length",
+     "label": "DI length",
+     "max": "200",
+     "min": "1"
+    },
+    {
+     "default": "14",
+     "integer": true,
+     "key": "smooth",
+     "label": "ADX smoothing",
+     "max": "200",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Typical price against its mean deviation.",
+   "group": "Momentum",
+   "label": "Commodity Channel Index",
+   "levels": [
+    "-100",
+    "100"
+   ],
+   "name": "cci",
+   "outputs": [
+    {
+     "color": "#0891b2",
+     "key": "value",
+     "kind": "line",
+     "label": "CCI"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "20",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "300",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Close against the recent high, inverted (-100 to 0).",
+   "group": "Momentum",
+   "label": "Williams %R",
+   "levels": [
+    "-80",
+    "-20"
+   ],
+   "name": "willr",
+   "outputs": [
+    {
+     "color": "#db2777",
+     "key": "value",
+     "kind": "line",
+     "label": "%R"
+    }
+   ],
+   "pane": "pane",
+   "params": [
+    {
+     "default": "14",
+     "integer": true,
+     "key": "length",
+     "label": "Length",
+     "max": "200",
+     "min": "1"
+    }
+   ]
+  },
+  {
+   "description": "Running total of volume signed by the close's direction.",
+   "group": "Volume",
+   "label": "On Balance Volume",
+   "levels": [],
+   "name": "obv",
+   "outputs": [
+    {
+     "color": "#0f172a",
+     "key": "value",
+     "kind": "line",
+     "label": "OBV"
+    }
+   ],
+   "pane": "pane",
+   "params": []
+  }
+ ]
+}

@@ -278,3 +278,69 @@ def test_known_holidays_are_the_days_with_no_published_file(conn):
         (NOW,),
     )  # later published after all
     assert queries.known_holidays(conn) == frozenset({date(2025, 1, 26)})
+
+
+def test_indicator_catalogue_describes_every_indicator():
+    cat = queries.indicator_catalog()
+    names = [i["name"] for i in cat]
+    assert names[:3] == ["sma", "ema", "wma"] and len(names) == 14
+    rsi = next(i for i in cat if i["name"] == "rsi")
+    assert rsi["pane"] == "pane" and rsi["levels"] == ["30", "70"]
+    assert rsi["params"] == [
+        {
+            "key": "length",
+            "label": "Length",
+            "default": "14",
+            "min": "1",
+            "max": "200",
+            "integer": True,
+        }
+    ]
+    bb = next(i for i in cat if i["name"] == "bb")
+    assert [p["key"] for p in bb["params"]] == ["length", "mult"] and bb["params"][1][
+        "integer"
+    ] is False
+    assert [o["key"] for o in bb["outputs"]] == ["upper", "basis", "lower"]
+    assert next(i for i in cat if i["name"] == "obv")["params"] == []
+
+
+def seed_closes(conn, iid, closes):
+    from datetime import timedelta
+
+    for i, c in enumerate(closes):
+        d = date(2025, 1, 1) + timedelta(days=i)
+        conn.execute(
+            "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,dataset_version,"
+            "ingested_at) VALUES (%s,%s,%s,%s,%s,%s,100,'nse',1,%s)",
+            (iid, ts(d), c, c + 1, c - 1, c, NOW))  # fmt: skip
+
+
+def test_indicators_are_warmed_up_on_the_full_history_and_returned_for_the_window(env):
+    conn, iid = env
+    seed_closes(conn, iid, [100 + i for i in range(40)])  # 2025-01-01 .. 2025-02-09, rising
+    full = queries.indicator_series(
+        conn, iid, date(2025, 1, 1), date(2025, 2, 9), "none", ["sma:5"]
+    )
+    late = queries.indicator_series(
+        conn, iid, date(2025, 2, 1), date(2025, 2, 9), "none", ["sma:5", "rsi:3"]
+    )
+    assert late["dates"][0] == "2025-02-01" and len(late["dates"]) == 9
+    sma_full = next(o for o in full["indicators"][0]["outputs"])["values"]
+    sma_late = late["indicators"][0]["outputs"][0]["values"]
+    assert sma_full[0] is None  # warm-up inside the full window
+    assert (
+        sma_late[0] is not None and sma_late[0] == sma_full[-9]
+    )  # but warmed up before a later start
+    assert late["indicators"][0]["spec"] == "sma:5" and late["indicators"][0]["label"] == "SMA 5"
+    assert (
+        late["indicators"][1]["label"] == "RSI 3"
+        and late["indicators"][1]["outputs"][0]["values"][-1] == "100.0000"
+    )
+    assert late["adjust"] == "none" and late["adjustment_version"]
+    bb = queries.indicator_series(conn, iid, date(2025, 2, 1), date(2025, 2, 9), "none", ["bb"])[
+        "indicators"
+    ][0]
+    assert bb["label"] == "BB 20 2" and bb["params"] == {"length": "20", "mult": "2"}
+    assert [o["key"] for o in bb["outputs"]] == ["upper", "basis", "lower"]
+    empty = queries.indicator_series(conn, iid, date(2030, 1, 1), date(2030, 2, 1), "none", ["sma"])
+    assert empty["dates"] == [] and empty["indicators"][0]["outputs"][0]["values"] == []

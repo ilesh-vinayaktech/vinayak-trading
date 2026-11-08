@@ -17,6 +17,7 @@ from starlette.responses import Response
 
 from algo.api import artifacts, freshness, queries
 from algo.core.clock import Clock, SystemClock
+from algo.indicators.catalog import IndicatorError, parse_spec
 
 Adjust = Literal["none", "split", "total_return"]
 
@@ -26,6 +27,7 @@ DB_OPTIONS = (
     " -c idle_in_transaction_session_timeout=30000"
 )
 MAX_RANGE_DAYS = 366 * 40
+MAX_INDICATORS = 12
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -166,6 +168,35 @@ def create_app(
         if queries.instrument(c, instrument_id) is None:
             raise HTTPException(404, f"no instrument {instrument_id}")
         return queries.instrument_bars(c, instrument_id, start, end, adjust)
+
+    @app.get("/api/indicators")
+    def indicator_list() -> dict[str, Any]:
+        return {"indicators": queries.indicator_catalog()}
+
+    @app.get("/api/instruments/{instrument_id}/indicators")
+    def indicators(
+        c: Conn,
+        instrument_id: int,
+        start: date,
+        end: date,
+        names: Annotated[str, Query(min_length=1, max_length=400)],
+        adjust: Adjust = "none",
+    ) -> dict[str, Any]:
+        if end < start:
+            raise HTTPException(422, "end before start")
+        if (end - start).days > MAX_RANGE_DAYS:
+            raise HTTPException(422, "range longer than 40 years")
+        specs = [n for n in names.split(",") if n.strip()]
+        if not specs or len(specs) > MAX_INDICATORS:
+            raise HTTPException(422, f"ask for between 1 and {MAX_INDICATORS} indicators")
+        try:
+            for spec in specs:
+                parse_spec(spec)
+        except IndicatorError as e:
+            raise HTTPException(422, str(e)) from e
+        if queries.instrument(c, instrument_id) is None:
+            raise HTTPException(404, f"no instrument {instrument_id}")
+        return queries.indicator_series(c, instrument_id, start, end, adjust, specs)
 
     @app.get("/api/benchmarks")
     def benchmark_list(c: Conn) -> dict[str, Any]:

@@ -90,6 +90,11 @@ def snapshots(c, iid, bid):
         "instrument_detail": c.get(f"/api/instruments/{iid}"),
         "bars_none": c.get(f"/api/instruments/{iid}/bars", params={**rng, "adjust": "none"}),
         "bars_split": c.get(f"/api/instruments/{iid}/bars", params={**rng, "adjust": "split"}),
+        "indicator_catalog": c.get("/api/indicators"),
+        "indicator_series": c.get(
+            f"/api/instruments/{iid}/indicators",
+            params={**rng, "names": "sma:2,macd:2:3:2,supertrend:2:1"},
+        ),
         "benchmark_list": c.get("/api/benchmarks"),
         "benchmark_detail": c.get(f"/api/benchmarks/{bid}"),
         "benchmark_levels": c.get(f"/api/benchmarks/{bid}/levels"),

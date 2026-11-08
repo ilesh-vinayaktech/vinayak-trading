@@ -5,12 +5,14 @@ service already owns (adjustment, eligibility, metrics)."""
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
 import psycopg
 
 from algo.data.benchmark import dataset_hash, levels
 from algo.data.reader import IST, BarReader
+from algo.indicators.catalog import CATALOG, Bars, Indicator, compute
 
 IST_DAY = "(ts AT TIME ZONE 'Asia/Kolkata')::date"
 
@@ -328,3 +330,74 @@ def backtest(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
         k: (_s(v) if k == "dividends_received" else _iso(v))
         for k, v in zip(keys, rows[0], strict=True)
     }
+
+
+_Q = Decimal("0.0001")
+
+
+def _text(v: Decimal | None) -> str | None:
+    return None if v is None else format(v.quantize(_Q), "f")
+
+
+def _num(v: Decimal) -> str:
+    return format(v.normalize(), "f")
+
+
+def indicator_catalog() -> list[dict[str, Any]]:
+    return [
+        {
+            "name": i.name, "label": i.label, "group": i.group, "pane": i.pane,
+            "description": i.description,
+            "params": [
+                {"key": p.key, "label": p.label, "default": _num(p.default), "min": _num(p.lo),
+                 "max": _num(p.hi), "integer": p.integer}
+                for p in i.params
+            ],
+            "outputs": [
+                {"key": o.key, "label": o.label, "kind": o.kind, "color": o.color}
+                for o in i.outputs
+            ],
+            "levels": [_num(v) for v in i.levels],
+        }
+        for i in CATALOG.values()
+    ]  # fmt: skip
+
+
+def indicator_series(
+    conn: psycopg.Connection, instrument_id: int, start: date, end: date, adjust: str,
+    specs: list[str],
+) -> dict[str, Any]:  # fmt: skip
+    """Indicators over the instrument's WHOLE history up to `end` (so the first visible value is
+    already warmed up), returned for [start, end] only. Computed by algo.indicators on the same
+    adjusted bars the chart draws, as strings; None where an indicator has no value yet."""
+    h = BarReader(conn).history(instrument_id, date(1900, 1, 1), end, adjust=adjust)
+    bars = Bars(
+        [b.open for b in h.bars], [b.high for b in h.bars], [b.low for b in h.bars],
+        [b.close for b in h.bars], [b.volume for b in h.bars],
+    )  # fmt: skip
+    days = [b.ts.astimezone(IST).date() for b in h.bars]
+    keep = [i for i, d in enumerate(days) if start <= d <= end]
+    out = []
+    for spec in specs:
+        ind, params, series = compute(spec, bars)
+        out.append(
+            _indicator_json(ind, params, [{k: [v[i] for i in keep] for k, v in series.items()}][0])
+        )
+    return {
+        "adjust": adjust, "adjustment_version": h.adjustment_version,
+        "dates": [days[i].isoformat() for i in keep], "indicators": out,
+    }  # fmt: skip
+
+
+def _indicator_json(
+    ind: Indicator, params: dict[str, Decimal], series: dict[str, Any]
+) -> dict[str, Any]:
+    shown = [_num(params[p.key]) for p in ind.params]
+    return {
+        "spec": ":".join([ind.name, *shown]), "name": ind.name,
+        "label": " ".join([ind.name.upper() if ind.name != "bb" else "BB", *shown]),
+        "pane": ind.pane, "params": {k: _num(v) for k, v in params.items()},
+        "levels": [_num(v) for v in ind.levels],
+        "outputs": [{"key": o.key, "label": o.label, "kind": o.kind, "color": o.color,
+                     "values": [_text(v) for v in series[o.key]]} for o in ind.outputs],
+    }  # fmt: skip

@@ -382,3 +382,34 @@ def test_the_activity_page_names_each_benchmark_and_starts_with_an_empty_paged_l
     a = c.get("/api/system/activity").json()
     assert a["validations"][0]["name"] == "N200"
     assert a["ingestion"] == {"items": [], "total": 0, "limit": 25, "offset": 0}
+
+
+def test_the_indicator_catalogue_and_series_endpoints(api):
+    c, iid, _ = api
+    cat = c.get("/api/indicators").json()["indicators"]
+    assert len(cat) == 14 and cat[0]["name"] == "sma"
+    r = c.get(
+        f"/api/instruments/{iid}/indicators",
+        params={"start": "2025-06-01", "end": "2025-06-30", "names": "sma:2,rsi"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["dates"] == ["2025-06-09", "2025-06-10"] and [
+        i["spec"] for i in body["indicators"]
+    ] == ["sma:2", "rsi:14"]
+    assert body["indicators"][0]["outputs"][0]["values"] == [None, "1.5000"]
+
+
+def test_indicator_requests_are_validated(api):
+    c, iid, _ = api
+    ok = {"start": "2025-06-01", "end": "2025-06-30", "names": "sma"}
+    url = f"/api/instruments/{iid}/indicators"
+    assert c.get(url, params={**ok, "names": "nope"}).json()["detail"] == "unknown indicator 'nope'"
+    assert c.get(url, params={**ok, "names": "rsi:0"}).status_code == 422
+    assert c.get(url, params={**ok, "names": ","}).status_code == 422  # nothing asked for
+    assert c.get(url, params={**ok, "names": ",".join(["sma"] * 13)}).status_code == 422  # too many
+    assert c.get(url, params={**ok, "names": "x" * 401}).status_code == 422
+    assert c.get(url, params={**ok, "start": "2025-07-01"}).status_code == 422
+    assert c.get(url, params={**ok, "start": "1900-01-01", "end": "2100-01-01"}).status_code == 422
+    assert c.get(url, params={**ok, "adjust": "magic"}).status_code == 422
+    assert c.get("/api/instruments/999/indicators", params=ok).status_code == 404

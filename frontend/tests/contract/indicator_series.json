@@ -1,0 +1,125 @@
+{
+ "adjust": "none",
+ "adjustment_version": "140bedbf9c3f6d56",
+ "dates": [
+  "2025-06-09",
+  "2025-06-10",
+  "2025-06-11",
+  "2025-06-12"
+ ],
+ "indicators": [
+  {
+   "label": "SMA 2",
+   "levels": [],
+   "name": "sma",
+   "outputs": [
+    {
+     "color": "#2563eb",
+     "key": "value",
+     "kind": "line",
+     "label": "SMA",
+     "values": [
+      null,
+      "101.5000",
+      "102.5000",
+      "103.5000"
+     ]
+    }
+   ],
+   "pane": "overlay",
+   "params": {
+    "length": "2"
+   },
+   "spec": "sma:2"
+  },
+  {
+   "label": "MACD 2 3 2",
+   "levels": [
+    "0"
+   ],
+   "name": "macd",
+   "outputs": [
+    {
+     "color": "#94a3b8",
+     "key": "hist",
+     "kind": "histogram",
+     "label": "Histogram",
+     "values": [
+      null,
+      null,
+      null,
+      "0.0000"
+     ]
+    },
+    {
+     "color": "#2563eb",
+     "key": "macd",
+     "kind": "line",
+     "label": "MACD",
+     "values": [
+      null,
+      null,
+      "0.5000",
+      "0.5000"
+     ]
+    },
+    {
+     "color": "#f59e0b",
+     "key": "signal",
+     "kind": "line",
+     "label": "Signal",
+     "values": [
+      null,
+      null,
+      null,
+      "0.5000"
+     ]
+    }
+   ],
+   "pane": "pane",
+   "params": {
+    "fast": "2",
+    "signal": "2",
+    "slow": "3"
+   },
+   "spec": "macd:2:3:2"
+  },
+  {
+   "label": "SUPERTREND 2 1",
+   "levels": [],
+   "name": "supertrend",
+   "outputs": [
+    {
+     "color": "#089981",
+     "key": "up",
+     "kind": "line",
+     "label": "Up trend",
+     "values": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "color": "#f23645",
+     "key": "down",
+     "kind": "line",
+     "label": "Down trend",
+     "values": [
+      null,
+      "104.5000",
+      "104.5000",
+      "104.5000"
+     ]
+    }
+   ],
+   "pane": "overlay",
+   "params": {
+    "length": "2",
+    "mult": "1"
+   },
+   "spec": "supertrend:2:1"
+  }
+ ]
+}
