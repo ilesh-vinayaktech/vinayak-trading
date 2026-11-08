@@ -1,0 +1,714 @@
+{
+  "window": [
+    "2020-10-01",
+    "2026-11-07"
+  ],
+  "declared_in_database": false,
+  "verification_status": "PROVISIONAL: nothing here is person-verified, and no coverage has been declared in index_membership_coverage",
+  "independent_checks_by_period": {
+    "N50 and Next 50 monthly constituents": [
+      "2017-01-31",
+      "2026-10-30"
+    ],
+    "N100/N200/Midcap 100 monthly constituents": [
+      "2017-01-31",
+      "2022-03-31"
+    ],
+    "after the last Midcap 100 / N200 monthly snapshot": "Midcap 100 membership rests on press releases and the current snapshot only (the walk's agreement with the anchor is the only check)"
+  },
+  "blocked_entities": {
+    "i:1118": [
+      [
+        "2025-01-29",
+        "2026-11-07"
+      ]
+    ],
+    "i:1154": [
+      [
+        "2023-08-21",
+        "2024-04-30"
+      ]
+    ],
+    "i:1589": [
+      [
+        "2023-08-01",
+        "2024-04-30"
+      ]
+    ],
+    "i:417": [
+      [
+        "2020-10-01",
+        "2026-09-30"
+      ]
+    ],
+    "s:NESTLEIND": [
+      [
+        "2020-10-01",
+        "2026-11-07"
+      ]
+    ]
+  },
+  "months": [
+    {
+      "date": "2020-10-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2020-11-27",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2020-12-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-01-29",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-02-26",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-03-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-04-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-05-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-06-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-07-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-08-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-09-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-10-29",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-11-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2021-12-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-01-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-02-28",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-03-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-04-29",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-05-31",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-06-30",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-07-29",
+      "total": 202,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 2,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-08-30",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-09-30",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-10-31",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-11-30",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2022-12-30",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-01-31",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-02-28",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-03-31",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-04-28",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-05-31",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-06-30",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-07-31",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-08-31",
+      "total": 202,
+      "tradable_instruments": 201,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-09-29",
+      "total": 201,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-10-31",
+      "total": 201,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-11-30",
+      "total": 201,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2023-12-29",
+      "total": 201,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-01-31",
+      "total": 201,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-02-29",
+      "total": 201,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-03-28",
+      "total": 200,
+      "tradable_instruments": 199,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 4,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-04-30",
+      "total": 200,
+      "tradable_instruments": 199,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-05-31",
+      "total": 200,
+      "tradable_instruments": 199,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-06-28",
+      "total": 200,
+      "tradable_instruments": 199,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-07-31",
+      "total": 200,
+      "tradable_instruments": 199,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-08-30",
+      "total": 200,
+      "tradable_instruments": 199,
+      "unmapped_symbols": 1,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-09-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-10-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-11-29",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2024-12-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-01-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-02-28",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-03-28",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-04-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-05-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-06-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-07-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-08-29",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-09-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-10-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-11-28",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2025-12-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-01-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-02-27",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-03-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-04-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-05-29",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-06-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-07-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-08-31",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 3,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-09-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    },
+    {
+      "date": "2026-10-30",
+      "total": 200,
+      "tradable_instruments": 200,
+      "unmapped_symbols": 0,
+      "placeholders": 0,
+      "blocked_entities": 2,
+      "status": "INCOMPLETE"
+    }
+  ],
+  "status_counts": {
+    "INCOMPLETE": 73
+  },
+  "note": "CLEAN = no blocked entity and no member without a tradable instrument on that date. INCOMPLETE is not 'wrong'; it says what cannot be established."
+}
