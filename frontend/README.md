@@ -18,3 +18,13 @@ Backtests (skeleton, controls disabled), System Activity.
 `NEXT_PUBLIC_API_URL` (default http://localhost:8000) points the console at the API.
 
 Security notes: docs/console-security-review.md. Data check: `uv run python scripts/verify_console_data.py --db $ALGO_DB_URL`.
+
+## Chart drawing tools
+
+22 tools in seven groups (Lines, Channels, Shapes, Fibonacci, Measure, Forecast, Annotation), in
+`frontend/lib/drawings` (pure geometry, model, undo/redo - unit tested) and
+`components/charts/DrawingTools.tsx` (toolbar, pointer handling, rendering). Select, drag a handle to
+reshape, drag a drawing to move it, colour/width/style, lock, duplicate, delete, Delete/Esc/Ctrl+Z/Ctrl+Shift+Z,
+magnet to open/high/low/close, hide all, an Objects list. Drawings are annotations saved in the browser
+(localStorage) per instrument and price basis; they feed nothing else. Not TradingView's own toolkit
+(that ships only with their licensed Advanced Charts product).

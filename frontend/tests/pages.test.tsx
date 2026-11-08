@@ -21,7 +21,7 @@ vi.mock("lightweight-charts", () => ({
     addCandlestickSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) }),
     addHistogramSeries: () => ({ setData: vi.fn() }),
     priceScale: () => ({ applyOptions: vi.fn() }),
-    timeScale: () => ({ fitContent: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10) }),
+    timeScale: () => ({ fitContent: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
     applyOptions: vi.fn(),
     subscribeCrosshairMove: vi.fn(),
     unsubscribeCrosshairMove: vi.fn(),
@@ -175,9 +175,16 @@ describe("Data Explorer", () => {
     expect(screen.getByTestId("price-chart")).toBeInTheDocument();
     // the toolbar: tools, undo/clear, and a strategy loader that is honestly disabled
     expect(screen.getByRole("button", { name: "Cursor" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Trend line" }));
-    expect(screen.getByTestId("tool-hint")).toHaveTextContent("Click the first point of the trend line.");
+    fireEvent.click(screen.getByRole("button", { name: /^Lines/ }));
+    const menu = within(screen.getByRole("menu"));
+    for (const tool of ["Trend line", "Ray", "Extended line", "Horizontal line", "Horizontal ray", "Vertical line", "Cross line", "Arrow"]) expect(menu.getByRole("menuitem", { name: new RegExp(tool) })).toBeInTheDocument();
+    fireEvent.click(menu.getByRole("menuitem", { name: /^Trend line/ }));
+    expect(screen.getByTestId("tool-hint")).toHaveTextContent("Trend line: click two points");
+    for (const group of ["Channels", "Shapes", "Fibonacci", "Measure", "Forecast", "Annotation"]) expect(screen.getByRole("button", { name: new RegExp(`^${group}`) })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Magnet" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Objects \(0\)/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Load strategy run/ })).toBeDisabled();
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();
     expect(screen.getByText("review")).toBeInTheDocument(); // an unverified action is not shown as verified
