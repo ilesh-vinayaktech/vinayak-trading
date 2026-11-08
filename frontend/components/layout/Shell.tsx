@@ -12,6 +12,7 @@ const NAV = [
   { href: "/data/instruments", label: "Data Explorer" },
   { href: "/data/benchmarks", label: "Benchmarks" },
   { href: "/research/backtests", label: "Backtests" },
+  { href: "/research/reviews", label: "Reviews" },
   { href: "/system", label: "System Activity" },
 ];
 
@@ -53,7 +54,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="mt-auto pt-6 text-xs text-ink-faint">Read-only. No orders, no writes.</div>
+        <div className="mt-auto pt-6 text-xs text-ink-faint">No orders. The only write is a recorded review decision.</div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         <header className="sticky top-0 z-10 flex flex-col gap-2 border-b border-line bg-panel px-4 py-3 md:flex-row md:items-center md:justify-between">

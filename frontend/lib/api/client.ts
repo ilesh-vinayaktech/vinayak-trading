@@ -12,6 +12,9 @@ import {
   indicatorCatalogSchema,
   indicatorSeriesSchema,
   levelsSchema,
+  reviewHistorySchema,
+  reviewListSchema,
+  type ReviewDraft,
   type Adjust,
 } from "@/lib/schemas";
 
@@ -57,6 +60,21 @@ export async function get<T>(
   return parsed.data;
 }
 
+/** POST a JSON body (review decisions only). A refusal's reason is shown as-is. */
+export async function post(path: string, body: unknown, fetcher: typeof fetch = fetch): Promise<void> {
+  const res = await fetcher(new URL(path, API_URL).toString(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const j = (await res.json()) as { detail?: unknown };
+      if (typeof j.detail === "string") detail = j.detail;
+    } catch {
+      /* keep statusText */
+    }
+    throw new ApiError(res.status, detail);
+  }
+}
+
 export const api = {
   health: () => get("/api/health", healthSchema),
   dashboard: () => get("/api/dashboard", dashboardSchema),
@@ -64,6 +82,9 @@ export const api = {
   instrument: (id: number) => get(`/api/instruments/${id}`, instrumentDetailSchema),
   bars: (id: number, start: string, end: string, adjust: Adjust) =>
     get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust }),
+  reviews: () => get("/api/reviews", reviewListSchema),
+  reviewHistory: (id: string) => get(`/api/reviews/${encodeURIComponent(id)}/history`, reviewHistorySchema),
+  decideReview: (id: string, d: ReviewDraft) => post(`/api/reviews/${encodeURIComponent(id)}/decisions`, d),
   indicatorCatalog: () => get("/api/indicators", indicatorCatalogSchema),
   indicatorSeries: (id: number, start: string, end: string, adjust: Adjust, names: string) =>
     get(`/api/instruments/${id}/indicators`, indicatorSeriesSchema, { start, end, adjust, names }),

@@ -1,0 +1,1390 @@
+{
+ "generated_from": [
+  "docs/stage4/symbol_classification/symbol_classification.csv",
+  "docs/stage4/membership/membership_exceptions.csv"
+ ],
+ "items": [
+  {
+   "category": "UNRESOLVED",
+   "confidence": "LOW",
+   "context": {
+    "Candidate": "ABCAPITAL INE674K01013 (active, 1763 bars 2019-10-01..2026-11-06)",
+    "Exchange files": "2005-12-07 .. 2017-07-04 (2870 legacy / 0 modern sessions)",
+    "ISINs seen": "INE069A01017[2011-06-22..2017-07-04]",
+    "Notes": "stopped trading 2017-07-04; instrument(s) ['ABCAPITAL'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established",
+    "Prices recoverable from": "LEGACY_ARCHIVE",
+    "Proposed category": "UNRESOLVED (LOW)",
+    "Release rows": "12 Nifty-family rows, first effective 2017-05-26, last 2017-05-26",
+    "Why proposed": "rename/merger candidate(s) by name and timing ONLY: ['ABCAPITAL']"
+   },
+   "id": "symbol:ABIRLANUVO",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "ABIRLANUVO: Aditya Birla Nuvo Ltd."
+  },
+  {
+   "category": "DELISTED_NO_PRICES",
+   "confidence": "MEDIUM",
+   "context": {
+    "Exchange files": "2016-07-01 .. 2019-07-02 (742 legacy / 0 modern sessions)",
+    "ISINs seen": "INE180K01011[2016-07-01..2019-07-02]",
+    "Prices recoverable from": "LEGACY_ARCHIVE",
+    "Proposed category": "DELISTED_NO_PRICES (MEDIUM)",
+    "Release rows": "12 Nifty-family rows, first effective 2017-04-17, last 2018-12-28",
+    "Why proposed": "traded in the exchange files, ISIN not in the master"
+   },
+   "id": "symbol:BHARATFIN",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "BHARATFIN: Bharat Financial Inclusion Ltd. | Bharat Financial Inclusion Ltd.*"
+  },
+  {
+   "category": "UNRESOLVED",
+   "confidence": "LOW",
+   "context": {
+    "Candidate": "DALBHARAT INE00R701025 (active, 1763 bars 2019-10-01..2026-11-06)",
+    "Exchange files": "2013-01-09 .. 2018-11-28 (1429 legacy / 0 modern sessions)",
+    "ISINs seen": "INE439L01019[2013-01-09..2018-11-28]",
+    "Notes": "stopped trading 2018-11-28; instrument(s) ['DALBHARAT'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established",
+    "Prices recoverable from": "LEGACY_ARCHIVE",
+    "Proposed category": "UNRESOLVED (LOW)",
+    "Release rows": "18 Nifty-family rows, first effective 2017-03-31, last 2018-04-02",
+    "Why proposed": "rename/merger candidate(s) by name and timing ONLY: ['DALBHARAT']"
+   },
+   "id": "symbol:DALMIABHA",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "DALMIABHA: Dalmia Bharat Ltd."
+  },
+  {
+   "category": "DELISTED_WITH_PRICES",
+   "confidence": "MEDIUM",
+   "context": {
+    "Candidate": "DHANI  (delisted, 1508 bars 2019-10-01..2025-10-27)",
+    "Exchange files": "2020-10-28 .. 2025-10-27 (0 legacy / 1238 modern sessions)",
+    "Notes": "release rows have NO effective date: they cannot map through alias validity until a date is taken from the document",
+    "Prices recoverable from": "NONE",
+    "Proposed category": "DELISTED_WITH_PRICES (MEDIUM)",
+    "Release rows": "2 Nifty-family rows, first effective NONE, last NONE",
+    "Why proposed": "same symbol, instrument is not active"
+   },
+   "id": "symbol:DHANI",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "DHANI: Dhani Services Ltd."
+  },
+  {
+   "category": "PLACEHOLDER",
+   "confidence": "HIGH",
+   "context": {
+    "Exchange files": "- .. - (0 legacy / 0 modern sessions)",
+    "Notes": "release names a dummy/placeholder security: not a tradable instrument, keep out of the instrument master",
+    "Prices recoverable from": "NONE",
+    "Proposed category": "PLACEHOLDER (HIGH)",
+    "Release rows": "12 Nifty-family rows, first effective 2025-05-22, last 2025-05-22"
+   },
+   "id": "symbol:DUMMYABFRL",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "DUMMYABFRL: no company name"
+  },
+  {
+   "category": "PLACEHOLDER",
+   "confidence": "HIGH",
+   "context": {
+    "Exchange files": "- .. - (0 legacy / 0 modern sessions)",
+    "Notes": "release names a dummy/placeholder security: not a tradable instrument, keep out of the instrument master",
+    "Prices recoverable from": "NONE",
+    "Proposed category": "PLACEHOLDER (HIGH)",
+    "Release rows": "18 Nifty-family rows, first effective 2025-04-07, last 2025-04-07"
+   },
+   "id": "symbol:DUMMYSIEMS",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "DUMMYSIEMS: no company name"
+  },
+  {
+   "category": "UNRESOLVED",
+   "confidence": "LOW",
+   "context": {
+    "Candidate": "GNRL INE207H01026 (active, 139 bars 2026-04-20..2026-11-06)",
+    "Exchange files": "2006-02-16 .. 2026-05-11 (3375 legacy / 1719 modern sessions)",
+    "ISINs seen": "INE246F01010[2011-06-22..2019-09-30]",
+    "Notes": "stopped trading 2026-05-11; instrument(s) ['GNRL', 'GUJENERGY'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established",
+    "Prices recoverable from": "MODERN_RAW_LAKE+LEGACY_ARCHIVE",
+    "Proposed category": "UNRESOLVED (LOW)",
+    "Release rows": "12 Nifty-family rows, first effective 2020-06-26, last 2026-05-12",
+    "Why proposed": "rename/merger candidate(s) by name and timing ONLY: ['GNRL', 'GUJENERGY']"
+   },
+   "id": "symbol:GSPL",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "GSPL: Gujarat State Petronet Ltd."
+  },
+  {
+   "category": "DELISTED_NO_PRICES",
+   "confidence": "MEDIUM",
+   "context": {
+    "Exchange files": "2002-06-14 .. 2020-10-30 (4300 legacy / 285 modern sessions)",
+    "ISINs seen": "INE093A01033[2011-06-22..2019-09-30]",
+    "Prices recoverable from": "MODERN_RAW_LAKE+LEGACY_ARCHIVE",
+    "Proposed category": "DELISTED_NO_PRICES (MEDIUM)",
+    "Release rows": "4 Nifty-family rows, first effective 2017-03-31, last 2020-09-25",
+    "Why proposed": "traded in the exchange files, ISIN not in the master"
+   },
+   "id": "symbol:HEXAWARE",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "HEXAWARE: Hexaware Technologies Ltd. | Hexaware Technologies Ltd.*"
+  },
+  {
+   "category": "DELISTED_WITH_PRICES",
+   "confidence": "MEDIUM",
+   "context": {
+    "Candidate": "MINDTREE  (delisted, 781 bars 2019-10-01..2022-11-22)",
+    "Exchange files": "2007-03-07 .. 2022-11-22 (3112 legacy / 821 modern sessions)",
+    "ISINs seen": "INE018I01017[2011-06-22..2019-09-30]",
+    "Notes": "release rows have NO effective date: they cannot map through alias validity until a date is taken from the document",
+    "Prices recoverable from": "NONE",
+    "Proposed category": "DELISTED_WITH_PRICES (MEDIUM)",
+    "Release rows": "3 Nifty-family rows, first effective NONE, last NONE",
+    "Why proposed": "same symbol, instrument is not active"
+   },
+   "id": "symbol:MINDTREE",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "MINDTREE: MindTree Ltd."
+  },
+  {
+   "category": "REPLACED_ISIN",
+   "confidence": "MEDIUM",
+   "context": {
+    "Candidate": "NESTLEIND INE239A01024 (active, 811 bars 2023-08-01..2026-11-06)",
+    "Exchange files": "2010-01-08 .. 2026-11-06 (2413 legacy / 1848 modern sessions)",
+    "ISINs seen": "INE239A01016[2011-06-22..2019-09-30]",
+    "Notes": "exchange files show ISIN(s) ['INE239A01016']; master has INE239A01024: symbol reuse or ISIN change, legal-entity continuity unproven / corroboration (not proof): candidate has a verified face-value split ['2024-01-05: Face Value Split (Sub-Division) - From Rs10/- Per Share To Re 1/- Per Share']; an ISIN change normally accompanies it; person must confirm the ISIN change date",
+    "Prices recoverable from": "NONE",
+    "Proposed category": "REPLACED_ISIN (MEDIUM)",
+    "Release rows": "18 Nifty-family rows, first effective 2019-09-27, last 2023-06-30",
+    "Why proposed": "symbol matches an instrument but its ISIN differs from the ISIN traded under this symbol"
+   },
+   "id": "symbol:NESTLEIND",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "NESTLEIND: Nestle India Ltd."
+  },
+  {
+   "category": "UNRESOLVED",
+   "confidence": "LOW",
+   "context": {
+    "Candidate": "PIRAMALFIN INE202B01038 (active, 248 bars 2025-11-07..2026-11-06)",
+    "Exchange files": "2012-09-21 .. 2025-09-22 (1734 legacy / 1555 modern sessions)",
+    "ISINs seen": "INE140A01024[2012-09-21..2019-09-30]",
+    "Notes": "stopped trading 2025-09-22; instrument(s) ['PIRAMALFIN'] start within [-30,+120] days under a similar name: rename, merger or coincidence is NOT established",
+    "Prices recoverable from": "MODERN_RAW_LAKE+LEGACY_ARCHIVE",
+    "Proposed category": "UNRESOLVED (LOW)",
+    "Release rows": "40 Nifty-family rows, first effective 2017-03-31, last 2025-09-30",
+    "Why proposed": "rename/merger candidate(s) by name and timing ONLY: ['PIRAMALFIN']"
+   },
+   "id": "symbol:PEL",
+   "kind": "SYMBOL_IDENTITY",
+   "leads": [],
+   "options": [
+    {
+     "date_label": "Alias valid from",
+     "label": "Same security: map to the candidate",
+     "needs_date": true,
+     "value": "CONFIRM_MAPPING"
+    },
+    {
+     "label": "Different security: keep as its own identity",
+     "needs_date": false,
+     "value": "KEEP_SEPARATE"
+    },
+    {
+     "date_label": "Effective date",
+     "label": "Source confirms the effective date",
+     "needs_date": true,
+     "value": "SET_EFFECTIVE_DATE"
+    },
+    {
+     "date_label": "Last day as a listed security",
+     "label": "Ceased: no successor (delisted / merged away)",
+     "needs_date": true,
+     "value": "NO_SUCCESSOR"
+    },
+    {
+     "label": "Non-tradable placeholder",
+     "needs_date": false,
+     "value": "KEEP_PLACEHOLDER"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "What is this symbol's identity, and from when?",
+   "title": "PEL: Piramal Enterprises Ltd."
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "MID100",
+    "Detail": "derived walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2025-05-22",
+    "Entity": "p:DUMMYABFRL"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:DUMMYABFRL:MID100:2025-05-22",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "DUMMYABFRL: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "NEXT50",
+    "Detail": "derived walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2025-04-07",
+    "Entity": "p:DUMMYSIEMS"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:DUMMYSIEMS:NEXT50:2025-04-07",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "DUMMYSIEMS: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "MID100",
+    "Detail": "derived walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2024-09-30",
+    "Entity": "i:460"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:CENTRALBK:MID100:2024-09-30",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "CENTRALBK: walk included but not member after"
+  },
+  {
+   "category": "WALK_EXCLUDED_BUT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "MID100",
+    "Detail": "derived walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2024-09-30",
+    "Entity": "i:1020"
+   },
+   "id": "membership:WALK_EXCLUDED_BUT_MEMBER_AFTER:IDEA:MID100:2024-09-30",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "IDEA: walk excluded but member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "MID100",
+    "Detail": "derived walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2024-03-28",
+    "Entity": "i:1108"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:IREDA:MID100:2024-03-28",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "IREDA: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N200x",
+    "Detail": "explicit_N200 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2025-05-22",
+    "Entity": "p:DUMMYABFRL"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:DUMMYABFRL:N200x:2025-05-22",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "DUMMYABFRL: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N200x",
+    "Detail": "explicit_N200 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2025-04-07",
+    "Entity": "p:DUMMYSIEMS"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:DUMMYSIEMS:N200x:2025-04-07",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "DUMMYSIEMS: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N200x",
+    "Detail": "explicit_N200 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2024-09-30",
+    "Entity": "i:460"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:CENTRALBK:N200x:2024-09-30",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "CENTRALBK: walk included but not member after"
+  },
+  {
+   "category": "WALK_EXCLUDED_BUT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N200x",
+    "Detail": "explicit_N200 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2024-09-30",
+    "Entity": "i:1020"
+   },
+   "id": "membership:WALK_EXCLUDED_BUT_MEMBER_AFTER:IDEA:N200x:2024-09-30",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "IDEA: walk excluded but member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N200x",
+    "Detail": "explicit_N200 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2024-03-28",
+    "Entity": "i:1108"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:IREDA:N200x:2024-03-28",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "IREDA: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N200x",
+    "Detail": "explicit_N200 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2023-09-29",
+    "Entity": "i:2647"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:TATAMTRDVR:N200x:2023-09-29",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "TATAMTRDVR: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N100x",
+    "Detail": "explicit_N100 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2025-04-07",
+    "Entity": "p:DUMMYSIEMS"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:DUMMYSIEMS:N100x:2025-04-07",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "DUMMYSIEMS: walk included but not member after"
+  },
+  {
+   "category": "WALK_INCLUDED_BUT_NOT_MEMBER_AFTER",
+   "confidence": "",
+   "context": {
+    "Component": "N100x",
+    "Detail": "explicit_N100 walk: the transition is inconsistent with the state it was undone from",
+    "Effective": "2023-09-29",
+    "Entity": "i:2647"
+   },
+   "id": "membership:WALK_INCLUDED_BUT_NOT_MEMBER_AFTER:TATAMTRDVR:N100x:2023-09-29",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Is this release transition correct?",
+   "title": "TATAMTRDVR: walk included but not member after"
+  },
+  {
+   "category": "SNAPSHOT_MISMATCH_BLOCK",
+   "confidence": "",
+   "context": {
+    "Blocked span": "2025-01-29..2026-11-07",
+    "Component": "N200",
+    "Detail": "reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs06022025_1 (announced 2025-02-06); pr_ind_prs06022025_1 (announced 2025-02-06); pr_ind_prs06022025_1 (announced 2025-02-06)",
+    "Entity": "i:1118"
+   },
+   "id": "membership:SNAPSHOT_MISMATCH_BLOCK:ITCHOTELS:N200:",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [
+    "pr_ind_prs06022025_1"
+   ],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Which is right: the reconstruction or the independent snapshot?",
+   "title": "ITCHOTELS: snapshot mismatch block"
+  },
+  {
+   "category": "SNAPSHOT_MISMATCH_BLOCK",
+   "confidence": "",
+   "context": {
+    "Blocked span": "2023-08-21..2024-04-30",
+    "Component": "N200",
+    "Detail": "reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs17072023 (announced 2023-07-17); pr_ind_prs17072023 (announced 2023-07-17); pr_ind_prs17072023 (announced 2023-07-17)",
+    "Entity": "i:1154"
+   },
+   "id": "membership:SNAPSHOT_MISMATCH_BLOCK:JIOFIN:N200:",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [
+    "pr_ind_prs17072023"
+   ],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Which is right: the reconstruction or the independent snapshot?",
+   "title": "JIOFIN: snapshot mismatch block"
+  },
+  {
+   "category": "SNAPSHOT_MISMATCH_BLOCK",
+   "confidence": "",
+   "context": {
+    "Blocked span": "2023-08-01..2024-04-30",
+    "Component": "N200",
+    "Detail": "reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs20082020 (announced 2020-08-20)",
+    "Entity": "i:1589"
+   },
+   "id": "membership:SNAPSHOT_MISMATCH_BLOCK:NESTLEIND:N200:",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [
+    "pr_ind_prs20082020"
+   ],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Which is right: the reconstruction or the independent snapshot?",
+   "title": "NESTLEIND: snapshot mismatch block"
+  },
+  {
+   "category": "SNAPSHOT_MISMATCH_BLOCK",
+   "confidence": "",
+   "context": {
+    "Blocked span": "2020-10-01..2026-09-30",
+    "Component": "N200",
+    "Detail": "reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: none found",
+    "Entity": "i:417"
+   },
+   "id": "membership:SNAPSHOT_MISMATCH_BLOCK:BSE:N200:",
+   "kind": "MEMBERSHIP_EXCEPTION",
+   "leads": [],
+   "options": [
+    {
+     "label": "Reconstruction is right (the snapshot is wrong or incomplete)",
+     "needs_date": false,
+     "value": "RECONSTRUCTION_CORRECT"
+    },
+    {
+     "date_label": "Correct effective date",
+     "label": "Real effective date differs",
+     "needs_date": true,
+     "value": "CORRECT_DATE"
+    },
+    {
+     "date_label": "Not a member from",
+     "has_end": true,
+     "label": "Not a member during this span",
+     "needs_date": true,
+     "value": "NOT_A_MEMBER"
+    },
+    {
+     "label": "The release was misread by the parser",
+     "needs_date": false,
+     "value": "PARSER_ERROR"
+    },
+    {
+     "label": "Not decided: need more evidence",
+     "needs_date": false,
+     "needs_evidence": false,
+     "value": "NEEDS_MORE_EVIDENCE"
+    }
+   ],
+   "question": "Which is right: the reconstruction or the independent snapshot?",
+   "title": "BSE: snapshot mismatch block"
+  }
+ ]
+}

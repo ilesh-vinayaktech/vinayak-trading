@@ -326,3 +326,44 @@ export type Levels = z.infer<typeof levelsSchema>;
 export type Activity = z.infer<typeof activitySchema>;
 export type IngestionRow = Activity["ingestion"]["items"][number];
 export type Adjust = Bars["adjust"];
+
+const reviewOption = z.object({
+  value: z.string(),
+  label: z.string(),
+  needs_date: z.boolean(),
+  date_label: z.string().optional(),
+  has_end: z.boolean().optional(),
+  needs_evidence: z.boolean().optional(),
+});
+const reviewDecision = z.object({
+  decision_id: z.number(),
+  decision: z.string(),
+  effective_date: z.string().nullable(),
+  effective_to: z.string().nullable(),
+  evidence_ref: z.string(),
+  note: z.string(),
+  reviewer: z.string(),
+  decided_at: z.string(),
+});
+export const reviewListSchema = z.object({
+  writes_enabled: z.boolean(),
+  total: z.number(),
+  decided: z.number(),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      kind: z.string(),
+      title: z.string(),
+      question: z.string(),
+      category: z.string(),
+      context: z.record(z.string()),
+      leads: z.array(z.string()),
+      options: z.array(reviewOption),
+      latest: reviewDecision.nullable(),
+    }),
+  ),
+});
+export const reviewHistorySchema = z.array(reviewDecision);
+export type ReviewItem = z.infer<typeof reviewListSchema>["items"][number];
+export type ReviewDecision = z.infer<typeof reviewDecision>;
+export type ReviewDraft = { decision: string; reviewer: string; effective_date?: string; effective_to?: string; evidence_ref: string; note: string };

@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from algo.api import artifacts, freshness, queries
+from algo.api import artifacts, freshness, queries, reviews
 from algo.core.clock import Clock, SystemClock
 from algo.indicators.catalog import IndicatorError, parse_spec
 
@@ -53,6 +53,17 @@ def get_conn(request: Request) -> Iterator[psycopg.Connection]:
 
 Conn = Annotated[psycopg.Connection, Depends(get_conn)]
 
+WRITE_OPTIONS = "-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000"
+
+
+def get_write_conn(request: Request) -> Iterator[psycopg.Connection]:
+    """The ONLY writable session: used by the review endpoint, which appends to review_decision."""
+    with psycopg.connect(request.app.state.dsn, options=WRITE_OPTIONS, connect_timeout=5) as c:
+        yield c
+
+
+WConn = Annotated[psycopg.Connection, Depends(get_write_conn)]
+
 
 def create_app(
     dsn: str,
@@ -62,6 +73,8 @@ def create_app(
     interactive_docs: bool = False,
     clock: Clock | None = None,
     sessions_file: Path | None = None,
+    reviews_file: Path | None = None,
+    review_writes: bool = False,
 ) -> FastAPI:
     clock = clock or SystemClock()
     sessions_path = sessions_file or docs_root.parent / "config" / "exchange_sessions.json"
@@ -74,7 +87,7 @@ def create_app(
     )
     app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn
-    app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["GET"],
+    app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["GET", "POST"],
                        allow_headers=["*"])  # fmt: skip
 
     def arts() -> artifacts.Artifacts | None:
@@ -284,5 +297,36 @@ def create_app(
             "backtests": queries.backtests(c, 10)["items"],
             "jobs": {"persisted": False, "note": "job runtime and resource use are not recorded"},
         }  # fmt: skip
+
+    review_path = reviews_file or docs_root / "stage4" / "review" / "review_items.json"
+
+    @app.get("/api/reviews")
+    def review_list(c: Conn) -> dict[str, Any]:
+        return {
+            **reviews.listing(c, reviews.load_items(review_path)),
+            "writes_enabled": review_writes,
+        }
+
+    @app.get("/api/reviews/{item_id}/history")
+    def review_history(item_id: str, c: Conn) -> list[dict[str, Any]]:
+        return reviews.history(c, item_id)
+
+    @app.post("/api/reviews/{item_id}/decisions", status_code=201)
+    def review_decide(
+        item_id: str, body: reviews.DecisionIn, request: Request, c: WConn
+    ) -> dict[str, Any]:
+        if not review_writes:
+            raise HTTPException(403, "review writes are disabled on this server")
+        origin = request.headers.get("origin")
+        if origin is not None and origin not in origins:
+            raise HTTPException(403, "origin not allowed")
+        item = next((i for i in reviews.load_items(review_path) if i["id"] == item_id), None)
+        if item is None:
+            raise HTTPException(404, "no such review item")
+        try:
+            decision_id = reviews.record(c, item, body, clock.now())
+        except reviews.ReviewError as e:
+            raise HTTPException(422, str(e)) from e
+        return {"decision_id": decision_id}
 
     return app

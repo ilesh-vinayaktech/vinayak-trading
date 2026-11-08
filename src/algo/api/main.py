@@ -3,7 +3,8 @@
 There is NO authentication: bind to loopback and never expose it without an authenticating proxy.
 Reads the connection string, the docs directory holding the frozen benchmark releases, the allowed
 browser origins and ALGO_API_DOCS=1 (interactive docs, off by default) from the environment. The
-API is read-only: every database session is read-only with a statement timeout."""
+API is read-only except review decisions (ALGO_REVIEW_WRITES=1, off by default), which append to
+one table; every other session is read-only with a statement timeout."""
 
 from __future__ import annotations
 
@@ -25,4 +26,10 @@ def build() -> FastAPI:
         for o in os.environ.get("ALGO_CORS_ORIGINS", "http://localhost:3000").split(",")
         if o.strip()
     )
-    return create_app(dsn, docs, origins, interactive_docs=os.environ.get("ALGO_API_DOCS") == "1")
+    return create_app(
+        dsn,
+        docs,
+        origins,
+        interactive_docs=os.environ.get("ALGO_API_DOCS") == "1",
+        review_writes=os.environ.get("ALGO_REVIEW_WRITES") == "1",
+    )
