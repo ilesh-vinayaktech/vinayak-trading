@@ -1,13 +1,27 @@
 "use client";
 
-import type { IChartApi, ISeriesApi, Time } from "lightweight-charts";
+import type { IChartApi, ISeriesApi, SeriesType, Time } from "lightweight-charts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { magnet, pick, pickHandle, shapesFor, translated, withHandleAt, anchors, type Projection, type Shape } from "@/lib/drawings/geometry";
 import * as H from "@/lib/drawings/history";
 import { COLORS, DASHES, DEFAULT_STYLE, GROUPS, load, makeDrawing, save, TOOLS, TOOL_TYPES, type Drawing, type Pt, type Style, type ToolGroup, type ToolType } from "@/lib/drawings/model";
+import { Icon } from "./icons";
 
 
-export type ChartHandles = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
+export type ChartHandles = { chart: IChartApi; series: ISeriesApi<SeriesType> };
+
+/** What the page toolbar needs from the drawing layer. */
+export type DrawingApi = { undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; count: number; listOpen: boolean; toggleList: () => void };
+
+export const SHORTCUTS: Partial<Record<ToolType, { code: string; label: string }>> = {
+  trend: { code: "KeyT", label: "Alt+T" },
+  hline: { code: "KeyH", label: "Alt+H" },
+  vline: { code: "KeyV", label: "Alt+V" },
+  cross: { code: "KeyC", label: "Alt+C" },
+  fibret: { code: "KeyF", label: "Alt+F" },
+  rect: { code: "KeyR", label: "Alt+R" },
+  text: { code: "KeyX", label: "Alt+X" },
+};
 type Bar = { date: string; open: string; high: string; low: string; close: string };
 type Tool = ToolType | "cursor";
 type Drag = { kind: "handle"; index: number; original: Drawing } | { kind: "move"; original: Drawing; startX: number; startY: number };
@@ -69,7 +83,7 @@ function ShapeEl({ s, i, faint }: { s: Shape; i: number; faint: boolean }) {
   return <path key={i} d={d} {...common} {...fill} />;
 }
 
-export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust, above, children }: { handles: ChartHandles | null; ready: number; tick: number; bars: Bar[]; instrumentId: number; adjust: string; above?: ReactNode; children: ReactNode }) {
+export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust, topbar, above, children }: { handles: ChartHandles | null; ready: number; tick: number; bars: Bar[]; instrumentId: number; adjust: string; topbar?: (api: DrawingApi) => ReactNode; above?: ReactNode; children: ReactNode }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [hist, setHist] = useState<H.History>(() => H.initial());
   const [loaded, setLoaded] = useState(false);
@@ -289,6 +303,14 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
       const s = latest.current;
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const hit = TOOL_TYPES.find((tt) => SHORTCUTS[tt]?.code === e.code);
+        if (hit) {
+          e.preventDefault();
+          setTool(hit);
+          return;
+        }
+      }
       if ((e.key === "Delete" || e.key === "Backspace") && s.selected) {
         e.preventDefault();
         const sel = s.hist.list.find((d) => d.id === s.selected);
@@ -311,7 +333,7 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setTool]);
 
   // --- what to paint ---
   const preview = useMemo<Drawing | null>(() => {
@@ -337,124 +359,144 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
 
   const hint = tool === "cursor" ? (selectedDrawing ? "Drag a handle to reshape, drag the drawing to move it, Delete removes it." : "Pick a tool to draw. Drawings are notes saved in this browser for this instrument and price basis.") : draft ? `${TOOLS[tool].label}: ${draft.pts.length} of ${TOOLS[tool].points === "free" ? "…" : TOOLS[tool].points} placed. ${TOOLS[tool].hint}. Esc cancels.` : `${TOOLS[tool].label}: ${TOOLS[tool].hint}. Esc cancels.`;
 
+  const api: DrawingApi = { undo: () => setHist((h) => H.undo(h)), redo: () => setHist((h) => H.redo(h)), canUndo: hist.past.length > 0, canRedo: hist.future.length > 0, count: list.length, listOpen, toggleList: () => setListOpen((v) => !v) };
+  const shownStyle = selectedDrawing?.style ?? style;
+  const railBtn = (active: boolean) => `relative flex h-9 w-9 items-center justify-center rounded-md transition-colors ${active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-100"}`;
+
   return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Chart tools">
-        <button type="button" aria-pressed={tool === "cursor"} onClick={() => setTool("cursor")} className={`rounded px-3 py-1 text-xs ${tool === "cursor" ? "bg-slate-900 text-white" : "bg-slate-100 text-ink-soft hover:bg-slate-200"}`}>
-          Cursor
-        </button>
-        {GROUPS.map((g) => {
-          const items = TOOL_TYPES.filter((t) => TOOLS[t].group === g);
-          const active = tool !== "cursor" && TOOLS[tool].group === g;
-          return (
-            <div key={g} className="relative">
-              <button type="button" aria-haspopup="menu" aria-expanded={openGroup === g} data-group={g} onClick={() => setOpenGroup(openGroup === g ? null : g)} className={`rounded px-3 py-1 text-xs ${active ? "bg-slate-900 text-white" : "bg-slate-100 text-ink-soft hover:bg-slate-200"}`}>
-                {active ? TOOLS[tool].label : g} ▾
-              </button>
-              {openGroup === g ? (
-                <ul role="menu" className="absolute left-0 top-full z-30 mt-1 min-w-52 rounded-md border border-line bg-white py-1 shadow-lg">
-                  {items.map((t) => (
-                    <li key={t} role="none">
-                      <button type="button" role="menuitem" data-tool={t} onClick={() => setTool(t)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-slate-100">
-                        {TOOLS[t].label}
-                        {lastIn[g] === t ? <span className="text-ink-faint">last used</span> : null}
+    <div className="flex h-full min-h-0 flex-col">
+      {topbar?.(api)}
+      <div className="flex min-h-0 flex-1">
+        {/* ---- left tool rail ---- */}
+        <div className="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-visible border-r border-line bg-white py-2" role="toolbar" aria-label="Drawing tools" aria-orientation="vertical">
+          <button type="button" title="Cursor" aria-label="Cursor" aria-pressed={tool === "cursor"} onClick={() => setTool("cursor")} className={railBtn(tool === "cursor")}>
+            <Icon name="cursor" />
+          </button>
+          <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
+          {GROUPS.map((g) => {
+            const items = TOOL_TYPES.filter((t) => TOOLS[t].group === g);
+            const shownTool = (tool !== "cursor" && TOOLS[tool].group === g ? tool : lastIn[g]) ?? (items[0] as ToolType);
+            const active = tool !== "cursor" && TOOLS[tool].group === g;
+            return (
+              <div key={g} className="group relative">
+                <button type="button" title={`${TOOLS[shownTool].label}${SHORTCUTS[shownTool] ? ` (${SHORTCUTS[shownTool]?.label})` : ""}`} aria-label={TOOLS[shownTool].label} aria-pressed={active} data-group={g} onClick={() => setTool(shownTool)} className={railBtn(active)}>
+                  <Icon name={shownTool} />
+                </button>
+                <button type="button" aria-label={`${g} tools`} aria-haspopup="menu" aria-expanded={openGroup === g} data-flyout={g} onClick={() => setOpenGroup(openGroup === g ? null : g)} className="absolute -right-1 top-1/2 flex h-5 w-3 -translate-y-1/2 items-center justify-center rounded-sm bg-white text-slate-400 opacity-0 shadow-sm ring-1 ring-line hover:text-slate-800 group-hover:opacity-100 focus-visible:opacity-100">
+                  <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M2.5 1l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>
+                </button>
+                {openGroup === g ? (
+                  <div role="menu" aria-label={g} className="absolute left-full top-0 z-40 ml-2 w-72 rounded-lg border border-line bg-white py-1.5 shadow-xl">
+                    <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{g}</div>
+                    {items.map((t) => (
+                      <button key={t} type="button" role="menuitem" data-tool={t} onClick={() => setTool(t)} className="flex w-full items-center gap-3 px-3 py-2 text-left text-[13px] text-slate-800 hover:bg-slate-100">
+                        <Icon name={t} className="text-slate-600" />
+                        <span className="flex-1">{TOOLS[t].label}</span>
+                        {SHORTCUTS[t] ? <span className="text-[11px] text-slate-400">{SHORTCUTS[t]?.label}</span> : null}
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+          <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
+          <button type="button" title="Magnet: snap to open, high, low, close" aria-label="Magnet" aria-pressed={snap} onClick={() => setSnap((v) => !v)} className={railBtn(snap)}>
+            <Icon name="magnet" />
+          </button>
+          <button type="button" title={allHidden ? "Show all drawings" : "Hide all drawings"} aria-label={allHidden ? "Show all" : "Hide all"} aria-pressed={allHidden} disabled={list.length === 0} onClick={() => setAllHidden((v) => !v)} className={`${railBtn(allHidden)} disabled:opacity-35`}>
+            <Icon name={allHidden ? "eyeoff" : "eye"} />
+          </button>
+          <button type="button" title="Remove all drawings" aria-label="Clear drawings" disabled={list.length === 0} onClick={() => { setHist((h) => H.clear(h)); setSelected(null); }} className={`${railBtn(false)} disabled:opacity-35`}>
+            <Icon name="trash" />
+          </button>
+        </div>
+
+        {/* ---- chart area ---- */}
+        <div className="relative min-w-0 flex-1">
+          <div ref={wrap} className="relative h-full" data-draw-cursor={tool !== "cursor" ? "crosshair" : cursor}>
+            {children}
+            <svg className="pointer-events-none absolute left-0 top-0 z-10" width={size.w} height={size.h} style={{ willChange: "transform", overflow: "hidden" }} aria-hidden="true" data-testid="drawing-layer">
+              {visible.map((d) => (
+                <g key={d.id} data-drawing={d.type} data-selected={d.id === selected}>
+                  {paint(d)}
+                </g>
+              ))}
+              {preview ? <g opacity={0.8} data-testid="draft">{paint(preview, true)}</g> : null}
+              {handlesXY.map((q, i) => (
+                <circle key={i} cx={q.x} cy={q.y} r={5} fill="#ffffff" stroke="#0f172a" strokeWidth={1.5} data-testid="handle" />
+              ))}
+            </svg>
+          </div>
+          <div className="pointer-events-none absolute left-3 top-2 z-20">{above}</div>
+
+          {/* floating properties bar, like a charting terminal's: only while something is selected */}
+          {selectedDrawing ? (
+            <div role="group" aria-label="Drawing properties" className="absolute left-1/2 top-14 z-30 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-line bg-white px-2 py-1 shadow-lg">
+              <span className="px-1 text-[11px] font-medium text-slate-500">{TOOLS[selectedDrawing.type].label}</span>
+              <span className="h-5 w-px bg-line" />
+              {COLORS.map((c) => (
+                <button key={c} type="button" aria-label={`Colour ${c}`} aria-pressed={shownStyle.color === c} onClick={() => setStyleOf({ color: c })} className="h-5 w-5 rounded-full" style={{ background: c, boxShadow: shownStyle.color === c ? "0 0 0 2px #fff, 0 0 0 4px #0f172a" : "none" }} />
+              ))}
+              <span className="h-5 w-px bg-line" />
+              <select aria-label="Line width" value={shownStyle.width} onChange={(e) => setStyleOf({ width: Number(e.target.value) })} className="rounded border border-line bg-white px-1 py-0.5 text-xs">
+                {[1, 2, 3, 4].map((w) => (
+                  <option key={w} value={w}>{w}px</option>
+                ))}
+              </select>
+              <select aria-label="Line style" value={shownStyle.dash} onChange={(e) => setStyleOf({ dash: e.target.value as Style["dash"] })} className="rounded border border-line bg-white px-1 py-0.5 text-xs">
+                {DASHES.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              {selectedDrawing.type === "text" ? <input aria-label="Text" value={selectedDrawing.text ?? ""} maxLength={200} onChange={(e) => patchSelected({ text: e.target.value })} className="w-40 rounded border border-line px-2 py-0.5 text-xs" /> : null}
+              <span className="h-5 w-px bg-line" />
+              <button type="button" title={selectedDrawing.locked ? "Unlock" : "Lock"} aria-label={selectedDrawing.locked ? "Unlock" : "Lock"} aria-pressed={selectedDrawing.locked} onClick={() => patchSelected({ locked: !selectedDrawing.locked })} className={`${railBtn(selectedDrawing.locked)} !h-7 !w-7`}>
+                <Icon name={selectedDrawing.locked ? "lock" : "unlock"} size={16} />
+              </button>
+              <button type="button" title="Duplicate" aria-label="Duplicate" onClick={() => { const c = makeDrawing(selectedDrawing.type, selectedDrawing.points.map((q) => ({ ...q })), selectedDrawing.style, selectedDrawing.text); setHist((h) => H.add(h, c)); setSelected(c.id); }} className={`${railBtn(false)} !h-7 !w-7`}>
+                <Icon name="copy" size={16} />
+              </button>
+              <button type="button" title="Delete (Del)" aria-label="Delete" disabled={selectedDrawing.locked} onClick={() => { setHist((h) => H.remove(h, selectedDrawing.id)); setSelected(null); }} className={`${railBtn(false)} !h-7 !w-7 text-red-600 hover:!bg-red-50 disabled:opacity-35`}>
+                <Icon name="trash" size={16} />
+              </button>
             </div>
-          );
-        })}
-        <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
-        <button type="button" aria-pressed={snap} onClick={() => setSnap((v) => !v)} title="Snap points to the nearest open, high, low or close" className={`rounded px-3 py-1 text-xs ${snap ? "bg-violet-600 text-white" : "bg-slate-100 text-ink-soft hover:bg-slate-200"}`}>
-          Magnet
-        </button>
-        <button type="button" disabled={hist.past.length === 0} onClick={() => setHist((h) => H.undo(h))} title="Ctrl+Z" className="rounded bg-slate-100 px-3 py-1 text-xs text-ink-soft hover:bg-slate-200 disabled:opacity-40">
-          Undo
-        </button>
-        <button type="button" disabled={hist.future.length === 0} onClick={() => setHist((h) => H.redo(h))} title="Ctrl+Shift+Z" className="rounded bg-slate-100 px-3 py-1 text-xs text-ink-soft hover:bg-slate-200 disabled:opacity-40">
-          Redo
-        </button>
-        <button type="button" aria-pressed={allHidden} disabled={list.length === 0} onClick={() => setAllHidden((v) => !v)} className="rounded bg-slate-100 px-3 py-1 text-xs text-ink-soft hover:bg-slate-200 disabled:opacity-40">
-          {allHidden ? "Show all" : "Hide all"}
-        </button>
-        <button type="button" disabled={list.length === 0} onClick={() => { setHist((h) => H.clear(h)); setSelected(null); }} className="rounded bg-slate-100 px-3 py-1 text-xs text-ink-soft hover:bg-slate-200 disabled:opacity-40">
-          Clear drawings
-        </button>
-        <button type="button" aria-pressed={listOpen} onClick={() => setListOpen((v) => !v)} className="rounded bg-slate-100 px-3 py-1 text-xs text-ink-soft hover:bg-slate-200">
-          Objects ({list.length})
-        </button>
-        <button type="button" disabled title="Needs a stored backtest with its trades; none exist yet" className="ml-auto cursor-not-allowed rounded border border-dashed border-line px-3 py-1 text-xs text-ink-faint">
-          Load strategy run (not available yet)
-        </button>
-      </div>
+          ) : null}
 
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs" aria-label="Drawing style">
-        <span className="text-ink-soft">{selectedDrawing ? `Selected: ${TOOLS[selectedDrawing.type].label}` : "New drawings:"}</span>
-        {COLORS.map((c) => (
-          <button key={c} type="button" aria-label={`Colour ${c}`} aria-pressed={(selectedDrawing?.style ?? style).color === c} onClick={() => setStyleOf({ color: c })} className="h-5 w-5 rounded-full ring-offset-1" style={{ background: c, outline: (selectedDrawing?.style ?? style).color === c ? "2px solid #0f172a" : "none" }} />
-        ))}
-        <select aria-label="Line width" value={(selectedDrawing?.style ?? style).width} onChange={(e) => setStyleOf({ width: Number(e.target.value) })} className="rounded border border-line px-1 py-0.5">
-          {[1, 2, 3, 4].map((w) => (
-            <option key={w} value={w}>{w}px</option>
-          ))}
-        </select>
-        <select aria-label="Line style" value={(selectedDrawing?.style ?? style).dash} onChange={(e) => setStyleOf({ dash: e.target.value as Style["dash"] })} className="rounded border border-line px-1 py-0.5">
-          {DASHES.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        {selectedDrawing ? (
-          <>
-            {selectedDrawing.type === "text" ? <input aria-label="Text" value={selectedDrawing.text ?? ""} maxLength={200} onChange={(e) => patchSelected({ text: e.target.value })} className="w-48 rounded border border-line px-2 py-0.5" /> : null}
-            <button type="button" aria-pressed={selectedDrawing.locked} onClick={() => patchSelected({ locked: !selectedDrawing.locked })} className="rounded bg-slate-100 px-2 py-0.5 hover:bg-slate-200">
-              {selectedDrawing.locked ? "Unlock" : "Lock"}
-            </button>
-            <button type="button" onClick={() => { const c = makeDrawing(selectedDrawing.type, selectedDrawing.points.map((p) => ({ ...p, p: p.p })), selectedDrawing.style, selectedDrawing.text); setHist((h) => H.add(h, c)); setSelected(c.id); }} className="rounded bg-slate-100 px-2 py-0.5 hover:bg-slate-200">
-              Duplicate
-            </button>
-            <button type="button" disabled={selectedDrawing.locked} onClick={() => { setHist((h) => H.remove(h, selectedDrawing.id)); setSelected(null); }} className="rounded bg-red-50 px-2 py-0.5 text-red-700 hover:bg-red-100 disabled:opacity-40">
-              Delete
-            </button>
-          </>
-        ) : null}
-      </div>
-      <p className="mb-2 min-h-4 text-xs text-ink-soft" data-testid="tool-hint">{hint}</p>
+          {tool !== "cursor" || selectedDrawing ? (
+            <p className="pointer-events-none absolute bottom-9 left-3 z-20 rounded bg-slate-900/85 px-2.5 py-1 text-[11px] text-white shadow" data-testid="tool-hint">
+              {hint}
+            </p>
+          ) : null}
 
-      {above}
-      <div ref={wrap} className="relative" data-draw-cursor={tool !== "cursor" ? "crosshair" : cursor}>
-        {children}
-        <svg className="pointer-events-none absolute left-0 top-0 z-10" width={size.w} height={size.h} style={{ willChange: "transform", overflow: "hidden" }} aria-hidden="true" data-testid="drawing-layer">
-          {visible.map((d) => (
-            <g key={d.id} data-drawing={d.type} data-selected={d.id === selected}>
-              {paint(d)}
-            </g>
-          ))}
-          {preview ? <g opacity={0.8} data-testid="draft">{paint(preview, true)}</g> : null}
-          {handlesXY.map((q, i) => (
-            <circle key={i} cx={q.x} cy={q.y} r={5} fill="#ffffff" stroke="#0f172a" strokeWidth={1.5} data-testid="handle" />
-          ))}
-        </svg>
+          {listOpen ? (
+            <aside className="absolute bottom-0 right-0 top-0 z-30 w-72 overflow-y-auto border-l border-line bg-white shadow-xl" aria-label="Object tree">
+              <div className="sticky top-0 border-b border-line bg-white px-3 py-2 text-xs font-semibold">Object tree ({list.length})</div>
+              <ul className="divide-y divide-line text-xs" aria-label="Drawings">
+                {list.length === 0 ? <li className="p-3 text-slate-500">No drawings on this chart.</li> : null}
+                {list.map((d, i) => (
+                  <li key={d.id} className={`flex items-center gap-2 px-3 py-2 ${d.id === selected ? "bg-blue-50" : ""}`}>
+                    <Icon name={d.type} size={16} className="text-slate-500" />
+                    <button type="button" className="flex-1 truncate text-left" onClick={() => { setSelected(d.id); setToolState("cursor"); }}>
+                      {i + 1}. {TOOLS[d.type].label}
+                    </button>
+                    <button type="button" aria-label={d.hidden ? "Show" : "Hide"} aria-pressed={d.hidden} onClick={() => setHist((h) => H.update(h, { ...d, hidden: !d.hidden }))} className="text-slate-500 hover:text-slate-900">
+                      <Icon name={d.hidden ? "eyeoff" : "eye"} size={16} />
+                    </button>
+                    <button type="button" aria-label={d.locked ? "Unlock" : "Lock"} aria-pressed={d.locked} onClick={() => setHist((h) => H.update(h, { ...d, locked: !d.locked }))} className="text-slate-500 hover:text-slate-900">
+                      <Icon name={d.locked ? "lock" : "unlock"} size={16} />
+                    </button>
+                    <button type="button" aria-label="Delete" disabled={d.locked} onClick={() => { setHist((h) => H.remove(h, d.id)); if (selected === d.id) setSelected(null); }} className="text-red-600 disabled:opacity-35">
+                      <Icon name="trash" size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          ) : null}
+        </div>
       </div>
       <style>{`[data-draw-cursor="move"] canvas{cursor:move!important}[data-draw-cursor="grab"] canvas{cursor:grab!important}[data-draw-cursor="crosshair"] canvas{cursor:crosshair!important}`}</style>
-
-      {listOpen ? (
-        <ul className="mt-3 divide-y divide-line rounded-md border border-line text-xs" aria-label="Drawings">
-          {list.length === 0 ? <li className="p-3 text-ink-soft">No drawings on this chart.</li> : null}
-          {list.map((d, i) => (
-            <li key={d.id} className={`flex items-center gap-2 p-2 ${d.id === selected ? "bg-slate-50" : ""}`}>
-              <span className="h-3 w-3 rounded-full" style={{ background: d.style.color }} />
-              <button type="button" className="flex-1 text-left" onClick={() => { setSelected(d.id); setToolState("cursor"); }}>
-                {i + 1}. {TOOLS[d.type].label}
-              </button>
-              <button type="button" aria-pressed={d.hidden} onClick={() => setHist((h) => H.update(h, { ...d, hidden: !d.hidden }))} className="rounded bg-slate-100 px-2 py-0.5">{d.hidden ? "Show" : "Hide"}</button>
-              <button type="button" aria-pressed={d.locked} onClick={() => setHist((h) => H.update(h, { ...d, locked: !d.locked }))} className="rounded bg-slate-100 px-2 py-0.5">{d.locked ? "Unlock" : "Lock"}</button>
-              <button type="button" disabled={d.locked} onClick={() => { setHist((h) => H.remove(h, d.id)); if (selected === d.id) setSelected(null); }} className="rounded bg-red-50 px-2 py-0.5 text-red-700 disabled:opacity-40">Delete</button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }

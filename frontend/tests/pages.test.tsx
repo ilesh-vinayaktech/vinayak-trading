@@ -17,7 +17,9 @@ vi.mock("lightweight-charts", () => ({
   CrosshairMode: { Normal: 0 },
   PriceScaleMode: { Normal: 0, Logarithmic: 1 },
   createChart: () => ({
-    addLineSeries: () => ({ setData: vi.fn() }),
+    addLineSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), priceToCoordinate: vi.fn(() => 50), coordinateToPrice: vi.fn(() => 100) }),
+    addAreaSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), priceToCoordinate: vi.fn(() => 50), coordinateToPrice: vi.fn(() => 100) }),
+    takeScreenshot: vi.fn(),
     addCandlestickSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) }),
     addHistogramSeries: () => ({ setData: vi.fn() }),
     priceScale: () => ({ applyOptions: vi.fn() }),
@@ -173,19 +175,23 @@ describe("Data Explorer", () => {
     expect(screen.getByText("1:1 (shares after : before)")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent("demerger 2024-07-01");
     expect(screen.getByTestId("price-chart")).toBeInTheDocument();
-    // the toolbar: tools, undo/clear, and a strategy loader that is honestly disabled
+    // the rail: tools by group with flyouts, undo/redo in the top bar, and a strategy loader that is honestly disabled
     expect(screen.getByRole("button", { name: "Cursor" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: /^Lines/ }));
-    const menu = within(screen.getByRole("menu"));
+    fireEvent.click(screen.getByRole("button", { name: "Lines tools" }));
+    const menu = within(screen.getByRole("menu", { name: "Lines" }));
     for (const tool of ["Trend line", "Ray", "Extended line", "Horizontal line", "Horizontal ray", "Vertical line", "Cross line", "Arrow"]) expect(menu.getByRole("menuitem", { name: new RegExp(tool) })).toBeInTheDocument();
+    expect(menu.getByRole("menuitem", { name: /Trend line/ })).toHaveTextContent("Alt+T");
     fireEvent.click(menu.getByRole("menuitem", { name: /^Trend line/ }));
     expect(screen.getByTestId("tool-hint")).toHaveTextContent("Trend line: click two points");
-    for (const group of ["Channels", "Shapes", "Fibonacci", "Measure", "Forecast", "Annotation"]) expect(screen.getByRole("button", { name: new RegExp(`^${group}`) })).toBeInTheDocument();
+    for (const group of ["Channels", "Shapes", "Fibonacci", "Measure", "Forecast", "Annotation"]) expect(screen.getByRole("button", { name: `${group} tools` })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Magnet" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Objects \(0\)/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Load strategy run/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Screenshot" })).toBeEnabled();
+    expect(screen.getByRole("group", { name: "Chart type" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1Y" })).toBeInTheDocument();
+    expect(screen.getByText(/Strategy run: not available yet/)).toBeDisabled();
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();
     expect(screen.getByText("review")).toBeInTheDocument(); // an unverified action is not shown as verified
     fireEvent.change(screen.getByLabelText("Price basis"), { target: { value: "split" } });
@@ -195,13 +201,14 @@ describe("Data Explorer", () => {
   it("closes the suggestion list once an instrument is chosen and reopens it when typing again", async () => {
     vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars }));
     wrap(<InstrumentsPage />);
-    const box = screen.getByLabelText("Symbol, ISIN or name") as HTMLInputElement;
+    const box = screen.getByLabelText("Symbol, ISIN or name");
     fireEvent.change(box, { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
     await screen.findByText("basis: Raw (as traded)");
     expect(screen.queryByRole("list", { name: "Matches" })).not.toBeInTheDocument();
-    expect(box.value).toBe("XYZ"); // the chosen symbol replaces the partial text
-    fireEvent.change(box, { target: { value: "XY" } });
+    expect(screen.queryByLabelText("Symbol, ISIN or name")).not.toBeInTheDocument(); // the popover closed
+    fireEvent.click(screen.getByRole("button", { name: /XYZ/ })); // the chosen symbol is now the toolbar's button
+    fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "XY" } });
     expect(await screen.findByRole("list", { name: "Matches" })).toBeInTheDocument();
   });
 

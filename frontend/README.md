@@ -19,6 +19,14 @@ Backtests (skeleton, controls disabled), System Activity.
 
 Security notes: docs/console-security-review.md. Data check: `uv run python scripts/verify_console_data.py --db $ALGO_DB_URL`.
 
+## Chart workspace
+
+The Data Explorer is a full-height chart workspace laid out like a professional charting terminal: a top
+bar (symbol search, 1D interval, candles/line/area, price basis, 1M-All range presets and a custom range,
+undo/redo, object tree, PNG screenshot, full screen), a left tool rail with an icon per tool and flyout
+menus (with hotkeys, e.g. Alt+T trend line, Alt+H horizontal line, Alt+F fib retracement), an in-chart
+OHLC and volume legend, and a floating properties bar for the selected drawing.
+
 ## Chart drawing tools
 
 22 tools in seven groups (Lines, Channels, Shapes, Fibonacci, Measure, Forecast, Annotation), in
