@@ -130,14 +130,41 @@ def test_benchmarks_levels_and_validation_history(conn):
     assert v[1]["report_version"] == "2" and v[1]["covers_current_dataset"] is True
     assert v[1]["check_states"] == {"a": "PASS"} and v[1]["unresolved"] == ["x"]
     full = queries.benchmark_levels(conn, bid, None, None, 100)
-    assert [p["date"] for p in full] == [f"2024-01-0{d}" for d in range(1, 6)] and full[0][
-        "level"
-    ] == "101"
-    thin = queries.benchmark_levels(conn, bid, None, None, 2)
-    assert thin[0]["date"] == "2024-01-01" and thin[-1]["date"] == "2024-01-05" and len(thin) <= 4
+    assert [p["date"] for p in full["levels"]] == [f"2024-01-0{d}" for d in range(1, 6)]
+    assert full["levels"][0]["level"] == "101"
+    assert (full["total_observations"], full["returned"], full["downsampled"]) == (5, 5, False)
+    assert full["method"] == "all observations"
     sub = queries.benchmark_levels(conn, bid, date(2024, 1, 3), date(2024, 1, 4), 100)
-    assert [p["date"] for p in sub] == ["2024-01-03", "2024-01-04"]
-    assert queries.benchmark_levels(conn, bid, date(2030, 1, 1), None, 100) == []
+    assert [p["date"] for p in sub["levels"]] == ["2024-01-03", "2024-01-04"]
+    assert queries.benchmark_levels(conn, bid, date(2030, 1, 1), None, 100)["levels"] == []
+
+
+def test_downsampling_keeps_every_peak_and_trough_and_the_ends(conn):
+    migrate(conn)
+    bid = register(
+        conn, name="X", provider="p", index_symbol="X", return_type="PRICE", methodology_version="m"
+    )
+    days = [date(2020, 1, 1) + __import__("datetime").timedelta(days=i) for i in range(1000)]
+    base = [D(100 + (i % 7)) for i in range(1000)]
+    base[333], base[777] = D(900), D(1)  # a spike and a crash that every-Nth sampling would hide
+    ingest(
+        conn,
+        bid,
+        list(zip(days, base, strict=True)),
+        source="s",
+        source_timestamp=NOW,
+        raw_hash="h",
+        now=NOW,
+    )
+    r = queries.benchmark_levels(conn, bid, None, None, 100)
+    assert r["downsampled"] and r["total_observations"] == 1000 and r["returned"] < 1000
+    assert r["method"] == "min-max per bucket (extremes preserved)"
+    got = {p["date"]: p["level"] for p in r["levels"]}
+    assert got[days[333].isoformat()] == "900" and got[days[777].isoformat()] == "1"
+    assert days[0].isoformat() in got and days[-1].isoformat() in got
+    ordered = [p["date"] for p in r["levels"]]
+    assert ordered == sorted(ordered) and len(set(ordered)) == len(ordered)
+    assert r["returned"] <= 100 + 2
 
 
 def test_research_and_activity_summaries_on_an_empty_research_store(env):
@@ -147,8 +174,10 @@ def test_research_and_activity_summaries_on_an_empty_research_store(env):
         "latest_run": None}  # fmt: skip
     assert queries.backtests(conn) == {"items": [], "total": 0, "limit": 50, "offset": 0}
     assert queries.backtest(conn, 1) is None
-    assert queries.corporate_action_health(conn) == {
-        "actions_by_status": {"ok": 1}, "resolutions_by_status": {}}  # fmt: skip
+    ca = queries.corporate_action_health(conn)
+    assert ca["actions_by_status"] == {"ok": 1} and ca["resolutions_by_status"] == {}
+    assert (ca["total_events"], ca["verified"], ca["pending_review"]) == (1, 1, 0)
+    assert (ca["review_without_any_resolution"], ca["provisional_adjustments"]) == (0, 0)
     conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
                  " ('nse','bhav','2025-06-09','loaded',%s)", (NOW,))  # fmt: skip
     act = queries.ingestion_activity(conn, 5)
@@ -207,3 +236,45 @@ def test_search_treats_percent_and_underscore_literally(env):
     assert queries.search_instruments(conn, "_") == []
     assert queries.search_instruments(conn, "X_Z") == []
     assert [r["symbol"] for r in queries.search_instruments(conn, "XYZ")] == ["XYZ"]
+
+
+def test_corporate_action_summary_separates_pending_provisional_and_decided(env):
+    conn, iid = env
+    for ex, kind in (("2025-01-01", "rights"), ("2025-02-01", "demerger"), ("2025-03-01", "buy")):
+        conn.execute(
+            "INSERT INTO corporate_action (instrument_id,ex_date,kind,status,subject,knowledge_time,"
+            "knowledge_time_source,source,raw_checksum,ingested_at) VALUES (%s,%s,%s,'review','t',%s,"
+            "'ex_date_proxy','nse','x',%s)", (iid, ex, kind, NOW, NOW))  # fmt: skip
+    conn.execute(
+        "INSERT INTO action_resolution (instrument_id,ex_date,kind,treatment,factor,method,inputs,note,"
+        "resolved_by,resolved_at,status) VALUES (%s,'2025-01-01','rights','factor',0.9,'rights','{}','n','me',%s,"
+        "'provisional')", (iid, NOW))  # fmt: skip
+    conn.execute(
+        "INSERT INTO action_resolution (instrument_id,ex_date,kind,treatment,method,inputs,note,resolved_by,"
+        "resolved_at,status,source_type,source_url,confirmed_by,confirmed_at) VALUES (%s,'2025-02-01',"
+        "'demerger','ignore','demerger','{}','n','me',%s,'no_adjustment_verified','filing','u','me',%s)", (iid, NOW, NOW))  # fmt: skip
+    ca = queries.corporate_action_health(conn)
+    assert (ca["total_events"], ca["verified"], ca["pending_review"]) == (4, 1, 3)
+    assert ca["review_without_any_resolution"] == 1  # only the 'buy' has no decision at all
+    assert (
+        ca["provisional_adjustments"],
+        ca["no_adjustment_verified"],
+        ca["ignored_with_reason"],
+    ) == (1, 1, 0)
+
+
+def test_known_holidays_are_the_days_with_no_published_file(conn):
+    migrate(conn)
+    for part, status in (
+        ("2025-01-26", "not_published"),
+        ("2025-01-27", "loaded"),
+        ("2025-01-28", "not_published"),
+    ):
+        conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
+                     " ('nse','bhav',%s,%s,%s)", (part, status, NOW))  # fmt: skip
+    conn.execute(
+        "INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
+        " ('nse','bhav','2025-01-28','loaded',%s)",
+        (NOW,),
+    )  # later published after all
+    assert queries.known_holidays(conn) == frozenset({date(2025, 1, 26)})

@@ -74,7 +74,34 @@ def data_health(conn: psycopg.Connection) -> dict[str, Any]:
 def corporate_action_health(conn: psycopg.Connection) -> dict[str, Any]:
     by_status = dict(_rows(conn, "SELECT status, count(*) FROM corporate_action GROUP BY 1"))
     resolutions = dict(_rows(conn, "SELECT status, count(*) FROM action_resolution GROUP BY 1"))
-    return {"actions_by_status": by_status, "resolutions_by_status": resolutions}
+    unresolved = _one(
+        conn,
+        "SELECT count(*) FROM corporate_action c WHERE c.status='review' AND NOT EXISTS"
+        " (SELECT 1 FROM action_resolution r WHERE r.instrument_id=c.instrument_id"
+        " AND r.ex_date=c.ex_date AND r.kind=c.kind)",
+    )[0]
+    return {
+        "actions_by_status": by_status,
+        "resolutions_by_status": resolutions,
+        "total_events": sum(by_status.values()),
+        "verified": by_status.get("ok", 0),
+        "pending_review": by_status.get("review", 0),
+        "review_without_any_resolution": unresolved,
+        "provisional_adjustments": resolutions.get("provisional", 0),
+        "no_adjustment_verified": resolutions.get("no_adjustment_verified", 0),
+        "ignored_with_reason": resolutions.get("ignored_with_reason", 0),
+    }
+
+
+def known_holidays(conn: psycopg.Connection) -> frozenset[date]:
+    """Days the exchange published no daily file (the platform's only evidence of a holiday)."""
+    rows = _rows(
+        conn,
+        "WITH l AS (SELECT DISTINCT ON (source, dataset, partition) partition, status FROM"
+        " partition_load ORDER BY source, dataset, partition, id DESC)"
+        " SELECT partition FROM l WHERE status='not_published'",
+    )
+    return frozenset(r[0] for r in rows)
 
 
 def research_health(conn: psycopg.Connection) -> dict[str, Any]:
@@ -235,13 +262,31 @@ def benchmark_levels(
     start: date | None,
     end: date | None,
     max_points: int,
-) -> list[dict[str, str]]:
+) -> dict[str, Any]:
+    """The stored observations in [start, end]. If they fit in max_points all are returned. If not,
+    each bucket of consecutive observations keeps its lowest and highest level (so no peak or trough
+    disappears), plus the first and last observation; the reply says it was down-sampled."""
     lv = sorted(levels(conn, benchmark_id, start, end).items())
-    step = max(1, -(-len(lv) // max_points))
-    keep = lv[::step]
-    if lv and keep[-1] != lv[-1]:
-        keep.append(lv[-1])
-    return [{"date": d.isoformat(), "level": str(v)} for d, v in keep]
+    total = len(lv)
+    if total <= max_points:
+        keep = lv
+    else:
+        size = -(-total * 2 // max_points)  # observations per bucket: two kept from each
+        picked = {0, total - 1}
+        for lo in range(0, total, size):
+            bucket = range(lo, min(lo + size, total))
+            picked.add(min(bucket, key=lambda i: lv[i][1]))
+            picked.add(max(bucket, key=lambda i: lv[i][1]))
+        keep = [lv[i] for i in sorted(picked)]
+    return {
+        "levels": [{"date": d.isoformat(), "level": str(v)} for d, v in keep],
+        "total_observations": total,
+        "returned": len(keep),
+        "downsampled": len(keep) < total,
+        "method": "min-max per bucket (extremes preserved)"
+        if len(keep) < total
+        else "all observations",
+    }
 
 
 def backtests(conn: psycopg.Connection, limit: int = 50, offset: int = 0) -> dict[str, Any]:

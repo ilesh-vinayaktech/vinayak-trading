@@ -168,17 +168,73 @@ def test_benchmark_list_detail_and_levels(api):
     assert d["validations"][0]["technical_validation_passed"] is True
     assert [f["id"] for f in d["findings"]] == ["U02"] and d["instrument_level_blocked_dates"] == []
     assert d["session_calendar"]["historical_session_hours"] == "hours are assumed"
-    assert d["session_calendar"]["outcome_counts_all_series"] == {"CONFIRMED_REGULAR": 2}
-    assert d["session_calendar"]["this_series"] == {
-        "series": "B1_NIFTY200_GROSS_TRI",
-        "observed_outcomes": {"CONFIRMED_REGULAR": 1, "WEEKDAY_RULE_PROVISIONAL": 1},
-        "missing_outcomes": {"EXPECTED_CLOSED": 3},
-    }  # only the dates B1 has a value on
+    cal = d["session_calendar"]
+    assert [(r["code"], r["count"]) for r in cal["all_series"]] == [("CONFIRMED_REGULAR", 2)]
+    mine = cal["this_series"]
+    assert mine["series"] == "B1_NIFTY200_GROSS_TRI"
+    assert [(r["code"], r["count"]) for r in mine["observed"]] == [
+        ("CONFIRMED_REGULAR", 1),
+        ("WEEKDAY_RULE_PROVISIONAL", 1),
+    ]
+    assert [(r["code"], r["count"]) for r in mine["missing"]] == [("EXPECTED_CLOSED", 3)]
+    assert cal["listed_special_sessions"] is None  # no sessions file frozen with this release
     assert c.get("/api/benchmarks/99").status_code == 404
-    lv = c.get(f"/api/benchmarks/{bid}/levels").json()["levels"]
-    assert [p["date"] for p in lv] == ["2024-01-01", "2024-01-02", "2024-01-03"]
+    reply = c.get(f"/api/benchmarks/{bid}/levels").json()
+    assert reply["total_observations"] == 3
     assert c.get(f"/api/benchmarks/{bid}/levels", params={"max_points": 2}).status_code == 422
     assert c.get("/api/benchmarks/99/levels").status_code == 404
+
+
+def test_the_dashboard_judges_freshness_by_sessions_with_an_injected_clock(api, pg_url, docs):
+    from algo.core.clock import SimClock
+
+    sunday = SimClock(datetime(2026, 11, 8, 4, 51, tzinfo=UTC))
+    c = TestClient(create_app(pg_url, docs, clock=sunday))
+    f = c.get("/api/dashboard").json()["data"]["freshness"]
+    assert (
+        f["latest_bar_session"] == "2025-06-10"
+        and f["status"] == "BEHIND"
+        and f["sessions_behind"] > 100
+    )
+    assert f["expected_latest_session"] == "2026-11-06" and f["next_session"] == "2026-11-09"
+
+
+def test_session_properties_appear_when_the_sessions_file_is_the_frozen_one(
+    api, pg_url, docs, tmp_path
+):
+    import hashlib
+
+    sess = tmp_path / "exchange_sessions.json"
+    sess.write_text(
+        json.dumps(
+            {"sessions": [{"kind_status": "UNCONFIRMED (x)", "hours_status": "UNKNOWN (y)"}]}
+        )
+    )
+    write(
+        docs / "benchmark-release-1.1" / "release.json",
+        {
+            "release": "1.1",
+            "calendar_inputs": {
+                "sessions_file_sha256": hashlib.sha256(sess.read_bytes()).hexdigest()
+            },
+        },
+    )
+    c = TestClient(create_app(pg_url, docs, sessions_file=sess))
+    props = c.get(f"/api/benchmarks/{api[2]}").json()["session_calendar"]["listed_special_sessions"]
+    assert props == {
+        "listed_sessions": 1,
+        "kind": {"UNCONFIRMED": 1},
+        "opening_time": {"UNKNOWN": 1},
+        "closing_time": {"UNKNOWN": 1},
+    }
+
+
+def test_an_empty_database_has_no_freshness(conn, pg_url, docs):
+    migrate(conn)
+    assert (
+        TestClient(create_app(pg_url, docs)).get("/api/dashboard").json()["data"]["freshness"]
+        is None
+    )
 
 
 def test_backtests_and_system_activity(api):

@@ -65,10 +65,70 @@ def test_a_series_name_without_a_benchmark_prefix_is_never_matched(tmp_path, nam
     assert a.series_for(1) is None
 
 
-def test_session_dependencies_are_per_series(tmp_path):
+def test_session_dependencies_are_per_series_and_keep_existence_kind_and_hours_apart(tmp_path):
     release(tmp_path, "1.0", tmp_path / "benchmark-audit")
     a = artifacts.load(tmp_path)
-    assert a.session_dependencies(1) == {
-        "series": "B1_X_GROSS_TRI", "observed_outcomes": {"CONFIRMED_REGULAR": 2},
-        "missing_outcomes": {"EXPECTED_CLOSED": 4}}  # fmt: skip
+    dep = a.session_dependencies(1)
+    assert dep["series"] == "B1_X_GROSS_TRI"
+    assert [(r["code"], r["count"]) for r in dep["observed"]] == [("CONFIRMED_REGULAR", 2)]
+    assert (
+        dep["observed"][0]["existence"] == "CONFIRMED"
+        and dep["observed"][0]["hours"] == "ASSUMED_CURRENT_SCHEDULE"
+    )
+    assert [(r["code"], r["count"]) for r in dep["missing"]] == [("EXPECTED_CLOSED", 4)]
+    assert dep["missing"][0]["existence"] is None
     assert a.session_dependencies(9) is None
+
+
+def test_a_confirmed_special_session_is_described_as_existence_only():
+    (row,) = artifacts.describe_outcomes({"CONFIRMED_SPECIAL": 32})
+    assert row["label"] == "session existence confirmed by an exchange file; kind not confirmed"
+    assert (row["existence"], row["kind"], row["hours"]) == ("CONFIRMED", "UNCONFIRMED", "UNKNOWN")
+    assert "special" not in row["label"].replace("kind", "")  # the label never asserts a kind
+
+
+def test_every_observed_and_missing_outcome_has_a_description_and_unknown_codes_fall_back():
+    rows = artifacts.describe_outcomes(
+        {
+            **dict.fromkeys(artifacts.OBSERVED, 1),
+            **dict.fromkeys(artifacts.MISSING, 2),
+            "SOMETHING_NEW": 3,
+        }
+    )
+    assert len(rows) == len(artifacts.OBSERVED) + len(artifacts.MISSING) + 1
+    assert next(r for r in rows if r["code"] == "SOMETHING_NEW")["label"] == "something new"
+    assert all(r["existence"] for r in rows if r["code"] in artifacts.OBSERVED)
+    assert [r["code"] for r in rows] == sorted(r["code"] for r in rows)
+
+
+def test_session_properties_are_only_reported_for_the_file_the_release_froze(tmp_path):
+    import hashlib
+
+    f = tmp_path / "sessions.json"
+    f.write_text(
+        json.dumps(
+            {
+                "sessions": [
+                    {"kind_status": "UNCONFIRMED (a)", "hours_status": "UNKNOWN (b)"},
+                    {"kind_status": "UNCONFIRMED (a)", "hours_status": "UNKNOWN (b)"},
+                    {"kind_status": "CONFIRMED (c)", "hours_status": "VERIFIED (d)"},
+                ]
+            }
+        )
+    )
+    frozen = {
+        "calendar_inputs": {"sessions_file_sha256": hashlib.sha256(f.read_bytes()).hexdigest()}
+    }
+    props = artifacts.session_properties(f, frozen)
+    assert props == {
+        "listed_sessions": 3,
+        "kind": {"CONFIRMED": 1, "UNCONFIRMED": 2},
+        "opening_time": {"UNKNOWN": 2, "VERIFIED": 1},
+        "closing_time": {"UNKNOWN": 2, "VERIFIED": 1},
+    }
+    assert (
+        artifacts.session_properties(f, {"calendar_inputs": {"sessions_file_sha256": "other"}})
+        is None
+    )
+    assert artifacts.session_properties(f, {}) is None
+    assert artifacts.session_properties(tmp_path / "missing.json", frozen) is None

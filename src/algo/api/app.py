@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from algo.api import artifacts, queries
+from algo.api import artifacts, freshness, queries
+from algo.core.clock import Clock, SystemClock
 
 Adjust = Literal["none", "split", "total_return"]
 
@@ -57,7 +58,11 @@ def create_app(
     origins: tuple[str, ...] = ("http://localhost:3000",),
     *,
     interactive_docs: bool = False,
+    clock: Clock | None = None,
+    sessions_file: Path | None = None,
 ) -> FastAPI:
+    clock = clock or SystemClock()
+    sessions_path = sessions_file or docs_root.parent / "config" / "exchange_sessions.json"
     app = FastAPI(
         title="Vinayak Trading Research Console API",
         version="0.1",
@@ -82,6 +87,12 @@ def create_app(
         except psycopg.Error as e:
             db = f"error: {type(e).__name__}"
         return {"api": "ok", "database": db, "redis": "not configured"}
+
+    def fresh(c: psycopg.Connection) -> dict[str, Any] | None:
+        last = queries.data_health(c)["last_date"]
+        if last is None:
+            return None
+        return freshness.assess(date.fromisoformat(last), clock.now(), queries.known_holidays(c))
 
     @app.get("/api/dashboard")
     def dashboard(c: Conn) -> dict[str, Any]:
@@ -109,7 +120,7 @@ def create_app(
                 "state": "UNKNOWN",
                 "reason": "the platform state machine is not persisted",
             },
-            "data": queries.data_health(c),
+            "data": {**queries.data_health(c), "freshness": fresh(c)},
             "benchmarks": {
                 "release": a.version if a else None,
                 "series": series,
@@ -179,8 +190,11 @@ def create_app(
                 {
                     "calendar_version": a.session["calendar_version"],
                     "evidence": a.session["evidence"]["bhavcopy_range"],
-                    "outcome_counts_all_series": a.session["observed_counts"],
+                    "all_series": artifacts.describe_outcomes(a.session["observed_counts"]),
                     "this_series": a.session_dependencies(benchmark_id),
+                    "listed_special_sessions": artifacts.session_properties(
+                        sessions_path, a.release
+                    ),
                     "historical_session_hours": a.session["historical_session_hours"]["statement"],
                 }
                 if a
@@ -201,7 +215,7 @@ def create_app(
     ) -> dict[str, Any]:
         if not any(b["id"] == benchmark_id for b in queries.benchmarks(c)):
             raise HTTPException(404, f"no benchmark {benchmark_id}")
-        return {"levels": queries.benchmark_levels(c, benchmark_id, start, end, max_points)}
+        return queries.benchmark_levels(c, benchmark_id, start, end, max_points)
 
     @app.get("/api/backtests")
     def backtest_list(
