@@ -28,3 +28,13 @@ def test_a_missing_connection_string_is_an_explicit_error(monkeypatch):
     monkeypatch.delenv("ALGO_DB_URL", raising=False)
     with pytest.raises(RuntimeError, match="ALGO_DB_URL is not set"):
         build()
+
+
+def test_interactive_docs_need_an_explicit_opt_in(monkeypatch):
+    monkeypatch.setenv("ALGO_DB_URL", "postgresql://u@h/db")
+    monkeypatch.delenv("ALGO_API_DOCS", raising=False)
+    assert build().docs_url is None and build().openapi_url is None
+    monkeypatch.setenv("ALGO_API_DOCS", "1")
+    assert build().docs_url == "/docs"
+    monkeypatch.setenv("ALGO_API_DOCS", "yes")
+    assert build().docs_url is None  # only the exact value 1 turns them on

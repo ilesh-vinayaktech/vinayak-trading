@@ -12,14 +12,39 @@ from typing import Annotated, Any, Literal
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from algo.api import artifacts, queries
 
 Adjust = Literal["none", "split", "total_return"]
 
+# Every connection is read-only and bounded: the API cannot write and a runaway query is cut.
+DB_OPTIONS = (
+    "-c default_transaction_read_only=on -c statement_timeout=15000"
+    " -c idle_in_transaction_session_timeout=30000"
+)
+MAX_RANGE_DAYS = 366 * 40
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cross-Origin-Resource-Policy": "same-site",
+}
+
+
+class SecurityHeaders(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: Any) -> Response:
+        response: Response = await call_next(request)
+        for k, v in SECURITY_HEADERS.items():
+            response.headers[k] = v
+        return response
+
 
 def get_conn(request: Request) -> Iterator[psycopg.Connection]:
-    with psycopg.connect(request.app.state.dsn) as c:
+    with psycopg.connect(request.app.state.dsn, options=DB_OPTIONS, connect_timeout=5) as c:
         yield c
 
 
@@ -27,9 +52,20 @@ Conn = Annotated[psycopg.Connection, Depends(get_conn)]
 
 
 def create_app(
-    dsn: str, docs_root: Path, origins: tuple[str, ...] = ("http://localhost:3000",)
+    dsn: str,
+    docs_root: Path,
+    origins: tuple[str, ...] = ("http://localhost:3000",),
+    *,
+    interactive_docs: bool = False,
 ) -> FastAPI:
-    app = FastAPI(title="Vinayak Trading Research Console API", version="0.1")
+    app = FastAPI(
+        title="Vinayak Trading Research Console API",
+        version="0.1",
+        docs_url="/docs" if interactive_docs else None,
+        redoc_url=None,
+        openapi_url="/openapi.json" if interactive_docs else None,
+    )
+    app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["GET"],
                        allow_headers=["*"])  # fmt: skip
@@ -40,7 +76,7 @@ def create_app(
     @app.get("/api/health")
     def health() -> dict[str, Any]:
         try:
-            with psycopg.connect(dsn, connect_timeout=3) as c:
+            with psycopg.connect(dsn, options=DB_OPTIONS, connect_timeout=3) as c:
                 c.execute("SELECT 1")
             db = "ok"
         except psycopg.Error as e:
@@ -89,13 +125,15 @@ def create_app(
                 "database": "ok",
                 "redis": "not configured",
                 "api": "ok",
-                "recent_ingestion": queries.ingestion_activity(c, 5),
+                "recent_ingestion": queries.ingestion_activity(c, 5)["items"],
             },  # fmt: skip
         }
 
     @app.get("/api/instruments")
     def instruments(
-        c: Conn, q: Annotated[str, Query(min_length=1)], limit: int = Query(20, ge=1, le=100)
+        c: Conn,
+        q: Annotated[str, Query(min_length=1, max_length=64)],
+        limit: int = Query(20, ge=1, le=100),
     ) -> list[dict[str, Any]]:
         return queries.search_instruments(c, q, limit)
 
@@ -112,6 +150,8 @@ def create_app(
     ) -> dict[str, Any]:
         if end < start:
             raise HTTPException(422, "end before start")
+        if (end - start).days > MAX_RANGE_DAYS:
+            raise HTTPException(422, "range longer than 40 years")
         if queries.instrument(c, instrument_id) is None:
             raise HTTPException(404, f"no instrument {instrument_id}")
         return queries.instrument_bars(c, instrument_id, start, end, adjust)
@@ -140,6 +180,7 @@ def create_app(
                     "calendar_version": a.session["calendar_version"],
                     "evidence": a.session["evidence"]["bhavcopy_range"],
                     "outcome_counts_all_series": a.session["observed_counts"],
+                    "this_series": a.session_dependencies(benchmark_id),
                     "historical_session_hours": a.session["historical_session_hours"]["statement"],
                 }
                 if a
@@ -163,8 +204,10 @@ def create_app(
         return {"levels": queries.benchmark_levels(c, benchmark_id, start, end, max_points)}
 
     @app.get("/api/backtests")
-    def backtest_list(c: Conn) -> list[dict[str, Any]]:
-        return queries.backtests(c)
+    def backtest_list(
+        c: Conn, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)
+    ) -> dict[str, Any]:
+        return queries.backtests(c, limit, offset)
 
     @app.get("/api/backtests/{run_id}")
     def backtest(c: Conn, run_id: int) -> dict[str, Any]:
@@ -177,15 +220,23 @@ def create_app(
         out: list[dict[str, Any]] = []
         for b in queries.benchmarks(c):
             history = queries.benchmark_validations(c, b["id"])
-            out.append({"benchmark_id": b["id"], "latest": history[0] if history else None})
+            out.append(
+                {
+                    "benchmark_id": b["id"],
+                    "name": b["name"],
+                    "latest": history[0] if history else None,
+                }
+            )
         return out
 
     @app.get("/api/system/activity")
-    def activity(c: Conn) -> dict[str, Any]:
+    def activity(
+        c: Conn, limit: int = Query(25, ge=1, le=200), offset: int = Query(0, ge=0)
+    ) -> dict[str, Any]:
         return {
-            "ingestion": queries.ingestion_activity(c, 50),
+            "ingestion": queries.ingestion_activity(c, limit, offset),
             "validations": latest_validations(c),
-            "backtests": queries.backtests(c, 10),
+            "backtests": queries.backtests(c, 10)["items"],
             "jobs": {"persisted": False, "note": "job runtime and resource use are not recorded"},
         }  # fmt: skip
 

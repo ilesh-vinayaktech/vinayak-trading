@@ -19,7 +19,11 @@ def release(docs, version, audit_dir):
         {"id": "U1", "applies_to": ["ALL"]}, {"id": "U2", "applies_to": ["B1"]},
         {"id": "U3", "applies_to": ["B2"]}]})  # fmt: skip
     write(audit_dir / "benchmark_alignment_report.json", {"benchmarks": {}})
-    write(audit_dir / "session_reconciliation_report.json", {"observed_counts": {}})
+    write(audit_dir / "session_reconciliation_report.json", {
+        "observed_counts": {},
+        "observed": {"2024-01-01": ["CONFIRMED_REGULAR", ["B1", "B2"]], "2024-01-02": ["X", ["B2"]],
+                     "2024-01-03": ["CONFIRMED_REGULAR", ["B1"]]},
+        "missing_counts": {"B1_X_GROSS_TRI": {"EXPECTED_CLOSED": 4}}})  # fmt: skip
 
 
 def test_the_newest_release_is_used_and_its_matching_audit_directory_is_read(tmp_path):
@@ -59,3 +63,12 @@ def test_a_series_name_without_a_benchmark_prefix_is_never_matched(tmp_path, nam
     a = artifacts.load(tmp_path)
     object.__setattr__(a, "eligibility", {"benchmarks": {name: {}}})
     assert a.series_for(1) is None
+
+
+def test_session_dependencies_are_per_series(tmp_path):
+    release(tmp_path, "1.0", tmp_path / "benchmark-audit")
+    a = artifacts.load(tmp_path)
+    assert a.session_dependencies(1) == {
+        "series": "B1_X_GROSS_TRI", "observed_outcomes": {"CONFIRMED_REGULAR": 2},
+        "missing_outcomes": {"EXPECTED_CLOSED": 4}}  # fmt: skip
+    assert a.session_dependencies(9) is None

@@ -145,13 +145,20 @@ def test_research_and_activity_summaries_on_an_empty_research_store(env):
     assert queries.research_health(conn) == {
         "backtests": 0, "experiments": 0, "validation_reports": 0, "validation_reports_passed": 0,
         "latest_run": None}  # fmt: skip
-    assert queries.backtests(conn) == [] and queries.backtest(conn, 1) is None
+    assert queries.backtests(conn) == {"items": [], "total": 0, "limit": 50, "offset": 0}
+    assert queries.backtest(conn, 1) is None
     assert queries.corporate_action_health(conn) == {
         "actions_by_status": {"ok": 1}, "resolutions_by_status": {}}  # fmt: skip
     conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
                  " ('nse','bhav','2025-06-09','loaded',%s)", (NOW,))  # fmt: skip
     act = queries.ingestion_activity(conn, 5)
-    assert act[0]["partition"] == "2025-06-09" and act[0]["status"] == "loaded"
+    assert act["total"] == 1 and (act["limit"], act["offset"]) == (5, 0)
+    row = act["items"][0]
+    assert (
+        row["partition"] == "2025-06-09"
+        and row["status"] == "loaded"
+        and row["superseded"] is False
+    )
 
 
 def test_a_backtest_run_is_listed_and_returned_in_full(env):
@@ -162,10 +169,41 @@ def test_a_backtest_run_is_listed_and_returned_in_full(env):
         "blocked_instruments,unmodelled_events,accounting_complete,dividends_received,metrics,"
         "result_hash,created_at,ledger_reconciled,reconciliation,pnl) VALUES ('s','1','{}','ph','c','research',"
         "'{}','{}','{}','[]','[]','[]','[]',true,12.50,'{\"sharpe\": 1.2}','rh',%s,true,'{}','{}')", (NOW,))  # fmt: skip
-    lst = queries.backtests(conn)
+    lst = queries.backtests(conn)["items"]
     assert lst[0]["strategy_id"] == "s" and lst[0]["metrics"] == {"sharpe": 1.2}
+    assert (
+        queries.backtests(conn, 1, 1)["items"] == [] and queries.backtests(conn, 1, 1)["total"] == 1
+    )
     full = queries.backtest(conn, lst[0]["run_id"])
     assert full["dividends_received"] == "12.50" and full["accounting_complete"] is True
     assert full["created_at"].startswith("2026-11-07") and full["params_hash"] == "ph"
     r = queries.research_health(conn)
     assert r["backtests"] == 1 and r["latest_run"]["strategy_id"] == "s"
+
+
+def test_a_superseded_quarantine_never_reads_as_a_live_problem(conn):
+    migrate(conn)
+    for status in ("quarantined", "loaded"):
+        conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
+                     " ('nse','bhav','2022-08-08',%s,%s)", (status, NOW))  # fmt: skip
+    conn.execute(
+        "INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
+        " ('nse','bhav','2022-08-09','quarantined',%s)",
+        (NOW,),
+    )  # still quarantined
+    page = queries.ingestion_activity(conn, 10)["items"]
+    by = {(r["partition"], r["status"]): r for r in page}
+    old = by[("2022-08-08", "quarantined")]
+    assert old["superseded"] is True and old["current_status"] == "loaded"
+    assert by[("2022-08-08", "loaded")]["superseded"] is False
+    live = by[("2022-08-09", "quarantined")]
+    assert live["superseded"] is False and live["current_status"] == "quarantined"
+    assert [r["id"] for r in queries.ingestion_activity(conn, 1, 1)["items"]] == [2]  # paging
+
+
+def test_search_treats_percent_and_underscore_literally(env):
+    conn, _ = env
+    assert queries.search_instruments(conn, "%") == []
+    assert queries.search_instruments(conn, "_") == []
+    assert queries.search_instruments(conn, "X_Z") == []
+    assert [r["symbol"] for r in queries.search_instruments(conn, "XYZ")] == ["XYZ"]

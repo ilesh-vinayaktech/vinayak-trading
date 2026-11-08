@@ -33,6 +33,23 @@ class Artifacts:
         name = self.series_for(benchmark_id)
         return None if name is None else {"series": name, **self.eligibility["benchmarks"][name]}
 
+    def session_dependencies(self, benchmark_id: int) -> dict[str, Any] | None:
+        """Session-calendar outcomes for THIS series only (dates it has a value on, and the
+        weekdays it lacks one), from the audit's per-date reconciliation."""
+        name = self.series_for(benchmark_id)
+        if name is None:
+            return None
+        short = name.split("_")[0]
+        counts: dict[str, int] = {}
+        for outcome, present in self.session["observed"].values():
+            if short in present:
+                counts[outcome] = counts.get(outcome, 0) + 1
+        return {
+            "series": name,
+            "observed_outcomes": dict(sorted(counts.items())),
+            "missing_outcomes": self.session["missing_counts"].get(name, {}),
+        }
+
     def findings_for(self, benchmark_id: int) -> list[dict[str, Any]]:
         name = self.series_for(benchmark_id)
         if name is None:

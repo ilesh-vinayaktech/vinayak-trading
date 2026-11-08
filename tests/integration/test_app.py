@@ -45,6 +45,10 @@ def docs(tmp_path):
     write(a / "session_reconciliation_report.json", {
         "calendar_version": {"sessions_file_sha256": "abc"}, "evidence": {"bhavcopy_range": ["a", "b"]},
         "observed_counts": {"CONFIRMED_REGULAR": 2},
+        "observed": {"2024-01-01": ["CONFIRMED_REGULAR", ["B1", "B2"]],
+                     "2024-01-02": ["WEEKDAY_RULE_PROVISIONAL", ["B1"]],
+                     "2024-01-03": ["CONFIRMED_REGULAR", ["B2"]]},
+        "missing_counts": {"B1_NIFTY200_GROSS_TRI": {"EXPECTED_CLOSED": 3}},
         "historical_session_hours": {"statement": "hours are assumed"}})  # fmt: skip
     return tmp_path
 
@@ -165,6 +169,11 @@ def test_benchmark_list_detail_and_levels(api):
     assert [f["id"] for f in d["findings"]] == ["U02"] and d["instrument_level_blocked_dates"] == []
     assert d["session_calendar"]["historical_session_hours"] == "hours are assumed"
     assert d["session_calendar"]["outcome_counts_all_series"] == {"CONFIRMED_REGULAR": 2}
+    assert d["session_calendar"]["this_series"] == {
+        "series": "B1_NIFTY200_GROSS_TRI",
+        "observed_outcomes": {"CONFIRMED_REGULAR": 1, "WEEKDAY_RULE_PROVISIONAL": 1},
+        "missing_outcomes": {"EXPECTED_CLOSED": 3},
+    }  # only the dates B1 has a value on
     assert c.get("/api/benchmarks/99").status_code == 404
     lv = c.get(f"/api/benchmarks/{bid}/levels").json()["levels"]
     assert [p["date"] for p in lv] == ["2024-01-01", "2024-01-02", "2024-01-03"]
@@ -174,7 +183,7 @@ def test_benchmark_list_detail_and_levels(api):
 
 def test_backtests_and_system_activity(api):
     c, _, bid = api
-    assert c.get("/api/backtests").json() == []
+    assert c.get("/api/backtests").json() == {"items": [], "total": 0, "limit": 50, "offset": 0}
     assert c.get("/api/backtests/1").status_code == 404
     a = c.get("/api/system/activity").json()
     assert a["jobs"]["persisted"] is False and a["backtests"] == []
@@ -190,7 +199,7 @@ def test_the_validation_list_tolerates_a_benchmark_with_no_validation(conn, pg_u
         conn, name="N", provider="p", index_symbol="X", return_type="PRICE", methodology_version="m"
     )
     a = TestClient(create_app(pg_url, docs)).get("/api/system/activity").json()
-    assert a["validations"] == [{"benchmark_id": 1, "latest": None}]
+    assert a["validations"] == [{"benchmark_id": 1, "name": "N", "latest": None}]
 
 
 def test_cors_allows_only_the_console_origin_and_get(api):
@@ -210,7 +219,84 @@ def test_a_stored_backtest_is_listed_and_returned_by_id(api, conn):
         "blocked_instruments,unmodelled_events,accounting_complete,dividends_received,metrics,"
         "result_hash,created_at,ledger_reconciled,reconciliation,pnl) VALUES ('s','1','{}','ph','c',"
         "'research','{}','{}','{}','[]','[]','[]','[]',true,0,'{}','rh',%s,true,'{}','{}')", (NOW,))  # fmt: skip
-    run = c.get("/api/backtests").json()[0]
+    run = c.get("/api/backtests").json()["items"][0]
     assert run["strategy_id"] == "s" and run["ledger_reconciled"] is True
     full = c.get(f"/api/backtests/{run['run_id']}").json()
     assert full["result_hash"] == "rh" and full["reader_mode"] == "research"
+
+
+def test_every_database_session_is_read_only_and_time_limited(pg_url, conn):
+    import psycopg
+
+    from algo.api.app import DB_OPTIONS
+
+    migrate(conn)
+    with psycopg.connect(pg_url, options=DB_OPTIONS) as ro:
+        assert ro.execute("SELECT 1").fetchone() == (1,)
+        with pytest.raises(psycopg.errors.ReadOnlySqlTransaction):
+            ro.execute("CREATE TABLE intruder (x int)")
+        ro.rollback()
+        with pytest.raises(psycopg.errors.ReadOnlySqlTransaction):
+            ro.execute(
+                "INSERT INTO partition_load (source,dataset,partition,status) VALUES ('a','b','2024-01-01','loaded')"
+            )
+        ro.rollback()
+        assert ro.execute("SHOW statement_timeout").fetchone() == ("15s",)
+
+
+def test_responses_carry_security_headers_and_are_never_cached(api):
+    r = api[0].get("/api/health")
+    assert (
+        r.headers["x-content-type-options"] == "nosniff" and r.headers["x-frame-options"] == "DENY"
+    )
+    assert (
+        r.headers["referrer-policy"] == "no-referrer" and r.headers["cache-control"] == "no-store"
+    )
+    assert "geolocation=()" in r.headers["permissions-policy"]
+    assert api[0].get("/api/instruments/999").headers["x-frame-options"] == "DENY"  # errors too
+
+
+def test_interactive_docs_are_off_unless_asked_for(api, pg_url, docs):
+    c = api[0]
+    assert c.get("/docs").status_code == 404 and c.get("/openapi.json").status_code == 404
+    on = TestClient(create_app(pg_url, docs, interactive_docs=True))
+    assert on.get("/docs").status_code == 200 and on.get("/openapi.json").status_code == 200
+
+
+def test_inputs_are_bounded(api):
+    c, iid, _ = api
+    assert c.get("/api/instruments", params={"q": "x" * 65}).status_code == 422
+    assert c.get("/api/instruments", params={"q": "x" * 64}).status_code == 200
+    assert c.get("/api/instruments", params={"q": "x", "limit": 101}).status_code == 422
+    wide = {"start": "1900-01-01", "end": "2100-01-01"}
+    assert c.get(f"/api/instruments/{iid}/bars", params=wide).status_code == 422
+    ok = {"start": "1990-01-01", "end": "2026-01-01"}
+    assert c.get(f"/api/instruments/{iid}/bars", params=ok).status_code == 200
+    assert c.get("/api/backtests", params={"limit": 201}).status_code == 422
+    assert c.get("/api/backtests", params={"offset": -1}).status_code == 422
+    assert c.get("/api/system/activity", params={"limit": 0}).status_code == 422
+
+
+def test_a_wildcard_search_does_not_dump_the_universe(api):
+    c = api[0]
+    assert c.get("/api/instruments", params={"q": "%"}).json() == []
+
+
+def test_activity_is_paged_and_marks_superseded_rows(api, conn):
+    c = api[0]
+    for status in ("quarantined", "loaded"):
+        conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
+                     " ('nse','bhav','2022-08-08',%s,%s)", (status, NOW))  # fmt: skip
+    page = c.get("/api/system/activity", params={"limit": 1}).json()["ingestion"]
+    assert (
+        page["total"] == 2 and len(page["items"]) == 1 and page["items"][0]["superseded"] is False
+    )
+    rest = c.get("/api/system/activity", params={"limit": 1, "offset": 1}).json()["ingestion"]
+    assert rest["items"][0]["superseded"] is True and rest["items"][0]["current_status"] == "loaded"
+
+
+def test_the_activity_page_names_each_benchmark_and_starts_with_an_empty_paged_log(api):
+    c, _, _ = api
+    a = c.get("/api/system/activity").json()
+    assert a["validations"][0]["name"] == "N200"
+    assert a["ingestion"] == {"items": [], "total": 0, "limit": 25, "offset": 0}

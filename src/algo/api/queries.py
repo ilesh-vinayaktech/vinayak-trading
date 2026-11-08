@@ -30,11 +30,13 @@ def _one(conn: psycopg.Connection, sql: str, args: tuple[Any, ...] = ()) -> tupl
 
 
 def data_health(conn: psycopg.Connection) -> dict[str, Any]:
-    first, last, bars, with_bars = _one(
+    bars = _one(conn, "SELECT count(*) FROM bar_1d")[0]
+    first, last = _one(conn, "SELECT min(ts), max(ts) FROM bar_1d")
+    with_bars = _one(
         conn,
-        f"SELECT min({IST_DAY}), max({IST_DAY}), count(*), count(DISTINCT instrument_id)"
-        " FROM bar_1d",
-    )
+        "SELECT count(*) FROM instrument i WHERE EXISTS"
+        " (SELECT 1 FROM bar_1d b WHERE b.instrument_id = i.instrument_id)",
+    )[0]
     per_day = _rows(
         conn,
         f"SELECT {IST_DAY} d, count(*) FROM bar_1d GROUP BY 1 ORDER BY 1 DESC LIMIT 2",
@@ -61,8 +63,10 @@ def data_health(conn: psycopg.Connection) -> dict[str, Any]:
     ]
     instruments = dict(_rows(conn, "SELECT status, count(*) FROM instrument GROUP BY 1"))
     return {
-        "bars": bars, "instruments_with_bars": with_bars, "first_date": _iso(first),
-        "last_date": _iso(last), "bars_on_last_date": latest_n, "bars_on_previous_date": previous_n,
+        "bars": bars, "instruments_with_bars": with_bars,
+        "first_date": None if first is None else first.astimezone(IST).date().isoformat(),
+        "last_date": None if last is None else last.astimezone(IST).date().isoformat(),
+        "bars_on_last_date": latest_n, "bars_on_previous_date": previous_n,
         "partitions": status, "quarantined_partitions": quarantined, "instruments": instruments,
     }  # fmt: skip
 
@@ -91,27 +95,37 @@ def research_health(conn: psycopg.Connection) -> dict[str, Any]:
     }  # fmt: skip
 
 
-def ingestion_activity(conn: psycopg.Connection, limit: int = 25) -> list[dict[str, Any]]:
+def ingestion_activity(
+    conn: psycopg.Connection, limit: int = 25, offset: int = 0
+) -> dict[str, Any]:
+    """Load events newest first. A row is `superseded` when a later load of the same partition
+    exists, and carries that partition's CURRENT status, so an old quarantine that was resolved
+    never reads as a live problem."""
+    total = _one(conn, "SELECT count(*) FROM partition_load")[0]
     rows = _rows(
         conn,
-        "SELECT id, source, dataset, partition, status, at FROM partition_load"
-        " ORDER BY id DESC LIMIT %s",
-        (limit,),
+        "SELECT p.id, p.source, p.dataset, p.partition, p.status, p.at, c.status, c.id"
+        " FROM partition_load p JOIN LATERAL (SELECT status, id FROM partition_load q"
+        " WHERE q.source=p.source AND q.dataset=p.dataset AND q.partition=p.partition"
+        " ORDER BY q.id DESC LIMIT 1) c ON true ORDER BY p.id DESC LIMIT %s OFFSET %s",
+        (limit, offset),
     )
-    return [
+    items = [
         {"id": r[0], "source": r[1], "dataset": r[2], "partition": _iso(r[3]), "status": r[4],
-         "at": _iso(r[5])} for r in rows
+         "at": _iso(r[5]), "current_status": r[6], "superseded": r[7] != r[0]} for r in rows
     ]  # fmt: skip
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 def search_instruments(conn: psycopg.Connection, q: str, limit: int = 20) -> list[dict[str, Any]]:
-    like = f"{q.strip().upper()}%"
+    term = q.strip().upper().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    like = f"{term}%"
     rows = _rows(
         conn,
         "SELECT instrument_id, symbol, isin, name, status, listed_on, delisted_on FROM instrument"
         " WHERE upper(symbol) LIKE %s OR upper(coalesce(isin,'')) LIKE %s"
         " OR upper(coalesce(name,'')) LIKE %s ORDER BY (upper(symbol)=%s) DESC, symbol LIMIT %s",
-        (like, like, f"%{q.strip().upper()}%", q.strip().upper(), limit),
+        (like, like, f"%{term}%", q.strip().upper(), limit),
     )
     return [_instrument(r) for r in rows]
 
@@ -230,19 +244,21 @@ def benchmark_levels(
     return [{"date": d.isoformat(), "level": str(v)} for d, v in keep]
 
 
-def backtests(conn: psycopg.Connection, limit: int = 50) -> list[dict[str, Any]]:
+def backtests(conn: psycopg.Connection, limit: int = 50, offset: int = 0) -> dict[str, Any]:
+    total = _one(conn, "SELECT count(*) FROM backtest_run")[0]
     rows = _rows(
         conn,
         "SELECT run_id, strategy_id, strategy_version, reader_mode, created_at, metrics,"
         " accounting_complete, ledger_reconciled, result_hash FROM backtest_run"
-        " ORDER BY run_id DESC LIMIT %s",
-        (limit,),
+        " ORDER BY run_id DESC LIMIT %s OFFSET %s",
+        (limit, offset),
     )
-    return [
+    items = [
         {"run_id": r[0], "strategy_id": r[1], "strategy_version": r[2], "reader_mode": r[3],
          "created_at": _iso(r[4]), "metrics": r[5], "accounting_complete": r[6],
          "ledger_reconciled": r[7], "result_hash": r[8]} for r in rows
     ]  # fmt: skip
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 def backtest(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
