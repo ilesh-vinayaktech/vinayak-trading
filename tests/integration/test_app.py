@@ -35,9 +35,33 @@ def docs(tmp_path):
                 {
                     "id": "U02",
                     "title": "hours",
+                    "severity": "HIGH",
+                    "status": "UNRESOLVED",
+                    "category": "session-hours",
+                    "detail": "hours are assumed",
                     "applies_to": ["ALL"],
                     "blocks": ["INTRADAY_RESEARCH"],
-                }
+                },
+                {
+                    "id": "U01",
+                    "title": "recovered",
+                    "severity": "INFO",
+                    "status": "RESOLVED",
+                    "category": "session-evidence",
+                    "detail": "resolved",
+                    "applies_to": ["ALL"],
+                    "blocks": [],
+                },
+                {
+                    "id": "U07",
+                    "title": "explained",
+                    "severity": "LOW",
+                    "status": "ACCEPTED_WITH_EVIDENCE",
+                    "category": "methodology",
+                    "detail": "accepted",
+                    "applies_to": ["B1"],
+                    "blocks": [],
+                },
             ]
         },
     )
@@ -166,7 +190,9 @@ def test_benchmark_list_detail_and_levels(api):
     assert lst["benchmarks"][0]["eligibility"]["state"] == "RESEARCH_ELIGIBLE"
     d = c.get(f"/api/benchmarks/{bid}").json()
     assert d["validations"][0]["technical_validation_passed"] is True
-    assert [f["id"] for f in d["findings"]] == ["U02"] and d["instrument_level_blocked_dates"] == []
+    assert [f["id"] for f in d["findings"]] == ["U02", "U01", "U07"] and d[
+        "instrument_level_blocked_dates"
+    ] == []
     assert d["session_calendar"]["historical_session_hours"] == "hours are assumed"
     cal = d["session_calendar"]
     assert [(r["code"], r["count"]) for r in cal["all_series"]] == [("CONFIRMED_REGULAR", 2)]

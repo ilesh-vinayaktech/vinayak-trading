@@ -12,6 +12,7 @@ export const dashboard = {
     partitions: { loaded: 1763, not_published: 100 },
     quarantined_partitions: [],
     instruments: { active: 2630, delisted: 18 },
+    freshness: { latest_bar_session: "2026-11-06", expected_latest_session: "2026-11-06", next_session: "2026-11-09", sessions_behind: 0, status: "CURRENT", basis: "sessions are weekdays minus learned holidays" },
   },
   benchmarks: {
     release: "1.1",
@@ -21,7 +22,17 @@ export const dashboard = {
       { id: 3, name: "Nifty 50 Net Total Return Index", return_type: "NET_TOTAL_RETURN", ingested: true, technically_validated: false, research_eligible_daily: true, research_eligible_intraday: false, benchmark_gate_eligible: false, eligibility_state: "RESEARCH_ELIGIBLE" },
     ],
   },
-  corporate_actions: { actions_by_status: { ok: 4294, review: 529 }, resolutions_by_status: { provisional: 10 } },
+  corporate_actions: {
+    actions_by_status: { ok: 4294, review: 529 },
+    resolutions_by_status: { provisional: 10, no_adjustment_verified: 24, ignored_with_reason: 2 },
+    total_events: 4823,
+    verified: 4294,
+    pending_review: 529,
+    review_without_any_resolution: 493,
+    provisional_adjustments: 10,
+    no_adjustment_verified: 24,
+    ignored_with_reason: 2,
+  },
   research: { backtests: 0, experiments: 0, validation_reports: 0, validation_reports_passed: 0, latest_run: null },
   strategies: { persisted: false, note: "strategy lifecycle states are not stored yet" },
   system: { database: "ok", redis: "not configured", api: "ok", recent_ingestion: [{ id: 1, source: "nse", dataset: "bhav", partition: "2026-11-06", status: "loaded", at: "2026-11-06T18:09:57+00:00", current_status: "loaded", superseded: false }] },
@@ -59,8 +70,18 @@ export const benchmarkDetail = {
   session_calendar: {
     calendar_version: { sessions_file_sha256: "abc" },
     evidence: ["2019-10-01", "2026-11-06"],
-    outcome_counts_all_series: { WEEKDAY_RULE_PROVISIONAL: 4505, CONFIRMED_REGULAR: 2268 },
-    this_series: { series: "B3_NIFTY50_NET_TRI", observed_outcomes: { WEEKDAY_RULE_PROVISIONAL: 4500, CONFIRMED_REGULAR: 1753 }, missing_outcomes: { EXPECTED_CLOSED_INFERRED: 259 } },
+    all_series: [
+      { code: "CONFIRMED_SPECIAL", count: 32, label: "session existence confirmed by an exchange file; kind not confirmed", existence: "CONFIRMED", kind: "UNCONFIRMED", hours: "UNKNOWN" },
+    ],
+    this_series: {
+      series: "B3_NIFTY50_NET_TRI",
+      observed: [
+        { code: "CONFIRMED_SPECIAL", count: 30, label: "session existence confirmed by an exchange file; kind not confirmed", existence: "CONFIRMED", kind: "UNCONFIRMED", hours: "UNKNOWN" },
+        { code: "WEEKDAY_RULE_PROVISIONAL", count: 4500, label: "weekday by calendar rule only; no exchange evidence", existence: "PROVISIONAL", kind: "REGULAR_BY_RULE", hours: "ASSUMED_CURRENT_SCHEDULE" },
+      ],
+      missing: [{ code: "EXPECTED_CLOSED_INFERRED", count: 259, label: "no value; exchange files either side chain over the day", existence: null, kind: null, hours: null }],
+    },
+    listed_special_sessions: { listed_sessions: 32, kind: { UNCONFIRMED: 32 }, opening_time: { UNKNOWN: 32 }, closing_time: { UNKNOWN: 32 } },
     historical_session_hours: "no historical session hours are held as evidence",
   },
   instrument_level_blocked_dates: [],

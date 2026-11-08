@@ -1,0 +1,67 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import {
+  activitySchema,
+  backtestPageSchema,
+  barsSchema,
+  benchmarkDetailSchema,
+  benchmarkListSchema,
+  dashboardSchema,
+  healthSchema,
+  instrumentDetailSchema,
+  instrumentSchema,
+  levelsSchema,
+} from "@/lib/schemas";
+
+// Fixtures are the API's real responses, written by tests/integration/test_contract.py. If the API
+// changes shape that test fails until they are regenerated, and this one fails until the UI schema
+// follows - so the UI is checked against what the backend really sends, not against hand-made mocks.
+const dir = join(__dirname, "contract");
+const load = (name: string): unknown => JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8"));
+
+const CASES: [string, z.ZodTypeAny][] = [
+  ["health", healthSchema],
+  ["dashboard", dashboardSchema],
+  ["instrument_search", z.array(instrumentSchema)],
+  ["instrument_detail", instrumentDetailSchema],
+  ["bars_none", barsSchema],
+  ["bars_split", barsSchema],
+  ["benchmark_list", benchmarkListSchema],
+  ["benchmark_detail", benchmarkDetailSchema],
+  ["benchmark_levels", levelsSchema],
+  ["backtests", backtestPageSchema],
+  ["activity", activitySchema],
+];
+
+describe("API contract", () => {
+  it.each(CASES)("the real %s response parses with the UI schema", (name, schema) => {
+    const r = schema.safeParse(load(name));
+    expect(r.success, r.success ? "" : JSON.stringify(r.error.issues[0])).toBe(true);
+  });
+
+  it("the schemas are strict about what matters: a mangled response is rejected", () => {
+    const bad = load("dashboard") as { benchmarks: { series: { gate?: unknown }[] } };
+    delete (bad.benchmarks.series[0] as Record<string, unknown>).technically_validated;
+    expect(dashboardSchema.safeParse(bad).success).toBe(false);
+    const levels = load("benchmark_levels") as Record<string, unknown>;
+    delete levels.downsampled;
+    expect(levelsSchema.safeParse(levels).success).toBe(false);
+  });
+
+  it("session outcomes keep existence, kind and hours apart and never assert a special kind", () => {
+    const d = benchmarkDetailSchema.parse(load("benchmark_detail"));
+    const rows = d.session_calendar?.this_series?.observed ?? [];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) expect(Object.keys(r)).toEqual(expect.arrayContaining(["existence", "kind", "hours"]));
+    expect(JSON.stringify(rows)).not.toMatch(/confirmed special/i);
+  });
+
+  it("freshness is judged by sessions, as the fixture's Sunday clock shows", () => {
+    const f = dashboardSchema.parse(load("dashboard")).data.freshness;
+    expect(f).not.toBeNull();
+    expect(f?.expected_latest_session).toBe("2026-11-06"); // the Friday before the fixture's Sunday
+    expect(f?.next_session).toBe("2026-11-09");
+  });
+});

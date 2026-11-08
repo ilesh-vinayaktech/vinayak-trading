@@ -1,0 +1,35 @@
+{
+ "benchmarks": [
+  {
+   "dataset_hash": "63809ca33fa1338125e59737d487b2e903371c383746e567ce1f58cf369a26ca",
+   "eligibility": {
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "state": "RESEARCH_ELIGIBLE",
+    "uses": {
+     "BENCHMARK_GATE": {
+      "blockers": [],
+      "eligible": false
+     },
+     "DAILY_RESEARCH": {
+      "blockers": [],
+      "eligible": true
+     },
+     "INTRADAY_RESEARCH": {
+      "blockers": [],
+      "eligible": false
+     }
+    }
+   },
+   "first": "2024-01-01",
+   "id": 1,
+   "index_symbol": "NIFTY 200",
+   "last": "2024-01-03",
+   "methodology_version": "m",
+   "name": "N200",
+   "observations": 3,
+   "return_type": "TOTAL_RETURN"
+  }
+ ],
+ "gate": "disabled",
+ "release": "1.1"
+}

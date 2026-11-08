@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import type { ReactNode } from "react";
+import { StateChip } from "./StateChip";
 
 export type Tone = "good" | "warn" | "bad" | "neutral";
 
@@ -22,6 +23,11 @@ export function Badge({ tone = "neutral", children }: { tone?: Tone; children: R
 export function Flag({ value, yes, no, goodWhen = true }: { value: boolean; yes: string; no: string; goodWhen?: boolean }) {
   const good = value === goodWhen;
   return <Badge tone={good ? "good" : "neutral"}>{value ? yes : no}</Badge>;
+}
+
+/** Eligibility is a state, not a tone: eligible and blocked must never look alike. */
+export function Eligibility({ eligible, yes = "eligible", no = "blocked" }: { eligible: boolean; yes?: string; no?: string }) {
+  return <StateChip state={eligible ? "ELIGIBLE" : "BLOCKED"} text={eligible ? yes : no} />;
 }
 
 export function severityTone(s: string): Tone {

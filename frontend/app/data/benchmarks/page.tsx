@@ -3,14 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { LineChart } from "@/components/charts/LineChart";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge, Flag, findingStatusTone, severityTone } from "@/components/status/Badge";
+import { Badge, Eligibility, findingStatusTone, severityTone } from "@/components/status/Badge";
+import { StateChip } from "@/components/status/StateChip";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { fmtDateTime, fmtInt, humanize, shortHash } from "@/lib/formatting";
-import type { Finding } from "@/lib/schemas";
+import type { Finding, Outcome } from "@/lib/schemas";
 
 function List() {
   const { data, error, isLoading } = useQuery({ queryKey: ["benchmarks"], queryFn: api.benchmarks });
@@ -44,9 +45,9 @@ function List() {
                     {b.first} to {b.last}
                     <div>{fmtInt(b.observations)} observations</div>
                   </td>
-                  <td className="px-2">{u ? <Flag value={u.DAILY_RESEARCH?.eligible ?? false} yes="eligible" no="blocked" /> : <Badge>unknown</Badge>}</td>
-                  <td className="px-2">{u ? <Flag value={u.INTRADAY_RESEARCH?.eligible ?? false} yes="eligible" no="blocked" /> : <Badge>unknown</Badge>}</td>
-                  <td className="px-2">{u ? <Flag value={u.BENCHMARK_GATE?.eligible ?? false} yes="eligible" no="not eligible" /> : <Badge>unknown</Badge>}</td>
+                  <td className="px-2">{u ? <Eligibility eligible={u.DAILY_RESEARCH?.eligible ?? false} /> : <StateChip state="UNKNOWN" />}</td>
+                  <td className="px-2">{u ? <Eligibility eligible={u.INTRADAY_RESEARCH?.eligible ?? false} /> : <StateChip state="UNKNOWN" />}</td>
+                  <td className="px-2">{u ? <Eligibility eligible={u.BENCHMARK_GATE?.eligible ?? false} no="not eligible" /> : <StateChip state="UNKNOWN" />}</td>
                 </tr>
               );
             })}
@@ -65,13 +66,123 @@ function sortFindings(fs: Finding[]): Finding[] {
   return [...fs].sort((a, b) => rank(a) - rank(b) || (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9) || a.id.localeCompare(b.id));
 }
 
+const RANGES = [
+  { key: "1Y", years: 1 },
+  { key: "3Y", years: 3 },
+  { key: "5Y", years: 5 },
+  { key: "10Y", years: 10 },
+  { key: "All", years: 0 },
+] as const;
+
+/** First date of a "last N years" window (a request parameter only; the API does the selecting). */
+function windowStart(last: string, years: number): string | undefined {
+  if (years === 0) return undefined;
+  const d = new Date(`${last}T00:00:00Z`);
+  d.setUTCFullYear(d.getUTCFullYear() - years);
+  return d.toISOString().slice(0, 10);
+}
+
+function Existence({ value }: { value: string | null }) {
+  const tone = value === "CONFIRMED" ? "good" : value === "PROVISIONAL" || value === "UNCONFIRMED" ? "warn" : "neutral";
+  return <Badge tone={tone}>{value ? value.toLowerCase().replace(/_/g, " ") : "-"}</Badge>;
+}
+
+function OutcomeTable({ rows, caption }: { rows: Outcome[]; caption: string }) {
+  const withProps = rows.some((r) => r.existence !== null);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <caption className="pb-1 text-left text-xs font-medium text-ink-soft">{caption}</caption>
+        <thead className="border-b border-line text-xs text-ink-soft">
+          <tr>
+            <th className="py-1 pr-2">What the audit found</th>
+            <th className="px-2 text-right">Dates</th>
+            {withProps ? (
+              <>
+                <th className="px-2">Existence</th>
+                <th className="px-2">Kind</th>
+                <th className="px-2">Hours</th>
+              </>
+            ) : null}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.code} className="border-b border-line last:border-0">
+              <td className="py-1 pr-2">{r.label}</td>
+              <td className="px-2 text-right tabular-nums">{fmtInt(r.count)}</td>
+              {withProps ? (
+                <>
+                  <td className="px-2"><Existence value={r.existence} /></td>
+                  <td className="px-2"><Existence value={r.kind} /></td>
+                  <td className="px-2"><Existence value={r.hours} /></td>
+                </>
+              ) : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function reportLabel(v: string): string {
   return v.startsWith("legacy") ? "legacy report format" : `report v${v}`;
 }
 
+function FindingList({ items }: { items: Finding[] }) {
+  return (
+    <ul className="divide-y divide-line">
+      {sortFindings(items).map((f) => (
+        <li key={f.id} className="py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs">{f.id}</span>
+            <Badge tone={severityTone(f.severity)}>{f.severity}</Badge>
+            <Badge tone={findingStatusTone(f.status)}>{humanize(f.status)}</Badge>
+            <span className="text-sm font-medium">{f.title}</span>
+          </div>
+          <p className="mt-1 text-sm text-ink-soft">{f.detail}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Active blockers first, then decisions already taken, then closed items. */
+function Findings({ findings }: { findings: Finding[] }) {
+  const active = findings.filter((f) => f.status === "UNRESOLVED");
+  const resolved = findings.filter((f) => f.status === "RESOLVED");
+  const accepted = findings.filter((f) => f.status !== "UNRESOLVED" && f.status !== "RESOLVED");
+  return (
+    <>
+      <Card title={`Active findings (${active.length})`} note="Unresolved: these are the current limits on how this benchmark may be used.">
+        {active.length ? <FindingList items={active} /> : <p className="text-sm text-ink-soft">No active findings.</p>}
+      </Card>
+      {accepted.length ? (
+        <Card title={`Accepted findings (${accepted.length})`} note="Accepted with evidence: explained, not numerically reconciled. The check itself still fails.">
+          <FindingList items={accepted} />
+        </Card>
+      ) : null}
+      {resolved.length ? (
+        <Card title={`Resolved findings (${resolved.length})`}>
+          <FindingList items={resolved} />
+        </Card>
+      ) : null}
+    </>
+  );
+}
+
 function Detail({ id }: { id: number }) {
+  const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("All");
   const d = useQuery({ queryKey: ["benchmark", id], queryFn: () => api.benchmark(id) });
-  const lv = useQuery({ queryKey: ["levels", id], queryFn: () => api.benchmarkLevels(id) });
+  const years = RANGES.find((r) => r.key === range)?.years ?? 0;
+  const last = d.data?.last ?? null;
+  const lv = useQuery({
+    queryKey: ["levels", id, range, last],
+    queryFn: () => api.benchmarkLevels(id, last ? windowStart(last, years) : undefined),
+    enabled: last !== null,
+    placeholderData: (prev) => prev,
+  });
   if (d.isLoading) return <Loading what="benchmark" />;
   if (d.error || !d.data) return <ErrorBox error={d.error} what="the benchmark" />;
   const b = d.data;
@@ -105,7 +216,21 @@ function Detail({ id }: { id: number }) {
         ) : null}
       </Card>
 
-      <Card title="Levels" note="Down-sampled by the API for display; the full series is in the database.">
+      <Card title="Levels">
+        <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Date range">
+          {RANGES.map((r) => (
+            <button key={r.key} type="button" aria-pressed={range === r.key} onClick={() => setRange(r.key)} className={`rounded px-3 py-1 text-xs ${range === r.key ? "bg-slate-900 text-white" : "bg-slate-100 text-ink-soft hover:bg-slate-200"}`}>
+              {r.key}
+            </button>
+          ))}
+          {lv.data ? (
+            <span className="ml-auto text-xs text-ink-soft" data-testid="sampling-note">
+              {lv.data.downsampled
+                ? `Showing ${fmtInt(lv.data.returned)} of ${fmtInt(lv.data.total_observations)} observations: down-sampled, every peak and trough kept. Pick a shorter range to see every observation.`
+                : `Showing all ${fmtInt(lv.data.total_observations)} observations in this range.`}
+            </span>
+          ) : null}
+        </div>
         {lv.isLoading ? <Loading what="levels" /> : lv.error || !lv.data ? <ErrorBox error={lv.error} what="levels" /> : <LineChart points={lv.data.levels} />}
       </Card>
 
@@ -128,22 +253,7 @@ function Detail({ id }: { id: number }) {
         </Card>
       ) : null}
 
-      <Card title="Findings that apply">
-        <ul className="divide-y divide-line">
-          {sortFindings(b.findings).map((f) => (
-            <li key={f.id} className="py-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs">{f.id}</span>
-                <Badge tone={severityTone(f.severity)}>{f.severity}</Badge>
-                <Badge tone={findingStatusTone(f.status)}>{humanize(f.status)}</Badge>
-                <span className="text-sm font-medium">{f.title}</span>
-              </div>
-              <p className="mt-1 text-sm text-ink-soft">{f.detail}</p>
-            </li>
-          ))}
-          {b.findings.length === 0 ? <li className="py-2 text-sm text-ink-soft">No findings recorded for this benchmark.</li> : null}
-        </ul>
-      </Card>
+      <Findings findings={b.findings} />
 
       <Card title="Validation history">
         <ul className="divide-y divide-line">
@@ -166,38 +276,53 @@ function Detail({ id }: { id: number }) {
         </ul>
       </Card>
 
-      <Card title="Session-calendar dependencies (this series)">
+      <Card title="Session-calendar dependencies">
         {b.session_calendar ? (
-          <div className="space-y-3 text-sm">
+          <div className="space-y-4 text-sm">
             <p className="text-ink-soft">{b.session_calendar.historical_session_hours}</p>
+            {b.session_calendar.listed_special_sessions ? (
+              <div>
+                <div className="mb-1 text-xs font-medium text-ink-soft">
+                  The {b.session_calendar.listed_special_sessions.listed_sessions} listed special sessions: what is established
+                </div>
+                <table className="text-left text-sm">
+                  <tbody>
+                    <tr className="border-b border-line">
+                      <th className="py-1 pr-6 font-medium">Session existence</th>
+                      <td><Existence value="CONFIRMED" /> <span className="text-xs text-ink-soft">by an exchange file (no benchmark-only sessions remain)</span></td>
+                    </tr>
+                    {(
+                      [
+                        ["Session kind", b.session_calendar.listed_special_sessions.kind],
+                        ["Opening time", b.session_calendar.listed_special_sessions.opening_time],
+                        ["Closing time", b.session_calendar.listed_special_sessions.closing_time],
+                      ] as const
+                    ).map(([label, counts]) => (
+                      <tr key={label} className="border-b border-line last:border-0">
+                        <th className="py-1 pr-6 font-medium">{label}</th>
+                        <td className="flex flex-wrap gap-2 py-1">
+                          {Object.entries(counts).map(([k, n]) => (
+                            <Badge key={k} tone={k === "CONFIRMED" || k === "VERIFIED" ? "good" : "warn"}>
+                              {k.toLowerCase()}: {fmtInt(n)}
+                            </Badge>
+                          ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
             {b.session_calendar.this_series ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <div className="mb-1 text-xs font-medium text-ink-soft">Dates this series has a value on</div>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(b.session_calendar.this_series.observed_outcomes).map(([k, v]) => (
-                      <Badge key={k} tone={k.includes("PROVISIONAL") || k.includes("BENCHMARK_ONLY") ? "warn" : "neutral"}>
-                        {humanize(k)}: {fmtInt(v)}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="mb-1 text-xs font-medium text-ink-soft">Weekdays and dates it has no value on</div>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(b.session_calendar.this_series.missing_outcomes).map(([k, v]) => (
-                      <Badge key={k} tone={k.includes("GAP") || k.includes("UNCONFIRMED") ? "warn" : "neutral"}>
-                        {humanize(k)}: {fmtInt(v)}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <OutcomeTable rows={b.session_calendar.this_series.observed} caption="Dates this series has a value on" />
+                <OutcomeTable rows={b.session_calendar.this_series.missing} caption="Dates inside its coverage with no value" />
               </div>
             ) : (
               <p className="text-ink-soft">No per-series calendar evidence for this benchmark.</p>
             )}
             <p className="text-xs text-ink-faint">
-              All four series together: {Object.entries(b.session_calendar.outcome_counts_all_series).map(([k, v]) => `${humanize(k)} ${fmtInt(v)}`).join(", ")}. Instrument-level blocked dates:{" "}
+              All four series together: {b.session_calendar.all_series.map((r) => `${r.label}: ${fmtInt(r.count)}`).join("; ")}. Instrument-level blocked dates:{" "}
               {b.instrument_level_blocked_dates.join(", ") || "none"}.
             </p>
           </div>

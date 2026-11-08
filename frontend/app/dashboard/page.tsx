@@ -3,16 +3,34 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge, Flag } from "@/components/status/Badge";
+import { Badge, Eligibility, Flag } from "@/components/status/Badge";
+import { StateChip } from "@/components/status/StateChip";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { fmtDateTime, fmtInt, humanize } from "@/lib/formatting";
+import type { Dashboard } from "@/lib/schemas";
 
-/** How old the newest bar is, as a plain calendar-day difference (display only). */
-function FreshnessBadge({ lastDate }: { lastDate: string }) {
-  const days = Math.floor((Date.now() - new Date(`${lastDate}T00:00:00Z`).getTime()) / 86_400_000);
-  const tone = days <= 4 ? "good" : days <= 10 ? "warn" : "bad";
-  return <Badge tone={tone}>newest bar {lastDate} ({days <= 0 ? "today" : `${days} day${days === 1 ? "" : "s"} old`})</Badge>;
+type Freshness = NonNullable<Dashboard["data"]["freshness"]>;
+
+/** Freshness is judged by exchange sessions (computed by the API), never by calendar-day subtraction. */
+function FreshnessPanel({ f }: { f: Freshness }) {
+  const fmt = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", weekday: "short", timeZone: "UTC" });
+  return (
+    <div className="rounded-md border border-line bg-panel px-3 py-2 text-xs" data-testid="freshness">
+      <div className="flex items-center gap-2">
+        <Badge tone={f.status === "CURRENT" ? "good" : "bad"}>data {f.status === "CURRENT" ? "current" : `${f.sessions_behind} session${f.sessions_behind === 1 ? "" : "s"} behind`}</Badge>
+      </div>
+      <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-ink-soft">
+        <dt>Latest bar session</dt>
+        <dd className="text-ink">{fmt(f.latest_bar_session)}</dd>
+        <dt>Latest expected session</dt>
+        <dd className="text-ink">{fmt(f.expected_latest_session)}</dd>
+        <dt>Next session</dt>
+        <dd className="text-ink">{fmt(f.next_session)}</dd>
+      </dl>
+      <p className="mt-1 max-w-xs text-ink-faint">{f.basis}</p>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -21,6 +39,7 @@ export default function DashboardPage() {
   if (error || !d) return <ErrorBox error={error} what="the dashboard" />;
 
   const bars = d.data;
+  const ca = d.corporate_actions;
   const barsNote =
     bars.bars_on_previous_date !== null
       ? `${fmtInt(bars.bars_on_last_date)} bars on the last date, ${fmtInt(bars.bars_on_previous_date)} the day before`
@@ -30,12 +49,12 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         subtitle="Ingested, technically validated, research-eligible and gate-eligible are four different things; they are shown separately below."
-        actions={bars.last_date ? <FreshnessBadge lastDate={bars.last_date} /> : null}
+        actions={bars.freshness ? <FreshnessPanel f={bars.freshness} /> : null}
       />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card title="Platform status" note={d.platform.reason}>
-          <Badge tone="neutral">{d.platform.state}</Badge>
+          <StateChip state="UNKNOWN" text={d.platform.state.toLowerCase()} />
         </Card>
         <Card title="Data health" note={barsNote}>
           <div className="grid grid-cols-2 gap-3">
@@ -57,7 +76,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-2">
             <Badge tone={d.system.api === "ok" ? "good" : "bad"}>API {d.system.api}</Badge>
             <Badge tone={d.system.database === "ok" ? "good" : "bad"}>database {d.system.database}</Badge>
-            <Badge tone="neutral">redis {d.system.redis}</Badge>
+            <StateChip state="NOT_CONFIGURED" text="redis not configured" />
           </div>
           <p className="mt-3 text-xs text-ink-faint">
             Last ingestion event: {d.system.recent_ingestion[0] ? fmtDateTime(d.system.recent_ingestion[0].at) : "none"}
@@ -96,13 +115,13 @@ export default function DashboardPage() {
                     <Flag value={s.technically_validated} yes="yes" no="no (see findings)" />
                   </td>
                   <td className="px-2">
-                    <Flag value={s.research_eligible_daily} yes="eligible" no="blocked" />
+                    <Eligibility eligible={s.research_eligible_daily} />
                   </td>
                   <td className="px-2">
-                    <Flag value={s.research_eligible_intraday} yes="eligible" no="blocked" />
+                    <Eligibility eligible={s.research_eligible_intraday} />
                   </td>
                   <td className="px-2">
-                    <Flag value={s.benchmark_gate_eligible} yes="eligible" no="not eligible" />
+                    <Eligibility eligible={s.benchmark_gate_eligible} no="not eligible" />
                   </td>
                 </tr>
               ))}
@@ -112,20 +131,25 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card title="Corporate actions" note="Review items are not applied to prices until resolved.">
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(d.corporate_actions.actions_by_status).map(([k, v]) => (
-              <Badge key={k} tone={k === "ok" ? "good" : "warn"}>
-                {k === "ok" ? "verified" : humanize(k)}: {fmtInt(v)}
-              </Badge>
-            ))}
+        <Card title="Corporate actions" note="Pending review and provisional adjustments can change research prices; verified ones are applied.">
+          <div className="grid grid-cols-2 gap-3">
+            <Stat label="Total events" value={fmtInt(ca.total_events)} />
+            <Stat label="Verified" value={fmtInt(ca.verified)} hint="applied to prices" />
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Object.entries(d.corporate_actions.resolutions_by_status).map(([k, v]) => (
-              <Badge key={k} tone={k === "provisional" ? "warn" : "neutral"}>
-                resolution {humanize(k)}: {v}
-              </Badge>
-            ))}
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              <span className="text-sm font-medium text-amber-900">Pending review</span>
+              <span className="text-lg font-semibold tabular-nums text-amber-900" data-testid="pending-review">{fmtInt(ca.pending_review)}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              <span className="text-sm font-medium text-amber-900">Provisional adjustments</span>
+              <span className="text-lg font-semibold tabular-nums text-amber-900" data-testid="provisional">{fmtInt(ca.provisional_adjustments)}</span>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge tone="neutral">no adjustment (verified): {fmtInt(ca.no_adjustment_verified)}</Badge>
+              <Badge tone="neutral">ignored with reason: {fmtInt(ca.ignored_with_reason)}</Badge>
+              <Badge tone={ca.review_without_any_resolution ? "warn" : "good"}>review with no decision yet: {fmtInt(ca.review_without_any_resolution)}</Badge>
+            </div>
           </div>
         </Card>
         <Card title="Research">
@@ -137,7 +161,7 @@ export default function DashboardPage() {
           </div>
         </Card>
         <Card title="Strategies" note={d.strategies.note}>
-          <Badge tone="neutral">{d.strategies.persisted ? "persisted" : "not persisted yet"}</Badge>
+          {d.strategies.persisted ? <Badge tone="good">persisted</Badge> : <StateChip state="NOT_IMPLEMENTED" text="not persisted yet" />}
         </Card>
       </div>
     </div>

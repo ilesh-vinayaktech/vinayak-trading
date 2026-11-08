@@ -1,0 +1,5 @@
+{
+ "api": "ok",
+ "database": "ok",
+ "redis": "not configured"
+}

@@ -43,6 +43,16 @@ export const dashboardSchema = z.object({
     partitions: z.record(z.number()),
     quarantined_partitions: z.array(z.string()),
     instruments: z.record(z.number()),
+    freshness: z
+      .object({
+        latest_bar_session: z.string(),
+        expected_latest_session: z.string(),
+        next_session: z.string(),
+        sessions_behind: z.number(),
+        status: z.enum(["CURRENT", "BEHIND"]),
+        basis: z.string(),
+      })
+      .nullable(),
   }),
   benchmarks: z.object({
     release: z.string().nullable(),
@@ -52,6 +62,13 @@ export const dashboardSchema = z.object({
   corporate_actions: z.object({
     actions_by_status: z.record(z.number()),
     resolutions_by_status: z.record(z.number()),
+    total_events: z.number(),
+    verified: z.number(),
+    pending_review: z.number(),
+    review_without_any_resolution: z.number(),
+    provisional_adjustments: z.number(),
+    no_adjustment_verified: z.number(),
+    ignored_with_reason: z.number(),
   }),
   research: z.object({
     backtests: z.number(),
@@ -173,6 +190,17 @@ export const validationSchema = z.object({
   unresolved: z.array(z.string()),
 });
 
+// One audit outcome: what it means and what it establishes. Existence, kind and hours are separate
+// facts; a missing-value outcome carries no session properties.
+export const outcomeSchema = z.object({
+  code: z.string(),
+  count: z.number(),
+  label: z.string(),
+  existence: z.string().nullable(),
+  kind: z.string().nullable(),
+  hours: z.string().nullable(),
+});
+
 export const benchmarkDetailSchema = benchmarkSummarySchema.extend({
   release: z.string().nullable(),
   gate: z.string(),
@@ -182,12 +210,20 @@ export const benchmarkDetailSchema = benchmarkSummarySchema.extend({
     .object({
       calendar_version: z.record(z.unknown()),
       evidence: z.array(z.string()),
-      outcome_counts_all_series: z.record(z.number()),
+      all_series: z.array(outcomeSchema),
       this_series: z
         .object({
           series: z.string(),
-          observed_outcomes: z.record(z.number()),
-          missing_outcomes: z.record(z.number()),
+          observed: z.array(outcomeSchema),
+          missing: z.array(outcomeSchema),
+        })
+        .nullable(),
+      listed_special_sessions: z
+        .object({
+          listed_sessions: z.number(),
+          kind: z.record(z.number()),
+          opening_time: z.record(z.number()),
+          closing_time: z.record(z.number()),
         })
         .nullable(),
       historical_session_hours: z.string(),
@@ -198,6 +234,10 @@ export const benchmarkDetailSchema = benchmarkSummarySchema.extend({
 
 export const levelsSchema = z.object({
   levels: z.array(z.object({ date: z.string(), level: z.string() })),
+  total_observations: z.number(),
+  returned: z.number(),
+  downsampled: z.boolean(),
+  method: z.string(),
 });
 
 export const backtestRowSchema = z.object({
@@ -235,6 +275,8 @@ export type BenchmarkSummary = z.infer<typeof benchmarkSummarySchema>;
 export type BenchmarkDetail = z.infer<typeof benchmarkDetailSchema>;
 export type Finding = z.infer<typeof findingSchema>;
 export type BacktestRow = z.infer<typeof backtestRowSchema>;
+export type Outcome = z.infer<typeof outcomeSchema>;
+export type Levels = z.infer<typeof levelsSchema>;
 export type Activity = z.infer<typeof activitySchema>;
 export type IngestionRow = Activity["ingestion"]["items"][number];
 export type Adjust = Bars["adjust"];

@@ -1,0 +1,20 @@
+{
+ "downsampled": false,
+ "levels": [
+  {
+   "date": "2024-01-01",
+   "level": "101"
+  },
+  {
+   "date": "2024-01-02",
+   "level": "102"
+  },
+  {
+   "date": "2024-01-03",
+   "level": "103"
+  }
+ ],
+ "method": "all observations",
+ "returned": 3,
+ "total_observations": 3
+}

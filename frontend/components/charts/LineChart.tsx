@@ -1,12 +1,13 @@
 "use client";
 
-import { ColorType, createChart, PriceScaleMode, type Time } from "lightweight-charts";
+import { ColorType, createChart, PriceScaleMode, type MouseEventParams, type Time } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 import { plotNumber } from "@/lib/formatting";
 
 export function LineChart({ points, color = "#0f172a" }: { points: { date: string; level: string }[]; color?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [log, setLog] = useState(true);
+  const [hover, setHover] = useState<{ date: string; level: string } | null>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -19,12 +20,16 @@ export function LineChart({ points, color = "#0f172a" }: { points: { date: strin
     });
     const line = chart.addLineSeries({ color, lineWidth: 2, priceFormat: { type: "price", precision: 0, minMove: 1 } });
     line.setData(points.map((p) => ({ time: p.date as Time, value: plotNumber(p.level) })));
+    const byDate = new Map(points.map((p) => [p.date, p]));
+    const onMove = (m: MouseEventParams<Time>) => setHover(typeof m.time === "string" ? (byDate.get(m.time) ?? null) : null);
+    chart.subscribeCrosshairMove(onMove);
     chart.timeScale().fitContent();
     const resize = () => chart.applyOptions({ width: el.clientWidth });
     resize();
     window.addEventListener("resize", resize);
     return () => {
       window.removeEventListener("resize", resize);
+      chart.unsubscribeCrosshairMove(onMove);
       chart.remove();
     };
   }, [points, color, log]);
@@ -38,6 +43,9 @@ export function LineChart({ points, color = "#0f172a" }: { points: { date: strin
         <button type="button" onClick={() => setLog(false)} aria-pressed={!log} className={`rounded px-2 py-1 ${!log ? "bg-slate-900 text-white" : "bg-slate-100"}`}>
           Linear
         </button>
+        <span className="ml-auto font-mono text-xs text-ink" data-testid="level-legend" aria-live="polite">
+          {(hover ?? points[points.length - 1]) ? `${(hover ?? points[points.length - 1])?.date}  level ${(hover ?? points[points.length - 1])?.level}` : ""}
+        </span>
       </div>
       <div ref={ref} className="w-full" data-testid="line-chart" />
     </div>

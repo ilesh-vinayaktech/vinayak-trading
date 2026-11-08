@@ -1,0 +1,87 @@
+{
+ "backtests": [
+  {
+   "accounting_complete": true,
+   "created_at": "2026-11-07T00:00:00+00:00",
+   "ledger_reconciled": true,
+   "metrics": {
+    "sharpe": 1.2
+   },
+   "reader_mode": "research",
+   "result_hash": "rh",
+   "run_id": 1,
+   "strategy_id": "s",
+   "strategy_version": "1"
+  }
+ ],
+ "ingestion": {
+  "items": [
+   {
+    "at": "2026-11-07T00:00:00+00:00",
+    "current_status": "loaded",
+    "dataset": "bhav",
+    "id": 3,
+    "partition": "2025-06-10",
+    "source": "nse",
+    "status": "loaded",
+    "superseded": false
+   },
+   {
+    "at": "2026-11-07T00:00:00+00:00",
+    "current_status": "loaded",
+    "dataset": "bhav",
+    "id": 2,
+    "partition": "2025-06-09",
+    "source": "nse",
+    "status": "loaded",
+    "superseded": false
+   },
+   {
+    "at": "2026-11-07T00:00:00+00:00",
+    "current_status": "loaded",
+    "dataset": "bhav",
+    "id": 1,
+    "partition": "2025-06-09",
+    "source": "nse",
+    "status": "quarantined",
+    "superseded": true
+   }
+  ],
+  "limit": 25,
+  "offset": 0,
+  "total": 3
+ },
+ "jobs": {
+  "note": "job runtime and resource use are not recorded",
+  "persisted": false
+ },
+ "validations": [
+  {
+   "benchmark_id": 1,
+   "latest": {
+    "check_states": {
+     "a": "PASS"
+    },
+    "covers_current_dataset": true,
+    "created_at": "2026-11-07T00:00:00+00:00",
+    "owner_accepted_findings": [
+     {
+      "check": "a",
+      "detail_sha256": "h",
+      "label": "L",
+      "reason": "r",
+      "state": "UNRESOLVED"
+     }
+    ],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "unresolved": [
+     "x"
+    ],
+    "validation_id": 1
+   },
+   "name": "N200"
+  }
+ ]
+}

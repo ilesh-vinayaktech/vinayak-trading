@@ -64,7 +64,8 @@ export const api = {
     get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust }),
   benchmarks: () => get("/api/benchmarks", benchmarkListSchema),
   benchmark: (id: number) => get(`/api/benchmarks/${id}`, benchmarkDetailSchema),
-  benchmarkLevels: (id: number) => get(`/api/benchmarks/${id}/levels`, levelsSchema),
+  benchmarkLevels: (id: number, start?: string, maxPoints = 1500) =>
+    get(`/api/benchmarks/${id}/levels`, levelsSchema, { start, max_points: maxPoints }),
   backtests: (limit = 50, offset = 0) => get("/api/backtests", backtestPageSchema, { limit, offset }),
   activity: (limit = 25, offset = 0) => get("/api/system/activity", activitySchema, { limit, offset }),
 };

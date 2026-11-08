@@ -18,13 +18,15 @@ vi.mock("lightweight-charts", () => ({
   PriceScaleMode: { Normal: 0, Logarithmic: 1 },
   createChart: () => ({
     addLineSeries: () => ({ setData: vi.fn() }),
-    addCandlestickSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn() }),
+    addCandlestickSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) }),
     addHistogramSeries: () => ({ setData: vi.fn() }),
     priceScale: () => ({ applyOptions: vi.fn() }),
-    timeScale: () => ({ fitContent: vi.fn() }),
+    timeScale: () => ({ fitContent: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10) }),
     applyOptions: vi.fn(),
     subscribeCrosshairMove: vi.fn(),
     unsubscribeCrosshairMove: vi.fn(),
+    subscribeClick: vi.fn(),
+    unsubscribeClick: vi.fn(),
     remove: vi.fn(),
   }),
 }));
@@ -50,7 +52,14 @@ describe("Dashboard", () => {
     expect(within(net).getByText("blocked")).toBeInTheDocument(); // intraday
     expect(screen.getByText(/Benchmark gate: disabled/)).toBeInTheDocument();
     expect(screen.getByText("not persisted yet")).toBeInTheDocument();
-    expect(screen.getByText("UNKNOWN")).toBeInTheDocument();
+    expect(screen.getByText("unknown", { selector: "[data-state=UNKNOWN]" })).toBeInTheDocument();
+    expect(screen.getByText("redis not configured")).toBeInTheDocument();
+    const fresh = screen.getByTestId("freshness");
+    expect(fresh).toHaveTextContent("data current");
+    expect(fresh).toHaveTextContent("Fri, 6 Nov 2026"); // the latest session, not a day-count
+    expect(fresh).toHaveTextContent("Mon, 9 Nov 2026");
+    expect(screen.getByTestId("pending-review")).toHaveTextContent("529");
+    expect(screen.getByTestId("provisional")).toHaveTextContent("10");
     expect(screen.getByText("quarantined: 0")).toBeInTheDocument();
   });
 
@@ -64,19 +73,32 @@ describe("Dashboard", () => {
 describe("Benchmark detail", () => {
   it("does not let an unresolved benchmark read as fully validated", async () => {
     window.history.pushState({}, "", "/data/benchmarks?id=3");
-    vi.stubGlobal("fetch", route({ "/api/benchmarks/3": benchmarkDetail, "/api/benchmarks/3/levels": { levels: [{ date: "2000-01-03", level: "1688.44" }] } }));
+    vi.stubGlobal("fetch", route({ "/api/benchmarks/3": benchmarkDetail, "/api/benchmarks/3/levels": { levels: [{ date: "2000-01-03", level: "1688.44" }, { date: "2026-11-06", level: "33034.81" }], total_observations: 6676, returned: 2, downsampled: true, method: "min-max per bucket (extremes preserved)" } }));
     const { default: BenchmarksPage } = await import("@/app/data/benchmarks/page");
     wrap(<BenchmarksPage />);
     expect(await screen.findByText(/1 unresolved finding apply/)).toBeInTheDocument();
+    expect(screen.getByText("Active findings (1)")).toBeInTheDocument();
+    expect(screen.getByText("Resolved findings (1)")).toBeInTheDocument();
     expect(screen.getByText("technical not passed")).toBeInTheDocument();
     expect(screen.getByText("U02")).toBeInTheDocument();
     expect(screen.getAllByText(/Historical session hours are not verified/).length).toBeGreaterThan(0); // blocker and finding
     expect(screen.getByText(/no historical session hours are held as evidence/)).toBeInTheDocument();
     expect(screen.getByText("gate disabled")).toBeInTheDocument();
     // per-series dependencies, not just the all-series totals
-    expect(screen.getByText(/weekday rule provisional: 4,500/)).toBeInTheDocument();
-    expect(screen.getByText(/expected closed inferred: 259/)).toBeInTheDocument();
+    expect(screen.getByText("weekday by calendar rule only; no exchange evidence")).toBeInTheDocument();
+    expect(screen.getByText("no value; exchange files either side chain over the day")).toBeInTheDocument();
     expect(screen.getByText(/All four series together/)).toBeInTheDocument();
+    // existence, kind and hours are separate facts and the UI never calls a session "special"
+    const props = screen.getByText(/listed special sessions: what is established/).parentElement as HTMLElement;
+    expect(within(props).getByText("Session existence").closest("tr")).toHaveTextContent("confirmed");
+    expect(within(props).getByText("Session kind").closest("tr")).toHaveTextContent("unconfirmed: 32");
+    expect(within(props).getByText("Opening time").closest("tr")).toHaveTextContent("unknown: 32");
+    expect(within(props).getByText("Closing time").closest("tr")).toHaveTextContent("unknown: 32");
+    expect(screen.queryByText(/confirmed special/i)).not.toBeInTheDocument();
+    // chart controls and the down-sampling disclosure
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByTestId("sampling-note")).toHaveTextContent("Showing 2 of 6,676 observations: down-sampled, every peak and trough kept");
+    expect(await screen.findByTestId("level-legend")).toHaveTextContent("2026-11-06 level 33034.81");
     expect(screen.getByText("legacy report format")).toBeInTheDocument();
   });
 });
@@ -151,6 +173,12 @@ describe("Data Explorer", () => {
     expect(screen.getByText("1:1 (shares after : before)")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent("demerger 2024-07-01");
     expect(screen.getByTestId("price-chart")).toBeInTheDocument();
+    // the toolbar: tools, undo/clear, and a strategy loader that is honestly disabled
+    expect(screen.getByRole("button", { name: "Cursor" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Trend line" }));
+    expect(screen.getByTestId("tool-hint")).toHaveTextContent("Click the first point of the trend line.");
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Load strategy run/ })).toBeDisabled();
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();
     expect(screen.getByText("review")).toBeInTheDocument(); // an unverified action is not shown as verified
     fireEvent.change(screen.getByLabelText("Price basis"), { target: { value: "split" } });

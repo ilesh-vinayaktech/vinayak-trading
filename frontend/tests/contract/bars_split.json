@@ -1,0 +1,50 @@
+{
+ "adjust": "split",
+ "adjustment_version": "e98cde37597dd7d2",
+ "bars": [
+  {
+   "close": "50.5",
+   "date": "2025-06-09",
+   "factor": "0.5",
+   "high": "51.0",
+   "low": "49.5",
+   "open": "50.0",
+   "volume": "2.00E+3"
+  },
+  {
+   "close": "51.0",
+   "date": "2025-06-10",
+   "factor": "0.5",
+   "high": "51.5",
+   "low": "50.0",
+   "open": "50.5",
+   "volume": "4.00E+3"
+  },
+  {
+   "close": "103",
+   "date": "2025-06-11",
+   "factor": "1",
+   "high": "104",
+   "low": "101",
+   "open": "102",
+   "volume": "3000"
+  },
+  {
+   "close": "104",
+   "date": "2025-06-12",
+   "factor": "1",
+   "high": "105",
+   "low": "102",
+   "open": "103",
+   "volume": "4000"
+  }
+ ],
+ "clean": false,
+ "provisional": [],
+ "unapplied": [
+  {
+   "ex_date": "2025-06-12",
+   "kind": "demerger"
+  }
+ ]
+}

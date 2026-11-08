@@ -133,7 +133,7 @@ export default function InstrumentsPage() {
             {bars.error ? <ErrorBox error={bars.error} what="bars" /> : null}
             {bars.data ? (
               <>
-                {bars.data.bars.length === 0 ? <p className="text-sm text-ink-soft">No bars in this range.</p> : <PriceChart bars={bars.data.bars} actions={actions} />}
+                {bars.data.bars.length === 0 ? <p className="text-sm text-ink-soft">No bars in this range.</p> : <PriceChart bars={bars.data.bars} actions={actions} instrumentId={detail.data.id} adjust={adjust} />}
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                   <Badge tone="neutral">basis: {mode?.label}</Badge>
                   <Badge tone="neutral">adjustment version {shortHash(bars.data.adjustment_version, 16)}</Badge>

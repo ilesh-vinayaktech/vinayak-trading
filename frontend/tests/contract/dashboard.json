@@ -1,0 +1,114 @@
+{
+ "benchmarks": {
+  "gate": "disabled",
+  "release": "1.1",
+  "series": [
+   {
+    "benchmark_gate_eligible": false,
+    "eligibility_state": "RESEARCH_ELIGIBLE",
+    "id": 1,
+    "ingested": true,
+    "name": "N200",
+    "research_eligible_daily": true,
+    "research_eligible_intraday": false,
+    "return_type": "TOTAL_RETURN",
+    "technically_validated": true
+   }
+  ]
+ },
+ "corporate_actions": {
+  "actions_by_status": {
+   "ok": 1,
+   "review": 1
+  },
+  "ignored_with_reason": 0,
+  "no_adjustment_verified": 0,
+  "pending_review": 1,
+  "provisional_adjustments": 0,
+  "resolutions_by_status": {},
+  "review_without_any_resolution": 1,
+  "total_events": 2,
+  "verified": 1
+ },
+ "data": {
+  "bars": 4,
+  "bars_on_last_date": 1,
+  "bars_on_previous_date": 1,
+  "first_date": "2025-06-09",
+  "freshness": {
+   "basis": "sessions are weekdays minus the exchange holidays learned from days with no published file; future holidays are unknown; a session's file is expected after 18:30 IST",
+   "expected_latest_session": "2026-11-06",
+   "latest_bar_session": "2025-06-12",
+   "next_session": "2026-11-09",
+   "sessions_behind": 366,
+   "status": "BEHIND"
+  },
+  "instruments": {
+   "active": 1
+  },
+  "instruments_with_bars": 1,
+  "last_date": "2025-06-12",
+  "partitions": {
+   "loaded": 2
+  },
+  "quarantined_partitions": []
+ },
+ "platform": {
+  "reason": "the platform state machine is not persisted",
+  "state": "UNKNOWN"
+ },
+ "research": {
+  "backtests": 1,
+  "experiments": 0,
+  "latest_run": {
+   "accounting_complete": true,
+   "created_at": "2026-11-07T00:00:00+00:00",
+   "ledger_reconciled": true,
+   "run_id": 1,
+   "strategy_id": "s"
+  },
+  "validation_reports": 0,
+  "validation_reports_passed": 0
+ },
+ "strategies": {
+  "note": "strategy lifecycle states are not stored yet",
+  "persisted": false
+ },
+ "system": {
+  "api": "ok",
+  "database": "ok",
+  "recent_ingestion": [
+   {
+    "at": "2026-11-07T00:00:00+00:00",
+    "current_status": "loaded",
+    "dataset": "bhav",
+    "id": 3,
+    "partition": "2025-06-10",
+    "source": "nse",
+    "status": "loaded",
+    "superseded": false
+   },
+   {
+    "at": "2026-11-07T00:00:00+00:00",
+    "current_status": "loaded",
+    "dataset": "bhav",
+    "id": 2,
+    "partition": "2025-06-09",
+    "source": "nse",
+    "status": "loaded",
+    "superseded": false
+   },
+   {
+    "at": "2026-11-07T00:00:00+00:00",
+    "current_status": "loaded",
+    "dataset": "bhav",
+    "id": 1,
+    "partition": "2025-06-09",
+    "source": "nse",
+    "status": "quarantined",
+    "superseded": true
+   }
+  ],
+  "redis": "not configured"
+ }
+}

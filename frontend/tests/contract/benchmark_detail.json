@@ -1,0 +1,149 @@
+{
+ "dataset_hash": "63809ca33fa1338125e59737d487b2e903371c383746e567ce1f58cf369a26ca",
+ "eligibility": {
+  "series": "B1_NIFTY200_GROSS_TRI",
+  "state": "RESEARCH_ELIGIBLE",
+  "uses": {
+   "BENCHMARK_GATE": {
+    "blockers": [],
+    "eligible": false
+   },
+   "DAILY_RESEARCH": {
+    "blockers": [],
+    "eligible": true
+   },
+   "INTRADAY_RESEARCH": {
+    "blockers": [],
+    "eligible": false
+   }
+  }
+ },
+ "findings": [
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocks": [
+    "INTRADAY_RESEARCH"
+   ],
+   "category": "session-hours",
+   "detail": "hours are assumed",
+   "id": "U02",
+   "severity": "HIGH",
+   "status": "UNRESOLVED",
+   "title": "hours"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocks": [],
+   "category": "session-evidence",
+   "detail": "resolved",
+   "id": "U01",
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "recovered"
+  },
+  {
+   "applies_to": [
+    "B1"
+   ],
+   "blocks": [],
+   "category": "methodology",
+   "detail": "accepted",
+   "id": "U07",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "explained"
+  }
+ ],
+ "first": "2024-01-01",
+ "gate": "disabled",
+ "id": 1,
+ "index_symbol": "NIFTY 200",
+ "instrument_level_blocked_dates": [],
+ "last": "2024-01-03",
+ "methodology_version": "m",
+ "name": "N200",
+ "observations": 3,
+ "release": "1.1",
+ "return_type": "TOTAL_RETURN",
+ "session_calendar": {
+  "all_series": [
+   {
+    "code": "CONFIRMED_REGULAR",
+    "count": 2,
+    "existence": "CONFIRMED",
+    "hours": "ASSUMED_CURRENT_SCHEDULE",
+    "kind": "REGULAR_BY_RULE",
+    "label": "exchange file exists; weekday session"
+   }
+  ],
+  "calendar_version": {
+   "sessions_file_sha256": "abc"
+  },
+  "evidence": [
+   "a",
+   "b"
+  ],
+  "historical_session_hours": "hours are assumed",
+  "listed_special_sessions": null,
+  "this_series": {
+   "missing": [
+    {
+     "code": "EXPECTED_CLOSED",
+     "count": 3,
+     "existence": null,
+     "hours": null,
+     "kind": null,
+     "label": "no value; holiday list or no file published"
+    }
+   ],
+   "observed": [
+    {
+     "code": "CONFIRMED_REGULAR",
+     "count": 1,
+     "existence": "CONFIRMED",
+     "hours": "ASSUMED_CURRENT_SCHEDULE",
+     "kind": "REGULAR_BY_RULE",
+     "label": "exchange file exists; weekday session"
+    },
+    {
+     "code": "WEEKDAY_RULE_PROVISIONAL",
+     "count": 1,
+     "existence": "PROVISIONAL",
+     "hours": "ASSUMED_CURRENT_SCHEDULE",
+     "kind": "REGULAR_BY_RULE",
+     "label": "weekday by calendar rule only; no exchange evidence"
+    }
+   ],
+   "series": "B1_NIFTY200_GROSS_TRI"
+  }
+ },
+ "validations": [
+  {
+   "check_states": {
+    "a": "PASS"
+   },
+   "covers_current_dataset": true,
+   "created_at": "2026-11-07T00:00:00+00:00",
+   "owner_accepted_findings": [
+    {
+     "check": "a",
+     "detail_sha256": "h",
+     "label": "L",
+     "reason": "r",
+     "state": "UNRESOLVED"
+    }
+   ],
+   "passed": true,
+   "report_version": "2",
+   "technical_validation_passed": true,
+   "unresolved": [
+    "x"
+   ],
+   "validation_id": 1
+  }
+ ]
+}
