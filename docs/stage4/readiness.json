@@ -1,0 +1,63 @@
+{
+  "audit": "stage4_readiness",
+  "blocking": [
+    "U1",
+    "U2",
+    "C1",
+    "K1",
+    "V1",
+    "R1"
+  ],
+  "checks": [
+    {
+      "evidence": "bar_1d 2019-10-01..2026-11-06: 1763 sessions, 7.1 years. The 1999-2019 bhavcopy archive is stored but deliberately NOT loaded as bars.",
+      "id": "D1",
+      "requirement": "Daily bars cover enough history for warm-up, walk-forward and a 20-30% untouched holdout",
+      "status": "PASS"
+    },
+    {
+      "evidence": "index_membership_event=0, verified coverage declarations=0. Only current snapshots exist: [('2026-11-06', 200), ('2026-11-07', 200)]. Using today's 200 for past dates is survivorship bias and is not allowed in strict mode.",
+      "id": "U1",
+      "requirement": "Point-in-time Nifty 200 membership with verified coverage for the whole research window (members_on never guesses)",
+      "status": "FAIL"
+    },
+    {
+      "evidence": "index_release_row mapping: {'MAPPED': 114378, 'PLACEHOLDER_SECURITY': 372, 'UNMAPPED_SYMBOL': 10181}; 10181 rows reference symbols with no instrument (e.g. delisted/merged names). Instrument master holds 18 non-active instruments (inferred, not from a delisting source).",
+      "id": "U2",
+      "requirement": "Every removed/added constituent maps to a permanent instrument with prices (delisted names included)",
+      "status": "FAIL"
+    },
+    {
+      "evidence": "136 non-dividend actions still in review ({'buy': 63, 'rights': 34, 'arrangement': 15, 'demerger': 12, 'other': 9, 'arangement': 2, 'sch of': 1}); a further 393 dividends in review matter only to the total-return basis.",
+      "id": "C1",
+      "requirement": "Strict mode: every price-affecting corporate action verified (none pending review)",
+      "status": "FAIL"
+    },
+    {
+      "evidence": "schedules: nse-cash-delivery-zerodha-assumed-2020-07-01 [assumed_backfill] 2020-07-01..2026-02-28; nse-cash-intraday-zerodha-assumed-2020-07-01 [assumed_backfill] 2020-07-01..2026-02-28; nse-cash-delivery-zerodha-2026-03-01 [extracted_unverified] 2026-03-01..None; nse-cash-intraday-zerodha-2026-03-01 [extracted_unverified] 2026-03-01..None. None is verified; the backfill is opt-in and cannot support promotion.",
+      "id": "K1",
+      "requirement": "Versioned, non-placeholder, VERIFIED cost schedule covering the whole research window",
+      "status": "FAIL"
+    },
+    {
+      "evidence": "config/validation_thresholds.json status=provisional. A pass against provisional thresholds does not lift the promotion blocker.",
+      "id": "V1",
+      "requirement": "Validation thresholds confirmed by the owner BEFORE the first validation",
+      "status": "FAIL"
+    },
+    {
+      "evidence": "Release 1.1 state=RESEARCH_ELIGIBLE, uses={'BENCHMARK_GATE': False, 'DAILY_RESEARCH': True, 'INTRADAY_RESEARCH': False} (gate use is blocked by design; daily research use is allowed).",
+      "id": "B1",
+      "requirement": "Benchmark (Nifty 200 Gross TRI) available for daily research comparison",
+      "status": "PASS"
+    },
+    {
+      "evidence": "Nothing is registered yet. The draft in docs/stage4/preregistration-draft.md awaits owner confirmation; registering increments the trial counter and fixes the holdout.",
+      "id": "R1",
+      "requirement": "Hypothesis, parameter ranges and holdout registered before any run",
+      "status": "FAIL"
+    }
+  ],
+  "mode": "strict",
+  "strict_run_possible": false
+}

@@ -171,6 +171,7 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 ---
 
 ## Stage 4: First strategy (trend-filtered momentum, Nifty 200)
+- [x] Step 1-2 (2026-11-08): draft pre-registration `docs/stage4/preregistration-draft.md` (NOT registered; owner to confirm) and `scripts/stage4_readiness.py` -> `docs/stage4/readiness.json`: strict run NOT possible; blocking U1 (no point-in-time Nifty 200 membership), U2 (76+ unmapped delisted symbols), C1 (non-dividend corporate actions in review), K1 (no verified cost schedule), V1 (thresholds provisional), R1 (nothing registered).
 
 - [ ] Package `strategies/nifty200_momentum/` with `strategy.yaml`, params, tests (unit + look-ahead + replay).
 - [ ] Pre-register hypothesis/universe/params; run validation protocol; store tear sheet; write pass/fail report.
