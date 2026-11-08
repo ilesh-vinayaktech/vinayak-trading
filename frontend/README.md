@@ -1,0 +1,18 @@
+# Vinayak Trading Research Console
+
+A read-only view of data, benchmark and research state. It is a presentation layer: no P&L, Sharpe,
+fees, eligibility or corporate-action adjustment is calculated in the browser; every figure comes from
+the API (`src/algo/api`), which serves what the backend already computed. Where the backend does not
+store something yet (platform state, strategy lifecycle, job metrics) the console says so.
+
+Screens: Dashboard, Data Explorer (raw / split-adjusted / total-return, labelled), Benchmarks,
+Backtests (skeleton, controls disabled), System Activity.
+
+    # terminal 1 (repo root)
+    ALGO_DB_URL=postgresql://postgres:dev@localhost:5433/algo make console-api
+    # terminal 2
+    cd frontend && npm install && npm run dev        # http://localhost:3000
+    # checks
+    make console-check
+
+`NEXT_PUBLIC_API_URL` (default http://localhost:8000) points the console at the API.
