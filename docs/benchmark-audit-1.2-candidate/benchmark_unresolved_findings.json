@@ -1,0 +1,306 @@
+{
+ "audit": "benchmark_unresolved_findings",
+ "findings": [
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "session-evidence",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "resolved: the exchange's own file was recovered (docs/recovery/bhavcopy_2022-08-08.json)",
+   "evidence": [
+    "session_reconciliation_report.json#special_2022_08_08",
+    "docs/recovery/bhavcopy_2022-08-08.json"
+   ],
+   "id": "U01",
+   "material_correctness_issue": false,
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "2022-08-08 bhavcopy recovered from the spreadsheet NSE served"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [
+    "INTRADAY_RESEARCH"
+   ],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "session-hours",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "no historical session hours are held as evidence; every intraday bar visibility decision relies on the current 09:15-15:30 schedule, and special sessions on assumed regular hours. Daily benchmark levels do not depend on hours.",
+   "evidence": [
+    "session_reconciliation_report.json#historical_session_hours"
+   ],
+   "id": "U02",
+   "material_correctness_issue": false,
+   "severity": "HIGH",
+   "status": "UNRESOLVED",
+   "title": "Historical session hours are not verified"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [
+    "INTRADAY_RESEARCH"
+   ],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "session-evidence",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "32 listed sessions; existence is confirmed by an exchange bhavcopy for 32 of them (5042 via the legacy archive), but every kind is UNCONFIRMED and every opening and closing time UNKNOWN. 2 have secondary (broker bulletin) claims about purpose and hours, recorded but not promoted.",
+   "evidence": [
+    "session_reconciliation_report.json#evidence",
+    "config/exchange_sessions.json",
+    "config/session_secondary_evidence.json",
+    "docs/session-evidence/legacy_bhavcopy_check.json"
+   ],
+   "id": "U03",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Special-session kinds are unconfirmed and their hours unknown"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "session-evidence",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "0 observed weekdays are provisional; 0 weekday no-value dates across the series are unconfirmed (no historical holiday list is held; the feed covers [2026] only).",
+   "evidence": [
+    "session_reconciliation_report.json#observed_counts"
+   ],
+   "id": "U04",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Weekday sessions before the bhavcopy history rest on the calendar rule"
+  },
+  {
+   "applies_to": [
+    "B1",
+    "B4"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "numerical-behaviour",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "395 days from 2011-10-10; mechanism unknown. Overlap verdict with the net/gross rises: NO_OVERLAP_BEYOND_CHANCE.",
+   "evidence": [
+    "benchmark_alignment_report.json#anomaly_overlap"
+   ],
+   "id": "U05",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Price return exceeds gross TRI by up to 0.005% on some days"
+  },
+  {
+   "applies_to": [
+    "B2",
+    "B3"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "numerical-behaviour",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "41 days, dividend-ex-date share 0.93 against 0.40 of all days.",
+   "evidence": [
+    "benchmark_validation (benchmark 3)",
+    "benchmark_alignment_report.json#anomaly_overlap"
+   ],
+   "id": "U06",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Net TRI gains on gross TRI on 41 days (0.002-0.006%)"
+  },
+  {
+   "applies_to": [
+    "B3"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "methodology",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "label EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED; the net validation stays technically failed.",
+   "evidence": [
+    "benchmark_validation (benchmark 3)"
+   ],
+   "id": "U07",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "11 net/gross jumps on bonus ex-dates: explained, not numerically reconciled"
+  },
+  {
+   "applies_to": [
+    "B2",
+    "B3"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "methodology",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "same response row; tax basis 23.92% current rate, historical rates undocumented; net starts 2000-01-03.",
+   "evidence": [
+    "docs/tri-endpoint-report.md"
+   ],
+   "id": "U08",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Gross and net independence unknown; net is a non-resident institutional measure"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "provenance",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "only same-day repeats were compared (identical); a later re-fetch is needed.",
+   "evidence": [
+    "docs/tri-endpoint-report.md"
+   ],
+   "id": "U09",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Revision behaviour of the endpoints untested"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "provenance",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "historical index methodology and dividend treatment cannot be checked.",
+   "evidence": [
+    "docs/tri-endpoint-report.md"
+   ],
+   "id": "U10",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Only the Sep 2026 methodology document is held"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "reconciliation",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "differences up to ~0.01 pp; the published 12.15% matches only from an assumed 1995 base.",
+   "evidence": [
+    "benchmark_validation (benchmark 2)"
+   ],
+   "id": "U11",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6",
+   "category": "discontinuity",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+    "B2_NIFTY50_GROSS_TRI": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+    "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+    "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
+   },
+   "detail": "2 moves (pre-2000/2004 Nifty 50 history; nothing to compare)",
+   "evidence": [
+    "benchmark_alignment_report.json#discontinuities_5pct"
+   ],
+   "id": "U16",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Large daily moves seen by one series only"
+  }
+ ],
+ "gate_activation": "NOT decided here"
+}

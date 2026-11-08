@@ -47,6 +47,7 @@ ap.add_argument("--lake", type=Path, default=Path("data/lake"))
 ap.add_argument("--sessions", type=Path, default=Path("config/exchange_sessions.json"))
 ap.add_argument("--ids", default="1,2,3,4")
 ap.add_argument("--out", type=Path, default=Path("docs/benchmark-audit"))
+ap.add_argument("--calendar", type=Path, default=Path("docs/calendar-evidence/historical_calendar_evidence.json"))
 a = ap.parse_args()
 if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
@@ -140,7 +141,7 @@ if LEGACY.exists():  # re-verify every cited file in the lake before trusting th
         legacy_confirmed[d_] = {"url": e_["url"], "sha256": e_["sha256"],
                                 "retrieved_at": e_["retrieved_at"], "rows": e_["rows"]}  # fmt: skip
 secondary = json.loads(SECONDARY.read_text())["entries"] if SECONDARY.exists() else []
-CALENDAR = Path("docs/calendar-evidence/historical_calendar_evidence.json")
+CALENDAR = a.calendar
 ledger_closed: set[date] = set()
 ledger_gap: set[date] = set()
 if (

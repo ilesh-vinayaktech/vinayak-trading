@@ -1,0 +1,2689 @@
+{
+ "anomaly_overlap": {
+  "common_comparable_dates": 5672,
+  "count_a": 395,
+  "count_b": 41,
+  "direction": "both are days on which the less dividend-inclusive series gains on the other",
+  "ex_date_share_a": 0.0835443038,
+  "ex_date_share_all_common_dates": 0.3966854725,
+  "ex_date_share_b": 0.9268292683,
+  "expected_by_chance": 2.8552538787,
+  "intersection": [],
+  "magnitude_correlation_all_common_dates": 0.0393257151,
+  "magnitude_correlation_on_anomaly_union": -0.4376204602,
+  "materiality": "numerical behaviour below 0.01% a day; not a material correctness issue for daily research",
+  "net_vs_gross": {
+   "by_year": {
+    "2006": 1,
+    "2007": 1,
+    "2008": 1,
+    "2009": 2,
+    "2010": 4,
+    "2011": 5,
+    "2012": 5,
+    "2013": 5,
+    "2014": 6,
+    "2015": 9,
+    "2016": 2
+   },
+   "first": "2006-12-27",
+   "last": "2016-03-17",
+   "max_abs_gain": 6.26992e-05
+  },
+  "price_vs_tri": {
+   "by_year": {
+    "2011": 6,
+    "2012": 29,
+    "2013": 27,
+    "2014": 27,
+    "2015": 31,
+    "2016": 20,
+    "2017": 25,
+    "2018": 29,
+    "2019": 30,
+    "2020": 25,
+    "2021": 25,
+    "2022": 21,
+    "2023": 25,
+    "2024": 28,
+    "2025": 28,
+    "2026": 19
+   },
+   "first": "2011-10-10",
+   "last": "2026-10-22",
+   "max_abs_gain": 5.14668e-05
+  },
+  "severity": "LOW",
+  "verdict": "NO_OVERLAP_BEYOND_CHANCE"
+ },
+ "audit": "benchmark_alignment",
+ "benchmarks": {
+  "B1_NIFTY200_GROSS_TRI": {
+   "benchmark_id": 1,
+   "dataset_hash": "8cf2b57a726b16a5d589d96d3e7668b46521837f725c0ac888d5d8271af553fe",
+   "distinct_dates": 5673,
+   "duplicate_dates": 0,
+   "first": "2004-01-01",
+   "last": "2026-11-06",
+   "observations": 5673,
+   "stored_rows": 5673,
+   "validation": {
+    "check_states": {
+     "base_level": "PASS",
+     "conflicting_values": "PASS",
+     "duplicate_dates": "PASS",
+     "first_observation": "PASS",
+     "inside_requested_window": "PASS",
+     "positive_levels": "PASS"
+    },
+    "covers_current_dataset": true,
+    "factsheet_all_passed": true,
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 6
+   },
+   "weekend_observations": [
+    "2004-04-17",
+    "2004-10-09",
+    "2005-06-04",
+    "2005-11-26",
+    "2006-04-29",
+    "2006-06-25",
+    "2006-10-21",
+    "2009-10-17",
+    "2010-02-06",
+    "2012-01-07",
+    "2012-03-03",
+    "2012-04-28",
+    "2012-09-08",
+    "2013-05-11",
+    "2013-11-03",
+    "2014-03-22",
+    "2015-02-28",
+    "2016-10-30",
+    "2019-10-27",
+    "2020-02-01",
+    "2020-11-14",
+    "2023-11-12",
+    "2024-01-20",
+    "2024-03-02",
+    "2024-05-18",
+    "2025-02-01",
+    "2026-02-01"
+   ]
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "benchmark_id": 2,
+   "dataset_hash": "85f910ebe88ef47be02476516ef93ee2875bf96f17bc89a2a8875ac53b70a932",
+   "distinct_dates": 6805,
+   "duplicate_dates": 0,
+   "first": "1999-06-30",
+   "last": "2026-11-06",
+   "observations": 6805,
+   "stored_rows": 6805,
+   "validation": {
+    "check_states": {
+     "conflicting_values": "PASS",
+     "duplicate_dates": "PASS",
+     "first_observation": "PASS",
+     "inside_requested_window": "PASS",
+     "positive_levels": "PASS"
+    },
+    "covers_current_dataset": true,
+    "factsheet_all_passed": true,
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 7
+   },
+   "weekend_observations": [
+    "1999-11-07",
+    "2003-03-22",
+    "2003-10-25",
+    "2003-11-15",
+    "2004-04-17",
+    "2004-10-09",
+    "2005-06-04",
+    "2005-11-26",
+    "2006-04-29",
+    "2006-06-25",
+    "2006-10-21",
+    "2009-10-17",
+    "2010-02-06",
+    "2012-01-07",
+    "2012-03-03",
+    "2012-04-28",
+    "2012-09-08",
+    "2013-05-11",
+    "2013-11-03",
+    "2014-03-22",
+    "2015-02-28",
+    "2016-10-30",
+    "2019-10-27",
+    "2020-02-01",
+    "2020-11-14",
+    "2023-11-12",
+    "2024-01-20",
+    "2024-03-02",
+    "2024-05-18",
+    "2025-02-01",
+    "2026-02-01"
+   ]
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "benchmark_id": 3,
+   "dataset_hash": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
+   "distinct_dates": 6676,
+   "duplicate_dates": 0,
+   "first": "2000-01-03",
+   "last": "2026-11-06",
+   "observations": 6676,
+   "stored_rows": 6676,
+   "validation": {
+    "check_states": {
+     "conflicting_values": "PASS",
+     "duplicate_dates": "PASS",
+     "first_observation": "PASS",
+     "inside_requested_window": "PASS",
+     "net_contiguous": "PASS",
+     "net_dates_in_gross": "PASS",
+     "net_never_gains_on_gross": "UNRESOLVED",
+     "net_populated": "PASS",
+     "net_starts_at_gross": "PASS",
+     "no_abrupt_net_gross_jump": "ACCEPTED_WITH_EVIDENCE",
+     "positive_levels": "PASS"
+    },
+    "covers_current_dataset": true,
+    "factsheet_all_passed": true,
+    "owner_accepted_findings": [
+     {
+      "check": "no_abrupt_net_gross_jump",
+      "detail_sha256": "c9f9d88beb7fd44b1b8278f5570ecf52c36b3d1505e5cb6995eb987c9a078d61",
+      "label": "EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED",
+      "reason": "all 11 flagged dates are ex-dates of a bonus issue by a large Nifty 50 member (RELIANCE, ITC, INFY, TCS, BAJFINANCE, HDFCBANK) and the methodology taxes bonus-share income in net only; the tax amount per date was not recomputed, so this is plausible, not independently validated",
+      "state": "ACCEPTED_WITH_EVIDENCE"
+     },
+     {
+      "check": "net_never_gains_on_gross",
+      "detail_sha256": "311265a70d801f3df05ae4ba95f7dd6db13c5846e31f744fd64623796b3e175f",
+      "label": "UNRESOLVED_DIVIDEND_ASSOCIATED_ANOMALY",
+      "reason": "41 rises of 0.002-0.006% in net/gross, above the ~0.0003% 2-decimal rounding bound; 38 of 41 fall on a dividend ex-date versus 34% of all days; the mechanism is not established",
+      "state": "UNRESOLVED"
+     }
+    ],
+    "passed": false,
+    "report_version": "2",
+    "technical_validation_passed": false,
+    "validation_id": 4
+   },
+   "weekend_observations": [
+    "2003-03-22",
+    "2003-10-25",
+    "2003-11-15",
+    "2004-04-17",
+    "2004-10-09",
+    "2005-06-04",
+    "2005-11-26",
+    "2006-04-29",
+    "2006-06-25",
+    "2006-10-21",
+    "2009-10-17",
+    "2010-02-06",
+    "2012-01-07",
+    "2012-03-03",
+    "2012-04-28",
+    "2012-09-08",
+    "2013-05-11",
+    "2013-11-03",
+    "2014-03-22",
+    "2015-02-28",
+    "2016-10-30",
+    "2019-10-27",
+    "2020-02-01",
+    "2020-11-14",
+    "2023-11-12",
+    "2024-01-20",
+    "2024-03-02",
+    "2024-05-18",
+    "2025-02-01",
+    "2026-02-01"
+   ]
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "benchmark_id": 4,
+   "dataset_hash": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521",
+   "distinct_dates": 5673,
+   "duplicate_dates": 0,
+   "first": "2004-01-01",
+   "last": "2026-11-06",
+   "observations": 5673,
+   "stored_rows": 5673,
+   "validation": {
+    "check_states": {
+     "base_level": "PASS",
+     "conflicting_values": "PASS",
+     "duplicate_dates": "PASS",
+     "first_observation": "PASS",
+     "inside_requested_window": "PASS",
+     "positive_levels": "PASS"
+    },
+    "covers_current_dataset": true,
+    "factsheet_all_passed": true,
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 8
+   },
+   "weekend_observations": [
+    "2004-04-17",
+    "2004-10-09",
+    "2005-06-04",
+    "2005-11-26",
+    "2006-04-29",
+    "2006-06-25",
+    "2006-10-21",
+    "2009-10-17",
+    "2010-02-06",
+    "2012-01-07",
+    "2012-03-03",
+    "2012-04-28",
+    "2012-09-08",
+    "2013-05-11",
+    "2013-11-03",
+    "2014-03-22",
+    "2015-02-28",
+    "2016-10-30",
+    "2019-10-27",
+    "2020-02-01",
+    "2020-11-14",
+    "2023-11-12",
+    "2024-01-20",
+    "2024-03-02",
+    "2024-05-18",
+    "2025-02-01",
+    "2026-02-01"
+   ]
+  }
+ },
+ "calendar_version": {
+  "holiday_feed_sha256": "1aff3cd77761e955a2d5fbbce4a80a6a152b5b6980bf77276d6ee2965a8d75aa",
+  "holiday_feed_years": [
+   2026
+  ],
+  "regular_hours_rule": [
+   "09:15:00",
+   "15:30:00"
+  ],
+  "regular_hours_status": "current schedule, not verified for earlier years",
+  "sessions_file": "config/exchange_sessions.json",
+  "sessions_file_sha256": "41067f09929a381cf2d48ded0353cb72bc8110a1bc796684c142d96177f079e6"
+ },
+ "date_differences": {
+  "B1_NIFTY200_GROSS_TRI": {
+   "first": "2004-01-01",
+   "inside_gaps": [],
+   "last": "2026-11-06",
+   "observations": 5673,
+   "outside_coverage": 1132,
+   "outside_range": [
+    "1999-06-30",
+    "2003-12-31"
+   ]
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "first": "1999-06-30",
+   "inside_gaps": [],
+   "last": "2026-11-06",
+   "observations": 6805,
+   "outside_coverage": 0,
+   "outside_range": null
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "first": "2000-01-03",
+   "inside_gaps": [],
+   "last": "2026-11-06",
+   "observations": 6676,
+   "outside_coverage": 129,
+   "outside_range": [
+    "1999-06-30",
+    "1999-12-30"
+   ]
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "first": "2004-01-01",
+   "inside_gaps": [],
+   "last": "2026-11-06",
+   "observations": 5673,
+   "outside_coverage": 1132,
+   "outside_range": [
+    "1999-06-30",
+    "2003-12-31"
+   ]
+  }
+ },
+ "discontinuities_5pct": {
+  "counts": {
+   "CORROBORATED": 212,
+   "UNCORROBORATED_SINGLE_SERIES": 2
+  },
+  "items": [
+   {
+    "date": "2004-01-21",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0362511011,
+     "B3_NIFTY50_NET_TRI": -0.0362510065,
+     "B4_NIFTY200_PRICE_RETURN": -0.0507633626
+    },
+    "return": -0.0507640768,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-14",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0779464577,
+     "B3_NIFTY50_NET_TRI": -0.0779488125,
+     "B4_NIFTY200_PRICE_RETURN": -0.0886237244
+    },
+    "return": -0.0880462587,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-17",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.1223886873,
+     "B3_NIFTY50_NET_TRI": -0.1223814284,
+     "B4_NIFTY200_PRICE_RETURN": -0.1220526553
+    },
+    "return": -0.1220506777,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-18",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0829792599,
+     "B3_NIFTY50_NET_TRI": 0.082974738,
+     "B4_NIFTY200_PRICE_RETURN": 0.0809614424
+    },
+    "return": 0.0809595404,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-19",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0424930003,
+     "B3_NIFTY50_NET_TRI": 0.0424925206,
+     "B4_NIFTY200_PRICE_RETURN": 0.0516505194
+    },
+    "return": 0.0517106489,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-18",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0676645636,
+     "B3_NIFTY50_NET_TRI": -0.067664105,
+     "B4_NIFTY200_PRICE_RETURN": -0.0674614624
+    },
+    "return": -0.0674129145,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-22",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0509857646,
+     "B3_NIFTY50_NET_TRI": -0.0509865458,
+     "B4_NIFTY200_PRICE_RETURN": -0.0555767057
+    },
+    "return": -0.0555775599,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-08",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.047580201,
+     "B3_NIFTY50_NET_TRI": -0.0475805951,
+     "B4_NIFTY200_PRICE_RETURN": -0.0545322378
+    },
+    "return": -0.0544477748,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-09",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0521031426,
+     "B3_NIFTY50_NET_TRI": 0.0521036172,
+     "B4_NIFTY200_PRICE_RETURN": 0.0570779638
+    },
+    "return": 0.0570793429,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-15",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0632131315,
+     "B3_NIFTY50_NET_TRI": 0.063215842,
+     "B4_NIFTY200_PRICE_RETURN": 0.0640262627
+    },
+    "return": 0.0643335909,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2007-10-23",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0559280419,
+     "B3_NIFTY50_NET_TRI": 0.0559243223,
+     "B4_NIFTY200_PRICE_RETURN": 0.0558637055
+    },
+    "return": 0.055895026,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-21",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0870244198,
+     "B3_NIFTY50_NET_TRI": -0.0870250635,
+     "B4_NIFTY200_PRICE_RETURN": -0.1032404663
+    },
+    "return": -0.103238578,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-22",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0594209216,
+     "B3_NIFTY50_NET_TRI": -0.0594187907,
+     "B4_NIFTY200_PRICE_RETURN": -0.0662184109
+    },
+    "return": -0.0662214176,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-23",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0622042511,
+     "B3_NIFTY50_NET_TRI": 0.0622058432,
+     "B4_NIFTY200_PRICE_RETURN": 0.0703281396
+    },
+    "return": 0.0704285755,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-25",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0695089286,
+     "B3_NIFTY50_NET_TRI": 0.0695151259,
+     "B4_NIFTY200_PRICE_RETURN": 0.0715474639
+    },
+    "return": 0.0715483453,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-11",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.05142759,
+     "B3_NIFTY50_NET_TRI": -0.0514319016,
+     "B4_NIFTY200_PRICE_RETURN": -0.0539673173
+    },
+    "return": -0.0539089405,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-14",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0553397702,
+     "B3_NIFTY50_NET_TRI": 0.0553378982,
+     "B4_NIFTY200_PRICE_RETURN": 0.0580008164
+    },
+    "return": 0.058065455,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-03",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0517908044,
+     "B3_NIFTY50_NET_TRI": -0.0517849283,
+     "B4_NIFTY200_PRICE_RETURN": -0.0521173459
+    },
+    "return": -0.0521192273,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-13",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0509856437,
+     "B3_NIFTY50_NET_TRI": -0.0509858092,
+     "B4_NIFTY200_PRICE_RETURN": -0.0575802917
+    },
+    "return": -0.0575832897,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-17",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0509646667,
+     "B3_NIFTY50_NET_TRI": -0.050958825,
+     "B4_NIFTY200_PRICE_RETURN": -0.0584742611
+    },
+    "return": -0.0583334587,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-25",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0580538462,
+     "B3_NIFTY50_NET_TRI": 0.0580597551,
+     "B4_NIFTY200_PRICE_RETURN": 0.0621077975
+    },
+    "return": 0.0621079545,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-07-23",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0558187646,
+     "B3_NIFTY50_NET_TRI": 0.0558241991,
+     "B4_NIFTY200_PRICE_RETURN": 0.0599956844
+    },
+    "return": 0.0599975692,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-06",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0565622169,
+     "B3_NIFTY50_NET_TRI": -0.0571632034,
+     "B4_NIFTY200_PRICE_RETURN": -0.0587329359
+    },
+    "return": -0.0587331646,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-10",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0665092675,
+     "B3_NIFTY50_NET_TRI": -0.0665119528,
+     "B4_NIFTY200_PRICE_RETURN": -0.0692227067
+    },
+    "return": -0.0692146664,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-13",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0642497072,
+     "B3_NIFTY50_NET_TRI": 0.0642545117,
+     "B4_NIFTY200_PRICE_RETURN": 0.0605841914
+    },
+    "return": 0.0605805034,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-17",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0596277754,
+     "B3_NIFTY50_NET_TRI": -0.0596296777,
+     "B4_NIFTY200_PRICE_RETURN": -0.0519747294
+    },
+    "return": -0.0519786684,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-24",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.1220207505,
+     "B3_NIFTY50_NET_TRI": -0.122028141,
+     "B4_NIFTY200_PRICE_RETURN": -0.1127087167
+    },
+    "return": -0.1127037679,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-28",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0635389277,
+     "B3_NIFTY50_NET_TRI": 0.0635441036,
+     "B4_NIFTY200_PRICE_RETURN": 0.0616499877
+    },
+    "return": 0.0616472485,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-31",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.069909228,
+     "B3_NIFTY50_NET_TRI": 0.0699069777,
+     "B4_NIFTY200_PRICE_RETURN": 0.0630571392
+    },
+    "return": 0.0630785124,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-03",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0548512955,
+     "B3_NIFTY50_NET_TRI": 0.0548437482,
+     "B4_NIFTY200_PRICE_RETURN": 0.0534336121
+    },
+    "return": 0.0534273998,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-10",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0589416013,
+     "B3_NIFTY50_NET_TRI": 0.0589457785,
+     "B4_NIFTY200_PRICE_RETURN": 0.0569553221
+    },
+    "return": 0.0569652128,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-11",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0665806959,
+     "B3_NIFTY50_NET_TRI": -0.0665761551,
+     "B4_NIFTY200_PRICE_RETURN": -0.0577922161
+    },
+    "return": -0.0577892551,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-01-07",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.061799442,
+     "B3_NIFTY50_NET_TRI": -0.0618087651,
+     "B4_NIFTY200_PRICE_RETURN": -0.0623217323
+    },
+    "return": -0.0623237965,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-05-18",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.1774490619,
+     "B3_NIFTY50_NET_TRI": 0.1774401974,
+     "B4_NIFTY200_PRICE_RETURN": 0.1674588545
+    },
+    "return": 0.167460417,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-07-06",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0574702541,
+     "B3_NIFTY50_NET_TRI": -0.0574484485,
+     "B4_NIFTY200_PRICE_RETURN": -0.0554256223
+    },
+    "return": -0.0549930237,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2015-08-24",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0591487014,
+     "B3_NIFTY50_NET_TRI": -0.0591488695,
+     "B4_NIFTY200_PRICE_RETURN": -0.0656099541
+    },
+    "return": -0.0656059285,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2019-09-20",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0531932276,
+     "B3_NIFTY50_NET_TRI": 0.0531929383,
+     "B4_NIFTY200_PRICE_RETURN": 0.0542661531
+    },
+    "return": 0.0542649081,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-12",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0830205705,
+     "B3_NIFTY50_NET_TRI": -0.0830199655,
+     "B4_NIFTY200_PRICE_RETURN": -0.0832634093
+    },
+    "return": -0.0832293242,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-16",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0757207783,
+     "B3_NIFTY50_NET_TRI": -0.07572088,
+     "B4_NIFTY200_PRICE_RETURN": -0.0718191796
+    },
+    "return": -0.0714795619,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-18",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0555670595,
+     "B3_NIFTY50_NET_TRI": -0.0555664365,
+     "B4_NIFTY200_PRICE_RETURN": -0.0548397117
+    },
+    "return": -0.0548101871,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-20",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0583275679,
+     "B3_NIFTY50_NET_TRI": 0.0583272115,
+     "B4_NIFTY200_PRICE_RETURN": 0.0546060373
+    },
+    "return": 0.0546063621,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-23",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.1291457499,
+     "B3_NIFTY50_NET_TRI": -0.1291455847,
+     "B4_NIFTY200_PRICE_RETURN": -0.1284136103
+    },
+    "return": -0.1278185565,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-25",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0662432909,
+     "B3_NIFTY50_NET_TRI": 0.0662441951,
+     "B4_NIFTY200_PRICE_RETURN": 0.0590840301
+    },
+    "return": 0.0590813257,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-04-07",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0876294366,
+     "B3_NIFTY50_NET_TRI": 0.0876298362,
+     "B4_NIFTY200_PRICE_RETURN": 0.0811323004
+    },
+    "return": 0.0811300824,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-05-04",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0574430755,
+     "B3_NIFTY50_NET_TRI": -0.0574430387,
+     "B4_NIFTY200_PRICE_RETURN": -0.0540893984
+    },
+    "return": -0.0540877099,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2022-02-24",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0477807828,
+     "B3_NIFTY50_NET_TRI": -0.0477812213,
+     "B4_NIFTY200_PRICE_RETURN": -0.0500292259
+    },
+    "return": -0.0500254004,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2024-06-04",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0586465238,
+     "B3_NIFTY50_NET_TRI": -0.0588013218,
+     "B4_NIFTY200_PRICE_RETURN": -0.0679391832
+    },
+    "return": -0.0675048604,
+    "series": "B1_NIFTY200_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "1999-10-07",
+    "others": {},
+    "return": 0.0553214837,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "UNCORROBORATED_SINGLE_SERIES"
+   },
+   {
+    "date": "2000-01-03",
+    "others": {},
+    "return": 0.0803112123,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "UNCORROBORATED_SINGLE_SERIES"
+   },
+   {
+    "date": "2000-04-04",
+    "others": {
+     "B3_NIFTY50_NET_TRI": -0.0694945405
+    },
+    "return": -0.0694945405,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-04-07",
+    "others": {
+     "B3_NIFTY50_NET_TRI": 0.0717186521
+    },
+    "return": 0.0717186521,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-04-26",
+    "others": {
+     "B3_NIFTY50_NET_TRI": 0.0568166943
+    },
+    "return": 0.0568166943,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-05-02",
+    "others": {
+     "B3_NIFTY50_NET_TRI": -0.0519698351
+    },
+    "return": -0.0519698351,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-07-24",
+    "others": {
+     "B3_NIFTY50_NET_TRI": -0.0574001351
+    },
+    "return": -0.0574001351,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-03-13",
+    "others": {
+     "B3_NIFTY50_NET_TRI": -0.0611461198
+    },
+    "return": -0.0611461198,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-03-14",
+    "others": {
+     "B3_NIFTY50_NET_TRI": 0.0617932316
+    },
+    "return": 0.0617932316,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-09-14",
+    "others": {
+     "B3_NIFTY50_NET_TRI": -0.0535155435
+    },
+    "return": -0.0535155435,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-09-17",
+    "others": {
+     "B3_NIFTY50_NET_TRI": -0.0515916355
+    },
+    "return": -0.0515916355,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-14",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0880462587,
+     "B3_NIFTY50_NET_TRI": -0.0779488125,
+     "B4_NIFTY200_PRICE_RETURN": -0.0886237244
+    },
+    "return": -0.0779464577,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1220506777,
+     "B3_NIFTY50_NET_TRI": -0.1223814284,
+     "B4_NIFTY200_PRICE_RETURN": -0.1220526553
+    },
+    "return": -0.1223886873,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0809595404,
+     "B3_NIFTY50_NET_TRI": 0.082974738,
+     "B4_NIFTY200_PRICE_RETURN": 0.0809614424
+    },
+    "return": 0.0829792599,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0674129145,
+     "B3_NIFTY50_NET_TRI": -0.067664105,
+     "B4_NIFTY200_PRICE_RETURN": -0.0674614624
+    },
+    "return": -0.0676645636,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0555775599,
+     "B3_NIFTY50_NET_TRI": -0.0509865458,
+     "B4_NIFTY200_PRICE_RETURN": -0.0555767057
+    },
+    "return": -0.0509857646,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-09",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0570793429,
+     "B3_NIFTY50_NET_TRI": 0.0521036172,
+     "B4_NIFTY200_PRICE_RETURN": 0.0570779638
+    },
+    "return": 0.0521031426,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-15",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0643335909,
+     "B3_NIFTY50_NET_TRI": 0.063215842,
+     "B4_NIFTY200_PRICE_RETURN": 0.0640262627
+    },
+    "return": 0.0632131315,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2007-10-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.055895026,
+     "B3_NIFTY50_NET_TRI": 0.0559243223,
+     "B4_NIFTY200_PRICE_RETURN": 0.0558637055
+    },
+    "return": 0.0559280419,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-21",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.103238578,
+     "B3_NIFTY50_NET_TRI": -0.0870250635,
+     "B4_NIFTY200_PRICE_RETURN": -0.1032404663
+    },
+    "return": -0.0870244198,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0662214176,
+     "B3_NIFTY50_NET_TRI": -0.0594187907,
+     "B4_NIFTY200_PRICE_RETURN": -0.0662184109
+    },
+    "return": -0.0594209216,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0704285755,
+     "B3_NIFTY50_NET_TRI": 0.0622058432,
+     "B4_NIFTY200_PRICE_RETURN": 0.0703281396
+    },
+    "return": 0.0622042511,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0715483453,
+     "B3_NIFTY50_NET_TRI": 0.0695151259,
+     "B4_NIFTY200_PRICE_RETURN": 0.0715474639
+    },
+    "return": 0.0695089286,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-11",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0539089405,
+     "B3_NIFTY50_NET_TRI": -0.0514319016,
+     "B4_NIFTY200_PRICE_RETURN": -0.0539673173
+    },
+    "return": -0.05142759,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-14",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.058065455,
+     "B3_NIFTY50_NET_TRI": 0.0553378982,
+     "B4_NIFTY200_PRICE_RETURN": 0.0580008164
+    },
+    "return": 0.0553397702,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-03",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0521192273,
+     "B3_NIFTY50_NET_TRI": -0.0517849283,
+     "B4_NIFTY200_PRICE_RETURN": -0.0521173459
+    },
+    "return": -0.0517908044,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-13",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0575832897,
+     "B3_NIFTY50_NET_TRI": -0.0509858092,
+     "B4_NIFTY200_PRICE_RETURN": -0.0575802917
+    },
+    "return": -0.0509856437,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0583334587,
+     "B3_NIFTY50_NET_TRI": -0.050958825,
+     "B4_NIFTY200_PRICE_RETURN": -0.0584742611
+    },
+    "return": -0.0509646667,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0621079545,
+     "B3_NIFTY50_NET_TRI": 0.0580597551,
+     "B4_NIFTY200_PRICE_RETURN": 0.0621077975
+    },
+    "return": 0.0580538462,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-07-02",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0472547531,
+     "B3_NIFTY50_NET_TRI": 0.0504513835,
+     "B4_NIFTY200_PRICE_RETURN": 0.047254508
+    },
+    "return": 0.0504526181,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-07-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0599975692,
+     "B3_NIFTY50_NET_TRI": 0.0558241991,
+     "B4_NIFTY200_PRICE_RETURN": 0.0599956844
+    },
+    "return": 0.0558187646,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-09-19",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0474741632,
+     "B3_NIFTY50_NET_TRI": 0.0514605388,
+     "B4_NIFTY200_PRICE_RETURN": 0.0473067731
+    },
+    "return": 0.0514612889,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-06",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0587331646,
+     "B3_NIFTY50_NET_TRI": -0.0571632034,
+     "B4_NIFTY200_PRICE_RETURN": -0.0587329359
+    },
+    "return": -0.0565622169,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0692146664,
+     "B3_NIFTY50_NET_TRI": -0.0665119528,
+     "B4_NIFTY200_PRICE_RETURN": -0.0692227067
+    },
+    "return": -0.0665092675,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-13",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0605805034,
+     "B3_NIFTY50_NET_TRI": 0.0642545117,
+     "B4_NIFTY200_PRICE_RETURN": 0.0605841914
+    },
+    "return": 0.0642497072,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-15",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0499045031,
+     "B3_NIFTY50_NET_TRI": -0.0512265717,
+     "B4_NIFTY200_PRICE_RETURN": -0.0499034071
+    },
+    "return": -0.0512346767,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0519786684,
+     "B3_NIFTY50_NET_TRI": -0.0596296777,
+     "B4_NIFTY200_PRICE_RETURN": -0.0519747294
+    },
+    "return": -0.0596277754,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0474561606,
+     "B3_NIFTY50_NET_TRI": -0.0523177173,
+     "B4_NIFTY200_PRICE_RETURN": -0.0475782335
+    },
+    "return": -0.0523207006,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1127037679,
+     "B3_NIFTY50_NET_TRI": -0.122028141,
+     "B4_NIFTY200_PRICE_RETURN": -0.1127087167
+    },
+    "return": -0.1220207505,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-28",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0616472485,
+     "B3_NIFTY50_NET_TRI": 0.0635441036,
+     "B4_NIFTY200_PRICE_RETURN": 0.0616499877
+    },
+    "return": 0.0635389277,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-31",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0630785124,
+     "B3_NIFTY50_NET_TRI": 0.0699069777,
+     "B4_NIFTY200_PRICE_RETURN": 0.0630571392
+    },
+    "return": 0.069909228,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-03",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0534273998,
+     "B3_NIFTY50_NET_TRI": 0.0548437482,
+     "B4_NIFTY200_PRICE_RETURN": 0.0534336121
+    },
+    "return": 0.0548512955,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0569652128,
+     "B3_NIFTY50_NET_TRI": 0.0589457785,
+     "B4_NIFTY200_PRICE_RETURN": 0.0569553221
+    },
+    "return": 0.0589416013,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-11",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0577892551,
+     "B3_NIFTY50_NET_TRI": -0.0665761551,
+     "B4_NIFTY200_PRICE_RETURN": -0.0577922161
+    },
+    "return": -0.0665806959,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-21",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0423064961,
+     "B3_NIFTY50_NET_TRI": 0.0549530007,
+     "B4_NIFTY200_PRICE_RETURN": 0.0423082356
+    },
+    "return": 0.0549623537,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-12-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0454784686,
+     "B3_NIFTY50_NET_TRI": 0.0518120477,
+     "B4_NIFTY200_PRICE_RETURN": 0.0454788383
+    },
+    "return": 0.0518162784,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-01-07",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0623237965,
+     "B3_NIFTY50_NET_TRI": -0.0618087651,
+     "B4_NIFTY200_PRICE_RETURN": -0.0623217323
+    },
+    "return": -0.061799442,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-05-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0477460656,
+     "B3_NIFTY50_NET_TRI": 0.0518284543,
+     "B4_NIFTY200_PRICE_RETURN": 0.0477516496
+    },
+    "return": 0.0518214157,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.167460417,
+     "B3_NIFTY50_NET_TRI": 0.1774401974,
+     "B4_NIFTY200_PRICE_RETURN": 0.1674588545
+    },
+    "return": 0.1774490619,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-07-06",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0549930237,
+     "B3_NIFTY50_NET_TRI": -0.0574484485,
+     "B4_NIFTY200_PRICE_RETURN": -0.0554256223
+    },
+    "return": -0.0574702541,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2015-08-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0656059285,
+     "B3_NIFTY50_NET_TRI": -0.0591488695,
+     "B4_NIFTY200_PRICE_RETURN": -0.0656099541
+    },
+    "return": -0.0591487014,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2019-09-20",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0542649081,
+     "B3_NIFTY50_NET_TRI": 0.0531929383,
+     "B4_NIFTY200_PRICE_RETURN": 0.0542661531
+    },
+    "return": 0.0531932276,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-12",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0832293242,
+     "B3_NIFTY50_NET_TRI": -0.0830199655,
+     "B4_NIFTY200_PRICE_RETURN": -0.0832634093
+    },
+    "return": -0.0830205705,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-16",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0714795619,
+     "B3_NIFTY50_NET_TRI": -0.07572088,
+     "B4_NIFTY200_PRICE_RETURN": -0.0718191796
+    },
+    "return": -0.0757207783,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0548101871,
+     "B3_NIFTY50_NET_TRI": -0.0555664365,
+     "B4_NIFTY200_PRICE_RETURN": -0.0548397117
+    },
+    "return": -0.0555670595,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-20",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0546063621,
+     "B3_NIFTY50_NET_TRI": 0.0583272115,
+     "B4_NIFTY200_PRICE_RETURN": 0.0546060373
+    },
+    "return": 0.0583275679,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1278185565,
+     "B3_NIFTY50_NET_TRI": -0.1291455847,
+     "B4_NIFTY200_PRICE_RETURN": -0.1284136103
+    },
+    "return": -0.1291457499,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0590813257,
+     "B3_NIFTY50_NET_TRI": 0.0662441951,
+     "B4_NIFTY200_PRICE_RETURN": 0.0590840301
+    },
+    "return": 0.0662432909,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-04-07",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0811300824,
+     "B3_NIFTY50_NET_TRI": 0.0876298362,
+     "B4_NIFTY200_PRICE_RETURN": 0.0811323004
+    },
+    "return": 0.0876294366,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-05-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0540877099,
+     "B3_NIFTY50_NET_TRI": -0.0574430387,
+     "B4_NIFTY200_PRICE_RETURN": -0.0540893984
+    },
+    "return": -0.0574430755,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2024-06-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0675048604,
+     "B3_NIFTY50_NET_TRI": -0.0588013218,
+     "B4_NIFTY200_PRICE_RETURN": -0.0679391832
+    },
+    "return": -0.0586465238,
+    "series": "B2_NIFTY50_GROSS_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-04-04",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0694945405
+    },
+    "return": -0.0694945405,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-04-07",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0717186521
+    },
+    "return": 0.0717186521,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-04-26",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0568166943
+    },
+    "return": 0.0568166943,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-05-02",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0519698351
+    },
+    "return": -0.0519698351,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2000-07-24",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0574001351
+    },
+    "return": -0.0574001351,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-03-13",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0611461198
+    },
+    "return": -0.0611461198,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-03-14",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": 0.0617932316
+    },
+    "return": 0.0617932316,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-09-14",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0535155435
+    },
+    "return": -0.0535155435,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2001-09-17",
+    "others": {
+     "B2_NIFTY50_GROSS_TRI": -0.0515916355
+    },
+    "return": -0.0515916355,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-14",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0880462587,
+     "B2_NIFTY50_GROSS_TRI": -0.0779464577,
+     "B4_NIFTY200_PRICE_RETURN": -0.0886237244
+    },
+    "return": -0.0779488125,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1220506777,
+     "B2_NIFTY50_GROSS_TRI": -0.1223886873,
+     "B4_NIFTY200_PRICE_RETURN": -0.1220526553
+    },
+    "return": -0.1223814284,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0809595404,
+     "B2_NIFTY50_GROSS_TRI": 0.0829792599,
+     "B4_NIFTY200_PRICE_RETURN": 0.0809614424
+    },
+    "return": 0.082974738,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0674129145,
+     "B2_NIFTY50_GROSS_TRI": -0.0676645636,
+     "B4_NIFTY200_PRICE_RETURN": -0.0674614624
+    },
+    "return": -0.067664105,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0555775599,
+     "B2_NIFTY50_GROSS_TRI": -0.0509857646,
+     "B4_NIFTY200_PRICE_RETURN": -0.0555767057
+    },
+    "return": -0.0509865458,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-09",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0570793429,
+     "B2_NIFTY50_GROSS_TRI": 0.0521031426,
+     "B4_NIFTY200_PRICE_RETURN": 0.0570779638
+    },
+    "return": 0.0521036172,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-15",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0643335909,
+     "B2_NIFTY50_GROSS_TRI": 0.0632131315,
+     "B4_NIFTY200_PRICE_RETURN": 0.0640262627
+    },
+    "return": 0.063215842,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2007-10-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.055895026,
+     "B2_NIFTY50_GROSS_TRI": 0.0559280419,
+     "B4_NIFTY200_PRICE_RETURN": 0.0558637055
+    },
+    "return": 0.0559243223,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-21",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.103238578,
+     "B2_NIFTY50_GROSS_TRI": -0.0870244198,
+     "B4_NIFTY200_PRICE_RETURN": -0.1032404663
+    },
+    "return": -0.0870250635,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0662214176,
+     "B2_NIFTY50_GROSS_TRI": -0.0594209216,
+     "B4_NIFTY200_PRICE_RETURN": -0.0662184109
+    },
+    "return": -0.0594187907,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0704285755,
+     "B2_NIFTY50_GROSS_TRI": 0.0622042511,
+     "B4_NIFTY200_PRICE_RETURN": 0.0703281396
+    },
+    "return": 0.0622058432,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0715483453,
+     "B2_NIFTY50_GROSS_TRI": 0.0695089286,
+     "B4_NIFTY200_PRICE_RETURN": 0.0715474639
+    },
+    "return": 0.0695151259,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-11",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0539089405,
+     "B2_NIFTY50_GROSS_TRI": -0.05142759,
+     "B4_NIFTY200_PRICE_RETURN": -0.0539673173
+    },
+    "return": -0.0514319016,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-14",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.058065455,
+     "B2_NIFTY50_GROSS_TRI": 0.0553397702,
+     "B4_NIFTY200_PRICE_RETURN": 0.0580008164
+    },
+    "return": 0.0553378982,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-03",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0521192273,
+     "B2_NIFTY50_GROSS_TRI": -0.0517908044,
+     "B4_NIFTY200_PRICE_RETURN": -0.0521173459
+    },
+    "return": -0.0517849283,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-13",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0575832897,
+     "B2_NIFTY50_GROSS_TRI": -0.0509856437,
+     "B4_NIFTY200_PRICE_RETURN": -0.0575802917
+    },
+    "return": -0.0509858092,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0583334587,
+     "B2_NIFTY50_GROSS_TRI": -0.0509646667,
+     "B4_NIFTY200_PRICE_RETURN": -0.0584742611
+    },
+    "return": -0.050958825,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0621079545,
+     "B2_NIFTY50_GROSS_TRI": 0.0580538462,
+     "B4_NIFTY200_PRICE_RETURN": 0.0621077975
+    },
+    "return": 0.0580597551,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-07-02",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0472547531,
+     "B2_NIFTY50_GROSS_TRI": 0.0504526181,
+     "B4_NIFTY200_PRICE_RETURN": 0.047254508
+    },
+    "return": 0.0504513835,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-07-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0599975692,
+     "B2_NIFTY50_GROSS_TRI": 0.0558187646,
+     "B4_NIFTY200_PRICE_RETURN": 0.0599956844
+    },
+    "return": 0.0558241991,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-09-19",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0474741632,
+     "B2_NIFTY50_GROSS_TRI": 0.0514612889,
+     "B4_NIFTY200_PRICE_RETURN": 0.0473067731
+    },
+    "return": 0.0514605388,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-06",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0587331646,
+     "B2_NIFTY50_GROSS_TRI": -0.0565622169,
+     "B4_NIFTY200_PRICE_RETURN": -0.0587329359
+    },
+    "return": -0.0571632034,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0692146664,
+     "B2_NIFTY50_GROSS_TRI": -0.0665092675,
+     "B4_NIFTY200_PRICE_RETURN": -0.0692227067
+    },
+    "return": -0.0665119528,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-13",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0605805034,
+     "B2_NIFTY50_GROSS_TRI": 0.0642497072,
+     "B4_NIFTY200_PRICE_RETURN": 0.0605841914
+    },
+    "return": 0.0642545117,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-15",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0499045031,
+     "B2_NIFTY50_GROSS_TRI": -0.0512346767,
+     "B4_NIFTY200_PRICE_RETURN": -0.0499034071
+    },
+    "return": -0.0512265717,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0519786684,
+     "B2_NIFTY50_GROSS_TRI": -0.0596277754,
+     "B4_NIFTY200_PRICE_RETURN": -0.0519747294
+    },
+    "return": -0.0596296777,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0474561606,
+     "B2_NIFTY50_GROSS_TRI": -0.0523207006,
+     "B4_NIFTY200_PRICE_RETURN": -0.0475782335
+    },
+    "return": -0.0523177173,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1127037679,
+     "B2_NIFTY50_GROSS_TRI": -0.1220207505,
+     "B4_NIFTY200_PRICE_RETURN": -0.1127087167
+    },
+    "return": -0.122028141,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-28",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0616472485,
+     "B2_NIFTY50_GROSS_TRI": 0.0635389277,
+     "B4_NIFTY200_PRICE_RETURN": 0.0616499877
+    },
+    "return": 0.0635441036,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-31",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0630785124,
+     "B2_NIFTY50_GROSS_TRI": 0.069909228,
+     "B4_NIFTY200_PRICE_RETURN": 0.0630571392
+    },
+    "return": 0.0699069777,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-03",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0534273998,
+     "B2_NIFTY50_GROSS_TRI": 0.0548512955,
+     "B4_NIFTY200_PRICE_RETURN": 0.0534336121
+    },
+    "return": 0.0548437482,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0569652128,
+     "B2_NIFTY50_GROSS_TRI": 0.0589416013,
+     "B4_NIFTY200_PRICE_RETURN": 0.0569553221
+    },
+    "return": 0.0589457785,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-11",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0577892551,
+     "B2_NIFTY50_GROSS_TRI": -0.0665806959,
+     "B4_NIFTY200_PRICE_RETURN": -0.0577922161
+    },
+    "return": -0.0665761551,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-21",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0423064961,
+     "B2_NIFTY50_GROSS_TRI": 0.0549623537,
+     "B4_NIFTY200_PRICE_RETURN": 0.0423082356
+    },
+    "return": 0.0549530007,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-12-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0454784686,
+     "B2_NIFTY50_GROSS_TRI": 0.0518162784,
+     "B4_NIFTY200_PRICE_RETURN": 0.0454788383
+    },
+    "return": 0.0518120477,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-01-07",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0623237965,
+     "B2_NIFTY50_GROSS_TRI": -0.061799442,
+     "B4_NIFTY200_PRICE_RETURN": -0.0623217323
+    },
+    "return": -0.0618087651,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-05-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0477460656,
+     "B2_NIFTY50_GROSS_TRI": 0.0518214157,
+     "B4_NIFTY200_PRICE_RETURN": 0.0477516496
+    },
+    "return": 0.0518284543,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.167460417,
+     "B2_NIFTY50_GROSS_TRI": 0.1774490619,
+     "B4_NIFTY200_PRICE_RETURN": 0.1674588545
+    },
+    "return": 0.1774401974,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-07-06",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0549930237,
+     "B2_NIFTY50_GROSS_TRI": -0.0574702541,
+     "B4_NIFTY200_PRICE_RETURN": -0.0554256223
+    },
+    "return": -0.0574484485,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2015-08-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0656059285,
+     "B2_NIFTY50_GROSS_TRI": -0.0591487014,
+     "B4_NIFTY200_PRICE_RETURN": -0.0656099541
+    },
+    "return": -0.0591488695,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2019-09-20",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0542649081,
+     "B2_NIFTY50_GROSS_TRI": 0.0531932276,
+     "B4_NIFTY200_PRICE_RETURN": 0.0542661531
+    },
+    "return": 0.0531929383,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-12",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0832293242,
+     "B2_NIFTY50_GROSS_TRI": -0.0830205705,
+     "B4_NIFTY200_PRICE_RETURN": -0.0832634093
+    },
+    "return": -0.0830199655,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-16",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0714795619,
+     "B2_NIFTY50_GROSS_TRI": -0.0757207783,
+     "B4_NIFTY200_PRICE_RETURN": -0.0718191796
+    },
+    "return": -0.07572088,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0548101871,
+     "B2_NIFTY50_GROSS_TRI": -0.0555670595,
+     "B4_NIFTY200_PRICE_RETURN": -0.0548397117
+    },
+    "return": -0.0555664365,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-20",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0546063621,
+     "B2_NIFTY50_GROSS_TRI": 0.0583275679,
+     "B4_NIFTY200_PRICE_RETURN": 0.0546060373
+    },
+    "return": 0.0583272115,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1278185565,
+     "B2_NIFTY50_GROSS_TRI": -0.1291457499,
+     "B4_NIFTY200_PRICE_RETURN": -0.1284136103
+    },
+    "return": -0.1291455847,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0590813257,
+     "B2_NIFTY50_GROSS_TRI": 0.0662432909,
+     "B4_NIFTY200_PRICE_RETURN": 0.0590840301
+    },
+    "return": 0.0662441951,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-04-07",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0811300824,
+     "B2_NIFTY50_GROSS_TRI": 0.0876294366,
+     "B4_NIFTY200_PRICE_RETURN": 0.0811323004
+    },
+    "return": 0.0876298362,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-05-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0540877099,
+     "B2_NIFTY50_GROSS_TRI": -0.0574430755,
+     "B4_NIFTY200_PRICE_RETURN": -0.0540893984
+    },
+    "return": -0.0574430387,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2024-06-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0675048604,
+     "B2_NIFTY50_GROSS_TRI": -0.0586465238,
+     "B4_NIFTY200_PRICE_RETURN": -0.0679391832
+    },
+    "return": -0.0588013218,
+    "series": "B3_NIFTY50_NET_TRI",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-01-21",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0507640768,
+     "B2_NIFTY50_GROSS_TRI": -0.0362511011,
+     "B3_NIFTY50_NET_TRI": -0.0362510065
+    },
+    "return": -0.0507633626,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-14",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0880462587,
+     "B2_NIFTY50_GROSS_TRI": -0.0779464577,
+     "B3_NIFTY50_NET_TRI": -0.0779488125
+    },
+    "return": -0.0886237244,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1220506777,
+     "B2_NIFTY50_GROSS_TRI": -0.1223886873,
+     "B3_NIFTY50_NET_TRI": -0.1223814284
+    },
+    "return": -0.1220526553,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0809595404,
+     "B2_NIFTY50_GROSS_TRI": 0.0829792599,
+     "B3_NIFTY50_NET_TRI": 0.082974738
+    },
+    "return": 0.0809614424,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2004-05-19",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0517106489,
+     "B2_NIFTY50_GROSS_TRI": 0.0424930003,
+     "B3_NIFTY50_NET_TRI": 0.0424925206
+    },
+    "return": 0.0516505194,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0674129145,
+     "B2_NIFTY50_GROSS_TRI": -0.0676645636,
+     "B3_NIFTY50_NET_TRI": -0.067664105
+    },
+    "return": -0.0674614624,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-05-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0555775599,
+     "B2_NIFTY50_GROSS_TRI": -0.0509857646,
+     "B3_NIFTY50_NET_TRI": -0.0509865458
+    },
+    "return": -0.0555767057,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-08",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0544477748,
+     "B2_NIFTY50_GROSS_TRI": -0.047580201,
+     "B3_NIFTY50_NET_TRI": -0.0475805951
+    },
+    "return": -0.0545322378,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-09",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0570793429,
+     "B2_NIFTY50_GROSS_TRI": 0.0521031426,
+     "B3_NIFTY50_NET_TRI": 0.0521036172
+    },
+    "return": 0.0570779638,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2006-06-15",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0643335909,
+     "B2_NIFTY50_GROSS_TRI": 0.0632131315,
+     "B3_NIFTY50_NET_TRI": 0.063215842
+    },
+    "return": 0.0640262627,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2007-10-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.055895026,
+     "B2_NIFTY50_GROSS_TRI": 0.0559280419,
+     "B3_NIFTY50_NET_TRI": 0.0559243223
+    },
+    "return": 0.0558637055,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-21",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.103238578,
+     "B2_NIFTY50_GROSS_TRI": -0.0870244198,
+     "B3_NIFTY50_NET_TRI": -0.0870250635
+    },
+    "return": -0.1032404663,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-22",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0662214176,
+     "B2_NIFTY50_GROSS_TRI": -0.0594209216,
+     "B3_NIFTY50_NET_TRI": -0.0594187907
+    },
+    "return": -0.0662184109,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0704285755,
+     "B2_NIFTY50_GROSS_TRI": 0.0622042511,
+     "B3_NIFTY50_NET_TRI": 0.0622058432
+    },
+    "return": 0.0703281396,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-01-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0715483453,
+     "B2_NIFTY50_GROSS_TRI": 0.0695089286,
+     "B3_NIFTY50_NET_TRI": 0.0695151259
+    },
+    "return": 0.0715474639,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-11",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0539089405,
+     "B2_NIFTY50_GROSS_TRI": -0.05142759,
+     "B3_NIFTY50_NET_TRI": -0.0514319016
+    },
+    "return": -0.0539673173,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-02-14",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.058065455,
+     "B2_NIFTY50_GROSS_TRI": 0.0553397702,
+     "B3_NIFTY50_NET_TRI": 0.0553378982
+    },
+    "return": 0.0580008164,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-03",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0521192273,
+     "B2_NIFTY50_GROSS_TRI": -0.0517908044,
+     "B3_NIFTY50_NET_TRI": -0.0517849283
+    },
+    "return": -0.0521173459,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-13",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0575832897,
+     "B2_NIFTY50_GROSS_TRI": -0.0509856437,
+     "B3_NIFTY50_NET_TRI": -0.0509858092
+    },
+    "return": -0.0575802917,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0583334587,
+     "B2_NIFTY50_GROSS_TRI": -0.0509646667,
+     "B3_NIFTY50_NET_TRI": -0.050958825
+    },
+    "return": -0.0584742611,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-03-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0621079545,
+     "B2_NIFTY50_GROSS_TRI": 0.0580538462,
+     "B3_NIFTY50_NET_TRI": 0.0580597551
+    },
+    "return": 0.0621077975,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-07-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0599975692,
+     "B2_NIFTY50_GROSS_TRI": 0.0558187646,
+     "B3_NIFTY50_NET_TRI": 0.0558241991
+    },
+    "return": 0.0599956844,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-06",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0587331646,
+     "B2_NIFTY50_GROSS_TRI": -0.0565622169,
+     "B3_NIFTY50_NET_TRI": -0.0571632034
+    },
+    "return": -0.0587329359,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0692146664,
+     "B2_NIFTY50_GROSS_TRI": -0.0665092675,
+     "B3_NIFTY50_NET_TRI": -0.0665119528
+    },
+    "return": -0.0692227067,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-13",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0605805034,
+     "B2_NIFTY50_GROSS_TRI": 0.0642497072,
+     "B3_NIFTY50_NET_TRI": 0.0642545117
+    },
+    "return": 0.0605841914,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-17",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0519786684,
+     "B2_NIFTY50_GROSS_TRI": -0.0596277754,
+     "B3_NIFTY50_NET_TRI": -0.0596296777
+    },
+    "return": -0.0519747294,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1127037679,
+     "B2_NIFTY50_GROSS_TRI": -0.1220207505,
+     "B3_NIFTY50_NET_TRI": -0.122028141
+    },
+    "return": -0.1127087167,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-28",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0616472485,
+     "B2_NIFTY50_GROSS_TRI": 0.0635389277,
+     "B3_NIFTY50_NET_TRI": 0.0635441036
+    },
+    "return": 0.0616499877,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-10-31",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0630785124,
+     "B2_NIFTY50_GROSS_TRI": 0.069909228,
+     "B3_NIFTY50_NET_TRI": 0.0699069777
+    },
+    "return": 0.0630571392,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-03",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0534273998,
+     "B2_NIFTY50_GROSS_TRI": 0.0548512955,
+     "B3_NIFTY50_NET_TRI": 0.0548437482
+    },
+    "return": 0.0534336121,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-10",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0569652128,
+     "B2_NIFTY50_GROSS_TRI": 0.0589416013,
+     "B3_NIFTY50_NET_TRI": 0.0589457785
+    },
+    "return": 0.0569553221,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2008-11-11",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0577892551,
+     "B2_NIFTY50_GROSS_TRI": -0.0665806959,
+     "B3_NIFTY50_NET_TRI": -0.0665761551
+    },
+    "return": -0.0577922161,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-01-07",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0623237965,
+     "B2_NIFTY50_GROSS_TRI": -0.061799442,
+     "B3_NIFTY50_NET_TRI": -0.0618087651
+    },
+    "return": -0.0623217323,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-05-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.167460417,
+     "B2_NIFTY50_GROSS_TRI": 0.1774490619,
+     "B3_NIFTY50_NET_TRI": 0.1774401974
+    },
+    "return": 0.1674588545,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2009-07-06",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0549930237,
+     "B2_NIFTY50_GROSS_TRI": -0.0574702541,
+     "B3_NIFTY50_NET_TRI": -0.0574484485
+    },
+    "return": -0.0554256223,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2015-08-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0656059285,
+     "B2_NIFTY50_GROSS_TRI": -0.0591487014,
+     "B3_NIFTY50_NET_TRI": -0.0591488695
+    },
+    "return": -0.0656099541,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2019-09-20",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0542649081,
+     "B2_NIFTY50_GROSS_TRI": 0.0531932276,
+     "B3_NIFTY50_NET_TRI": 0.0531929383
+    },
+    "return": 0.0542661531,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-12",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0832293242,
+     "B2_NIFTY50_GROSS_TRI": -0.0830205705,
+     "B3_NIFTY50_NET_TRI": -0.0830199655
+    },
+    "return": -0.0832634093,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-16",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0714795619,
+     "B2_NIFTY50_GROSS_TRI": -0.0757207783,
+     "B3_NIFTY50_NET_TRI": -0.07572088
+    },
+    "return": -0.0718191796,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-18",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0548101871,
+     "B2_NIFTY50_GROSS_TRI": -0.0555670595,
+     "B3_NIFTY50_NET_TRI": -0.0555664365
+    },
+    "return": -0.0548397117,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-20",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0546063621,
+     "B2_NIFTY50_GROSS_TRI": 0.0583275679,
+     "B3_NIFTY50_NET_TRI": 0.0583272115
+    },
+    "return": 0.0546060373,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-23",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.1278185565,
+     "B2_NIFTY50_GROSS_TRI": -0.1291457499,
+     "B3_NIFTY50_NET_TRI": -0.1291455847
+    },
+    "return": -0.1284136103,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-03-25",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0590813257,
+     "B2_NIFTY50_GROSS_TRI": 0.0662432909,
+     "B3_NIFTY50_NET_TRI": 0.0662441951
+    },
+    "return": 0.0590840301,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-04-07",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": 0.0811300824,
+     "B2_NIFTY50_GROSS_TRI": 0.0876294366,
+     "B3_NIFTY50_NET_TRI": 0.0876298362
+    },
+    "return": 0.0811323004,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2020-05-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0540877099,
+     "B2_NIFTY50_GROSS_TRI": -0.0574430755,
+     "B3_NIFTY50_NET_TRI": -0.0574430387
+    },
+    "return": -0.0540893984,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2022-02-24",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0500254004,
+     "B2_NIFTY50_GROSS_TRI": -0.0477807828,
+     "B3_NIFTY50_NET_TRI": -0.0477812213
+    },
+    "return": -0.0500292259,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   },
+   {
+    "date": "2024-06-04",
+    "others": {
+     "B1_NIFTY200_GROSS_TRI": -0.0675048604,
+     "B2_NIFTY50_GROSS_TRI": -0.0586465238,
+     "B3_NIFTY50_NET_TRI": -0.0588013218
+    },
+    "return": -0.0679391832,
+    "series": "B4_NIFTY200_PRICE_RETURN",
+    "status": "CORROBORATED"
+   }
+  ]
+ },
+ "limits": [
+  "coverage differs by design: Nifty 50 gross starts 1999-06-30, Nifty 50 net 2000-01-03, the other two 2004-01-01"
+ ]
+}
