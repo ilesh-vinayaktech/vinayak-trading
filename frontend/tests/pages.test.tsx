@@ -12,26 +12,34 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
   usePathname: () => "/dashboard",
 }));
-vi.mock("lightweight-charts", () => ({
-  ColorType: { Solid: "solid" },
-  CrosshairMode: { Normal: 0 },
-  PriceScaleMode: { Normal: 0, Logarithmic: 1 },
-  createChart: () => ({
-    addLineSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), priceToCoordinate: vi.fn(() => 50), coordinateToPrice: vi.fn(() => 100) }),
-    addAreaSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), priceToCoordinate: vi.fn(() => 50), coordinateToPrice: vi.fn(() => 100) }),
-    takeScreenshot: vi.fn(),
-    addCandlestickSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) }),
-    addHistogramSeries: () => ({ setData: vi.fn() }),
-    priceScale: () => ({ applyOptions: vi.fn() }),
-    timeScale: () => ({ fitContent: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
-    applyOptions: vi.fn(),
-    subscribeCrosshairMove: vi.fn(),
-    unsubscribeCrosshairMove: vi.fn(),
-    subscribeClick: vi.fn(),
-    unsubscribeClick: vi.fn(),
-    remove: vi.fn(),
-  }),
-}));
+vi.mock("lightweight-charts", () => {
+  const series = () => ({ setData: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) });
+  return {
+    ColorType: { Solid: "solid" },
+    CrosshairMode: { Normal: 0 },
+    LineStyle: { Dashed: 2 },
+    PriceScaleMode: { Normal: 0, Logarithmic: 1 },
+    CandlestickSeries: "Candlestick",
+    LineSeries: "Line",
+    AreaSeries: "Area",
+    HistogramSeries: "Histogram",
+    createSeriesMarkers: vi.fn(),
+    createChart: () => ({
+      addSeries: series,
+      removeSeries: vi.fn(),
+      panes: () => [{ getHeight: () => 400, setHeight: vi.fn(), getHTMLElement: () => document.createElement("div") }],
+      takeScreenshot: vi.fn(),
+      priceScale: () => ({ applyOptions: vi.fn() }),
+      timeScale: () => ({ fitContent: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
+      applyOptions: vi.fn(),
+      subscribeCrosshairMove: vi.fn(),
+      unsubscribeCrosshairMove: vi.fn(),
+      subscribeClick: vi.fn(),
+      unsubscribeClick: vi.fn(),
+      remove: vi.fn(),
+    }),
+  };
+});
 
 function wrap(ui: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

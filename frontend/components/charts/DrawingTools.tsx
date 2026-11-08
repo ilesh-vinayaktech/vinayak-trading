@@ -83,7 +83,7 @@ function ShapeEl({ s, i, faint }: { s: Shape; i: number; faint: boolean }) {
   return <path key={i} d={d} {...common} {...fill} />;
 }
 
-export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust, topbar, above, children }: { handles: ChartHandles | null; ready: number; tick: number; bars: Bar[]; instrumentId: number; adjust: string; topbar?: (api: DrawingApi) => ReactNode; above?: ReactNode; children: ReactNode }) {
+export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust, topbar, above, overlay, children }: { handles: ChartHandles | null; ready: number; tick: number; bars: Bar[]; instrumentId: number; adjust: string; topbar?: (api: DrawingApi) => ReactNode; above?: ReactNode; overlay?: ReactNode; children: ReactNode }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [hist, setHist] = useState<H.History>(() => H.initial());
   const [loaded, setLoaded] = useState(false);
@@ -127,7 +127,9 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
     const el = wrap.current;
     if (!h || !el) return;
     try {
-      setSize({ w: Math.max(0, h.chart.timeScale().width()), h: Math.max(0, el.clientHeight - h.chart.timeScale().height()) });
+      const mainPane = h.chart.panes()[0];
+      const paneH = mainPane ? mainPane.getHeight() : el.clientHeight - h.chart.timeScale().height();
+      setSize({ w: Math.max(0, h.chart.timeScale().width()), h: Math.max(0, paneH) });
     } catch {
       /* chart gone */
     }
@@ -429,6 +431,7 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
             </svg>
           </div>
           <div className="pointer-events-none absolute left-3 top-2 z-20">{above}</div>
+          {overlay}
 
           {/* floating properties bar, like a charting terminal's: only while something is selected */}
           {selectedDrawing ? (

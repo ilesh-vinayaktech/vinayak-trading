@@ -9,6 +9,8 @@ import {
   healthSchema,
   instrumentDetailSchema,
   instrumentSchema,
+  indicatorCatalogSchema,
+  indicatorSeriesSchema,
   levelsSchema,
   type Adjust,
 } from "@/lib/schemas";
@@ -62,6 +64,9 @@ export const api = {
   instrument: (id: number) => get(`/api/instruments/${id}`, instrumentDetailSchema),
   bars: (id: number, start: string, end: string, adjust: Adjust) =>
     get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust }),
+  indicatorCatalog: () => get("/api/indicators", indicatorCatalogSchema),
+  indicatorSeries: (id: number, start: string, end: string, adjust: Adjust, names: string) =>
+    get(`/api/instruments/${id}/indicators`, indicatorSeriesSchema, { start, end, adjust, names }),
   benchmarks: () => get("/api/benchmarks", benchmarkListSchema),
   benchmark: (id: number) => get(`/api/benchmarks/${id}`, benchmarkDetailSchema),
   benchmarkLevels: (id: number, start?: string, maxPoints = 1500) =>

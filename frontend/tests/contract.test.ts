@@ -10,6 +10,8 @@ import {
   benchmarkListSchema,
   dashboardSchema,
   healthSchema,
+  indicatorCatalogSchema,
+  indicatorSeriesSchema,
   instrumentDetailSchema,
   instrumentSchema,
   levelsSchema,
@@ -33,6 +35,8 @@ const CASES: [string, z.ZodTypeAny][] = [
   ["benchmark_levels", levelsSchema],
   ["backtests", backtestPageSchema],
   ["activity", activitySchema],
+  ["indicator_catalog", indicatorCatalogSchema],
+  ["indicator_series", indicatorSeriesSchema],
 ];
 
 describe("API contract", () => {

@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorBox, Loading } from "@/components/status/LoadState";
+import { api } from "@/lib/api/client";
+import { MAX_ACTIVE, defaultSpec, loadActive, newUid, saveActive, type Active } from "@/lib/indicators";
 import type { Adjust, Bars, Instrument, InstrumentDetail } from "@/lib/schemas";
 import { Icon, type IconName } from "./icons";
-import { PriceChart, type ChartType } from "./PriceChart";
+import { IndicatorDialog } from "./IndicatorDialog";
+import { PriceChart, type ChartType, type IndicatorControls } from "./PriceChart";
 import { SymbolSearch } from "./SymbolSearch";
 
 export const BASES: { value: Adjust; label: string; blurb: string }[] = [
@@ -45,6 +49,40 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [full, setFull] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
+  const [active, setActive] = useState<Active[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [dialog, setDialog] = useState(false);
+  useEffect(() => {
+    setActive(loadActive());
+    setLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (loaded) saveActive(active);
+  }, [active, loaded]);
+  const catalog = useQuery({ queryKey: ["indicator-catalog"], queryFn: api.indicatorCatalog, staleTime: Infinity });
+  const names = active.map((a) => a.spec).join(",");
+  const series = useQuery({
+    queryKey: ["indicators", picked?.id, start, end, adjust, names],
+    queryFn: () => api.indicatorSeries(picked?.id as number, start, end, adjust, names),
+    enabled: picked !== null && names !== "" && start !== "" && start <= end,
+    placeholderData: (prev) => prev,
+  });
+  const controls: IndicatorControls = useMemo(
+    () => ({
+      active,
+      data: series.data,
+      catalog: catalog.data?.indicators ?? [],
+      onToggle: (uid) => setActive((l) => l.map((a) => (a.uid === uid ? { ...a, visible: !a.visible } : a))),
+      onRemove: (uid) => setActive((l) => l.filter((a) => a.uid !== uid)),
+      onEdit: (uid, spec) => setActive((l) => l.map((a) => (a.uid === uid ? { ...a, spec } : a))),
+    }),
+    [active, series.data, catalog.data],
+  );
+  const counts: Record<string, number> = {};
+  for (const a of active) {
+    const n = a.spec.split(":")[0] as string;
+    counts[n] = (counts[n] ?? 0) + 1;
+  }
   const last = instrument?.bars.last ?? null;
   const first = instrument?.bars.first ?? null;
 
@@ -73,6 +111,11 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
           </button>
         ))}
       </div>
+      <Sep />
+      <button type="button" title="Indicators" aria-label="Indicators" onClick={() => setDialog(true)} className={tbBtn(active.length > 0)}>
+        <Icon name="line" size={18} />
+        <span>Indicators</span>
+      </button>
       <Sep />
       <label className="sr-only" htmlFor="adjust">
         Price basis
@@ -151,13 +194,22 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
   return (
     <div ref={box} className={`flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm ${full ? "h-screen" : "h-[calc(100vh-15rem)] min-h-[560px]"}`} data-testid="chart-workspace">
       {bars && bars.bars.length > 0 && picked ? (
-        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} symbol={picked.symbol} exchange="NSE" chartType={chartType} topbar={topbar} />
+        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} />
       ) : (
         <>
           {topbar({ undo: () => {}, redo: () => {}, canUndo: false, canRedo: false, count: 0, listOpen: false, toggleList: () => {}, screenshot: () => {} })}
           <div className="flex-1">{body}</div>
         </>
       )}
+      {dialog ? (
+        <IndicatorDialog
+          catalog={catalog.data?.indicators ?? []}
+          counts={counts}
+          atLimit={active.length >= MAX_ACTIVE}
+          onClose={() => setDialog(false)}
+          onAdd={(def) => active.length < MAX_ACTIVE && setActive((l) => [...l, { uid: newUid(), spec: defaultSpec(def), visible: true }])}
+        />
+      ) : null}
     </div>
   );
 }

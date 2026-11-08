@@ -1,6 +1,6 @@
 "use client";
 
-import { ColorType, createChart, PriceScaleMode, type MouseEventParams, type Time } from "lightweight-charts";
+import { ColorType, createChart, LineSeries, PriceScaleMode, type MouseEventParams, type Time } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 import { plotNumber } from "@/lib/formatting";
 
@@ -18,7 +18,7 @@ export function LineChart({ points, color = "#0f172a" }: { points: { date: strin
       rightPriceScale: { borderColor: "#e2e8f0", mode: log ? PriceScaleMode.Logarithmic : PriceScaleMode.Normal, scaleMargins: { top: 0.1, bottom: 0.08 } },
       timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true },
     });
-    const line = chart.addLineSeries({ color, lineWidth: 2, priceFormat: { type: "price", precision: 0, minMove: 1 } });
+    const line = chart.addSeries(LineSeries, { color, lineWidth: 2, priceFormat: { type: "price", precision: 0, minMove: 1 } });
     line.setData(points.map((p) => ({ time: p.date as Time, value: plotNumber(p.level) })));
     const byDate = new Map(points.map((p) => [p.date, p]));
     const onMove = (m: MouseEventParams<Time>) => setHover(typeof m.time === "string" ? (byDate.get(m.time) ?? null) : null);

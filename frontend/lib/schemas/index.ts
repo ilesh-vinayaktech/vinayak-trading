@@ -267,6 +267,52 @@ export const activitySchema = z.object({
   jobs: z.object({ persisted: z.boolean(), note: z.string() }),
 });
 
+const indicatorParam = z.object({
+  key: z.string(),
+  label: z.string(),
+  default: z.string(),
+  min: z.string(),
+  max: z.string(),
+  integer: z.boolean(),
+});
+const indicatorOutput = z.object({ key: z.string(), label: z.string(), kind: z.enum(["line", "histogram", "dots"]), color: z.string() });
+
+export const indicatorCatalogSchema = z.object({
+  indicators: z.array(
+    z.object({
+      name: z.string(),
+      label: z.string(),
+      group: z.string(),
+      pane: z.enum(["overlay", "pane"]),
+      description: z.string(),
+      params: z.array(indicatorParam),
+      outputs: z.array(indicatorOutput),
+      levels: z.array(z.string()),
+    }),
+  ),
+});
+
+export const indicatorSeriesSchema = z.object({
+  adjust: z.enum(["none", "split", "total_return"]),
+  adjustment_version: z.string(),
+  dates: z.array(z.string()),
+  indicators: z.array(
+    z.object({
+      spec: z.string(),
+      name: z.string(),
+      label: z.string(),
+      pane: z.enum(["overlay", "pane"]),
+      params: z.record(z.string()),
+      levels: z.array(z.string()),
+      outputs: z.array(indicatorOutput.extend({ values: z.array(z.string().nullable()) })),
+    }),
+  ),
+});
+
+export type IndicatorDef = z.infer<typeof indicatorCatalogSchema>["indicators"][number];
+export type IndicatorResult = z.infer<typeof indicatorSeriesSchema>["indicators"][number];
+export type IndicatorSeries = z.infer<typeof indicatorSeriesSchema>;
+
 export type Dashboard = z.infer<typeof dashboardSchema>;
 export type Instrument = z.infer<typeof instrumentSchema>;
 export type InstrumentDetail = z.infer<typeof instrumentDetailSchema>;
