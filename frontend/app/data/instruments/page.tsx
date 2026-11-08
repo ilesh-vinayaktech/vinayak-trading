@@ -37,6 +37,7 @@ const ACTION_COLUMNS: ColumnDef<Action, unknown>[] = [
 
 export default function InstrumentsPage() {
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState(true); // the suggestion list: closed once an instrument is picked
   const [id, setId] = useState<number | null>(null);
   const [adjust, setAdjust] = useState<Adjust>("none");
   const [start, setStart] = useState("2024-01-01");
@@ -60,15 +61,15 @@ export default function InstrumentsPage() {
         <label className="block text-xs text-ink-soft" htmlFor="q">
           Symbol, ISIN or name
         </label>
-        <input id="q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="RELIANCE or INE002A01018" className="mt-1 w-full max-w-md rounded-md border border-line px-3 py-2 text-sm" />
-        {search.isLoading && q ? <Loading what="matches" /> : null}
+        <input id="q" value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => { if (q.trim()) setOpen(true); }} placeholder="RELIANCE or INE002A01018" className="mt-1 w-full max-w-md rounded-md border border-line px-3 py-2 text-sm" />
+        {open && search.isLoading && q ? <Loading what="matches" /> : null}
         {search.error ? <ErrorBox error={search.error} what="the search" /> : null}
-        {search.data ? (
+        {open && search.data ? (
           <ul className="mt-3 divide-y divide-line rounded-md border border-line" aria-label="Matches">
             {search.data.length === 0 ? <li className="p-3 text-sm text-ink-soft">No instrument matches.</li> : null}
             {search.data.map((i) => (
               <li key={i.id}>
-                <button type="button" onClick={() => setId(i.id)} className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm hover:bg-slate-50">
+                <button type="button" onClick={() => { setId(i.id); setQ(i.symbol); setOpen(false); }} className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm hover:bg-slate-50">
                   <span>
                     <span className="font-medium">{i.symbol}</span> <span className="text-ink-soft">{i.name}</span>
                   </span>

@@ -157,6 +157,19 @@ describe("Data Explorer", () => {
     await waitFor(() => expect(screen.getAllByText("Split/bonus adjusted").length).toBeGreaterThan(0));
   });
 
+  it("closes the suggestion list once an instrument is chosen and reopens it when typing again", async () => {
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars }));
+    wrap(<InstrumentsPage />);
+    const box = screen.getByLabelText("Symbol, ISIN or name") as HTMLInputElement;
+    fireEvent.change(box, { target: { value: "xy" } });
+    fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+    await screen.findByText("basis: Raw (as traded)");
+    expect(screen.queryByRole("list", { name: "Matches" })).not.toBeInTheDocument();
+    expect(box.value).toBe("XYZ"); // the chosen symbol replaces the partial text
+    fireEvent.change(box, { target: { value: "XY" } });
+    expect(await screen.findByRole("list", { name: "Matches" })).toBeInTheDocument();
+  });
+
   it("explains an empty search instead of showing nothing", async () => {
     vi.stubGlobal("fetch", route({ "/api/instruments": [] }));
     wrap(<InstrumentsPage />);
