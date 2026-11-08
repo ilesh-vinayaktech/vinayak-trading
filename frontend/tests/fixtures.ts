@@ -24,7 +24,7 @@ export const dashboard = {
   corporate_actions: { actions_by_status: { ok: 4294, review: 529 }, resolutions_by_status: { provisional: 10 } },
   research: { backtests: 0, experiments: 0, validation_reports: 0, validation_reports_passed: 0, latest_run: null },
   strategies: { persisted: false, note: "strategy lifecycle states are not stored yet" },
-  system: { database: "ok", redis: "not configured", api: "ok", recent_ingestion: [{ id: 1, source: "nse", dataset: "bhav", partition: "2026-11-06", status: "loaded", at: "2026-11-06T18:09:57+00:00" }] },
+  system: { database: "ok", redis: "not configured", api: "ok", recent_ingestion: [{ id: 1, source: "nse", dataset: "bhav", partition: "2026-11-06", status: "loaded", at: "2026-11-06T18:09:57+00:00", current_status: "loaded", superseded: false }] },
 };
 
 export const benchmarkDetail = {
@@ -53,9 +53,16 @@ export const benchmarkDetail = {
     { id: "U01", title: "2022-08-08 recovered", severity: "INFO", status: "RESOLVED", category: "session-evidence", detail: "resolved", blocks: [] },
   ],
   validations: [
+    { validation_id: 3, created_at: "2026-11-07T09:00:00+00:00", passed: true, covers_current_dataset: true, report_version: "legacy (pass/fail only, pre-states)", technical_validation_passed: true, check_states: null, owner_accepted_findings: [], unresolved: [] },
     { validation_id: 4, created_at: "2026-11-07T10:00:00+00:00", passed: false, covers_current_dataset: true, report_version: "2", technical_validation_passed: false, check_states: { net_never_gains_on_gross: "UNRESOLVED" }, owner_accepted_findings: [{ check: "net_never_gains_on_gross", state: "UNRESOLVED", label: "UNRESOLVED_DIVIDEND_ASSOCIATED_ANOMALY" }], unresolved: [] },
   ],
-  session_calendar: { calendar_version: { sessions_file_sha256: "abc" }, evidence: ["2019-10-01", "2026-11-06"], outcome_counts_all_series: { WEEKDAY_RULE_PROVISIONAL: 4505, CONFIRMED_REGULAR: 2268 }, historical_session_hours: "no historical session hours are held as evidence" },
+  session_calendar: {
+    calendar_version: { sessions_file_sha256: "abc" },
+    evidence: ["2019-10-01", "2026-11-06"],
+    outcome_counts_all_series: { WEEKDAY_RULE_PROVISIONAL: 4505, CONFIRMED_REGULAR: 2268 },
+    this_series: { series: "B3_NIFTY50_NET_TRI", observed_outcomes: { WEEKDAY_RULE_PROVISIONAL: 4500, CONFIRMED_REGULAR: 1753 }, missing_outcomes: { EXPECTED_CLOSED_INFERRED: 259 } },
+    historical_session_hours: "no historical session hours are held as evidence",
+  },
   instrument_level_blocked_dates: [],
 };
 

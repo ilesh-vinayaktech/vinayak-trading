@@ -10,4 +10,4 @@ console-check:
 	cd frontend && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build
 
 console-api:
-	uv run uvicorn --factory algo.api.main:build --port 8000
+	uv run uvicorn --factory algo.api.main:build --host 127.0.0.1 --port 8000

@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { LineChart } from "@/components/charts/LineChart";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge, Flag, findingStatusTone, severityTone } from "@/components/status/Badge";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { fmtDateTime, fmtInt, humanize, shortHash } from "@/lib/formatting";
+import type { Finding } from "@/lib/schemas";
 
 function List() {
   const { data, error, isLoading } = useQuery({ queryKey: ["benchmarks"], queryFn: api.benchmarks });
@@ -55,6 +57,18 @@ function List() {
   );
 }
 
+const SEVERITY_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2, INFO: 3 };
+
+/** Open problems first, then the most severe; resolved items sink to the bottom. */
+function sortFindings(fs: Finding[]): Finding[] {
+  const rank = (f: Finding) => (f.status === "UNRESOLVED" ? 0 : f.status === "RESOLVED" ? 2 : 1);
+  return [...fs].sort((a, b) => rank(a) - rank(b) || (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9) || a.id.localeCompare(b.id));
+}
+
+function reportLabel(v: string): string {
+  return v.startsWith("legacy") ? "legacy report format" : `report v${v}`;
+}
+
 function Detail({ id }: { id: number }) {
   const d = useQuery({ queryKey: ["benchmark", id], queryFn: () => api.benchmark(id) });
   const lv = useQuery({ queryKey: ["levels", id], queryFn: () => api.benchmarkLevels(id) });
@@ -96,17 +110,19 @@ function Detail({ id }: { id: number }) {
       </Card>
 
       {Object.entries(uses).some(([, v]) => v.blockers.length > 0) ? (
-        <Card title="What blocks each use">
+        <Card title="What blocks each use" note="Any unresolved finding blocks the benchmark gate; only the named ones block research.">
           {Object.entries(uses).map(([k, v]) =>
             v.blockers.length > 0 ? (
-              <div key={k} className="mb-3">
-                <div className="text-sm font-medium">{humanize(k)}</div>
-                <ul className="ml-5 list-disc text-sm text-ink-soft">
+              <details key={k} className="mb-2 rounded-md border border-line p-3" open={k !== "BENCHMARK_GATE"}>
+                <summary className="cursor-pointer text-sm font-medium">
+                  {humanize(k)} <span className="font-normal text-ink-soft">({v.blockers.length} blocker{v.blockers.length === 1 ? "" : "s"})</span>
+                </summary>
+                <ul className="ml-5 mt-2 list-disc text-sm text-ink-soft">
                   {v.blockers.map((x) => (
                     <li key={x}>{x}</li>
                   ))}
                 </ul>
-              </div>
+              </details>
             ) : null,
           )}
         </Card>
@@ -114,7 +130,7 @@ function Detail({ id }: { id: number }) {
 
       <Card title="Findings that apply">
         <ul className="divide-y divide-line">
-          {b.findings.map((f) => (
+          {sortFindings(b.findings).map((f) => (
             <li key={f.id} className="py-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs">{f.id}</span>
@@ -138,7 +154,7 @@ function Detail({ id }: { id: number }) {
                 <span className="text-ink-soft">{fmtDateTime(v.created_at)}</span>
                 <Badge tone={v.technical_validation_passed ? "good" : "bad"}>technical {v.technical_validation_passed ? "passed" : "not passed"}</Badge>
                 <Badge tone={v.covers_current_dataset ? "good" : "warn"}>{v.covers_current_dataset ? "covers current data" : "stale: data changed"}</Badge>
-                <Badge tone="neutral">report v{v.report_version}</Badge>
+                <Badge tone="neutral">{reportLabel(v.report_version)}</Badge>
               </div>
               {v.owner_accepted_findings.length > 0 ? (
                 <p className="mt-1 text-xs text-ink-soft">
@@ -150,18 +166,40 @@ function Detail({ id }: { id: number }) {
         </ul>
       </Card>
 
-      <Card title="Session-calendar dependencies">
+      <Card title="Session-calendar dependencies (this series)">
         {b.session_calendar ? (
-          <div className="space-y-2 text-sm">
+          <div className="space-y-3 text-sm">
             <p className="text-ink-soft">{b.session_calendar.historical_session_hours}</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(b.session_calendar.outcome_counts_all_series).map(([k, v]) => (
-                <Badge key={k} tone={k.includes("PROVISIONAL") ? "warn" : "neutral"}>
-                  {humanize(k)}: {fmtInt(v)}
-                </Badge>
-              ))}
-            </div>
-            <p className="text-xs text-ink-faint">Counts cover all four series. Instrument-level blocked dates: {b.instrument_level_blocked_dates.join(", ") || "none"}.</p>
+            {b.session_calendar.this_series ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="mb-1 text-xs font-medium text-ink-soft">Dates this series has a value on</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(b.session_calendar.this_series.observed_outcomes).map(([k, v]) => (
+                      <Badge key={k} tone={k.includes("PROVISIONAL") || k.includes("BENCHMARK_ONLY") ? "warn" : "neutral"}>
+                        {humanize(k)}: {fmtInt(v)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 text-xs font-medium text-ink-soft">Weekdays and dates it has no value on</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(b.session_calendar.this_series.missing_outcomes).map(([k, v]) => (
+                      <Badge key={k} tone={k.includes("GAP") || k.includes("UNCONFIRMED") ? "warn" : "neutral"}>
+                        {humanize(k)}: {fmtInt(v)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-ink-soft">No per-series calendar evidence for this benchmark.</p>
+            )}
+            <p className="text-xs text-ink-faint">
+              All four series together: {Object.entries(b.session_calendar.outcome_counts_all_series).map(([k, v]) => `${humanize(k)} ${fmtInt(v)}`).join(", ")}. Instrument-level blocked dates:{" "}
+              {b.instrument_level_blocked_dates.join(", ") || "none"}.
+            </p>
           </div>
         ) : (
           <p className="text-sm text-ink-soft">No calendar evidence loaded.</p>
@@ -176,10 +214,7 @@ function Page() {
   const id = raw !== null && /^\d+$/.test(raw) ? Number(raw) : null;
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Benchmark Explorer</h1>
-        <p className="text-sm text-ink-soft">Eligibility, findings and validation history come from the frozen release; the browser calculates nothing.</p>
-      </div>
+      <PageHeader title="Benchmark Explorer" subtitle="Eligibility, findings and validation history come from the frozen release; the browser calculates nothing." />
       {id === null ? <List /> : <Detail id={id} />}
     </div>
   );

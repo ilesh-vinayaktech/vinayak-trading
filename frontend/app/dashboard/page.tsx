@@ -2,10 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge, Flag } from "@/components/status/Badge";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { fmtDateTime, fmtInt, humanize } from "@/lib/formatting";
+
+/** How old the newest bar is, as a plain calendar-day difference (display only). */
+function FreshnessBadge({ lastDate }: { lastDate: string }) {
+  const days = Math.floor((Date.now() - new Date(`${lastDate}T00:00:00Z`).getTime()) / 86_400_000);
+  const tone = days <= 4 ? "good" : days <= 10 ? "warn" : "bad";
+  return <Badge tone={tone}>newest bar {lastDate} ({days <= 0 ? "today" : `${days} day${days === 1 ? "" : "s"} old`})</Badge>;
+}
 
 export default function DashboardPage() {
   const { data: d, error, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: api.dashboard });
@@ -19,12 +27,11 @@ export default function DashboardPage() {
       : undefined;
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-ink-soft">
-          Ingested, technically validated, research-eligible and gate-eligible are four different things; they are shown separately below.
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Ingested, technically validated, research-eligible and gate-eligible are four different things; they are shown separately below."
+        actions={bars.last_date ? <FreshnessBadge lastDate={bars.last_date} /> : null}
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card title="Platform status" note={d.platform.reason}>

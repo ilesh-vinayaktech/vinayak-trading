@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { PriceChart } from "@/components/charts/PriceChart";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/status/Badge";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { DataTable } from "@/components/tables/DataTable";
@@ -30,7 +31,7 @@ const ACTION_COLUMNS: ColumnDef<Action, unknown>[] = [
       return <Badge tone={s === "ok" ? "good" : "warn"}>{s === "ok" ? "verified" : s}</Badge>;
     },
   },
-  { header: "Ratio / amount", cell: ({ row }) => (row.original.amount ? `₹${row.original.amount}` : row.original.num ? `${row.original.num}:${row.original.den}` : "-") },
+  { header: "Amount / share ratio", cell: ({ row }) => (row.original.amount ? `₹${row.original.amount} per share` : row.original.num ? `${row.original.num}:${row.original.den} (shares after : before)` : "-") },
   { header: "Subject", accessorKey: "subject", cell: ({ getValue }) => <span className="text-xs text-ink-soft">{String(getValue() ?? "")}</span> },
 ];
 
@@ -53,10 +54,7 @@ export default function InstrumentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Data Explorer</h1>
-        <p className="text-sm text-ink-soft">Daily bars from the backend bar reader. Adjustment happens there, never in the browser.</p>
-      </div>
+      <PageHeader title="Data Explorer" subtitle="Daily bars from the backend bar reader. Adjustment happens there, never in the browser." />
 
       <Card title="Find an instrument">
         <label className="block text-xs text-ink-soft" htmlFor="q">
@@ -155,7 +153,9 @@ export default function InstrumentsPage() {
           </Card>
 
           <Card title="Corporate actions" note="Markers on the chart: blue = verified, amber = under review.">
-            <DataTable data={actions} columns={ACTION_COLUMNS} empty="No corporate actions recorded." />
+            <div className="max-h-96 overflow-y-auto">
+              <DataTable data={actions} columns={ACTION_COLUMNS} empty="No corporate actions recorded." />
+            </div>
           </Card>
         </>
       )}

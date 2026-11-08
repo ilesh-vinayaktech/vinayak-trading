@@ -8,7 +8,7 @@ store something yet (platform state, strategy lifecycle, job metrics) the consol
 Screens: Dashboard, Data Explorer (raw / split-adjusted / total-return, labelled), Benchmarks,
 Backtests (skeleton, controls disabled), System Activity.
 
-    # terminal 1 (repo root)
+    # terminal 1 (repo root)  - binds 127.0.0.1; there is no authentication
     ALGO_DB_URL=postgresql://postgres:dev@localhost:5433/algo make console-api
     # terminal 2
     cd frontend && npm install && npm run dev        # http://localhost:3000
@@ -16,3 +16,5 @@ Backtests (skeleton, controls disabled), System Activity.
     make console-check
 
 `NEXT_PUBLIC_API_URL` (default http://localhost:8000) points the console at the API.
+
+Security notes: docs/console-security-review.md. Data check: `uv run python scripts/verify_console_data.py --db $ALGO_DB_URL`.

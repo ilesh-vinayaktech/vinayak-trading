@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   activitySchema,
-  backtestRowSchema,
+  backtestPageSchema,
   barsSchema,
   benchmarkDetailSchema,
   benchmarkListSchema,
@@ -65,6 +65,6 @@ export const api = {
   benchmarks: () => get("/api/benchmarks", benchmarkListSchema),
   benchmark: (id: number) => get(`/api/benchmarks/${id}`, benchmarkDetailSchema),
   benchmarkLevels: (id: number) => get(`/api/benchmarks/${id}/levels`, levelsSchema),
-  backtests: () => get("/api/backtests", z.array(backtestRowSchema)),
-  activity: () => get("/api/system/activity", activitySchema),
+  backtests: (limit = 50, offset = 0) => get("/api/backtests", backtestPageSchema, { limit, offset }),
+  activity: (limit = 25, offset = 0) => get("/api/system/activity", activitySchema, { limit, offset }),
 };

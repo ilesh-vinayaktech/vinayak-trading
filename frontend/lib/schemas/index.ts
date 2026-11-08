@@ -12,7 +12,12 @@ const ingestionRow = z.object({
   partition: z.string(),
   status: z.string(),
   at: z.string(),
+  current_status: z.string(),
+  superseded: z.boolean(),
 });
+
+const page = <T extends z.ZodTypeAny>(item: T) =>
+  z.object({ items: z.array(item), total: z.number(), limit: z.number(), offset: z.number() });
 
 export const seriesStatusSchema = z.object({
   id: z.number(),
@@ -178,6 +183,13 @@ export const benchmarkDetailSchema = benchmarkSummarySchema.extend({
       calendar_version: z.record(z.unknown()),
       evidence: z.array(z.string()),
       outcome_counts_all_series: z.record(z.number()),
+      this_series: z
+        .object({
+          series: z.string(),
+          observed_outcomes: z.record(z.number()),
+          missing_outcomes: z.record(z.number()),
+        })
+        .nullable(),
       historical_session_hours: z.string(),
     })
     .nullable(),
@@ -200,11 +212,14 @@ export const backtestRowSchema = z.object({
   result_hash: z.string(),
 });
 
+export const backtestPageSchema = page(backtestRowSchema);
+
 export const activitySchema = z.object({
-  ingestion: z.array(ingestionRow),
+  ingestion: page(ingestionRow),
   validations: z.array(
     z.object({
       benchmark_id: z.number(),
+      name: z.string(),
       latest: validationSchema.nullable(),
     }),
   ),
@@ -220,4 +235,6 @@ export type BenchmarkSummary = z.infer<typeof benchmarkSummarySchema>;
 export type BenchmarkDetail = z.infer<typeof benchmarkDetailSchema>;
 export type Finding = z.infer<typeof findingSchema>;
 export type BacktestRow = z.infer<typeof backtestRowSchema>;
+export type Activity = z.infer<typeof activitySchema>;
+export type IngestionRow = Activity["ingestion"]["items"][number];
 export type Adjust = Bars["adjust"];

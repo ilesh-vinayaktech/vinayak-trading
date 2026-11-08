@@ -14,6 +14,8 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("lightweight-charts", () => ({
   ColorType: { Solid: "solid" },
+  CrosshairMode: { Normal: 0 },
+  PriceScaleMode: { Normal: 0, Logarithmic: 1 },
   createChart: () => ({
     addLineSeries: () => ({ setData: vi.fn() }),
     addCandlestickSeries: () => ({ setData: vi.fn(), setMarkers: vi.fn() }),
@@ -21,6 +23,8 @@ vi.mock("lightweight-charts", () => ({
     priceScale: () => ({ applyOptions: vi.fn() }),
     timeScale: () => ({ fitContent: vi.fn() }),
     applyOptions: vi.fn(),
+    subscribeCrosshairMove: vi.fn(),
+    unsubscribeCrosshairMove: vi.fn(),
     remove: vi.fn(),
   }),
 }));
@@ -69,13 +73,17 @@ describe("Benchmark detail", () => {
     expect(screen.getAllByText(/Historical session hours are not verified/).length).toBeGreaterThan(0); // blocker and finding
     expect(screen.getByText(/no historical session hours are held as evidence/)).toBeInTheDocument();
     expect(screen.getByText("gate disabled")).toBeInTheDocument();
-    expect(screen.getByText(/weekday rule provisional: 4,505/)).toBeInTheDocument();
+    // per-series dependencies, not just the all-series totals
+    expect(screen.getByText(/weekday rule provisional: 4,500/)).toBeInTheDocument();
+    expect(screen.getByText(/expected closed inferred: 259/)).toBeInTheDocument();
+    expect(screen.getByText(/All four series together/)).toBeInTheDocument();
+    expect(screen.getByText("legacy report format")).toBeInTheDocument();
   });
 });
 
 describe("Backtest Explorer", () => {
   it("keeps every run control disabled instead of faking a run", async () => {
-    vi.stubGlobal("fetch", route({ "/api/backtests": [] }));
+    vi.stubGlobal("fetch", route({ "/api/backtests": { items: [], total: 0, limit: 50, offset: 0 } }));
     wrap(<BacktestsPage />);
     expect(await screen.findByText("No backtests have been stored yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run backtest" })).toBeDisabled();
@@ -84,25 +92,39 @@ describe("Backtest Explorer", () => {
 });
 
 describe("System Activity", () => {
-  it("lists ingestion and states that job metrics are not recorded", async () => {
-    vi.stubGlobal(
-      "fetch",
-      route({
-        "/api/system/activity": {
-          ingestion: dashboard.system.recent_ingestion,
-          validations: [{ benchmark_id: 1, latest: null }],
-          backtests: [],
-          jobs: { persisted: false, note: "job runtime and resource use are not recorded" },
-        },
-      }),
-    );
+  const row = (id: number, status: string, superseded: boolean, current: string) => ({ id, source: "nse", dataset: "bhav", partition: `2022-08-0${id}`, status, at: "2026-11-07T10:00:00+00:00", current_status: current, superseded });
+  const activity = (offset: number, items: ReturnType<typeof row>[]) => ({
+    ingestion: { items, total: 30, limit: 25, offset },
+    validations: [{ benchmark_id: 1, name: "Nifty 200 TRI", latest: null }],
+    backtests: [],
+    jobs: { persisted: false, note: "job runtime and resource use are not recorded" },
+  });
+
+  it("shows a resolved quarantine as superseded history and a live one as a problem", async () => {
+    vi.stubGlobal("fetch", route({ "/api/system/activity": activity(0, [row(3, "quarantined", false, "quarantined"), row(2, "quarantined", true, "loaded"), row(1, "loaded", false, "loaded")]) }));
     wrap(<SystemPage />);
-    expect(await screen.findByText("nse/bhav")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("1 partition(s) on this page are currently quarantined: 2022-08-03");
+    expect(screen.getByText("superseded: partition is now loaded")).toBeInTheDocument();
+    expect(screen.getByText("Nifty 200 TRI")).toBeInTheDocument();
     expect(screen.getByText("never validated")).toBeInTheDocument();
     expect(screen.getByText("job runtime and resource use are not recorded")).toBeInTheDocument();
+    expect(screen.getByText("1-3 of 30 events")).toBeInTheDocument();
+  });
+
+  it("pages through the log", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      calls.push(url.searchParams.get("offset") ?? "");
+      return new Response(JSON.stringify(activity(Number(url.searchParams.get("offset")), [row(1, "loaded", false, "loaded")])));
+    });
+    wrap(<SystemPage />);
+    expect(await screen.findByRole("button", { name: "Newer" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Older" }));
+    await waitFor(() => expect(calls).toContain("25"));
+    expect(await screen.findByText("26-26 of 30 events")).toBeInTheDocument();
   });
 });
-
 
 describe("Data Explorer", () => {
   const inst = { id: 7, symbol: "XYZ", isin: "INE000A01010", name: "Xyz Ltd", status: "active", listed_on: null, delisted_on: null };
@@ -124,6 +146,9 @@ describe("Data Explorer", () => {
     expect(await screen.findByText("basis: Raw (as traded)")).toBeInTheDocument();
     expect(screen.getByText("adjustment version a7ca8ba234cb8b8a")).toBeInTheDocument();
     expect(screen.getByText("data-quality warnings")).toBeInTheDocument();
+    expect(screen.getByTestId("ohlc-legend")).toHaveTextContent("C 100.5");
+    expect(screen.getByTestId("ohlc-legend")).toHaveTextContent("factor 1");
+    expect(screen.getByText("1:1 (shares after : before)")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent("demerger 2024-07-01");
     expect(screen.getByTestId("price-chart")).toBeInTheDocument();
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();

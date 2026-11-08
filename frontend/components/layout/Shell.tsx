@@ -31,6 +31,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   return (
     <div className="flex min-h-screen">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow">
+        Skip to content
+      </a>
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-panel p-4 md:flex">
         <div className="mb-6">
           <div className="text-sm font-semibold">Vinayak</div>
@@ -52,9 +55,9 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto pt-6 text-xs text-ink-faint">Read-only. No orders, no writes.</div>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-line bg-panel px-4 py-3">
-          <nav className="flex gap-3 md:hidden" aria-label="Mobile">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
+        <header className="sticky top-0 z-10 flex flex-col gap-2 border-b border-line bg-panel px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <nav className="flex flex-wrap gap-x-4 gap-y-1 md:hidden" aria-label="Mobile">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className="text-xs text-ink-soft underline">
                 {n.label}
@@ -64,7 +67,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="hidden text-sm text-ink-soft md:block">Data, benchmark and research state</span>
           <ApiLight />
         </header>
-        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        <main id="main" className="mx-auto w-full max-w-7xl min-w-0 flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
