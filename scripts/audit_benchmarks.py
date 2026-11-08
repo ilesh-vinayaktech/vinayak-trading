@@ -294,7 +294,7 @@ session_report = {
     "dataset_hashes": hashes,
     "evidence": evidence_summary,
     "rules": {
-        "CONFIRMED_REGULAR": "value + bhavcopy on a weekday session",
+        "CONFIRMED_REGULAR": "value + bhavcopy on a weekday: the session EXISTED; its kind is regular by the weekday rule only and its hours are assumed, not confirmed",
         "CONFIRMED_SPECIAL": "value + bhavcopy on a listed special session (kind/hours unconfirmed)",
         "WEEKDAY_RULE_PROVISIONAL": "weekday value with no independent evidence (calendar rule only)",
         "BENCHMARK_ONLY_SESSION": "listed session whose only evidence is the benchmark (circular)",
@@ -373,7 +373,7 @@ findings = [
         "session-evidence",
         f"{len(listed)} listed sessions; existence is confirmed by an exchange bhavcopy for "
         f"{len(listed) - len(exceptions[BENCHMARK_ONLY_SESSION])} of them "
-        f"({len(legacy_confirmed)} via the legacy archive), but every kind is UNCONFIRMED and every "
+        f"({len([d for d in listed if date.fromisoformat(d) in legacy_confirmed])} via the legacy archive), but every kind is UNCONFIRMED and every "
         f"opening and closing time UNKNOWN. {len(secondary)} have secondary (broker bulletin) "
         "claims about purpose and hours, recorded but not promoted.",
         [

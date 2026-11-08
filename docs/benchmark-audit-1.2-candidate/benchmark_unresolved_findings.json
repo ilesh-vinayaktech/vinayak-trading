@@ -68,7 +68,7 @@
     "B3_NIFTY50_NET_TRI": "d2b9cf96ffd915df4c71d5541d112f9671ebb354ffb2bf030178486d54462819",
     "B4_NIFTY200_PRICE_RETURN": "f12eb1f3edff17cc69cb2cc2bd88ce76b6c24cbe594e801f75fd9fd321f86521"
    },
-   "detail": "32 listed sessions; existence is confirmed by an exchange bhavcopy for 32 of them (5042 via the legacy archive), but every kind is UNCONFIRMED and every opening and closing time UNKNOWN. 2 have secondary (broker bulletin) claims about purpose and hours, recorded but not promoted.",
+   "detail": "32 listed sessions; existence is confirmed by an exchange bhavcopy for 32 of them (22 via the legacy archive), but every kind is UNCONFIRMED and every opening and closing time UNKNOWN. 2 have secondary (broker bulletin) claims about purpose and hours, recorded but not promoted.",
    "evidence": [
     "session_reconciliation_report.json#evidence",
     "config/exchange_sessions.json",

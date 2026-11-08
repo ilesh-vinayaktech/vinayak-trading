@@ -90596,7 +90596,7 @@
  "rules": {
   "ALIGNMENT_GAP": "no value, but another series has one",
   "BENCHMARK_ONLY_SESSION": "listed session whose only evidence is the benchmark (circular)",
-  "CONFIRMED_REGULAR": "value + bhavcopy on a weekday session",
+  "CONFIRMED_REGULAR": "value + bhavcopy on a weekday: the session EXISTED; its kind is regular by the weekday rule only and its hours are assumed, not confirmed",
   "CONFIRMED_SPECIAL": "value + bhavcopy on a listed special session (kind/hours unconfirmed)",
   "DATA_GAP": "bhavcopy proves trading but the series has no value",
   "EXPECTED_CLOSED": "no value; holiday list or no bhavcopy published",
