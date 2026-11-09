@@ -19,7 +19,7 @@ the strategy holds no database, broker or clock. Rules (fixed, versioned with `v
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import ROUND_DOWN, Decimal
 from typing import Any, Literal
@@ -44,8 +44,15 @@ class DataNotReady(Exception):
 class IntervalMembership:
     """Who was in the index on a day, from effective-dated intervals (data only)."""
 
-    def __init__(self, intervals: Sequence[Interval]) -> None:
+    def __init__(
+        self, intervals: Sequence[Interval], unusable: Mapping[date, str] | None = None
+    ) -> None:
         self._ivs = tuple(intervals)
+        self._unusable = dict(unusable or {})  # sessions whose membership evidence is unusable
+
+    def unusable_reason(self, day: date) -> str | None:
+        """Why a strict decision on `day` may not use this membership (None: usable)."""
+        return self._unusable.get(day)
 
     def on(self, day: date) -> frozenset[int]:
         return frozenset(
@@ -152,6 +159,14 @@ class _Monthly(Strategy):
         self._prev = d
         if prev is None or (prev.year, prev.month) == (d.year, d.month):
             return None  # not a month start (or the first session seen: month change unknown)
+        why = self.membership.unusable_reason(d)
+        if (
+            ctx.mode == "strict" and why is not None
+        ):  # incomplete / unpublished / unverified evidence
+            self.audit.append(
+                {"day": str(d), "skipped": "strict: membership evidence unusable", "reasons": why}
+            )
+            return None  # no decision: current positions are held
         targets, row = decide(ctx, self.membership, self.lookback, self.holdings, self.trend_sma)
         self.audit.append(row)
         return targets

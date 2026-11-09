@@ -62,10 +62,10 @@ def trend(slope: str, start: str = "100") -> dict[date, D]:
     return out
 
 
-def ctx_for(stub: Stub, day: date) -> Context:
+def ctx_for(stub: Stub, day: date, mode: str = "research") -> Context:
     clock = SimClock(datetime.combine(day, time(12, 0), UTC))
     stub.clock = clock
-    return Context(clock, stub, PortfolioView.of(D(100000), {}, D(100000)), "research")  # type: ignore[arg-type]
+    return Context(clock, stub, PortfolioView.of(D(100000), {}, D(100000)), mode)  # type: ignore[arg-type]
 
 
 def at(s, stub, day):
@@ -300,3 +300,48 @@ def test_params_hash_distinguishes_configurations():
         Nifty200TrendMomentum(P, members([1])).params_hash
         != Nifty200TrendMomentum(other, members([1])).params_hash
     )
+
+
+def test_strict_mode_skips_a_decision_on_a_session_whose_membership_evidence_is_unusable():
+    closes = market()
+    ids = list(closes)
+    month_start = next(d for d in DAYS[500:] if d.day <= 7 and d.month != DAYS[499].month)
+    bad = {month_start: "member without an instrument: s:GSPL; membership not person-verified"}
+    gated = Nifty200TrendMomentum(
+        P, IntervalMembership([Interval(i, date(2000, 1, 1), None) for i in ids], unusable=bad)
+    )
+    stub = Stub(closes)
+    prior = max(d for d in DAYS if d < month_start)
+    gated.on_schedule(ctx_for(stub, prior, "strict"))
+    assert (
+        gated.on_schedule(ctx_for(stub, month_start, "strict")) is None
+    )  # no decision: positions are held
+    assert gated.audit == [
+        {
+            "day": str(month_start),
+            "skipped": "strict: membership evidence unusable",
+            "reasons": bad[month_start],
+        }
+    ]
+    research = Nifty200TrendMomentum(
+        P, IntervalMembership([Interval(i, date(2000, 1, 1), None) for i in ids], unusable=bad)
+    )
+    research.on_schedule(ctx_for(stub, prior))
+    assert (
+        research.on_schedule(ctx_for(stub, month_start)) is not None
+    )  # research mode decides (evidence reported elsewhere)
+    clean = Nifty200TrendMomentum(P, members(ids))
+    clean.on_schedule(ctx_for(stub, prior, "strict"))
+    assert (
+        clean.on_schedule(ctx_for(stub, month_start, "strict")) is not None
+    )  # no unusable day: strict decides
+
+
+def test_interval_membership_reports_unusable_days_and_defaults_to_none():
+    m = IntervalMembership(
+        [Interval(1, date(2000, 1, 1), None)], unusable={date(2020, 1, 2): "why"}
+    )
+    assert (
+        m.unusable_reason(date(2020, 1, 2)) == "why" and m.unusable_reason(date(2020, 1, 3)) is None
+    )
+    assert members([1]).unusable_reason(date(2020, 1, 2)) is None

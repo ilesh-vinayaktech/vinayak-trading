@@ -6,6 +6,7 @@ finding to fix upstream, never something to work around inside the strategy.
 usage: stage4_readiness.py --db postgresql://... [--out docs/stage4/readiness.json]"""
 
 import argparse
+import csv
 import json
 import os
 from collections import Counter
@@ -41,27 +42,60 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
 
     events = c.execute("SELECT count(*) FROM index_membership_event").fetchone()[0]  # type: ignore[index]
     cov = c.execute("SELECT count(*) FROM index_membership_coverage").fetchone()[0]  # type: ignore[index]
-    snap = c.execute(
-        "SELECT index_id, as_of, count(*) FROM index_snapshot WHERE index_id='NIFTY200' GROUP BY 1,2 ORDER BY 2"
-    ).fetchall()
+    sess = list(csv.DictReader(Path("docs/stage4/membership/membership_sessions.csv").open()))
+    n = len(sess)
+    k = {
+        ax: Counter(r[ax] for r in sess)
+        for ax in ("completeness", "knowledge", "independent_check", "verification")
+    }
+
+    def spans(col: str) -> dict[str, tuple[str, str, int]]:
+        out: dict[str, tuple[str, str, int]] = {}
+        for r in sess:
+            for e in r[col].split():
+                lo, _, m = out.get(e, (r["day"], r["day"], 0))
+                out[e] = (lo, r["day"], m + 1)
+        return out
+
+    window = f"{sess[0]['day']}..{sess[-1]['day']}" if sess else "none"
     check(
         "U1",
-        "Point-in-time Nifty 200 membership with verified coverage for the whole research window (members_on never guesses)",
-        "PASS" if events > 0 and cov > 0 else "FAIL",
-        f"index_membership_event={events}, verified coverage declarations={cov}. Only current snapshots exist: {[(str(s[1]), s[2]) for s in snap]}. Using today's 200 for past dates is survivorship bias and is not allowed in strict mode.",
+        "Membership reconstruction completeness: every Nifty 200 member of every research-window session is a tradable instrument with a bar",
+        "PASS" if sess and k["completeness"]["INCOMPLETE"] == 0 else "FAIL",
+        f"{n} sessions {window} (docs/stage4/membership/membership_sessions.csv): COMPLETE {k['completeness']['COMPLETE']}, INCOMPLETE {k['completeness']['INCOMPLETE']}. Database: index_membership_event={events}, coverage declarations={cov}; the reconstruction lives in the committed deliverables.",
     )
-
-    rows = c.execute(
-        "SELECT mapping_status, count(*) FROM index_release_row GROUP BY 1 ORDER BY 1"
-    ).fetchall()
-    unmapped = sum(n for s, n in rows if s != "MAPPED")
-    manual = dict(rows).get("UNMAPPED_SYMBOL", 0)
-    delisted = c.execute("SELECT count(*) FROM instrument WHERE status <> 'active'").fetchone()[0]  # type: ignore[index]
+    check(
+        "U1b",
+        "Membership evidence quality: every member's state published by that day's decision (no lookahead) and person-verified",
+        "PASS"
+        if sess
+        and k["knowledge"]["RETROSPECTIVE"] == 0
+        and k["verification"].get("VERIFIED", 0) == n
+        else "FAIL",
+        f"knowledge: CONTEMPORANEOUS {k['knowledge']['CONTEMPORANEOUS']}, RETROSPECTIVE {k['knowledge']['RETROSPECTIVE']} (a later release is the only evidence); independent official snapshots: CHECKPOINTED {k['independent_check']['CHECKPOINTED']}, RELEASE_ONLY {k['independent_check']['RELEASE_ONLY']}; verification {dict(k['verification'])}. Strict-eligible sessions {sum(r['strict_eligible'] == 'True' for r in sess)} of {n}; eligible once verified {sum(r['eligible_once_verified'] == 'True' for r in sess)}.",
+    )
+    unt, miss = spans("untradable"), spans("missing_bars")
     check(
         "U2",
-        "Every removed/added constituent maps to a permanent instrument with prices (delisted names included)",
-        "FAIL" if unmapped else "PASS",
-        f"index_release_row mapping: {dict(rows)}; {manual} rows reference symbols with no instrument (e.g. delisted/merged names). Instrument master holds {delisted} non-active instruments (inferred, not from a delisting source).",
+        "Every research-window Nifty 200 member maps to a permanent instrument with prices on its member sessions",
+        "FAIL" if unt or miss else "PASS",
+        "members without an instrument: "
+        + (
+            "; ".join(
+                f"{e} {lo}..{hi} ({m} sessions)"
+                for e, (lo, hi, m) in sorted(unt.items(), key=lambda x: -x[1][2])
+            )
+            or "none"
+        )
+        + ". Members without a bar: "
+        + (
+            "; ".join(
+                f"{e} {lo}..{hi} ({m} sessions)"
+                for e, (lo, hi, m) in sorted(miss.items(), key=lambda x: -x[1][2])
+            )
+            or "none"
+        )
+        + ".",
     )
 
     review = c.execute(
