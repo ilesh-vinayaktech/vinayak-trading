@@ -42,23 +42,50 @@ def test_a_placeholder_gets_no_instrument_and_no_alias():
     assert p["evidence"][0] == "doc" and p["decision_id"] == 7
 
 
-def test_a_merged_security_is_its_own_instrument_with_a_successor_that_is_not_an_alias():
+def test_a_merged_security_is_its_own_instrument_with_a_typed_dated_relationship_not_an_alias():
     p = symbol_proposal("GSPL", rec("KEEP_SEPARATE"), FACTS, NONE)
-    assert p["kind"] == "HISTORICAL_INSTRUMENT"
-    inst, alias, succ = p["actions"]
-    assert inst["values"]["delisted_on"] == D(2026, 5, 12)  # first day it no longer trades
+    assert p["kind"] == "HISTORICAL_INSTRUMENT" and p["status"] == "PROPOSED"
+    inst, alias, relation = p["actions"]
+    # an archive boundary is never a listing date, and no delisting date is invented
+    assert inst["values"] == {"symbol": "GSPL", "isin": "INE246F01010", "status": "delisted", "listed_on": None,
+                              "first_observed_on": D(2006, 2, 16), "last_traded_on": D(2026, 5, 11),
+                              "delisted_on": None}  # fmt: skip
     assert alias["values"] == {"instrument_id": "<new>", "source": "nse", "source_symbol": "GSPL",
-                               "valid_from": D(2006, 2, 16), "valid_to": D(2026, 5, 12)}  # fmt: skip
-    assert succ["values"]["successor_symbol"] == "GUJENERGY" and succ["values"]["alias"] is False
+                               "valid_from": D(2006, 2, 16), "valid_from_basis": "FIRST_OBSERVED",
+                               "valid_to": D(2026, 5, 12), "valid_to_basis": "LAST_OBSERVED"}  # fmt: skip
+    v = relation["values"]
+    assert relation["table"] == "corporate_action_relationship"
+    assert (v["relationship_type"], v["target_symbol"], v["effective_date"]) == (
+        "AMALGAMATED_INTO",
+        "GUJENERGY",
+        D(2026, 5, 1),
+    )
+    assert (v["ratio_num"], v["ratio_den"], v["known_at"], v["verification_status"]) == (
+        10,
+        13,
+        None,
+        "PROVISIONAL",
+    )
+    assert (
+        v["review_decision_id"] == 7 and v["source_instrument_id"] == "<new>" and "alias" not in v
+    )
 
 
-def test_same_issuer_relisted_as_a_new_security_is_recorded_not_merged():
+def test_a_stated_delisting_date_is_kept_but_an_archive_end_is_not_one():
     p = symbol_proposal(
         "HEXAWARE", rec("NO_SUCCESSOR", D(2020, 10, 30)), FACTS | {"isin": "INE093A01033"}, NONE
     )
-    assert p["actions"][-1]["values"] == {"kind": "SAME_ISSUER_NEW_INSTRUMENT", "successor_symbol": "HEXT",
-                                          "effective": "2025-02-19", "basis": "same issuer relisted by IPO as a new security",
-                                          "alias": False}  # fmt: skip
+    assert p["actions"][0]["values"]["delisted_on"] == D(
+        2020, 11, 9
+    )  # NSE delisting date, per the delisting FAQ
+    relation = p["actions"][-1]["values"]
+    assert (
+        relation["relationship_type"] == "SAME_ISSUER_NEW_INSTRUMENT"
+        and relation["target_symbol"] == "HEXT"
+    )
+    assert (
+        relation["ratio_num"] is None and relation["ratio_den"] is None
+    )  # a relisting has no exchange ratio
 
 
 def test_an_existing_instrument_is_completed_not_duplicated():
@@ -70,7 +97,12 @@ def test_an_existing_instrument_is_completed_not_duplicated():
         {"instrument": inst, "aliases": []},
     )
     assert p["kind"] == "COMPLETE_EXISTING_INSTRUMENT"
-    assert [a["operation"] for a in p["actions"]] == ["UPDATE", "INSERT", "RECORD"]
+    assert [(a["table"], a["operation"]) for a in p["actions"]] == [
+        ("instrument", "UPDATE"),
+        ("instrument_alias", "INSERT"),
+        ("corporate_action_relationship", "INSERT"),
+    ]
+    assert p["actions"][-1]["values"]["source_instrument_id"] == 2642
     done = {
         "instrument": {"id": 1, "isin": "INE018I01017"},
         "aliases": [(D(2018, 4, 2), D(2022, 11, 23))],
@@ -83,9 +115,9 @@ def test_an_existing_instrument_is_completed_not_duplicated():
         FACTS | {"isin": None},
         {"instrument": {"id": 2, "isin": None}, "aliases": [(D(2018, 4, 2), None)]},
     )
-    assert [a["operation"] for a in r["actions"]] == [
-        "RECORD"
-    ]  # no ISIN seen, alias present: only the successor fact
+    assert [a["table"] for a in r["actions"]] == [
+        "corporate_action_relationship"
+    ]  # no ISIN seen, alias present
 
 
 def test_a_confirmed_mapping_is_an_alias_unless_it_is_already_there():
@@ -96,9 +128,12 @@ def test_a_confirmed_mapping_is_an_alias_unless_it_is_already_there():
         FACTS,
         {"instrument": inst, "aliases": [(D(2017, 9, 29), D(2020, 10, 28))]},
     )
-    assert new["kind"] == "SYMBOL_ALIAS" and new["actions"][0]["values"]["valid_from"] == D(
-        2020, 10, 28
+    v = new["actions"][0]["values"]
+    assert new["kind"] == "SYMBOL_ALIAS" and (v["valid_from"], v["valid_from_basis"]) == (
+        D(2020, 10, 28),
+        "EVIDENCED",
     )
+    assert (v["valid_to"], v["valid_to_basis"]) == (D(2026, 5, 12), "LAST_OBSERVED")
     have = symbol_proposal(
         "DHANI",
         rec("CONFIRM_MAPPING", D(2020, 10, 28)),
@@ -106,26 +141,40 @@ def test_a_confirmed_mapping_is_an_alias_unless_it_is_already_there():
         {"instrument": inst, "aliases": [(D(2020, 10, 28), D(2025, 10, 28))]},
     )
     assert have["kind"] == "ALIAS_ALREADY_PRESENT" and have["actions"] == []
+    open_end = symbol_proposal(
+        "DHANI",
+        rec("CONFIRM_MAPPING", D(2020, 10, 28)),
+        {"first": None, "last": None, "isin": None},
+        {"instrument": inst, "aliases": []},
+    )
+    assert (
+        open_end["actions"][0]["values"]["valid_to"] is None
+        and open_end["actions"][0]["values"]["valid_to_basis"] is None
+    )
 
 
-def test_an_isin_change_keeps_two_identities_and_flags_an_overlapping_alias():
-    live = {"instrument": {"id": 1589, "isin": "INE239A01024"}, "aliases": [(D(2023, 8, 1), None)]}
+def test_an_isin_change_is_blocked_until_the_overlap_and_its_dependents_are_resolved():
+    live = {"instrument": {"id": 1589, "isin": "INE239A01024"}, "aliases": [(D(2023, 8, 1), None)],
+            "dependents": {"bar_1d": (811, 107), "corporate_action": (60, 55), "index_release_row": (63, 40)}}  # fmt: skip
     p = symbol_proposal(
         "NESTLEIND",
         rec("SET_EFFECTIVE_DATE", D(2024, 1, 5)),
         FACTS | {"isin": "INE239A01016"},
         live,
     )
-    assert p["kind"] == "SAME_ISSUER_ISIN_CHANGE" and len(p["actions"]) == 3
-    assert p["actions"][1]["values"]["valid_to"] == D(2024, 1, 5)
-    assert p["caveats"] and "overlap" in p["caveats"][0]
-    clean = symbol_proposal(
+    assert p["status"] == "BLOCKED" and p["kind"] == "BLOCKED_IDENTITY_MODEL" and p["actions"] == []
+    assert "107 bars before 2024-01-05" in p["caveats"][0] and "63 release rows" in p["caveats"][0]
+    assert any("overlap" in c for c in p["caveats"]) and any(
+        "MOVE bars" in x for x in p["plan_if_approved"]
+    )
+    assert any("2024-01-05" in x for x in p["plan_if_approved"])
+    bare = symbol_proposal(
         "NESTLEIND",
         rec("SET_EFFECTIVE_DATE", D(2024, 1, 5)),
         FACTS,
-        {"instrument": {"id": 1}, "aliases": [(D(2024, 1, 5), None)]},
+        {"instrument": {"id": 1}, "aliases": []},
     )
-    assert clean["caveats"] == []
+    assert "0 bars before" in bare["caveats"][0]
 
 
 def test_a_membership_decision_writes_nothing():

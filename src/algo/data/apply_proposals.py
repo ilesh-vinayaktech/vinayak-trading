@@ -11,34 +11,20 @@ from collections.abc import Mapping, Sequence
 from datetime import date, timedelta
 from typing import Any
 
-# Corporate-action successors stated in the recorded decision notes (symbol -> (successor, effective, basis)).
-SUCCESSORS: dict[str, tuple[str, str, str]] = {
-    "ABIRLANUVO": (
-        "GRASIM",
-        "2017-07-01",
-        "amalgamation into Grasim (decision note; not an alias to ABCAPITAL)",
-    ),
-    "BHARATFIN": (
-        "INDUSINDBK",
-        "2019-07-04",
-        "amalgamation into IndusInd Bank (effective date from the bank's announcement)",
-    ),
-    "DALMIABHA": (
-        "DALBHARAT",
-        "2019-01-09",
-        "scheme of arrangement; shares of Odisha Cement (renamed Dalmia Bharat 2019-04-15) allotted",
-    ),
-    "PEL": ("PIRAMALFIN", "2025-09-16", "merger into Piramal Finance Ltd (filing of 2025-09-16)"),
-    "GSPL": (
-        "GUJENERGY",
-        "2026-05-01",
-        "amalgamation into Gujarat Gas, now Gujarat Energy (scheme effective 2026-05-01)",
-    ),
-    "MINDTREE": ("LTIM", "2022-11-14", "amalgamation into L&T Infotech, now LTIMindtree"),
-}
-SAME_ISSUER_NEW_INSTRUMENT = {
-    "HEXAWARE": ("HEXT", "2025-02-19", "same issuer relisted by IPO as a new security")
-}
+# Corporate-action relationships stated in the recorded decision notes. ratio = (target shares, source shares).
+# Ratios and dates here come from the decision notes / search results, NOT from a primary filing unless said so.
+RELATIONSHIPS: dict[str, dict[str, Any]] = {
+    "ABIRLANUVO": {"type": "AMALGAMATED_INTO", "target": "GRASIM", "effective": date(2017, 7, 1), "ratio": (15, 10), "basis": "Grasim disclosures: 15 Grasim shares per 10 ABNL; not an alias to ABCAPITAL"},
+    "BHARATFIN": {"type": "AMALGAMATED_INTO", "target": "INDUSINDBK", "effective": date(2019, 7, 4), "ratio": (639, 1000), "basis": "IndusInd Bank announcement (effective date and ratio not re-read from the primary page)"},
+    "DALMIABHA": {"type": "AMALGAMATED_INTO", "target": "DALBHARAT", "effective": date(2019, 1, 9), "ratio": None, "basis": "scheme of arrangement into Odisha Cement (renamed Dalmia Bharat 2019-04-15); the annual report prints '2:1' without its direction, so no ratio is stored"},
+    "PEL": {"type": "MERGED_INTO", "target": "PIRAMALFIN", "effective": date(2025, 9, 16), "ratio": None, "basis": "PEL filing of 2025-09-16 (1:1 ratio not verified, so not stored)"},
+    "GSPL": {"type": "AMALGAMATED_INTO", "target": "GUJENERGY", "effective": date(2026, 5, 1), "ratio": (10, 13), "basis": "NSE results filings: scheme effective 2026-05-01; ratio 10 Gujarat Gas per 13 GSPL from search results"},
+    "MINDTREE": {"type": "AMALGAMATED_INTO", "target": "LTIM", "effective": date(2022, 11, 14), "ratio": (73, 100), "basis": "L&T Infotech scheme: effective date and ratio from search results, not a primary filing"},
+    "HEXAWARE": {"type": "SAME_ISSUER_NEW_INSTRUMENT", "target": "HEXT", "effective": date(2025, 2, 19), "ratio": None, "basis": "NSE circular CML66715: same issuer relisted by IPO as a new security"},
+}  # fmt: skip
+# Delisting dates that a primary document states (NOT archive boundaries): MINDTREE NSE circular 1369/2022
+# (suspended from 2022-11-23); HEXAWARE delisting FAQ (NSE delisting 2020-11-09).
+EVIDENCED_DELISTING = {"MINDTREE": date(2022, 11, 23), "HEXAWARE": date(2020, 11, 9)}
 
 _DATES = re.compile(r"(\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{4}-\d{2}-\d{2})")
 _ISIN = re.compile(r"(INE[0-9A-Z]{9})")
@@ -56,73 +42,107 @@ def parse_facts(context: Mapping[str, str]) -> dict[str, Any]:
 
 
 def _one(item_id: str, rec: Mapping[str, Any], kind: str, summary: str, actions: list[dict[str, Any]],
-         evidence: Sequence[str], caveats: Sequence[str] = ()) -> dict[str, Any]:  # fmt: skip
+         evidence: Sequence[str], caveats: Sequence[str] = (), status: str = "PROPOSED",
+         plan: Sequence[str] = ()) -> dict[str, Any]:  # fmt: skip
     return {
         "item_id": item_id, "decision_id": rec["decision_id"], "decision": rec["decision"],
-        "reviewer": rec["reviewer"], "status": "PROPOSED", "kind": kind, "summary": summary,
+        "reviewer": rec["reviewer"], "status": status, "kind": kind, "summary": summary,
         "actions": actions, "evidence": [rec["evidence_ref"], *evidence], "caveats": list(caveats),
+        "plan_if_approved": list(plan),
     }  # fmt: skip
+
+
+def _instrument_action(symbol: str, facts: Mapping[str, Any]) -> dict[str, Any]:
+    return {"table": "instrument", "operation": "INSERT", "values": {
+        "symbol": symbol, "isin": facts["isin"], "status": "delisted",
+        "listed_on": None,  # a listing date is a verified fact: NULL until evidenced, never the archive start
+        "first_observed_on": facts["first"], "last_traded_on": facts["last"],
+        "delisted_on": EVIDENCED_DELISTING.get(symbol),
+    }}  # fmt: skip
+
+
+def _alias_action(symbol: str, instrument: Any, facts: Mapping[str, Any]) -> dict[str, Any]:
+    end = facts["last"] + timedelta(days=1) if facts["last"] else None  # end-exclusive
+    return {"table": "instrument_alias", "operation": "INSERT", "values": {
+        "instrument_id": instrument, "source": "nse", "source_symbol": symbol,
+        "valid_from": facts["first"], "valid_from_basis": "FIRST_OBSERVED",
+        "valid_to": end, "valid_to_basis": "LAST_OBSERVED",
+    }}  # fmt: skip
+
+
+def _relationship_action(symbol: str, source: Any, rec: Mapping[str, Any]) -> dict[str, Any]:
+    r = RELATIONSHIPS[symbol]
+    num, den = r["ratio"] or (None, None)
+    return {"table": "corporate_action_relationship", "operation": "INSERT", "values": {
+        "relationship_type": r["type"], "source_instrument_id": source, "target_symbol": r["target"],
+        "appointed_date": None, "effective_date": r["effective"], "ratio_num": num, "ratio_den": den,
+        "known_at": None, "evidence": [rec["evidence_ref"], r["basis"]],
+        "verification_status": "PROVISIONAL", "review_decision_id": rec["decision_id"],
+    }}  # fmt: skip
 
 
 def symbol_proposal(
     symbol: str, rec: Mapping[str, Any], facts: Mapping[str, Any], existing: Mapping[str, Any]
 ) -> dict[str, Any]:  # fmt: skip
-    """`existing` = {"instrument": {...}|None, "aliases": [(valid_from, valid_to), ...]}."""
+    """`existing` = {"instrument": {...}|None, "aliases": [(valid_from, valid_to), ...], "dependents": {...}}."""
     item_id, decision = f"symbol:{symbol}", rec["decision"]
-    first, last, isin = facts["first"], facts["last"], facts["isin"]
     inst, aliases = existing["instrument"], existing["aliases"]
-    end = (
-        last + timedelta(days=1) if last else None
-    )  # first day it no longer trades (end exclusive)
     if decision == "KEEP_PLACEHOLDER":
         return _one(item_id, rec, "PLACEHOLDER", f"{symbol} is a non-tradable index placeholder: no instrument, no alias, no ISIN",
                     [], ["membership: reviewed placeholder replacement record"])  # fmt: skip
-    caveats: list[str] = []
-    actions: list[dict[str, Any]] = []
     if decision == "CONFIRM_MAPPING":
         start = rec["effective_date"]
         if any(a[0] == start for a in aliases):
             return _one(item_id, rec, "ALIAS_ALREADY_PRESENT", f"alias {symbol} -> instrument {inst['id']} valid from {start} is already in the master", [], [])  # fmt: skip
-        actions.append({"table": "instrument_alias", "operation": "INSERT", "values": {"instrument_id": inst["id"], "source": "nse", "source_symbol": symbol, "valid_from": start, "valid_to": end}})  # fmt: skip
+        end = facts["last"] + timedelta(days=1) if facts["last"] else None
+        act = {"table": "instrument_alias", "operation": "INSERT", "values": {"instrument_id": inst["id"], "source": "nse", "source_symbol": symbol, "valid_from": start, "valid_from_basis": "EVIDENCED", "valid_to": end, "valid_to_basis": "LAST_OBSERVED" if end else None}}  # fmt: skip
         return _one(
             item_id,
             rec,
             "SYMBOL_ALIAS",
             f"map {symbol} to instrument {inst['id']} from {start}",
-            actions,
+            [act],
             [],
         )
-    if decision == "SET_EFFECTIVE_DATE":
+    if decision == "SET_EFFECTIVE_DATE":  # an ISIN change: two securities of one issuer
         change = rec["effective_date"]
-        actions = [
-            {"table": "instrument", "operation": "INSERT", "values": {"symbol": symbol, "isin": isin, "status": "delisted", "listed_on": first, "delisted_on": change, "note": "old-ISIN identity of the same issuer"}},
-            {"table": "instrument_alias", "operation": "INSERT", "values": {"instrument_id": "<new>", "source": "nse", "source_symbol": symbol, "valid_from": first, "valid_to": change}},
-            {"table": "(no table yet) continuity", "operation": "RECORD", "values": {"kind": "SAME_ISSUER_ISIN_CHANGE", "old_isin": isin, "new_instrument_id": inst["id"], "effective": change, "cause": "10:1 face-value split"}},
+        deps = existing.get("dependents", {})
+        blockers = [
+            f"instrument {inst['id']} (new ISIN) already owns {deps.get('bar_1d', (0, 0))[1]} bars before {change} that traded under the old ISIN, "
+            f"{deps.get('corporate_action', (0, 0))[1]} corporate actions and {deps.get('index_release_row', (0, 0))[0]} release rows",
+            "its alias starts before the change date: two aliases of one symbol may not overlap (enforced by migration 024)",
+            "downstream readers (adjusted bars, membership comparison) must follow a SAME_ISSUER_ISIN_CHANGE relationship before any row is moved",
+            "decision needed: confirm that the old ISIN is a separate instrument that owns observations up to the day before the change",
         ]  # fmt: skip
-        if any(a[0] < change for a in aliases):
-            caveats.append(f"instrument {inst['id']} already has an alias for {symbol} starting before {change}: resolve the overlap (its bars before {change} traded under the old ISIN)")  # fmt: skip
-        return _one(item_id, rec, "SAME_ISSUER_ISIN_CHANGE", f"keep two ISIN identities for {symbol}, linked by the split on {change}", actions, [], caveats)  # fmt: skip
+        plan = [
+            f"INSERT instrument (old ISIN {facts['isin']}), first_observed_on {facts['first']}, last_traded_on = day before {change}, listed_on NULL",
+            f"INSERT alias {symbol} -> old instrument, valid_to {change} (EVIDENCED: NSE circular CML60084)",
+            f"MOVE bars, corporate actions and release rows dated before {change} from instrument {inst['id']} to the old instrument, with pre/post counts and a duplicate check",
+            f"UPDATE alias of instrument {inst['id']}: valid_from {change} (EVIDENCED)",
+            "INSERT corporate_action_relationship SAME_ISSUER_ISIN_CHANGE old -> new, effective_date " + str(change),
+            "make the adjusted-bars reader and the membership comparison follow that relationship",
+        ]  # fmt: skip
+        return _one(item_id, rec, "BLOCKED_IDENTITY_MODEL", f"{symbol}: two ISIN identities linked by the split on {change}: BLOCKED until the overlap with instrument {inst['id']} is resolved",
+                    [], [], blockers, status="BLOCKED", plan=plan)  # fmt: skip
     # KEEP_SEPARATE / NO_SUCCESSOR: the security stays its own historical instrument
+    actions: list[dict[str, Any]] = []
     if inst is None:
-        actions.append({"table": "instrument", "operation": "INSERT", "values": {"symbol": symbol, "isin": isin, "status": "delisted", "listed_on": first, "delisted_on": end}})  # fmt: skip
-        actions.append({"table": "instrument_alias", "operation": "INSERT", "values": {"instrument_id": "<new>", "source": "nse", "source_symbol": symbol, "valid_from": first, "valid_to": end}})  # fmt: skip
+        actions += [_instrument_action(symbol, facts), _alias_action(symbol, "<new>", facts)]
+        source: Any = "<new>"
     else:
-        if inst["isin"] is None and isin:
-            actions.append({"table": "instrument", "operation": "UPDATE", "values": {"instrument_id": inst["id"], "isin": isin}})  # fmt: skip
+        source = inst["id"]
+        if inst["isin"] is None and facts["isin"]:
+            actions.append({"table": "instrument", "operation": "UPDATE", "values": {"instrument_id": inst["id"], "isin": facts["isin"]}})  # fmt: skip
         if not aliases:
-            actions.append({"table": "instrument_alias", "operation": "INSERT", "values": {"instrument_id": inst["id"], "source": "nse", "source_symbol": symbol, "valid_from": first, "valid_to": end}})  # fmt: skip
-    if symbol in SUCCESSORS:
-        succ, eff, basis = SUCCESSORS[symbol]
-        actions.append({"table": "(no table yet) successor", "operation": "RECORD", "values": {"kind": "AMALGAMATED_INTO", "successor_symbol": succ, "effective": eff, "basis": basis, "alias": False}})  # fmt: skip
-    if symbol in SAME_ISSUER_NEW_INSTRUMENT:
-        succ, eff, basis = SAME_ISSUER_NEW_INSTRUMENT[symbol]
-        actions.append({"table": "(no table yet) continuity", "operation": "RECORD", "values": {"kind": "SAME_ISSUER_NEW_INSTRUMENT", "successor_symbol": succ, "effective": eff, "basis": basis, "alias": False}})  # fmt: skip
+            actions.append(_alias_action(symbol, inst["id"], facts))
+    if symbol in RELATIONSHIPS:
+        actions.append(_relationship_action(symbol, source, rec))
     if not actions:
         return _one(
             item_id, rec, "NO_CHANGE_NEEDED", f"{symbol} is already complete in the master", [], []
         )
     kind = "HISTORICAL_INSTRUMENT" if inst is None else "COMPLETE_EXISTING_INSTRUMENT"
-    return _one(item_id, rec, kind, f"{symbol} stays its own historical instrument; successor is a corporate-action fact, not an alias", actions, [], caveats)  # fmt: skip
+    return _one(item_id, rec, kind, f"{symbol} stays its own historical instrument; any successor is an effective-dated relationship, not an alias", actions, [])  # fmt: skip
 
 
 def membership_proposal(

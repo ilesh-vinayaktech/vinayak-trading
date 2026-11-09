@@ -41,6 +41,33 @@ intervals = list(csv.DictReader((base / "membership_intervals.csv").open()))
 open_symbols = {e["symbol"] for e in exceptions if e["kind"].startswith(("WALK_", "SNAPSHOT_"))}
 items = json.loads(Path("docs/stage4/review/review_items.json").read_text())["items"]
 
+DATE_COLUMN = {
+    "bar_1d": "ts::date",
+    "corporate_action": "ex_date",
+    "index_release_row": "effective_from",
+}
+TABLES = [
+    "action_resolution", "backtest_ledger", "backtest_trade", "bar_1d", "corporate_action",
+    "index_membership_event", "index_monthly_constituent", "index_release_row", "index_snapshot",
+    "instrument_alias", "instrument_terms",
+]  # fmt: skip
+
+
+def dependents(c, iid, change):
+    """Per table: (rows referencing the instrument, rows dated before `change`; 0 without a date column)."""
+    out = {}
+    for t in TABLES:
+        col = DATE_COLUMN.get(t)
+        before = f"count(*) FILTER (WHERE {col} < %s)" if col else "0"
+        params = (change, iid) if col else (iid,)
+        out[t] = tuple(
+            c.execute(
+                f"SELECT count(*), {before} FROM {t} WHERE instrument_id = %s", params
+            ).fetchone()
+        )
+    return out
+
+
 proposals = []
 with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
     latest = {
@@ -66,6 +93,8 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
                 "instrument": {"id": row[0], "isin": row[1]} if row else None,
                 "aliases": [tuple(x) for x in al],
             }
+            if row and rec["decision"] == "SET_EFFECTIVE_DATE":
+                existing["dependents"] = dependents(c, row[0], rec["effective_date"])
             proposals.append(symbol_proposal(sym, rec, parse_facts(item["context"]), existing))
         else:
             sym = item["title"].split(":", 1)[0]
@@ -93,14 +122,16 @@ md = ["# Apply proposals (PROPOSAL ONLY, nothing applied)", "",
       "| item | decision | kind | writes |", "|---|---|---|---|"]  # fmt: skip
 for p in proposals:
     md.append(
-        f"| {p['item_id']} | {p['decision']} (#{p['decision_id']}) | {p['kind']} | {len(p['actions'])} |"
+        f"| {p['item_id']} | {p['decision']} (#{p['decision_id']}) | {p['kind']}{' [BLOCKED]' if p['status'] == 'BLOCKED' else ''} | {len(p['actions'])} |"
     )
 md += [
     "", "## Reading notes", "",
-    "- `listed_on` in a proposed instrument is the FIRST DATE IN OUR EXCHANGE-FILE ARCHIVE, not necessarily the true listing date.",
+    "- `listed_on` is proposed as NULL everywhere: a listing date is a verified fact. The first and last date in our archive are stored separately as `first_observed_on` / `last_traded_on`.",
+    "- Alias `valid_from` / `valid_to` carry a basis (`FIRST_OBSERVED`, `LAST_OBSERVED`, `EVIDENCED`): an archive boundary is a floor for resolution, never a claim about when a symbol began or ended. `delisted_on` is set only where a primary document states it (MINDTREE, HEXAWARE).",
     "- ISINs are the ones seen in our own exchange files for the symbol; none was checked against NSDL/CDSL.",
     "- End dates are exclusive: `valid_to` / `delisted_on` is the first day the security no longer trades (last session + 1).",
-    "- 'successor' and 'continuity' records have NO table yet: they are corporate-action facts, never aliases. A schema decision is needed before they can be applied.",
+    "- Successors and relistings are `corporate_action_relationship` rows (migration 024): typed, effective-dated, with an optional ratio, `known_at` (empty: no announcement date is recorded yet) and evidence. They are never aliases.",
+    "- NESTLEIND is BLOCKED: see its section for the dependent rows and the plan that needs your approval first.",
     "- MINDTREE and HEXAWARE were recorded with the 'no successor' option only to capture the last day; the successor facts above come from the decision notes.",
     "- Applying any of this changes which membership exceptions clear only as shown in dry_run.md; it does not by itself make the Nifty 200 point-in-time universe ready.",
 ]  # fmt: skip
@@ -112,7 +143,10 @@ for p in proposals:
             f"- {x['operation']} {x['table']}: `{json.dumps(x['values'], default=str)}`"
             for x in p["actions"]
         ]
-        md += [f"- CAVEAT: {cv}" for cv in p["caveats"]] + [""]
+        label = "BLOCKER" if p["status"] == "BLOCKED" else "CAVEAT"
+        md += [f"- {label}: {cv}" for cv in p["caveats"]]
+        md += [f"- PLAN IF APPROVED ({n}): {x}" for n, x in enumerate(p["plan_if_approved"], 1)]
+        md.append("")
 (a.out / "proposals.md").write_text("\n".join(md) + "\n")
 dr = [
     "# Dry run: instrument-resolution exceptions",
