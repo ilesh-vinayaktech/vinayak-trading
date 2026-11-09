@@ -1,4 +1,4 @@
-# NESTLEIND migration: review pack (NOT applied)
+# NESTLEIND migration: review pack (APPLIED 2026-11-09)
 
 Instrument 1589 (NESTLEIND, ISIN INE239A01024) is split at the ISIN change of **2024-01-05** into an old-ISIN
 instrument (INE239A01016) and itself. Code: `src/algo/data/identity_migration.py`; command:
@@ -67,3 +67,27 @@ membership handover correction must come with that ledger event.
 1. Review this pack and the regression results above.
 2. Take a backup, then run `uv run python scripts/migrate_isin_change.py --apply`.
 3. Re-run `scripts/verify_nestleind_identity.py` (it will then be a real split, not an in-memory one), then the membership handover correction (with the ledger ISIN-change conversion) and the full `make check`.
+
+## Applied: procedure, evidence and results (2026-11-09)
+
+Authorised by the owner, subject to the pre-apply checklist. Every step below was done and checked.
+
+| Step | Result |
+|---|---|
+| No writer active | no API, frontend or ingestion process running; the only session on the database was TimescaleDB's own scheduler |
+| Backup | full custom-format dump `data/backups/algo_pre_nestleind_20261109T034307Z.dump` (82.6 MB, kept outside git), SHA-256 `cb9a10efad7cb665d715410ab6ed9674de86b6f2db3fc9f533843ad36d4b535d` |
+| Backup restorable | restored into a disposable Timescale container (not the live server); all 10 key tables match production in row count AND content checksum (incl. 3,188,251 bars). One harmless error: pg_dump 18 writes `SET transaction_timeout`, unknown to server 16 |
+| Target confirmed | database `algo`, instrument 1589, ISIN INE239A01024, old ISIN INE239A01016 absent, change 2024-01-05, one split ex 2024-01-05 |
+| Final dry run | 14 of 14 checks; audit `data/backups/nestleind_final_dry_run.json`, SHA-256 `4c717182b69a8c762304212e546a4f76fc120409ac5904d323207e82bb0fe63b` |
+| Apply | `scripts/migrate_isin_change.py --apply`, exit 0, 14 of 14 in-transaction checks; audit `nestleind_migration_applied.json` |
+| Counts | old instrument **2653** (INE239A01016): 107 bars, 43 corporate actions, terms to 2024-01-05. Instrument 1589: 704 bars, 10 actions (the split stays), terms from 2024-01-05. 811 distinct sessions, 0 duplicates, 0 bars on 1589 before the change |
+| Aliases / relationship | NESTLEIND: 2653 from 2010-01-08 (FIRST_OBSERVED) to 2024-01-05 (EVIDENCED); 1589 from 2024-01-05 (EVIDENCED). One SAME_ISSUER_ISIN_CHANGE 2653 to 1589, effective 2024-01-05, last source session 2024-01-04, decision 15. Migration 024 recorded |
+| Baseline equality | `scripts/verify_issuer_baseline.py` against a second restore of the backup: issuer series identical (bars, closes, factors, volumes, adjustment version) in none, split and total_return, read via either ISIN; instrument reads separate (704 / 107). Report: `nestleind_post_apply_baseline_check.md` |
+| `make check` | green: 1275 passed, 100% coverage |
+| Readiness | `scripts/stage4_readiness.py` re-run: unchanged blockers U1, U2, C1, K1, V1, R1; strict run still not possible. Output in `docs/stage4/readiness.json` |
+
+`scripts/verify_nestleind_identity.py` was written for the pre-migration state (it splits 1589 in memory); after the real split it would only compare 1589 with
+itself, so the baseline comparison above is the post-apply verification. The id sequence advanced past the ids used by the dry runs (the old instrument is 2653).
+
+**Rollback, if a later problem is traced to this migration:** stop all research workflows on the data and restore from the backup above; do not improvise a reverse
+migration. Still required before the membership handover: the ledger ISIN-change conversion (quantity, cost basis, realised/unrealised P&L, provenance).

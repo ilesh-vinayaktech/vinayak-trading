@@ -1,0 +1,77 @@
+{
+ "instrument_id": 1589,
+ "symbol": "NESTLEIND",
+ "change": "2024-01-05",
+ "before": {
+  "bar_1d": [
+   811,
+   107
+  ],
+  "corporate_action": [
+   53,
+   43
+  ],
+  "action_resolution": [
+   0,
+   0
+  ],
+  "instrument_terms": [
+   1,
+   1
+  ]
+ },
+ "old_instrument_id": 2653,
+ "after_old": {
+  "bar_1d": [
+   107,
+   107
+  ],
+  "corporate_action": [
+   43,
+   43
+  ],
+  "action_resolution": [
+   0,
+   0
+  ],
+  "instrument_terms": [
+   1,
+   1
+  ]
+ },
+ "after_new": {
+  "bar_1d": [
+   704,
+   0
+  ],
+  "corporate_action": [
+   10,
+   0
+  ],
+  "action_resolution": [
+   0,
+   0
+  ],
+  "instrument_terms": [
+   1,
+   0
+  ]
+ },
+ "checks": {
+  "bar_1d: nothing lost or duplicated": true,
+  "bar_1d: the old instrument owns only rows before the change": true,
+  "bar_1d: the new instrument owns no row before the change": true,
+  "corporate_action: nothing lost or duplicated": true,
+  "corporate_action: the old instrument owns only rows before the change": true,
+  "corporate_action: the new instrument owns no row before the change": true,
+  "action_resolution: nothing lost or duplicated": true,
+  "action_resolution: the old instrument owns only rows before the change": true,
+  "action_resolution: the new instrument owns no row before the change": true,
+  "bars moved equal the bars that were dated before the change": true,
+  "terms: the old instrument inherited those that came before": true,
+  "issuer read equals the read before (none)": true,
+  "issuer read equals the read before (split)": true,
+  "issuer read equals the read before (total_return)": true
+ },
+ "applied": true
+}
