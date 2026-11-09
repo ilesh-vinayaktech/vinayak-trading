@@ -1,0 +1,18 @@
+{
+ "evidence_doc": "pr_ind_prs19062026",
+ "announced": "2026-06-19",
+ "source_sha256": "e27f1d4502fc367c78a113cf55224742e767327e6d7c2f8c90d899213dd7a874",
+ "method": "hand transcription of the listing sentence in the placeholders' exclusion release",
+ "verification": [
+  "the release names each dummy symbol (from the 2026-04-23 inclusion notice) and the listing, and states the listing date",
+  "the loader refuses a record unless the placeholder was included before the listing date and the exclusion of the listing comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "DUMMYVEDL1",
+   "symbol": "VAML",
+   "listed_on": "2026-06-15",
+   "quote": "After the demerger, Vedanta Aluminium Metal Ltd. (VAML) was listed on June 15, 2026 at the National Stock Exchange of India Ltd. (NSE)."
+  }
+ ]
+}

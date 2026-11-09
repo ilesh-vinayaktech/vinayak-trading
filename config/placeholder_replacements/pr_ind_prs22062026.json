@@ -1,0 +1,18 @@
+{
+ "evidence_doc": "pr_ind_prs22062026",
+ "announced": "2026-06-22",
+ "source_sha256": "758d548d5ee3ffd0a90229561aa9c150a889f6d8d257129ed306fe1d1eb3c7fb",
+ "method": "hand transcription of the listing sentence in the placeholders' exclusion release",
+ "verification": [
+  "the release names each dummy symbol (from the 2026-04-23 inclusion notice) and the listing, and states the listing date",
+  "the loader refuses a record unless the placeholder was included before the listing date and the exclusion of the listing comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "DUMMYVEDL3",
+   "symbol": "VOGL",
+   "listed_on": "2026-06-15",
+   "quote": "After the demerger, Vedanta Oil and Gas Ltd. (VOGL) was listed on June 15, 2026 at the National Stock Exchange of India Ltd. (NSE)."
+  }
+ ]
+}

@@ -120,3 +120,20 @@ def test_a_parsed_release_can_be_supplemented_with_rows_the_parser_cannot_read(c
     assert raw == "TRANSCRIBED: Indian Railway Finance Corporation Ltd. IRFC"
     assert why.startswith("supplemented by reviewed transcription: hand transcription of a table")
     assert "scanned image" not in why
+
+
+def test_a_transcribed_exclusion_can_name_the_dummy_symbol_it_replaces(conn):
+    make_env(conn)
+    scanned(conn)
+    row = {**DOC["rows"][0], "related_symbol": "DUMMYVGUARD"}
+    assert (
+        store_transcription(conn, {**DOC, "supplement": True, "rows": [row]}, actual_sha256="abc")
+        == 1
+    )
+    assert (
+        conn.execute("SELECT related_symbol FROM index_release_row").fetchone()[0] == "DUMMYVGUARD"
+    )
+    plain = conn.execute(
+        "SELECT count(*) FROM index_release_row WHERE related_symbol IS NULL"
+    ).fetchone()[0]
+    assert plain == 0

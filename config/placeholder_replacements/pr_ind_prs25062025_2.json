@@ -1,0 +1,24 @@
+{
+ "evidence_doc": "pr_ind_prs25062025_2",
+ "announced": "2025-06-25",
+ "source_sha256": "dd21c18f5dfcc014cd045c6a574097a8d5cf3f0ef076005bc67f18bab65c883f",
+ "method": "hand transcription of the listing sentences in the placeholders' exclusion release",
+ "verification": [
+  "the release names each dummy symbol (from its inclusion notice) and the listing, and states the listing date",
+  "the loader refuses a record unless the placeholder was included before the listing date and the exclusion of the listing comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "DUMMYSIEMS",
+   "symbol": "ENRIN",
+   "listed_on": "2025-06-19",
+   "quote": "After the demerger, Siemens Energy India Ltd. (ENRIN) was listed on June 19, 2025 at the National Stock Exchange of India Ltd. (NSE)."
+  },
+  {
+   "placeholder": "DUMMYABFRL",
+   "symbol": "ABLBL",
+   "listed_on": "2025-06-23",
+   "quote": "After the demerger, Aditya Birla Lifestyle Brands Ltd. (ABLBL) was listed on June 23, 2025 at the National Stock Exchange of India Ltd. (NSE)."
+  }
+ ]
+}

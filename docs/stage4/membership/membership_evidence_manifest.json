@@ -263,6 +263,14 @@
       "rows": 2
     },
     {
+      "doc_id": "pr_ind_prs25062025_2",
+      "source_url": "https://www.niftyindices.com/Press_Release/ind_prs25062025_2.pdf",
+      "source_hash": "dd21c18f5dfcc014cd045c6a574097a8d5cf3f0ef076005bc67f18bab65c883f",
+      "announced": "2025-06-25",
+      "parser_version": "7",
+      "rows": 15
+    },
+    {
       "doc_id": "pr_ind_prs22082025",
       "source_url": "https://www.niftyindices.com/Press_Release/ind_prs22082025.pdf",
       "source_hash": "731113af85aad6b54cce359d5465d84e6062b28b03c21cd9922a20a3f44d2de1",
@@ -309,6 +317,38 @@
       "announced": "2026-02-23",
       "parser_version": "7",
       "rows": 72
+    },
+    {
+      "doc_id": "pr_ind_prs23042026",
+      "source_url": "https://www.niftyindices.com/Press_Release/ind_prs23042026.pdf",
+      "source_hash": "434aa85ef5ed3ff3f59826e2ed029de39f298173a1cdaa737b4989491d045c03",
+      "announced": "2026-04-23",
+      "parser_version": "7",
+      "rows": 12
+    },
+    {
+      "doc_id": "pr_ind_prs17062026",
+      "source_url": "https://www.niftyindices.com/Press_Release/ind_prs17062026.pdf",
+      "source_hash": "185014a4ecdf0a01416517a9339c0b32d946f1e56d35002c64121833edf0eca5",
+      "announced": "2026-06-17",
+      "parser_version": "7",
+      "rows": 18
+    },
+    {
+      "doc_id": "pr_ind_prs19062026",
+      "source_url": "https://www.niftyindices.com/Press_Release/ind_prs19062026.pdf",
+      "source_hash": "e27f1d4502fc367c78a113cf55224742e767327e6d7c2f8c90d899213dd7a874",
+      "announced": "2026-06-19",
+      "parser_version": "7",
+      "rows": 9
+    },
+    {
+      "doc_id": "pr_ind_prs22062026",
+      "source_url": "https://www.niftyindices.com/Press_Release/ind_prs22062026.pdf",
+      "source_hash": "758d548d5ee3ffd0a90229561aa9c150a889f6d8d257129ed306fe1d1eb3c7fb",
+      "announced": "2026-06-22",
+      "parser_version": "7",
+      "rows": 9
     },
     {
       "doc_id": "pr_ind_prs10082026",

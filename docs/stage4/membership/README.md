@@ -6,24 +6,29 @@ Derived Nifty 200 = Nifty 50 + Next 50 + Midcap 100, walked back from the 2026-1
 every dated press-release transition. Counts are not forced to 200 (202 on 2020-10-01: two members
 have no instrument, 200 tradable).
 
-## Results (revision 2, 2026-11-09; revision 1 is in git history, the change list is DIFF_v1_to_v2.md)
+## Results (revision 3, 2026-11-09; revision 2 is commit 590466f, changes in DIFF_v2_to_v3.md and DIFF_v1_to_v2.md)
 - Anchor check: derived union == explicit Nifty 200 snapshot today (200 = 200).
-- 258 union events, 329 intervals. Undated or future-dated transitions applied: none (0 unplaced).
-- Agreement with the monthly PDF checkpoints: Nifty 50 72/73, Next 50 45/49, Midcap 100 18/18, derived and explicit N100 18/18, derived and explicit N200 18/18 (revision 1: 35, 45, 0, 0, 0).
-- Coverage by month (all still PROVISIONAL, nothing declared in the database): 23 CLEAN, 50 INCOMPLETE.
-- What changed it: parser v7 (page-continued and "excluded from the following indices" releases), six reviewed
-  revocations (`membership_cancellations.csv`), four reviewed placeholder replacements (ITCHOTELS, TMCV, KWIL, JIOFIN),
-  one reviewed entity equivalence (`membership_entity_equivalence.csv`), BSE's 2024-03-28 inclusion. Every one is a
-  config file with its source hash and the review decision it rests on; no identity or alias table was changed.
+- 282 union events, 341 intervals. Undated or future-dated transitions applied: none (0 unplaced).
+- Agreement with every independent monthly checkpoint: Nifty 50 73/73, Next 50 49/49, Midcap 100 18/18, derived and explicit N100 18/18, derived and explicit N200 18/18 (revision 1: 35, 45, 0, 0, 0).
+- Coverage by month (all PROVISIONAL, nothing declared in the database): 19 CLEAN, 54 INCOMPLETE. A month with a placeholder as a member is INCOMPLETE by design; the CLEAN count was not optimised.
+- Built from: parser v7; six reviewed revocations (`membership_cancellations.csv`); reviewed placeholder replacements
+  (ITCHOTELS, TMCV, KWIL, JIOFIN, ENRIN, ABLBL, VAML, VEDPOWER, VOGL, VISL); two reviewed entity equivalences
+  (`membership_entity_equivalence.csv`: NESTLEIND keys, DUMMYREL as the index placeholder for the pre-listing Jio entity);
+  hand transcriptions of notices the parser refuses. Each is a config file with its source hash and the review decision it
+  rests on. No identity or alias table was changed.
+- Conventions (tested): an interval end date is exclusive; a handover is effective on the listing date but its
+  announcement date (`known_at`) is the date of the release that states it, never backdated.
 
-## What remains (exceptions: 12)
-| Kind | Entities | Why it is left |
+## What remains (exceptions: 13) - NOT resolved by adopting this revision
+| Kind | Entities | What is needed |
 |---|---|---|
-| WALK_INCLUDED_BUT_NOT_MEMBER_AFTER (5) | DUMMYABFRL, DUMMYSIEMS placeholders | the release that removes each placeholder was not read; decisions recorded as RECONSTRUCTION_CORRECT |
-| MEMBER_WITHOUT_INSTRUMENT (4) | GSPL, PEL, JIOFIN (pre-listing span) | no instrument in the master / pre-listing; the apply step must create them from the reviewed decisions |
-| PLACEHOLDER_NOT_TRADABLE (3) | DUMMYITC, DUMMYTATAM, DUMMYHDLVR | non-tradable by design; replaced by the listing on its listing date |
+| MEMBER_WITHOUT_INSTRUMENT (4) | GSPL; JIOFIN pre-listing span; PEL (2 spans) | identity/application work: create or map instruments from the reviewed decisions (the apply step, not built) |
+| PLACEHOLDER_NOT_TRADABLE (9) | DUMMYITC, DUMMYTATAM, DUMMYHDLVR, DUMMYSIEMS, DUMMYABFRL, DUMMYVEDL1-4 | non-tradable by design; replaced by the listing on its listing date |
 
 ## Known limits
+- Point-in-time: for ENRIN, ABLBL, the Vedanta securities and the other replacements, the later exclusion release is the
+  only evidence stored for the listing-date handover. It is retrospective, not proof the handover was publicly knowable on the
+  listing date. Keep `effective_before_announcement = True` and use the announcement date as `known_at`. The contemporaneous
+  NSE listing notices are not stored; fetch them before relying on listing-date knowledge.
 - The older universe pipeline (universe_build) does not see revocations or replacements; only this reconstruction does.
-- Next 50 still disagrees with 4 monthly snapshots (10 entity differences): not yet investigated.
 - Nothing here is person-verified coverage; do not register the strategy until readiness passes.

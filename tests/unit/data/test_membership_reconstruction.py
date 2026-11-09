@@ -15,6 +15,7 @@ from algo.data.membership_reconstruction import (
     equivalence_map,
     intervals_from,
     reconcile,
+    state_on,
     unify_entities,
     union_events,
     walk_back,
@@ -94,6 +95,36 @@ def test_a_pre_alias_entity_can_hand_over_to_its_listing():
     swaps = [x for x in out if x.section == "placeholder replacement"]
     assert {(x.entity, x.action) for x in swaps} == {("s:JIOFIN", "EXCLUDED"), ("i:5", "INCLUDED")}
     assert not walk_back({"N50": frozenset()}, out, START, ANCHOR).discrepancies
+
+
+def test_the_handover_is_known_only_from_the_release_that_states_it_never_backdated():
+    # listed 19 Jun, but the release stating it came out on 25 Jun: the handover is effective 19 Jun
+    # yet its announcement (known_at) is 25 Jun
+    trs = [t("N50", "p:DUMMYX", "INCLUDED", D(2025, 4, 7), ann=D(2025, 4, 2), doc="inc"),
+           t("N50", "i:7", "EXCLUDED", D(2025, 6, 27), ann=D(2025, 6, 25), doc="exc")]  # fmt: skip
+    out, _ = apply_replacements(trs, [Replacement("DUMMYX", "i:7", "X", D(2025, 6, 19), "exc")])
+    swaps = [x for x in out if x.section == "placeholder replacement"]
+    assert {x.effective for x in swaps} == {D(2025, 6, 19)}
+    assert {x.announced for x in swaps} == {D(2025, 6, 25)}  # not 19 Jun, not the inclusion's date
+
+
+def test_an_interval_ends_on_the_first_day_the_stock_is_not_a_member():
+    trs = [t("N", "i:1", "INCLUDED", D(2025, 6, 23)), t("N", "i:1", "EXCLUDED", D(2025, 6, 27))]
+    w = walk_back({"N": frozenset()}, trs, START, ANCHOR)
+    (iv,) = intervals_from(w, ["N"], START, ANCHOR)
+    assert (iv.start, iv.end) == (D(2025, 6, 23), D(2025, 6, 27))  # end is exclusive
+    assert "i:1" in state_on(w, ["N"], D(2025, 6, 26))  # last member day
+    assert "i:1" not in state_on(
+        w, ["N"], D(2025, 6, 27)
+    )  # the end date itself is not a member day
+    assert "i:1" in state_on(w, ["N"], D(2025, 6, 23))  # the start date is a member day
+
+
+def test_a_placeholder_equivalence_can_point_at_a_pre_listing_entity():
+    # DUMMYREL (a monthly file's name) and s:JIOFIN (the release's) are one pre-listing entity
+    assert equivalence_map([{"from": ["p:DUMMYREL"], "to": "s:JIOFIN"}]) == {
+        "p:DUMMYREL": "s:JIOFIN"
+    }
 
 
 def test_a_replacement_with_nothing_to_hand_over_is_reported():
@@ -312,8 +343,8 @@ def test_a_reviewed_equivalence_makes_two_keys_of_one_issuer_the_same_entity():
 
 
 def test_an_equivalence_must_be_unambiguous():
-    with pytest.raises(ValueError, match="must be an instrument"):
-        equivalence_map([{"from": ["s:A"], "to": "s:B"}])
+    with pytest.raises(ValueError, match="must be an instrument or a pre-listing symbol"):
+        equivalence_map([{"from": ["s:A"], "to": "p:B"}])
     with pytest.raises(ValueError, match="maps to itself"):
         equivalence_map([{"from": ["i:1"], "to": "i:1"}])
     with pytest.raises(ValueError, match="mapped twice"):

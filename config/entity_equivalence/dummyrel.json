@@ -1,0 +1,13 @@
+{
+ "from": ["p:DUMMYREL"],
+ "to": "s:JIOFIN",
+ "symbol": "JIOFIN",
+ "reason": "INDEX_PLACEHOLDER_FOR the pre-listing Jio Financial entity. The 2023-07-31 monthly Nifty 50 file names the zero-price entity DUMMYREL; the NSE release of 2023-07-17 says the spun-off entity of the Reliance demerger was included from 2023-07-20 without printing a symbol, and the release of 2023-09-05 calls that entity 'JIOFIN or spun-off entity'. For membership comparison DUMMYREL and the pre-listing entity s:JIOFIN are one entity; neither is merged with the listed instrument JIOFIN (i:1154), which takes over on the listing date through the reviewed placeholder replacement.",
+ "evidence": [
+  "NSE Indices press release 2023-07-17 (pr_ind_prs17072023): spun-off entity of the Reliance Industries demerger included in Nifty 50, 100 and 200 effective 2023-07-20",
+  "NSE Indices press release 2023-09-05 (pr_ind_prs05092023): 'inclusion of Jio Financial Services Limited (JIOFIN or spun-off entity)'; listed 2023-08-21; excluded effective 2023-09-07",
+  "independent monthly Nifty 50 constituent file as of 2023-07-31, which lists DUMMYREL as a member and does not list JIOFIN"
+ ],
+ "review_decision_ids": [25],
+ "note": "Recorded on the owner's reviewed instruction: DUMMYREL is INDEX_PLACEHOLDER_FOR the pre-listing Jio Financial entity. Membership comparison only; no alias, instrument or ISIN table is changed."
+}

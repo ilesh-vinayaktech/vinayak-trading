@@ -60,11 +60,11 @@ def store_transcription(
             cur = conn.execute(
                 "INSERT INTO index_release_row (doc_id,parser_version,page,section_no,section_name,"
                 "component,action,symbol,company,effective_from,raw_text,instrument_id,"
-                "mapping_status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+                "mapping_status,related_symbol) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
                 " ON CONFLICT DO NOTHING",
                 (doc_id, PARSER_VERSION, r["page"], r["section_no"], r["section"],
                  canon(r["section"]), r["action"], r["symbol"], r["company"], effective,
-                 f"{prefix}: {r['company']} {r['symbol']}", iid, status),
+                 f"{prefix}: {r['company']} {r['symbol']}", iid, status, r.get("related_symbol")),
             )  # fmt: skip
             stored += cur.rowcount
         note = {"transcription": doc["method"], "verification": doc["verification"]}

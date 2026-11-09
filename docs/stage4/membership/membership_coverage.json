@@ -506,21 +506,21 @@
     },
     {
       "date": "2025-04-30",
-      "total": 200,
+      "total": 201,
       "tradable_instruments": 200,
       "unmapped_symbols": 0,
-      "placeholders": 0,
+      "placeholders": 1,
       "blocked_entities": 0,
-      "status": "CLEAN"
+      "status": "INCOMPLETE"
     },
     {
       "date": "2025-05-30",
-      "total": 200,
+      "total": 202,
       "tradable_instruments": 200,
       "unmapped_symbols": 0,
-      "placeholders": 0,
+      "placeholders": 2,
       "blocked_entities": 0,
-      "status": "CLEAN"
+      "status": "INCOMPLETE"
     },
     {
       "date": "2025-06-30",
@@ -614,21 +614,21 @@
     },
     {
       "date": "2026-04-30",
-      "total": 200,
+      "total": 204,
       "tradable_instruments": 200,
       "unmapped_symbols": 0,
-      "placeholders": 0,
+      "placeholders": 4,
       "blocked_entities": 0,
-      "status": "CLEAN"
+      "status": "INCOMPLETE"
     },
     {
       "date": "2026-05-29",
-      "total": 200,
+      "total": 204,
       "tradable_instruments": 200,
       "unmapped_symbols": 0,
-      "placeholders": 0,
+      "placeholders": 4,
       "blocked_entities": 0,
-      "status": "CLEAN"
+      "status": "INCOMPLETE"
     },
     {
       "date": "2026-06-30",
@@ -677,8 +677,8 @@
     }
   ],
   "status_counts": {
-    "INCOMPLETE": 50,
-    "CLEAN": 23
+    "INCOMPLETE": 54,
+    "CLEAN": 19
   },
   "note": "CLEAN = no blocked entity and no member without a tradable instrument on that date. INCOMPLETE is not 'wrong'; it says what cannot be established."
 }

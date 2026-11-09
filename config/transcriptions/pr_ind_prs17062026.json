@@ -1,0 +1,68 @@
+{
+ "doc_id": "pr_ind_prs17062026",
+ "announced": "2026-06-17",
+ "effective_from": "2026-06-19",
+ "source_sha256": "185014a4ecdf0a01416517a9339c0b32d946f1e56d35002c64121833edf0eca5",
+ "supplement": true,
+ "method": "hand transcription of the exclusion notice (the release names several companies, so the single-company parser refuses it)",
+ "verification": [
+  "the release names VEDPOWER (dummy DUMMYVEDL2), VISL (dummy DUMMYVEDL4), states they were listed on June 15, 2026 and excludes them effective 2026-06-19",
+  "only the Nifty 200 component indices (Nifty Next 50, Nifty 100, Nifty 200) are transcribed; related_symbol carries the dummy symbol the release names"
+ ],
+ "rows": [
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "EXCLUDED",
+   "symbol": "VEDPOWER",
+   "company": "Vedanta Power Ltd.",
+   "related_symbol": "DUMMYVEDL2"
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "EXCLUDED",
+   "symbol": "VEDPOWER",
+   "company": "Vedanta Power Ltd.",
+   "related_symbol": "DUMMYVEDL2"
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "EXCLUDED",
+   "symbol": "VEDPOWER",
+   "company": "Vedanta Power Ltd.",
+   "related_symbol": "DUMMYVEDL2"
+  },
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "EXCLUDED",
+   "symbol": "VISL",
+   "company": "Vedanta Iron and Steel Ltd.",
+   "related_symbol": "DUMMYVEDL4"
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "EXCLUDED",
+   "symbol": "VISL",
+   "company": "Vedanta Iron and Steel Ltd.",
+   "related_symbol": "DUMMYVEDL4"
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "EXCLUDED",
+   "symbol": "VISL",
+   "company": "Vedanta Iron and Steel Ltd.",
+   "related_symbol": "DUMMYVEDL4"
+  }
+ ]
+}

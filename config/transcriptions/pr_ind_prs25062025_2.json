@@ -1,0 +1,60 @@
+{
+ "doc_id": "pr_ind_prs25062025_2",
+ "announced": "2025-06-25",
+ "effective_from": "2025-06-27",
+ "source_sha256": "dd21c18f5dfcc014cd045c6a574097a8d5cf3f0ef076005bc67f18bab65c883f",
+ "supplement": true,
+ "method": "hand transcription of the two exclusion notices (A: Siemens Energy India, B: Aditya Birla Lifestyle Brands) in the 2025-06-25 NSE Indices press release; the parser refuses notices about more than one company",
+ "verification": [
+  "part A states the dummy symbol DUMMYSIEMS (announced 2025-04-02), the listing ENRIN on 2025-06-19, and the exclusion of ENRIN effective June 27, 2025 (close of June 26, 2025) from Nifty 100, Nifty Next 50, Nifty 200 and 20 more indices",
+  "part B states the dummy symbol DUMMYABFRL (announced 2025-05-19), the listing ABLBL on 2025-06-23, and the exclusion of ABLBL effective June 27, 2025 from Nifty 500, Nifty 200, Midcap 150, Midcap 100 and 9 more indices",
+  "only the Nifty 200 component indices are transcribed; the related_symbol column carries the dummy symbol each release names"
+ ],
+ "rows": [
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty 100",
+   "action": "EXCLUDED",
+   "symbol": "ENRIN",
+   "company": "Siemens Energy India Ltd.",
+   "related_symbol": "DUMMYSIEMS"
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty Next 50",
+   "action": "EXCLUDED",
+   "symbol": "ENRIN",
+   "company": "Siemens Energy India Ltd.",
+   "related_symbol": "DUMMYSIEMS"
+  },
+  {
+   "page": 1,
+   "section_no": 3,
+   "section": "Nifty 200",
+   "action": "EXCLUDED",
+   "symbol": "ENRIN",
+   "company": "Siemens Energy India Ltd.",
+   "related_symbol": "DUMMYSIEMS"
+  },
+  {
+   "page": 2,
+   "section_no": 2,
+   "section": "Nifty 200",
+   "action": "EXCLUDED",
+   "symbol": "ABLBL",
+   "company": "Aditya Birla Lifestyle Brands Ltd.",
+   "related_symbol": "DUMMYABFRL"
+  },
+  {
+   "page": 2,
+   "section_no": 4,
+   "section": "Nifty Midcap 100",
+   "action": "EXCLUDED",
+   "symbol": "ABLBL",
+   "company": "Aditya Birla Lifestyle Brands Ltd.",
+   "related_symbol": "DUMMYABFRL"
+  }
+ ]
+}

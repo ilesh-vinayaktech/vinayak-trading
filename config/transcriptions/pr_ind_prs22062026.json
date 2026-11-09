@@ -1,0 +1,41 @@
+{
+ "doc_id": "pr_ind_prs22062026",
+ "announced": "2026-06-22",
+ "effective_from": "2026-06-24",
+ "source_sha256": "758d548d5ee3ffd0a90229561aa9c150a889f6d8d257129ed306fe1d1eb3c7fb",
+ "supplement": true,
+ "method": "hand transcription of the exclusion notice (the release names several companies, so the single-company parser refuses it)",
+ "verification": [
+  "the release names VOGL (dummy DUMMYVEDL3), states they were listed on June 15, 2026 and excludes them effective 2026-06-24",
+  "only the Nifty 200 component indices (Nifty Next 50, Nifty 100, Nifty 200) are transcribed; related_symbol carries the dummy symbol the release names"
+ ],
+ "rows": [
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "EXCLUDED",
+   "symbol": "VOGL",
+   "company": "Vedanta Oil and Gas Ltd.",
+   "related_symbol": "DUMMYVEDL3"
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "EXCLUDED",
+   "symbol": "VOGL",
+   "company": "Vedanta Oil and Gas Ltd.",
+   "related_symbol": "DUMMYVEDL3"
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "EXCLUDED",
+   "symbol": "VOGL",
+   "company": "Vedanta Oil and Gas Ltd.",
+   "related_symbol": "DUMMYVEDL3"
+  }
+ ]
+}

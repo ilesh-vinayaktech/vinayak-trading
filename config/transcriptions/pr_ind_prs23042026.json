@@ -1,0 +1,111 @@
+{
+ "doc_id": "pr_ind_prs23042026",
+ "announced": "2026-04-23",
+ "effective_from": "2026-04-30",
+ "source_sha256": "434aa85ef5ed3ff3f59826e2ed029de39f298173a1cdaa737b4989491d045c03",
+ "supplement": true,
+ "method": "hand transcription of part A of the 2026-04-23 release: four demerged entities with four dummy symbols in one notice (the parser accepts only one dummy symbol per notice)",
+ "verification": [
+  "the release says the demerged entities Vedanta Aluminium Metal Ltd., Talwandi Sabo Power Ltd., Malco Energy Ltd. and Vedanta Iron and Steel Ltd. 'with dummy Symbols DUMMYVEDL1, DUMMYVEDL2, DUMMYVEDL3 and DUMMYVEDL4 respectively shall be included (with equal weights) at zero price' effective April 30, 2026 (close of April 29, 2026)",
+  "the later exclusion releases (2026-06-17/19/22) confirm the pairing: DUMMYVEDL1 VAML, DUMMYVEDL2 VEDPOWER, DUMMYVEDL3 VOGL, DUMMYVEDL4 VISL",
+  "only the Nifty 200 component indices (Nifty Next 50, Nifty 100, Nifty 200) are transcribed"
+ ],
+ "rows": [
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL1",
+   "company": "Vedanta Aluminium Metal Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL1",
+   "company": "Vedanta Aluminium Metal Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL1",
+   "company": "Vedanta Aluminium Metal Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL2",
+   "company": "Talwandi Sabo Power Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL2",
+   "company": "Talwandi Sabo Power Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL2",
+   "company": "Talwandi Sabo Power Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL3",
+   "company": "Malco Energy Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL3",
+   "company": "Malco Energy Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL3",
+   "company": "Malco Energy Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty Next 50",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL4",
+   "company": "Vedanta Iron and Steel Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL4",
+   "company": "Vedanta Iron and Steel Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 4,
+   "section": "Nifty 200",
+   "action": "INCLUDED",
+   "symbol": "DUMMYVEDL4",
+   "company": "Vedanta Iron and Steel Ltd."
+  }
+ ]
+}

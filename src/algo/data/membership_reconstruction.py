@@ -30,12 +30,12 @@ def equivalence_map(records: Iterable[Mapping[str, object]]) -> dict[Entity, Ent
     """From reviewed records {"from": [entity, ...], "to": "i:<id>"} to a flat map. Two keys of ONE
     issuer (an unmapped symbol before an alias starts, then the instrument) are then compared as one
     entity. This never touches an identity table and refuses ambiguity: a target must be an
-    instrument, nothing maps to itself, twice, or through a chain."""
+    instrument or a pre-listing symbol, nothing maps to itself, twice, or through a chain."""
     out: dict[Entity, Entity] = {}
     for rec in records:
         target = str(rec["to"])
-        if not target.startswith("i:"):
-            raise ValueError(f"{target} must be an instrument")
+        if not target.startswith(("i:", "s:")):
+            raise ValueError(f"{target} must be an instrument or a pre-listing symbol")
         for src in rec["from"]:  # type: ignore[attr-defined]
             if src == target:
                 raise ValueError(f"{src} maps to itself")
