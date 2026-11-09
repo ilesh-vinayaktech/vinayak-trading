@@ -1,0 +1,317 @@
+{
+  "description": "Owner-approved (2026-11-09) PROVISIONAL issuer-terms factors for nine rights issues. SUZLON is held (letter of offer not retrieved). Not verified: no exchange adjustment circular has been retrieved for any of them.",
+  "method": "rights",
+  "status": "provisional",
+  "expected_evidence_class": "PROVISIONAL_ISSUER_TERMS",
+  "note_prefix": "issuer-terms provisional",
+  "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+  "calculation_version": "rights_terp_full_issue_price/1",
+  "resolutions": [
+    {
+      "symbol": "RELIANCE",
+      "ex_date": "2020-05-13",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "15",
+        "subscription_price": "1257"
+      },
+      "expected_prev_close": "1479.25",
+      "payment": "PARTLY PAID: Rs 314.25 on application (25%), balance in two calls; the partly paid shares listed separately",
+      "issuer_document": {
+        "document": "Letter of Offer",
+        "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Reliance-Industries-Limited-Letter-of-Offer.pdf",
+        "stored_at": "data/evidence/rights/reliance_lof.pdf",
+        "sha256": "f2b92247b764c51db75a5fb64bb21f91ba8b15dd27841f2ae4f4116c7535e8c8",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2020-05-13/v0001.bin",
+        "sha256": "55f4d226421bd9d382855f0bcb815d2da0143e7aa6c785442e0bc2c0ea89e161",
+        "symbol_in_file": "RELIANCE",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "1479.25"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified."
+    },
+    {
+      "symbol": "SHRIRAMFIN",
+      "ex_date": "2020-07-09",
+      "kind": "rights",
+      "params": {
+        "new": "3",
+        "held": "26",
+        "subscription_price": "570"
+      },
+      "expected_prev_close": "757.90",
+      "payment": "fully paid (Shriram Transport Finance)",
+      "issuer_document": {
+        "document": "Letter of Offer",
+        "url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/shriram-transport-finance-company-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/shriramfin_lof.pdf",
+        "sha256": "fa3a59f289dec35841d2159a5b05afc40fac25eb4d53682b12087ad7d94dd3a9",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2020-07-09/v0001.bin",
+        "sha256": "c54645249aaf4f06fa612edd38ae10f8f792ee0cdb3a3c000fdf96a9644f1198",
+        "symbol_in_file": "SRTRANSFIN",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "757.90"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified."
+    },
+    {
+      "symbol": "LTF",
+      "ex_date": "2021-01-21",
+      "kind": "rights",
+      "params": {
+        "new": "17",
+        "held": "74",
+        "subscription_price": "65"
+      },
+      "expected_prev_close": "103.85",
+      "payment": "fully paid (L&T Finance Holdings)",
+      "issuer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/l-t-finance-holdings-rights-issue-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/ltf_abridged_lof.pdf",
+        "sha256": "1648b198cee937161c675a6eea5ebd286ecffa3b379ab9282b3c6eb41cce706f",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2021-01-21/v0001.bin",
+        "sha256": "0d95166754967df0b95a5ee001685808b312b2ad3bab10d90dcb82fd70e32fea",
+        "symbol_in_file": "L&TFH",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "103.85"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified."
+    },
+    {
+      "symbol": "BHARTIARTL",
+      "ex_date": "2021-09-27",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "14",
+        "subscription_price": "535"
+      },
+      "expected_prev_close": "739.40",
+      "payment": "PARTLY PAID: Rs 133.75 on application (25%), balance in calls; the partly paid shares listed separately",
+      "issuer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/BHARTI-AIRTEL-LIMITED-Rights-Issue-Abridged-Letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/bhartiartl_abridged_lof.pdf",
+        "sha256": "4bc9374983ec9c9de11865bdcc1a1030fdf215d4759ad12a7ed8d13c12c1c3bf",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2021-09-27/v0001.bin",
+        "sha256": "df4b8964b47c41bdc890c580b03e8f65b9b67a849d0b5e0eb4d6c8b85193acb0",
+        "symbol_in_file": "BHARTIARTL",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "739.40"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+      "exchange_factor_reported": {
+        "value": "0.981571",
+        "source": "MSE (Metropolitan Stock Exchange) circular 10921 (as summarised by a search; not retrieved and read)",
+        "note": "equal to the proposed factor to 6 decimals; a secondary report, not exchange verification"
+      }
+    },
+    {
+      "symbol": "INDHOTEL",
+      "ex_date": "2021-11-11",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "9",
+        "subscription_price": "150"
+      },
+      "expected_prev_close": "215.30",
+      "payment": "fully paid",
+      "issuer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/indhotel_abridged_lof.pdf",
+        "sha256": "59e7e7cde8479e61d7b9cec43dbd9612a85fe8d8f96e1e707683873b96a421c1",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2021-11-11/v0001.bin",
+        "sha256": "c955168b53b887c8ec98f34c86eb760726383cdc28bfbd78e1c403bf728e63a2",
+        "symbol_in_file": "INDHOTEL",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "215.30"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified."
+    },
+    {
+      "symbol": "GRASIM",
+      "ex_date": "2024-01-10",
+      "kind": "rights",
+      "params": {
+        "new": "6",
+        "held": "179",
+        "subscription_price": "1812"
+      },
+      "expected_prev_close": "2064.05",
+      "payment": "PARTLY PAID: Rs 453 on application, balance Rs 1,359 in calls",
+      "issuer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf",
+        "stored_at": "data/evidence/rights/grasim_abridged_lof.pdf",
+        "sha256": "fdfbf3d4921cc22ca72c3771b971e7f6f585cc787a23e333aa62ee252258d583",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2024-01-10/v0001.bin",
+        "sha256": "93f25cb682042e43b4f980a8304db43714e637338b4ef71177a5d6b76d886b9e",
+        "symbol_in_file": "GRASIM",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "2064.05"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+      "exchange_factor_reported": {
+        "value": "0.996040",
+        "source": "Zerodha bulletin copy of the exchange F&O adjustment (secondary; exchange circular not retrieved)",
+        "note": "equal to the proposed factor to 6 decimals; a secondary report, not exchange verification"
+      }
+    },
+    {
+      "symbol": "TATACONSUM",
+      "ex_date": "2024-07-26",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "26",
+        "subscription_price": "818"
+      },
+      "expected_prev_close": "1223.60",
+      "payment": "FULLY PAID: all Rs 818 on application (abridged letter of offer); the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
+      "issuer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/tataconsum_abridged_lof.pdf",
+        "sha256": "3a5c268e6cbc343c25df99d0fcaf4345228c58339ce6cf67b7d18f7fae3461b3",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2024-07-26/v0001.bin",
+        "sha256": "b831ab462ee021099f6a4bd6002c2798b1e1697b326a71723c0f7ea67d6f17e6",
+        "symbol_in_file": "TATACONSUM",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "1223.60"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+      "unresolved_evidence_conflicts": [
+        {
+          "what": "cum-rights reference price",
+          "bhavcopy_prev_close": "1223.60",
+          "exchange_example_cum_price": "1231.25 (Zerodha bulletin copy of the exchange F&O adjustment example; not retrieved from the exchange)",
+          "proposed_factor": "0.9877229305146925284225055394",
+          "status": "UNRESOLVED",
+          "note": "the exchange example may use a different reference price; not established as interchangeable; the recorded factor is NOT described as matching the exchange adjustment"
+        }
+      ]
+    },
+    {
+      "symbol": "UPL",
+      "ex_date": "2024-11-26",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "8",
+        "subscription_price": "360"
+      },
+      "expected_prev_close": "568.55",
+      "payment": "PARTLY PAID: Rs 90 on application, balance in calls",
+      "issuer_document": {
+        "document": "Company FAQ on the rights issue (not the letter of offer)",
+        "url": "https://www.upl-ltd.com/downloads/right-issues-pdf/FAQs_Rights_issue.pdf",
+        "stored_at": "data/evidence/rights/upl_rights_faq.pdf",
+        "sha256": "5bd97bfbe2b174f43354e6241dd3061c5e9f02f61241c9f558296a250e3eca28",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2024-11-26/v0001.bin",
+        "sha256": "ed333291256cbf0f6492b315b186d0b805329d59f8bdc42eba82a1535b95fdcb",
+        "symbol_in_file": "UPL",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "568.55"
+        }
+      },
+      "limitation": "terms from the issuer's FAQ on the rights issue (not the letter of offer and not an exchange adjustment circular; stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price). NOT verified.",
+      "unresolved_evidence_conflicts": [
+        {
+          "what": "exchange F&O adjustment factor",
+          "proposed_factor": "0.9592432992309872091773419713",
+          "nse_circular_factor_reported": "0.959510",
+          "circular": "NSE F&O circular 149/2024 dated 2024-11-22, as reported; not retrieved",
+          "nse_indicative_factor_reported": "0.959243 at a pre-ex-date close of 568.55 (NSE FAOP65222, as reported; described there as indicative)",
+          "status": "UNRESOLVED",
+          "note": "neither figure selected over the other; the recorded factor is the TERP from the issuer terms and the bhavcopy cum close; it is NOT described as matching the exchange adjustment"
+        }
+      ]
+    },
+    {
+      "symbol": "ADANIENT",
+      "ex_date": "2025-11-17",
+      "kind": "rights",
+      "params": {
+        "new": "3",
+        "held": "25",
+        "subscription_price": "1800"
+      },
+      "expected_prev_close": "2516.80",
+      "payment": "PARTLY PAID: Rs 900 on application, balance in two calls (record dates 2025-12-23 and 2026-02-13)",
+      "issuer_document": {
+        "document": "Company FAQ on the partly paid rights shares (not the letter of offer)",
+        "url": "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf",
+        "stored_at": "data/evidence/rights/adanient_rights_faq.pdf",
+        "sha256": "05fd744c872f061cb1b317a9a09147c6e9758d0f02b4a72f06a7d2982406cf5e",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2025-11-17/v0001.bin",
+        "sha256": "c8b46755536d96c4f5fa325a044dc8489f6a043f466ed8bd032d20ff4e027cb8",
+        "symbol_in_file": "ADANIENT",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "2516.80"
+        }
+      },
+      "limitation": "terms from the issuer's FAQ on the rights issue (not the letter of offer and not an exchange adjustment circular; stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price). NOT verified.",
+      "exchange_factor_reported": {
+        "value": "0.969485",
+        "source": "forum copy of the exchange F&O notice (secondary; exchange circular not retrieved)",
+        "note": "equal to the proposed factor to 6 decimals; a secondary report, not exchange verification"
+      }
+    }
+  ]
+}

@@ -23,6 +23,7 @@ from pathlib import Path
 
 import psycopg
 
+from algo.data.adjust.factors import rights_factor
 from algo.data.corporate_actions import records_for
 from algo.data.review import evidence_class, resolve
 
@@ -67,14 +68,25 @@ def run(conn: psycopg.Connection) -> None:
     now = datetime.now(UTC)
     for it in cfg["resolutions"]:
         sym, ex, kind = it["symbol"], date.fromisoformat(it["ex_date"]), it["kind"]
-        base, prev = D(it["base_price"]), D(it["expected_prev_close"])
+        prev = D(it["expected_prev_close"])
+        if cfg["method"] == "exchange_adjusted_price":
+            base = D(it["base_price"])
+            params, expected, want_open = {"base_price": base}, base / prev, base
+        elif cfg["method"] == "rights":
+            params = {k: D(v) for k, v in it["params"].items()}
+            expected = rights_factor(
+                params["new"], params["held"], params["subscription_price"], prev
+            )
+            want_open = None
+        else:
+            raise SystemExit(f"unsupported method {cfg['method']}")
         bh = it["bhavcopy"]
         f = Path(bh["path"])
         sha = hashlib.sha256(f.read_bytes()).hexdigest() if f.exists() else ""
         check(sym, "stored bhavcopy SHA-256 equals the config", sha == bh["sha256"], sha[:16])
         row = file_row(f, bh["symbol_in_file"]) if f.exists() else None
-        check(sym, "bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close",
-              row is not None and D(row["OPEN_PRICE"]) == base and D(row["PREV_CLOSE"]) == prev,
+        check(sym, "bhavcopy row on the ex-date: PREV_CLOSE = expected previous close" + (", OPEN_PRICE = base price" if want_open else ""),
+              row is not None and D(row["PREV_CLOSE"]) == prev and (want_open is None or D(row["OPEN_PRICE"]) == want_open),
               f"{bh['symbol_in_file']} {row['DATE1'] if row else 'missing'} open {row['OPEN_PRICE'] if row else '-'} prev {row['PREV_CLOSE'] if row else '-'}")  # fmt: skip
         iid = conn.execute(
             "SELECT instrument_id FROM instrument WHERE symbol=%s", (sym,)
@@ -91,17 +103,19 @@ def run(conn: psycopg.Connection) -> None:
         )
         before = latest(conn, iid, ex, kind)
         evidence = {
-            "formula": cfg["formula"], "calculation_version": cfg["calculation_version"],
-            "ex_date_open": str(base), "prev_close_cum": str(prev), "entitlement_reported": it["entitlement_reported"],
-            "bhavcopy": bh, "reports": it["reports"], "limitation": it["limitation"],
+            "formula": cfg["formula"], "calculation_version": cfg["calculation_version"], "prev_close_cum": str(prev),
+            "bhavcopy": bh, "reports": it.get("reports", []), "limitation": it["limitation"],
             "supersedes_resolution_id": before[0][0] if before else None,
             "superseded_method": before[0][1] if before else None,
+            **({"ex_date_open": str(want_open)} if want_open is not None else {}),
+            **{k: it[k] for k in ("entitlement_reported", "issuer_document", "payment", "exchange_factor_reported", "unresolved_evidence_conflicts") if k in it},
         }  # fmt: skip
-        r = resolve(conn, symbol=sym, ex_date=ex, kind=kind, method=cfg["method"], params={"base_price": base},
-                    note=f"exchange-derived provisional: {it['limitation']}", by=a.by, now=now,
+        r = resolve(conn, symbol=sym, ex_date=ex, kind=kind, method=cfg["method"], params=params,
+                    note=f"{cfg.get('note_prefix', 'exchange-derived provisional')}: {it['limitation']}", by=a.by, now=now,
                     status=cfg["status"], evidence=evidence)  # fmt: skip
         after = latest(conn, iid, ex, kind)
         new = after[0]
+        want_class = cfg.get("expected_evidence_class", "PROVISIONAL_EXCHANGE_DERIVED")
         check(
             sym,
             "a new row was appended and is now the latest",
@@ -110,8 +124,8 @@ def run(conn: psycopg.Connection) -> None:
         )
         check(
             sym,
-            "factor = base / previous close at full precision",
-            new[3] == base / prev == r.factor,
+            f"factor = {cfg['method']} formula at full precision",
+            new[3] == expected == r.factor,
             str(new[3]),
         )
         check(
@@ -119,13 +133,11 @@ def run(conn: psycopg.Connection) -> None:
             "status provisional, no official source claimed",
             new[2] == "provisional" and new[5] is None,
         )
-        check(
-            sym,
-            "evidence class PROVISIONAL_EXCHANGE_DERIVED",
-            evidence_class(new[2], new[1]) == "PROVISIONAL_EXCHANGE_DERIVED",
-        )
-        check(sym, "evidence stored with the calculation inputs kept apart",
-              new[4]["base_price"] == str(base) and new[4]["prev_close"] == str(prev) and new[4]["evidence"]["bhavcopy"]["sha256"] == bh["sha256"])  # fmt: skip
+        check(sym, f"evidence class {want_class}", evidence_class(new[2], new[1]) == want_class)
+        check(sym, "calculation inputs stored apart from the evidence",
+              all(new[4][k] == str(v) for k, v in params.items()) and new[4]["prev_close"] == str(prev)
+              and new[4]["evidence"]["bhavcopy"]["sha256"] == bh["sha256"]
+              and new[4]["evidence"].get("unresolved_evidence_conflicts") == it.get("unresolved_evidence_conflicts"))  # fmt: skip
         check(sym, "the earlier estimate is kept as history, superseded",
               not before or (after[1][0] == before[0][0] and after[1][1] == before[0][1]),
               f"earlier: {before[0][1]} {D(before[0][3]):.6f}" if before else "none")  # fmt: skip

@@ -96,7 +96,9 @@ def evidence_class(status: str | None, method: str | None) -> str:
             return "PROVISIONAL_GAP_ESTIMATE"
         if method == "exchange_adjusted_price":
             return "PROVISIONAL_EXCHANGE_DERIVED"
-        return "PROVISIONAL_FROM_TERMS"
+        if method in ("rights", "demerger", "cost_allocation"):
+            return "PROVISIONAL_ISSUER_TERMS"  # computed from issue terms, not an exchange figure
+        return "PROVISIONAL_OTHER"
     return status.upper()
 
 

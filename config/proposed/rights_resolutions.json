@@ -40,7 +40,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -78,7 +78,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -115,7 +115,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -155,7 +155,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -195,7 +195,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -229,7 +229,7 @@
         ]
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "the letter of offer was NOT retrieved; terms from secondary filings and reports. NOT verified."
     },
     {
@@ -270,7 +270,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -310,7 +310,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -350,7 +350,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
@@ -389,7 +389,7 @@
         }
       },
       "status_proposed": "provisional",
-      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
       "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     }
   ]

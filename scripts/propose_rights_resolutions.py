@@ -205,7 +205,7 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
             "factor": str(f), "face_value": fv, "premium": prem, "payment": pay,
             "exchange_factor_found": exch, "reproduces_exchange_factor": (f"{f:.6f}" == exch) if exch else None,
             "sources": src, "offer_document": MANIFEST.get(sym), "status_proposed": "provisional",
-            "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+            "evidence_class_when_recorded": "PROVISIONAL_ISSUER_TERMS",
             "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
             if checked(sym) else "the letter of offer was NOT retrieved; terms from secondary filings and reports. NOT verified.",
         })  # fmt: skip
