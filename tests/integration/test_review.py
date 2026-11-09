@@ -448,6 +448,47 @@ def test_exchange_adjusted_price_factor_is_base_price_over_previous_cum_close(en
     assert inputs["base_price"] == "918" and inputs["prev_close"] == "1020"
 
 
+def test_a_provisional_exchange_factor_keeps_its_evidence_and_supersedes_the_gap_estimate(env):
+    conn, iid = env  # previous close (11 Jun) = 1020
+    do_resolve(conn, method="direct", params={"factor": D("0.95")})  # an earlier estimate
+    ev = {"bhavcopy": {"path": "raw/nse/bhav/dt=2025-06-12/v0001.bin", "sha256": "ab" * 32},
+          "limitation": "original NSE/BSE circular not yet obtained"}  # fmt: skip
+    r = do_resolve(
+        conn, method="exchange_adjusted_price", params={"base_price": D(917)}, evidence=ev
+    )
+    assert r.factor == D(917) / D(1020)  # full precision, not a rounded display value
+    rows = conn.execute(
+        "SELECT method, status, factor, inputs, source_url FROM action_resolution ORDER BY id"
+    ).fetchall()
+    assert [x[0] for x in rows] == [
+        "direct",
+        "exchange_adjusted_price",
+    ]  # history kept, append-only
+    method, status, factor, inputs, source_url = rows[-1]
+    assert (status, factor, source_url) == (
+        "provisional",
+        D(917) / D(1020),
+        None,
+    )  # no official source claimed
+    assert (
+        inputs["base_price"] == "917"
+        and inputs["prev_close"] == "1020"
+        and inputs["evidence"] == ev
+    )
+    (rec,) = [x for x in records_for(conn, iid) if x.kind == "resolved"]
+    assert (
+        rec.den == D(917) / D(1020) and rec.provisional
+    )  # the latest resolution is the one applied
+
+
+def test_evidence_must_be_a_mapping_kept_apart_from_the_calculation_inputs(env):
+    conn, _ = env
+    with pytest.raises(ResolveError, match="^evidence must be a mapping$"):
+        do_resolve(conn, method="exchange_adjusted_price", params={"base_price": D(917)},
+                   evidence="NSE circular")  # fmt: skip
+    assert conn.execute("SELECT count(*) FROM action_resolution").fetchone()[0] == 0
+
+
 @pytest.mark.parametrize("base", [D(0), D(-5), D(1020), D(1500)])
 def test_exchange_adjusted_price_must_be_a_positive_price_below_the_cum_close(env, base):
     conn, _ = env

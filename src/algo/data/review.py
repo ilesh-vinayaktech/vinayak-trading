@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import json
 import statistics
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -181,6 +183,7 @@ def resolve(
     source_type: str | None = None,
     source_url: str | None = None,
     source_hash: str | None = None,
+    evidence: Mapping[str, Any] | None = None,
 ) -> Resolved:
     """method: ignore | direct{factor} | demerger{child_per_parent, child_price} |
     rights{new, held, subscription_price} | exchange_adjusted_price{base_price} (the exchange's
@@ -198,7 +201,9 @@ def resolve(
     ).fetchone()
     if exists is None:
         raise ResolveError(f"no review action {kind} for {symbol} on {ex_date}")
-    inputs: dict[str, str] = {k: str(v) for k, v in params.items()}
+    if evidence is not None and not isinstance(evidence, Mapping):
+        raise ResolveError("evidence must be a mapping")
+    inputs: dict[str, Any] = {k: str(v) for k, v in params.items()}
     factor: Decimal | None
     try:
         if method == "ignore":
@@ -246,6 +251,8 @@ def resolve(
         kind_txt = "no-adjustment" if factor is None else "factor"
         raise ResolveError(f"status {status} is not valid for a {kind_txt} resolution")
     verifying = status in ("verified", "no_adjustment_verified")
+    if evidence is not None:
+        inputs["evidence"] = dict(evidence)  # kept apart from the calculation inputs
     if verifying:
         if method == "gap":
             raise ResolveError(
