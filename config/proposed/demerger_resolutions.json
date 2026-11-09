@@ -1,0 +1,185 @@
+{
+  "status": "PROPOSED, not applied",
+  "proposals": [
+    {
+      "symbol": "RELIANCE",
+      "instrument_id": 1897,
+      "ex_date": "2023-07-20",
+      "kind": "demerger",
+      "method": "exchange_adjusted_price",
+      "params": {
+        "base_price": "2580.00"
+      },
+      "prev_close": "2841.85",
+      "factor": "0.907859",
+      "current_gap_factor": "0.919886",
+      "difference_vs_gap": "-0.0120",
+      "entitlement": "1 Jio Financial Services share per Reliance share",
+      "discovered_price_reported": "2580",
+      "evidence": {
+        "stored_bhavcopy": {
+          "manifest": "data/lake/raw/nse/bhav/dt=2023-07-20/v0001.manifest.json",
+          "checksum": "60afba4661bc75fd3c5c0556f3c2db1541eeb81f86b2139ee2d92403d8ac5f31",
+          "url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_20072023.csv",
+          "dataset": "bhav"
+        },
+        "reports": [
+          "https://www.businesstoday.in/markets/company-stock/story/ril-share-price-settles-at-rs-2580-in-special-pre-open-session-jio-financial-at-rs-26185-390530-2023-07-20",
+          "https://www.angelone.in/news/share-market/ril-settles-at-rs-2580-jio-financials-priced-at-rs-261-85"
+        ]
+      },
+      "status_proposed": "provisional",
+      "note": "NOT verified. Base price = ex-date open (the special pre-open session settlement) in the stored NSE bhavcopy; press reports corroborate. A person must confirm against the NSE circular before verify."
+    },
+    {
+      "symbol": "ITC",
+      "instrument_id": 1117,
+      "ex_date": "2025-01-06",
+      "kind": "demerger",
+      "method": "exchange_adjusted_price",
+      "params": {
+        "base_price": "455.60"
+      },
+      "prev_close": "481.60",
+      "factor": "0.946013",
+      "current_gap_factor": "0.944959",
+      "difference_vs_gap": "+0.0011",
+      "entitlement": "1 ITC Hotels share per 10 ITC shares",
+      "discovered_price_reported": "455.60 (NSE)",
+      "evidence": {
+        "stored_bhavcopy": {
+          "manifest": "data/lake/raw/nse/bhav/dt=2025-01-06/v0001.manifest.json",
+          "checksum": "9dc1eb315195c68bbf2a30719f07d56ecd6dedc1f00190bbf68ad02152aa82b4",
+          "url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_06012025.csv",
+          "dataset": "bhav"
+        },
+        "reports": [
+          "https://magzter.com/stories/newspaper/The-Free-Press-Journal-Indore/ITC-SHARES-ADJUST-AFTER-HOTELS-BIZ-DEMERGER",
+          "https://www.venturasecurities.com/news/stocks/itc-share-price-adjusted-for-demerger-of-hotels-business/"
+        ]
+      },
+      "status_proposed": "provisional",
+      "note": "NOT verified. Base price = ex-date open (the special pre-open session settlement) in the stored NSE bhavcopy; press reports corroborate. A person must confirm against the NSE circular before verify."
+    },
+    {
+      "symbol": "SIEMENS",
+      "instrument_id": 2121,
+      "ex_date": "2025-04-07",
+      "kind": "demerger",
+      "method": "exchange_adjusted_price",
+      "params": {
+        "base_price": "2450.00"
+      },
+      "prev_close": "4928.15",
+      "factor": "0.497144",
+      "current_gap_factor": "0.590556",
+      "difference_vs_gap": "-0.0934",
+      "entitlement": "1 Siemens Energy India share per Siemens share (record date 2025-04-07, Siemens' own NSE filing)",
+      "discovered_price_reported": "2450.00 (open vs 4928.15 close; child dummy price 2478.20 on NSE)",
+      "evidence": {
+        "stored_bhavcopy": {
+          "manifest": "data/lake/raw/nse/bhav/dt=2025-04-07/v0001.manifest.json",
+          "checksum": "9a5b9c52a10cf32222e1d1f6de2f76a925265e04aea1918841b7e6e3208c75d0",
+          "url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_07042025.csv",
+          "dataset": "bhav"
+        },
+        "reports": [
+          "https://nsearchives.nseindia.com/corporate/SiemensRaj_25032025213901_SEdisclosureRecordDate25032025.pdf",
+          "https://www.angelone.in/news/stocks-share-market/siemens-share-price-drops-50-percent-post-demerger-with-siemens-energy-india"
+        ]
+      },
+      "status_proposed": "provisional",
+      "note": "NOT verified. Base price = ex-date open (the special pre-open session settlement) in the stored NSE bhavcopy; press reports corroborate. A person must confirm against the NSE circular before verify."
+    },
+    {
+      "symbol": "TMPV",
+      "instrument_id": 2380,
+      "ex_date": "2025-10-14",
+      "kind": "demerger",
+      "method": "exchange_adjusted_price",
+      "params": {
+        "base_price": "400.00"
+      },
+      "prev_close": "660.75",
+      "factor": "0.605373",
+      "current_gap_factor": "0.602534",
+      "difference_vs_gap": "+0.0028",
+      "entitlement": "1 TMLCV share per Tata Motors share",
+      "discovered_price_reported": "400 (vs NSE close 660.75)",
+      "evidence": {
+        "stored_bhavcopy": {
+          "manifest": "data/lake/raw/nse/bhav/dt=2025-10-14/v0001.manifest.json",
+          "checksum": "d72fcbad87c23165dd64a0c7f21f72392d96a7b1b2a58a3dca2c681850d8ab03",
+          "url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_14102025.csv",
+          "dataset": "bhav"
+        },
+        "reports": [
+          "https://www.samco.in/knowledge-center/articles/tata-motors-demerger-passenger-vehicle-share-price-and-key-updates/",
+          "https://upstox.com/news/market-news/stocks/tata-motors-demerger-why-stock-is-down-40-from-previous-close-all-you-need-to-know/article-182991"
+        ]
+      },
+      "status_proposed": "provisional",
+      "note": "NOT verified. Base price = ex-date open (the special pre-open session settlement) in the stored NSE bhavcopy; press reports corroborate. A person must confirm against the NSE circular before verify."
+    },
+    {
+      "symbol": "HINDUNILVR",
+      "instrument_id": 979,
+      "ex_date": "2025-12-05",
+      "kind": "demerger",
+      "method": "exchange_adjusted_price",
+      "params": {
+        "base_price": "2422.00"
+      },
+      "prev_close": "2462.20",
+      "factor": "0.983673",
+      "current_gap_factor": "0.946812",
+      "difference_vs_gap": "+0.0369",
+      "entitlement": "1 Kwality Wall's (India) share per HUL share",
+      "discovered_price_reported": "2422 (gap 40.20 = NSE adjusted price of KWIL)",
+      "evidence": {
+        "stored_bhavcopy": {
+          "manifest": "data/lake/raw/nse/bhav/dt=2025-12-05/v0001.manifest.json",
+          "checksum": "878cc00f7f71b39dfa6d882ac9867e11cebf42f0979d1dcd48b0cc438e2539b3",
+          "url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_05122025.csv",
+          "dataset": "bhav"
+        },
+        "reports": [
+          "https://www.outlookbusiness.com/corporate/kwality-walls-india-debuts-26-below-issue-price-gains-in-intraday-trade",
+          "https://www.samco.in/knowledge-center/?p=65895"
+        ]
+      },
+      "status_proposed": "provisional",
+      "note": "NOT verified. Base price = ex-date open (the special pre-open session settlement) in the stored NSE bhavcopy; press reports corroborate. A person must confirm against the NSE circular before verify."
+    },
+    {
+      "symbol": "VEDL",
+      "instrument_id": 2491,
+      "ex_date": "2026-04-30",
+      "kind": "demerger",
+      "method": "exchange_adjusted_price",
+      "params": {
+        "base_price": "289.50"
+      },
+      "prev_close": "773.60",
+      "factor": "0.374224",
+      "current_gap_factor": "0.354834",
+      "difference_vs_gap": "+0.0194",
+      "entitlement": "1 share each of four demerged Vedanta companies per Vedanta share (record date 2026-05-01)",
+      "discovered_price_reported": "289.50 (vs close 773.60)",
+      "evidence": {
+        "stored_bhavcopy": {
+          "manifest": "data/lake/raw/nse/bhav/dt=2026-04-30/v0001.manifest.json",
+          "checksum": "215b10ba246b88b61630900a18ce011fce694e29453d0e0fd7c322da7b15c5be",
+          "url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_30042026.csv",
+          "dataset": "bhav"
+        },
+        "reports": [
+          "https://www.arihantcapital.com/company-information/companynewsdetails/25120010239",
+          "https://www.thestatesman.com/business/vedanta-share-price-falls-demerger-impact-today-1503587920.html"
+        ]
+      },
+      "status_proposed": "provisional",
+      "note": "NOT verified. Base price = ex-date open (the special pre-open session settlement) in the stored NSE bhavcopy; press reports corroborate. A person must confirm against the NSE circular before verify."
+    }
+  ]
+}
