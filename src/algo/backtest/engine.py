@@ -28,6 +28,7 @@ from algo.backtest.metrics import metrics
 from algo.core.clock import SimClock
 from algo.core.money import snap_down
 from algo.data.adjust.factors import ActionRecord
+from algo.data.conversions import load_conversions
 from algo.data.reader import BarReader, UnadjustableError
 from algo.data.store.instruments import InstrumentRepo, NotFoundError
 from algo.ledger.ledger import Ledger
@@ -89,6 +90,9 @@ class RunResult:
     unapplied: list[dict[str, object]] = field(default_factory=list)
     blocked: dict[int, str] = field(default_factory=dict)
     unmodelled: list[dict[str, object]] = field(default_factory=list)
+    conversions: list[dict[str, str]] = field(
+        default_factory=list
+    )  # ISIN-change conversions the ledger applied (explicit, verified instructions)
     dividends_received: Decimal = Decimal(0)
     final_cash: Decimal = Decimal(0)
     final_positions: dict[int, Decimal] = field(default_factory=dict)
@@ -239,11 +243,57 @@ def run_backtest(
 
     # --- the loop -----------------------------------------------------------------------------
     ledger = Ledger(cfg.initial_cash, cfg.start)
+    # ISIN changes: the ledger converts a holding ONLY on a verified instruction (never inferred
+    # from the identity link). A link without one, or whose target is outside this run, flags a
+    # held source.
+    verified = {(c.source, c.target, c.effective): c for c in load_conversions(conn)}
+    convs, unmodelled_links = [], []
+    for link in reader.isin_links():
+        if link.source not in loaded and link.target not in loaded:
+            continue
+        c = verified.get((link.source, link.target, link.effective))
+        if c is not None and link.target in loaded:
+            ledger.register_conversion(c)
+            convs.append(c)
+        elif link.source in loaded:
+            unmodelled_links.append(link)
+    absorbed = {(c.target, *c.absorbs) for c in convs if c.absorbs is not None}
+    flagged: set[str] = set()
     last_close: dict[int, Decimal] = {}
     targets: Targets = {}
     rebalance, prev_day, seq = False, None, 0
     started = False
     for i, day in enumerate(days):
+        # 0. ISIN changes: convert a held old-ISIN position on the first session of the new ISIN,
+        #    before that day's corporate actions and orders; flag one with no usable instruction
+        for link in unmodelled_links:
+            ref = f"isinchange:{link.source}:{link.target}:{link.effective}"
+            if day >= link.effective and ledger.qty(link.source) != 0 and ref not in flagged:
+                flagged.add(ref)
+                ledger.flag_unmodelled(day, link.source, "ISIN_CHANGE", ref)
+                res.unmodelled.append(
+                    {
+                        "instrument_id": link.source,
+                        "ex_date": str(link.effective),
+                        "kind": "ISIN_CHANGE",
+                        "qty": str(ledger.qty(link.source)),
+                    }
+                )
+        for c in convs:
+            if day >= c.effective and day in px[c.target] and ledger.qty(c.source) != 0:
+                qty_out, cost = ledger.qty(c.source), ledger.cost_basis(c.source)
+                ledger.apply_conversion(day, c.source)
+                res.conversions.append(
+                    {
+                        "ref": c.ref,
+                        "day": str(day),
+                        "source": str(c.source),
+                        "target": str(c.target),
+                        "qty_out": str(qty_out),
+                        "qty_in": str(ledger.qty(c.target)),
+                        "cost": str(cost),
+                    }
+                )
         # 1. corporate actions with ex-date since the previous session
         for iid in loaded:
             if ledger.qty(iid) == 0:
@@ -251,6 +301,8 @@ def run_backtest(
             for k, a in enumerate(acts[iid]):
                 if (prev_day is not None and a.ex_date <= prev_day) or a.ex_date > day:
                     continue
+                if (iid, a.ex_date, a.kind) in absorbed:
+                    continue  # the same economic event, already carried by the conversion
                 ref = f"action:{iid}:{a.ex_date}:{a.kind}:{k}"
                 if a.kind in ("bonus", "split") and a.status == "ok" and a.num and a.den:
                     ledger.apply_split(day, iid, a.num, a.den, ref)

@@ -1,0 +1,17 @@
+{
+ "source_isin": "INE239A01016",
+ "target_isin": "INE239A01024",
+ "effective_date": "2024-01-05",
+ "last_source_session": "2024-01-04",
+ "ratio_num": 10,
+ "ratio_den": 1,
+ "absorbs": {"ex_date": "2024-01-05", "kind": "split"},
+ "evidence": [
+  "NSE circular NSE/CML/60084 (2024-01-02): ISIN of NESTLEIND changes to INE239A01024 w.e.f. 2024-01-05, remark 'Sub-Division from Rs. 10/- to Re. 1/-', effective for all trades from the ex-date",
+  "NSE circular NSE/CML/59895 (2023-12-22): face value Rs 10 to Re 1 w.e.f. 2024-01-05",
+  "NSE circular NSE/FAOP/59844 (2023-12-20): SPLIT 10:1, ex/effective date 2024-01-05, adjustment factor 10"
+ ],
+ "verification_status": "VERIFIED",
+ "review_decision_id": 15,
+ "note": "1 old share becomes 10 new shares (target shares per source share = 10:1). The conversion IS the 10:1 split of the same date, so that corporate action is absorbed and never applied a second time. Reviewed circulars read in full; the old ISIN INE239A01016 is the one seen in the exchange files, not named by NSE."
+}

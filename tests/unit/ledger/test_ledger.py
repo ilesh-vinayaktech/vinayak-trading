@@ -8,6 +8,8 @@ from hypothesis import strategies as st
 
 from algo.ledger.ledger import (
     TOL,
+    Conversion,
+    ConversionError,
     DuplicateBooking,
     InsufficientCash,
     InsufficientPosition,
@@ -717,3 +719,324 @@ def test_a_cash_fee_entry_with_no_fee_entry_is_detected_for_each_naming_style():
     p = lg.reconcile()
     assert "trade:7: a fee needs both a fee and a cash entry" in p
     assert "trade:8: a STT fee needs both a fee and a cash entry" in p
+
+
+# ---- security conversion (ISIN change) --------------------------------------------------------
+OLD, NEW, OTHER = 2653, 1589, 7
+CHANGE = date(2024, 1, 5)
+BEFORE = date(2024, 1, 4)
+BUY_DAY = date(2023, 12, 29)  # purchases of the old instrument precede the conversion
+
+
+def conv(**kw):
+    base = dict(source=OLD, target=NEW, effective=CHANGE, num=D(10), den=D(1), ref="convert:2653:1589:2024-01-05",
+                verified=True, evidence=("NSE circular CML60084",), last_source_session=BEFORE,
+                absorbs=(CHANGE, "split"))  # fmt: skip
+    return Conversion(**{**base, **kw})
+
+
+def held(qty=100, price=250, cash=100000):
+    lg = ledger(cash)
+    lg.register_conversion(conv())
+    lg.buy(BUY_DAY, OLD, D(qty), D(price), D(0), "trade:1")
+    return lg
+
+
+def test_a_conversion_moves_quantity_and_cost_creates_no_pnl_and_keeps_equity():
+    lg = held()  # 100 old shares, cost 25,000, average 250
+    cash, equity_before = lg.cash, lg.equity({OLD: D(260)})
+    assert lg.apply_conversion(CHANGE, OLD) is True
+    assert (lg.qty(OLD), lg.cost_basis(OLD)) == (0, 0)
+    assert (lg.qty(NEW), lg.cost_basis(NEW)) == (D(1000), D(25000))  # average cost 25
+    assert lg.cash == cash and lg.pnl({NEW: D(26)}).realized == 0
+    assert lg.equity({NEW: D(26)}) == equity_before  # the same wealth, on the new scale
+    assert lg.pnl({NEW: D(26)}).unrealized == D(
+        1000
+    )  # moves only with the price: 1000 x 26 - 25,000
+    out, inn = lg.entries[-2:]
+    assert (out.ledger, out.kind, out.instrument_id, out.qty, out.amount) == (
+        "position",
+        "CONVERT_OUT",
+        OLD,
+        D(-100),
+        D(-25000),
+    )
+    assert (inn.ledger, inn.kind, inn.instrument_id, inn.qty, inn.amount) == (
+        "position",
+        "CONVERT_IN",
+        NEW,
+        D(1000),
+        D(25000),
+    )
+    assert out.ref == inn.ref == "convert:2653:1589:2024-01-05"
+    assert out.day == inn.day == CHANGE  # both halves are dated the day the target starts holding
+    assert {e.ledger for e in lg.entries[-2:]} == {"position"}  # no cash, fee or pnl entry
+    assert lg.reconcile({NEW: D(26)}) == []
+
+
+def test_several_purchases_carry_their_average_cost_across():
+    lg = ledger()
+    lg.register_conversion(conv())
+    lg.buy(BUY_DAY, OLD, D(10), D(100), D(0), "trade:1")
+    lg.buy(BUY_DAY, OLD, D(10), D(120), D(0), "trade:2")  # 20 shares, cost 2,200
+    lg.apply_conversion(CHANGE, OLD)
+    assert (lg.qty(NEW), lg.cost_basis(NEW)) == (D(200), D(2200))
+    lg.sell(
+        CHANGE, NEW, D(50), D(13), D(0), "trade:3"
+    )  # removes 2,200 x 50/200 = 550, proceeds 650
+    assert lg.pnl({NEW: D(13)}).realized == D(100) and lg.reconcile({NEW: D(13)}) == []
+
+
+def test_a_position_partly_realised_before_and_after_the_conversion():
+    lg = held()
+    lg.sell(
+        BEFORE, OLD, D(40), D(300), D(0), "trade:2"
+    )  # removes 10,000, realises 2,000; 60 shares, cost 15,000
+    assert lg.pnl({OLD: D(300)}).realized == D(2000)
+    lg.apply_conversion(CHANGE, OLD)
+    assert (lg.qty(NEW), lg.cost_basis(NEW)) == (D(600), D(15000)) and lg.pnl(
+        {NEW: D(30)}
+    ).realized == D(2000)  # unchanged
+    lg.sell(
+        CHANGE, NEW, D(100), D(30), D(0), "trade:3"
+    )  # removes 2,500, proceeds 3,000: realises 500
+    assert lg.pnl({NEW: D(30)}).realized == D(2500)
+    assert lg.reconcile({NEW: D(30)}) == []
+
+
+def test_other_holdings_are_untouched_and_no_position_means_no_entries():
+    lg = ledger()
+    lg.register_conversion(conv())
+    lg.buy(BUY_DAY, OTHER, D(5), D(100), D(0), "trade:1")
+    n = len(lg.entries)
+    assert lg.apply_conversion(CHANGE, OLD) is False  # nothing held in the source: nothing booked
+    assert len(lg.entries) == n and lg.qty(OTHER) == 5
+    lg.buy(BUY_DAY, OLD, D(1), D(250), D(0), "trade:2")
+    lg.apply_conversion(CHANGE, OLD)
+    assert lg.qty(OTHER) == 5 and lg.cost_basis(OTHER) == D(500) and lg.qty(NEW) == 10
+
+
+def test_replaying_a_conversion_cannot_apply_it_twice():
+    lg = held()
+    lg.apply_conversion(CHANGE, OLD)
+    n = len(lg.entries)
+    assert lg.apply_conversion(CHANGE, OLD) is False and len(lg.entries) == n  # idempotent
+    assert lg.qty(NEW) == 1000
+    with pytest.raises(DuplicateBooking):
+        lg._book("convert:2653:1589:2024-01-05")  # the source event is spent
+
+
+def test_a_missing_unverified_or_malformed_instruction_is_refused():
+    lg = ledger()
+    for bad, msg in (
+        (conv(verified=False), "unverified"),
+        (conv(evidence=()), "evidence"),
+        (conv(num=D(0)), "^the conversion ratio must be positive$"),
+        (conv(den=D(0)), "^the conversion ratio must be positive$"),
+        (conv(den=D(-1)), "^the conversion ratio must be positive$"),
+        (conv(target=OLD), "^source and target must be different instruments$"),
+        (
+            conv(last_source_session=CHANGE),
+            "^the last source session must be before the effective date$",
+        ),
+    ):
+        with pytest.raises(ConversionError, match=msg):
+            lg.register_conversion(bad)
+    with pytest.raises(ConversionError, match="no conversion registered"):
+        lg.apply_conversion(CHANGE, OLD)  # nothing registered: never inferred
+    lg.register_conversion(conv())
+    with pytest.raises(ConversionError, match="already registered"):
+        lg.register_conversion(conv(ref="convert:other"))
+    with pytest.raises(ConversionError, match="already registered"):
+        lg.register_conversion(
+            conv(source=OTHER, ref="convert:x")
+        )  # the target is already someone's target
+    with pytest.raises(ConversionError, match="before its effective date"):
+        lg.apply_conversion(BEFORE, OLD)
+    held_target = ledger()
+    held_target.buy(BUY_DAY, NEW, D(1), D(10), D(0), "trade:9")
+    with pytest.raises(ConversionError, match="already holds"):
+        held_target.register_conversion(conv())
+
+
+def test_trading_the_wrong_identity_around_the_effective_date_is_refused():
+    lg = ledger()
+    lg.register_conversion(conv())
+    lg.buy(BEFORE, OLD, D(10), D(250), D(0), "trade:1")  # the source trades up to the day before
+    with pytest.raises(ConversionError, match="no longer tradable"):
+        lg.buy(CHANGE, OLD, D(1), D(250), D(0), "trade:2")
+    with pytest.raises(ConversionError, match="not tradable before"):
+        lg.buy(BEFORE, NEW, D(1), D(25), D(0), "trade:3")
+    with pytest.raises(ConversionError, match="no longer tradable"):
+        lg.sell(CHANGE, OLD, D(1), D(250), D(0), "trade:4")
+    with pytest.raises(ConversionError, match="not tradable before"):
+        lg.sell(BEFORE, NEW, D(1), D(25), D(0), "trade:5")
+    assert lg.qty(OLD) == 10 and lg.qty(NEW) == 0
+
+
+def test_reconcile_reports_every_way_a_conversion_can_be_wrong():
+    def tampered(edit):
+        lg = held()
+        lg.apply_conversion(CHANGE, OLD)
+        edit(lg)
+        return lg.reconcile()
+
+    def entry(lg, kind):
+        return next(i for i, e in enumerate(lg.entries) if e.kind == kind)
+
+    def drop_in(lg):
+        del lg.entries[entry(lg, "CONVERT_IN")]
+
+    def drop_out(lg):
+        del lg.entries[entry(lg, "CONVERT_OUT")]
+
+    def cost_lost(lg):
+        i = entry(lg, "CONVERT_IN")
+        lg.entries[i] = replace(lg.entries[i], amount=D(24000))
+
+    def wrong_sign(lg):
+        i = entry(lg, "CONVERT_IN")
+        lg.entries[i] = replace(lg.entries[i], qty=D(-1000))
+
+    def wrong_ratio(lg):
+        i = entry(lg, "CONVERT_IN")
+        lg.entries[i] = replace(lg.entries[i], qty=D(1001))
+
+    def wrong_instrument(lg):
+        i = entry(lg, "CONVERT_IN")
+        lg.entries[i] = replace(lg.entries[i], instrument_id=OTHER)
+
+    def with_pnl(lg):
+        lg._add(CHANGE, "pnl", "REALIZED", NEW, D(0), D(5), "convert:2653:1589:2024-01-05")
+
+    def early(lg):
+        i = entry(lg, "CONVERT_OUT")
+        lg.entries[i] = replace(lg.entries[i], day=BEFORE)
+
+    def source_trade_after(lg):
+        lg._add(CHANGE, "position", "BUY", OLD, D(1), D(250), "trade:99")
+        lg._add(CHANGE, "cash", "BUY", OLD, D(0), D(-250), "trade:99")
+
+    def target_trade_before(lg):
+        lg._add(BEFORE, "position", "BUY", NEW, D(1), D(25), "trade:98")
+        lg._add(BEFORE, "cash", "BUY", NEW, D(0), D(-25), "trade:98")
+
+    expect = [
+        (drop_in, "needs both"), (drop_out, "needs both"), (cost_lost, "cost basis moved"),
+        (wrong_sign, "wrong sign"), (wrong_ratio, "ratio"), (wrong_instrument, "wrong instrument"),
+        (with_pnl, "must not touch cash, fees or P&L"), (early, "before its effective date"),
+        (source_trade_after, "source"), (target_trade_before, "target"),
+    ]  # fmt: skip
+    for edit, text in expect:
+        assert any(text in p for p in tampered(edit)), (edit.__name__, text)
+    assert tampered(lambda lg: None) == []
+
+
+def test_the_balances_rebuilt_from_the_entries_alone_equal_the_running_balances():
+    lg = held()
+    lg.sell(BEFORE, OLD, D(30), D(260), D("1.5"), "trade:2")
+    lg.apply_conversion(CHANGE, OLD)
+    lg.buy(CHANGE, OTHER, D(3), D(90), D(0), "trade:3")
+    qty, cost = {}, {}
+    for e in lg.entries:  # the independent rebuild
+        if e.ledger == "position":
+            qty[e.instrument_id] = qty.get(e.instrument_id, D(0)) + e.qty
+            cost[e.instrument_id] = cost.get(e.instrument_id, D(0)) + e.amount
+    assert {i: q for i, q in qty.items() if q} == lg.quantities() == {NEW: D(700), OTHER: D(3)}
+    assert (
+        all(cost[i] == lg.cost_basis(i) for i in cost)
+        and lg.reconcile({NEW: D(26), OTHER: D(90)}) == []
+    )
+
+
+@given(
+    qty=st.integers(1, 10_000), price=st.integers(1, 50_000),
+    num=st.integers(1, 20), den=st.integers(1, 20), keep=st.integers(1, 100),
+)  # fmt: skip
+@settings(max_examples=60, deadline=None)
+def test_property_conversion_preserves_cost_and_wealth_for_any_ratio(qty, price, num, den, keep):
+    lg = ledger(10**12)
+    lg.register_conversion(conv(num=D(num), den=D(den)))
+    lg.buy(BUY_DAY, OLD, D(qty), D(price), D(0), "trade:1")
+    sold = D(qty) * keep // 100
+    if sold:
+        lg.sell(BEFORE, OLD, sold, D(price) + 1, D(0), "trade:2")
+    cost_before, held_before, realized = (
+        lg.cost_basis(OLD),
+        lg.qty(OLD),
+        lg.pnl({OLD: D(price)}).realized,
+    )
+    lg.apply_conversion(CHANGE, OLD)
+    assert lg.cost_basis(NEW) == cost_before and lg.qty(NEW) == held_before * num / den
+    new_price = D(price) * den / num  # the same value per ratio
+    assert abs(lg.equity({NEW: new_price}) - (lg.cash + held_before * D(price))) <= D("1e-6")
+    assert lg.pnl({NEW: new_price}).realized == realized and lg.reconcile({NEW: new_price}) == []
+
+
+def test_conversion_entries_without_a_registered_instruction_are_still_checked_structurally():
+    lg = ledger(100000)
+    lg.buy(
+        BUY_DAY, OLD, D(100), D(250), D(0), "trade:1"
+    )  # a ledger that knows no instruction (e.g. rebuilt)
+    lg._add(CHANGE, "position", "CONVERT_OUT", OLD, D(-100), D(-25000), "convert:x")
+    lg._add(CHANGE, "position", "CONVERT_IN", NEW, D(1000), D(25000), "convert:x")
+    assert lg.reconcile({NEW: D(26)}) == []
+    lg._add(CHANGE, "position", "CONVERT_IN", NEW, D(5), D(1), "convert:y")  # an orphan half
+    assert any("needs both" in p for p in lg.reconcile())
+
+
+def _converted():
+    lg = held()
+    lg.apply_conversion(CHANGE, OLD)
+    return lg
+
+
+def _edit(lg, kind, **kw):
+    i = next(i for i, e in enumerate(lg.entries) if e.kind == kind)
+    lg.entries[i] = replace(lg.entries[i], **kw)
+
+
+def test_reconcile_flags_a_zero_or_wrongly_signed_conversion_quantity_at_the_boundary():
+    for kind, qty in (("CONVERT_OUT", D(0)), ("CONVERT_OUT", D("0.5")), ("CONVERT_IN", D(0))):
+        lg = _converted()
+        _edit(lg, kind, qty=qty)
+        assert any("wrong sign" in p for p in lg.reconcile()), (kind, qty)
+
+
+def test_reconcile_reports_the_cost_that_moved_and_the_cost_received_with_their_signs():
+    lg = _converted()
+    _edit(lg, "CONVERT_IN", amount=D(24000))
+    (msg,) = [p for p in lg.reconcile() if "cost basis moved" in p]
+    assert msg.endswith(
+        "cost basis moved 25000 != received 24000"
+    )  # the cost taken out, shown positive
+    lg = _converted()
+    _edit(lg, "CONVERT_IN", qty=D(1001))
+    (msg,) = [p for p in lg.reconcile() if "ratio disagrees" in p]
+    assert msg.endswith("(1001 for 100)")  # received for taken out, both positive
+
+
+def test_a_cash_or_fee_entry_on_a_conversion_is_refused_not_only_a_pnl_one():
+    for ledger_name, kind in (("cash", "BUY"), ("fee", "COMMISSION"), ("pnl", "REALIZED")):
+        lg = _converted()
+        lg._add(CHANGE, ledger_name, kind, NEW, D(0), D(1), "convert:2653:1589:2024-01-05")
+        assert any("must not touch cash, fees or P&L" in p for p in lg.reconcile()), ledger_name
+
+
+def test_the_tolerances_are_inclusive_and_scale_with_the_ratio_denominator():
+    # exactly at the tolerance: not a problem (a difference of 1e-9 rupees is average-cost residue)
+    lg = _converted()
+    _edit(lg, "CONVERT_IN", amount=D(25000) + TOL)
+    assert not any("cost basis moved" in p for p in lg.reconcile())
+    lg = _converted()
+    _edit(lg, "CONVERT_IN", qty=D(1000) + TOL)
+    assert not any("ratio disagrees" in p for p in lg.reconcile())
+    # the ratio tolerance is TOL x den: with den = 2 a 1e-9 gap passes; a gap of 5e-9 is flagged
+    lg = ledger(100000)
+    lg.register_conversion(conv(num=D(10), den=D(2)))
+    lg.buy(BUY_DAY, OLD, D(100), D(250), D(0), "trade:1")
+    lg.apply_conversion(CHANGE, OLD)  # 100 x 10 / 2 = 500
+    _edit(lg, "CONVERT_IN", qty=D(500) + D("5e-10"))  # inn x den + out x num = 1e-9: inside TOL x 2
+    assert not any("ratio disagrees" in p for p in lg.reconcile())
+    _edit(lg, "CONVERT_IN", qty=D(500) + D("5e-9"))
+    assert any("ratio disagrees" in p for p in lg.reconcile())

@@ -107,6 +107,9 @@ def test_without_links_the_issuer_read_is_the_instrument_read_and_a_missing_tabl
     b = rd.history(new, FIRST, LAST, adjust="split")
     assert [x.close for x in a.bars] == [x.close for x in b.bars]
     assert rd.isin_links() == []
+    conn.execute(
+        "DROP TABLE security_conversion"
+    )  # the later table that points at it (migration 025)
     conn.execute("DROP TABLE corporate_action_relationship")  # a database before migration 024
     assert rd.isin_links() == []
     assert len(rd.issuer_history(new, FIRST, LAST).bars) == 5

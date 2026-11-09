@@ -7,6 +7,7 @@ average-cost accounting; fees are kept apart from P&L on the price.
   ledger     kind          meaning
   cash       INITIAL/BUY/SELL/FEE/DIVIDEND   cash movements (signed)
   position   BUY/SELL/SPLIT                  qty delta; amount = cost basis delta
+  position   CONVERT_OUT/CONVERT_IN          a verified ISIN-change conversion (docs/ledger.md)
   fee        COMMISSION                      fee paid (positive)
   pnl        REALIZED                        realized P&L on a sale (price result, before fees)
   event      UNMODELLED:<kind>               an action the accounting cannot value (flagged)
@@ -42,6 +43,29 @@ class InsufficientCash(LedgerError):
 
 class InsufficientPosition(LedgerError):
     pass
+
+
+class ConversionError(LedgerError):
+    pass
+
+
+@dataclass(frozen=True)
+class Conversion:
+    """An explicit, VERIFIED instruction to convert a holding of `source` into `target`: `num`
+    target shares per `den` source shares, from `effective` (the first day the target holds it).
+    Never inferred from an instrument relationship. `ref` is the source event and idempotency key;
+    `absorbs` names the corporate action it replaces (so one economic event is applied once)."""
+
+    source: int
+    target: int
+    effective: date
+    num: Decimal
+    den: Decimal
+    ref: str
+    verified: bool
+    evidence: tuple[str, ...]
+    last_source_session: date | None = None
+    absorbs: tuple[date, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -80,6 +104,9 @@ class Ledger:
         self._realized = self._dividends = self._fees = Decimal(0)
         self._fees_by: dict[str, Decimal] = defaultdict(Decimal)
         self._booked: set[str] = set()
+        self._conv_src: dict[int, Conversion] = {}
+        self._conv_tgt: dict[int, Conversion] = {}
+        self._conv_ref: dict[str, Conversion] = {}
         self._add(day, "cash", "INITIAL", None, Decimal(0), initial_cash, "initial")
         self._booked.add("initial")
 
@@ -146,6 +173,7 @@ class Ledger:
         its own fee entry with its own matching cash entry."""
         if qty <= 0 or price <= 0 or fee < 0:
             raise ValueError("buy needs qty > 0, price > 0, fee >= 0")
+        self._guard_trade(day, iid)
         extra = self._check_charges(charges)
         value = qty * price
         if value + fee + extra > self._cash + TOL:
@@ -168,6 +196,7 @@ class Ledger:
     ) -> None:
         if qty <= 0 or price <= 0 or fee < 0:
             raise ValueError("sell needs qty > 0, price > 0, fee >= 0")
+        self._guard_trade(day, iid)
         self._check_charges(charges)
         held = self.qty(iid)
         if qty > held:
@@ -217,6 +246,64 @@ class Ledger:
     def fee_breakdown(self) -> dict[str, Decimal]:
         """Fees paid so far, by type (COMMISSION, STT, STAMP_DUTY, ...)."""
         return {k: v for k, v in sorted(self._fees_by.items()) if v != 0}
+
+    # ---- security conversion (ISIN change) -----------------------------------------------------
+    def register_conversion(self, c: Conversion) -> None:
+        """Accept a conversion instruction; unverified or ambiguous ones are refused."""
+        if not c.verified:
+            raise ConversionError(
+                f"conversion {c.ref} is unverified: an ISIN change is never inferred"
+            )
+        if not c.evidence:
+            raise ConversionError(f"conversion {c.ref} cites no evidence")
+        if c.num <= 0 or c.den <= 0:
+            raise ConversionError("the conversion ratio must be positive")
+        if c.source == c.target:
+            raise ConversionError("source and target must be different instruments")
+        if c.last_source_session is not None and c.last_source_session >= c.effective:
+            raise ConversionError("the last source session must be before the effective date")
+        if c.source in self._conv_src or c.target in self._conv_tgt or c.ref in self._conv_ref:
+            raise ConversionError(
+                f"a conversion for {c.source} or {c.target} is already registered"
+            )
+        if self.qty(c.target) != 0:
+            raise ConversionError(f"target {c.target} already holds a position")
+        self._conv_src[c.source], self._conv_tgt[c.target], self._conv_ref[c.ref] = c, c, c
+
+    def _guard_trade(self, day: date, iid: int) -> None:
+        src, tgt = self._conv_src.get(iid), self._conv_tgt.get(iid)
+        if src is not None and day >= src.effective:
+            raise ConversionError(
+                f"instrument {iid} is no longer tradable from {src.effective}: "
+                f"it converted to {src.target}"
+            )
+        if tgt is not None and day < tgt.effective:
+            raise ConversionError(
+                f"instrument {iid} is not tradable before {tgt.effective}: "
+                f"it is the conversion of {tgt.source}"
+            )
+
+    def apply_conversion(self, day: date, source: int) -> bool:
+        """Move the whole `source` position to the target at the registered ratio: quantity x
+        num/den, cost basis unchanged, no cash, fee or P&L. True if a position was converted;
+        False if nothing was held (so replaying, or converting on a day with no position, books
+        nothing)."""
+        c = self._conv_src.get(source)
+        if c is None:
+            raise ConversionError(f"no conversion registered for instrument {source}")
+        if day < c.effective:
+            raise ConversionError(
+                f"conversion of {source} applies from {c.effective}, "
+                f"not before its effective date ({day})"
+            )
+        held = self.qty(source)
+        if held == 0:
+            return False
+        self._book(c.ref)
+        cost = self._cost[source]
+        self._add(day, "position", "CONVERT_OUT", source, -held, -cost, c.ref)
+        self._add(day, "position", "CONVERT_IN", c.target, held * c.num / c.den, cost, c.ref)
+        return True
 
     def apply_split(self, day: date, iid: int, num: Decimal, den: Decimal, ref: str) -> None:
         """Bonus / split: share count x num/den, total cost unchanged (average cost falls)."""
@@ -269,6 +356,20 @@ class Ledger:
         """Re-derive everything from `entries` alone. Empty list = the books agree."""
         out: list[str] = []
         cash, qty, cost, realized, dividends, fees, initial = self._replay(out)
+        for c in self._conv_src.values():
+            for e in self.entries:
+                if e.ledger != "position" or e.kind not in ("BUY", "SELL"):
+                    continue
+                if e.instrument_id == c.source and e.day >= c.effective:
+                    out.append(
+                        f"source instrument {c.source} traded on {e.day}, "
+                        f"on or after its conversion ({c.effective})"
+                    )
+                if e.instrument_id == c.target and e.day < c.effective:
+                    out.append(
+                        f"target instrument {c.target} traded on {e.day}, "
+                        f"before its conversion ({c.effective})"
+                    )
         if abs(initial - self.initial_cash) > TOL:
             out.append(f"initial cash: stated {self.initial_cash} != entries {initial}")
         if abs(cash - self._cash) > TOL:
@@ -342,7 +443,37 @@ class Ledger:
                 realized += e.amount
         for ref, group in by_ref.items():
             self._check_trade(ref, group, problems)
+            self._check_conversion(ref, group, problems)
         return cash, qty, cost, realized, dividends, fees, initial
+
+    def _check_conversion(
+        self, ref: str, g: dict[tuple[str, str], Entry], problems: list[str]
+    ) -> None:
+        out, inn = g.get(("position", "CONVERT_OUT")), g.get(("position", "CONVERT_IN"))
+        if out is None and inn is None:
+            return
+        if out is None or inn is None:
+            problems.append(f"{ref}: a conversion needs both CONVERT_OUT and CONVERT_IN")
+            return
+        if out.qty >= 0 or inn.qty <= 0:
+            problems.append(f"{ref}: conversion quantities have the wrong sign")
+        if abs(out.amount + inn.amount) > TOL:
+            problems.append(
+                f"{ref}: conversion cost basis moved {-out.amount} != received {inn.amount}"
+            )
+        if any(lg in ("cash", "fee", "pnl") for lg, _ in g):
+            problems.append(f"{ref}: a conversion must not touch cash, fees or P&L")
+        c = self._conv_ref.get(ref)
+        if c is not None:
+            if (out.instrument_id, inn.instrument_id) != (c.source, c.target):
+                problems.append(f"{ref}: conversion booked on the wrong instrument")
+            if abs(inn.qty * c.den + out.qty * c.num) > TOL * c.den:
+                problems.append(
+                    f"{ref}: conversion ratio disagrees with the instruction "
+                    f"({inn.qty} for {-out.qty})"
+                )
+            if out.day < c.effective:
+                problems.append(f"{ref}: conversion booked before its effective date")
 
     @staticmethod
     def _check_trade(ref: str, g: dict[tuple[str, str], Entry], problems: list[str]) -> None:
