@@ -91,3 +91,10 @@ itself, so the baseline comparison above is the post-apply verification. The id 
 
 **Rollback, if a later problem is traced to this migration:** stop all research workflows on the data and restore from the backup above; do not improvise a reverse
 migration. Still required before the membership handover: the ledger ISIN-change conversion (quantity, cost basis, realised/unrealised P&L, provenance).
+
+## Conversion instruction recorded (2026-11-09)
+
+Migration 025 applied and `scripts/record_security_conversion.py --apply` run after the owner's approval of the dry-run report
+(`nestleind_conversion_instruction_dry_run.md`, 42/42). Persisted: 2653 to 1589, effective 2024-01-05, 10:1, VERIFIED, relationship 1, 3 evidence references, decision 15.
+`scripts/verify_conversion_instruction.py --mode persisted` PASS (`nestleind_conversion_instruction_persisted.md`); in-memory engine run converts once on 2024-01-05.
+Backup before the write: `data/backups/algo_pre_conversion025_20261109T161402Z.dump`. No historical ledger entry was modified and no position was created.
