@@ -1,0 +1,184 @@
+{
+ "purpose": "EVIDENCE ONLY. No instrument, alias, membership or coverage write. Existing known_at dates in Revision 3 are NOT changed.",
+ "documents": {
+  "PR_LIST_11062026": {
+   "file": "PR_LIST_11062026.pdf",
+   "sha256": "dfaa13caa2da48bc789de31d9dfcfa8fa063f0d47184bf0658390e1fb09b4131",
+   "bytes": 252091,
+   "pdf_creation_date": "Thu Jun 11 19:41:24 2026 IST",
+   "nse_url": "https://nsearchives.nseindia.com//web/pressrelease/2026-06/PR_LIST_11062026_20260611194139.pdf",
+   "document_date": "2026-06-11",
+   "kind": "NSE press release (listings), Press Releases No. 3-6 are the four Vedanta listings",
+   "pages": {
+    "VAML": 2,
+    "VOGL": 2,
+    "VISL": 3,
+    "VEDPOWER": 3
+   }
+  },
+  "CML68621": {
+   "file": "CML68621.pdf",
+   "sha256": "6cc53f2000f3b40526ba44e482c3eff654c725aba86999eb5d0184b860109747",
+   "bytes": 192132,
+   "pdf_creation_date": "Thu Jun 19 12:45:45 2025 IST",
+   "nse_url": "https://nsearchives.nseindia.com/content/circulars/CML68621.pdf",
+   "document_date": "2025-06-19",
+   "circular": "NSE/CML/68621, ref 1059/2025",
+   "kind": "Trade for Trade - Siemens Energy India Limited",
+   "cites": "NSE/CML/68579 dated 2025-06-17"
+  },
+  "CML68683": {
+   "file": "CML68683.pdf",
+   "sha256": "38616228da92da169a0972c80519d191a496d8133ca37a20660bd65931216057",
+   "bytes": 191080,
+   "pdf_creation_date": "Mon Jun 23 12:55:34 2025 IST",
+   "nse_url": "https://nsearchives.nseindia.com/content/circulars/CML68683.pdf",
+   "document_date": "2025-06-23",
+   "circular": "NSE/CML/68683, ref 1087/2025",
+   "kind": "Trade for Trade - Aditya Birla Lifestyle Brands Limited",
+   "cites": "NSE/CML/68628 dated 2025-06-19"
+  },
+  "CML74701": {
+   "file": "CML74701.pdf",
+   "sha256": "631a81a2b0d7acc03aaf4f742e407e40434d9f6037ded8954ae4f103397e9a59",
+   "bytes": 296670,
+   "pdf_creation_date": "Mon Jun 15 11:48:24 2026 IST",
+   "nse_url": "https://nsearchives.nseindia.com/content/circulars/CML74701.pdf",
+   "document_date": "2026-06-15",
+   "circular": "NSE/CML/74701, ref 0958/2026",
+   "kind": "Trade for Trade - Vedanta Iron and Steel Limited",
+   "cites": "NSE/CML/74664 dated 2026-06-11"
+  },
+  "CML74702": {
+   "file": "CML74702.pdf",
+   "sha256": "70fbfb1dd286565825da0640a6bee8bdd90f07cb5968058ac713e0f615afb977",
+   "bytes": 220031,
+   "pdf_creation_date": "Mon Jun 15 11:52:53 2026 IST",
+   "nse_url": "https://nsearchives.nseindia.com/content/circulars/CML74702.pdf",
+   "document_date": "2026-06-15",
+   "circular": "NSE/CML/74702, ref 0959/2026",
+   "kind": "Trade for Trade - Vedanta Power Limited",
+   "cites": "NSE/CML/74668 dated 2026-06-11"
+  },
+  "CML74703": {
+   "file": "CML74703.pdf",
+   "sha256": "7c72fede1217f4ce91a585009efd5c85198847a216a6680b80d1040ada3b67a5",
+   "bytes": 225631,
+   "pdf_creation_date": "Mon Jun 15 14:44:49 2026 IST",
+   "nse_url": "https://nsearchives.nseindia.com/content/circulars/CML74703.pdf",
+   "document_date": "2026-06-15",
+   "circular": "NSE/CML/74703, ref 0960/2026",
+   "kind": "Trade for Trade - Vedanta Aluminium Metal Limited",
+   "cites": "NSE/CML/74659 dated 2026-06-11"
+  },
+  "CML74704": {
+   "file": "CML74704.pdf",
+   "sha256": "ed9308f0ba7da704249a8a16528cf41b0b03967ecdba21285886c449376c34a0",
+   "bytes": 236273,
+   "pdf_creation_date": "Mon Jun 15 14:44:15 2026 IST",
+   "nse_url": "https://nsearchives.nseindia.com/content/circulars/CML74704.pdf",
+   "document_date": "2026-06-15",
+   "circular": "NSE/CML/74704, ref 0957/2026",
+   "kind": "Trade for Trade - Vedanta Oil and Gas Limited (formerly MALCO Energy)",
+   "cites": "NSE/CML/74666 dated 2026-06-11"
+  }
+ },
+ "not_retrieved": [
+  {
+   "circular": "NSE/CML/68579",
+   "date": "2025-06-17",
+   "for": "ENRIN listing",
+   "why": "URL returned a web page, not a PDF; two further fetch attempts timed out"
+  },
+  {
+   "circular": "NSE/CML/68628",
+   "date": "2025-06-19",
+   "for": "ABLBL listing",
+   "why": "URL returned a web page, not a PDF; a further fetch attempt timed out"
+  },
+  {
+   "circular": "NSE/CML/74659, 74664, 74666, 74668",
+   "date": "2026-06-11",
+   "for": "VAML, VISL, VOGL, VEDPOWER individual listing circulars",
+   "why": "URLs returned a web page, not a PDF; their content is covered by press release PR_LIST_11062026"
+  }
+ ],
+ "securities": {
+  "ENRIN": {
+   "company": "Siemens Energy India Limited",
+   "isin_in_master": "INE1NPP01017",
+   "isin_in_a_retrieved_notice": null,
+   "listing_date_stated_by_a_retrieved_notice": null,
+   "revision3_handover": "2025-06-19",
+   "status": "PARTIAL: primary listing circular NSE/CML/68579 (2025-06-17) NOT retrieved",
+   "retrieved": [
+    "CML68621"
+   ],
+   "candidate_known_at_for_listing": "2025-06-17 (date of the cited circular; unconfirmed until it is read)"
+  },
+  "ABLBL": {
+   "company": "Aditya Birla Lifestyle Brands Limited",
+   "isin_in_master": "INE14LE01019",
+   "isin_in_a_retrieved_notice": null,
+   "listing_date_stated_by_a_retrieved_notice": null,
+   "revision3_handover": "2025-06-23",
+   "status": "PARTIAL: primary listing circular NSE/CML/68628 (2025-06-19) NOT retrieved",
+   "retrieved": [
+    "CML68683"
+   ],
+   "candidate_known_at_for_listing": "2025-06-19 (date of the cited circular; unconfirmed until it is read)"
+  },
+  "VAML": {
+   "company": "Vedanta Aluminium Metal Limited",
+   "isin_in_master": "INE1CDF01017",
+   "isin_in_a_retrieved_notice": "INE1CDF01017",
+   "listing_date_stated_by_a_retrieved_notice": "2026-06-15 (w.e.f.)",
+   "revision3_handover": "2026-06-15",
+   "status": "ESTABLISHED by NSE press release; series BE, later EQ",
+   "retrieved": [
+    "PR_LIST_11062026",
+    "CML74703"
+   ],
+   "candidate_known_at_for_listing": "2026-06-11 19:41 IST (PDF creation time of the press release)"
+  },
+  "VOGL": {
+   "company": "Vedanta Oil and Gas Limited (formerly MALCO Energy Limited)",
+   "isin_in_master": "INE704J01044",
+   "isin_in_a_retrieved_notice": "INE704J01044",
+   "listing_date_stated_by_a_retrieved_notice": "2026-06-15 (w.e.f.)",
+   "revision3_handover": "2026-06-15",
+   "status": "ESTABLISHED by NSE press release",
+   "retrieved": [
+    "PR_LIST_11062026",
+    "CML74704"
+   ],
+   "candidate_known_at_for_listing": "2026-06-11 19:41 IST"
+  },
+  "VISL": {
+   "company": "Vedanta Iron and Steel Limited",
+   "isin_in_master": "INE1CLE01013",
+   "isin_in_a_retrieved_notice": "INE1CLE01013",
+   "listing_date_stated_by_a_retrieved_notice": "2026-06-15 (w.e.f.)",
+   "revision3_handover": "2026-06-15",
+   "status": "ESTABLISHED by NSE press release",
+   "retrieved": [
+    "PR_LIST_11062026",
+    "CML74701"
+   ],
+   "candidate_known_at_for_listing": "2026-06-11 19:41 IST"
+  },
+  "VEDPOWER": {
+   "company": "Vedanta Power Limited (formerly Talwandi Sabo Power Limited)",
+   "isin_in_master": "INE694L01019",
+   "isin_in_a_retrieved_notice": "INE694L01019",
+   "listing_date_stated_by_a_retrieved_notice": "2026-06-15 (w.e.f.)",
+   "revision3_handover": "2026-06-15",
+   "status": "ESTABLISHED by NSE press release",
+   "retrieved": [
+    "PR_LIST_11062026",
+    "CML74702"
+   ],
+   "candidate_known_at_for_listing": "2026-06-11 19:41 IST"
+  }
+ }
+}
