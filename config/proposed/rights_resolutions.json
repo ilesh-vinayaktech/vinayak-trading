@@ -1,0 +1,276 @@
+{
+  "status": "PROPOSED, not applied",
+  "formula": "factor = (B*P + A*S) / ((A+B) * P), S = full issue price",
+  "proposals": [
+    {
+      "symbol": "RELIANCE",
+      "instrument_id": 1897,
+      "ex_date": "2020-05-13",
+      "record_date": "2020-05-14",
+      "subject": "Rights 1:15 @ Premium Rs 1247",
+      "method": "rights",
+      "params": {
+        "new": "1",
+        "held": "15",
+        "subscription_price": "1257"
+      },
+      "prev_close": "1479.25",
+      "factor": "0.9906096839614669596079094136",
+      "face_value": "10",
+      "premium": "1247",
+      "payment": "PARTLY PAID: Rs 314.25 on application (25%), balance in two calls; the partly paid shares listed separately",
+      "exchange_factor_found": null,
+      "reproduces_exchange_factor": null,
+      "sources": [
+        "https://archives.nseindia.com/content/circulars/CML44626.pdf (NSE listing circular, not retrieved)",
+        "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Reliance-Industries-Limited-Letter-of-Offer.pdf (letter of offer, not retrieved)",
+        "https://zerodha.com/marketintel/bulletin/254966/adjustment-of-futures-and-options-contracts-of-reliance (F&O adjustment, revised lot 505)"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "SHRIRAMFIN",
+      "instrument_id": 2111,
+      "ex_date": "2020-07-09",
+      "record_date": "2020-07-10",
+      "subject": "Rights 3:26 @ Premium Rs 560/-",
+      "method": "rights",
+      "params": {
+        "new": "3",
+        "held": "26",
+        "subscription_price": "570"
+      },
+      "prev_close": "757.90",
+      "factor": "0.9743529079898630972150816002",
+      "face_value": "10",
+      "premium": "560",
+      "payment": "fully paid (Shriram Transport Finance)",
+      "exchange_factor_found": null,
+      "reproduces_exchange_factor": null,
+      "sources": [
+        "https://www.sebi.gov.in/filings/rights-issues/jul-2020/shriram-transport-finance-company-limited_47033.html (letter of offer, not retrieved)",
+        "NSE F&O circular 096/2020 (methodology NSE/FAOP/44945), factor not retrieved"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "LTF",
+      "instrument_id": 1366,
+      "ex_date": "2021-01-21",
+      "record_date": "2021-01-22",
+      "subject": "Rights 17:74@ Premium Rs 55 Per Share",
+      "method": "rights",
+      "params": {
+        "new": "17",
+        "held": "74",
+        "subscription_price": "65"
+      },
+      "prev_close": "103.85",
+      "factor": "0.9301136994926113847635272767",
+      "face_value": "10",
+      "premium": "55",
+      "payment": "fully paid (L&T Finance Holdings)",
+      "exchange_factor_found": null,
+      "reproduces_exchange_factor": null,
+      "sources": [
+        "https://www.msei.in/SX-Content/Circulars/2021/January/Circular-10020.pdf (MSE circular, cum close 103.85, revised lot 8924; factor not read)"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "BHARTIARTL",
+      "instrument_id": 356,
+      "ex_date": "2021-09-27",
+      "record_date": "2021-09-28",
+      "subject": "Rights 1:14 @ Premium Rs 530/-",
+      "method": "rights",
+      "params": {
+        "new": "1",
+        "held": "14",
+        "subscription_price": "535"
+      },
+      "prev_close": "739.40",
+      "factor": "0.9815706428635830853845460283",
+      "face_value": "5",
+      "premium": "530",
+      "payment": "PARTLY PAID: Rs 133.75 on application (25%), balance in calls; the partly paid shares listed separately",
+      "exchange_factor_found": "0.981571",
+      "reproduces_exchange_factor": true,
+      "sources": [
+        "https://www.msei.in/SX-Content/Circulars/2021/September/Circular-10921.pdf (MSE circular: AF = (P-E)/P = 0.981571)",
+        "https://assets.airtel.in/teams/simplycms/web/docs/Letter_of_Offer_dated_September_22-2021.pdf (letter of offer, not retrieved)"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "INDHOTEL",
+      "instrument_id": 1049,
+      "ex_date": "2021-11-11",
+      "record_date": "2021-11-13",
+      "subject": "Rights 1:9 @ Premium Rs 149/-",
+      "method": "rights",
+      "params": {
+        "new": "1",
+        "held": "9",
+        "subscription_price": "150"
+      },
+      "prev_close": "215.30",
+      "factor": "0.9696702275894101254064096609",
+      "face_value": "1",
+      "premium": "149",
+      "payment": "fully paid",
+      "exchange_factor_found": null,
+      "reproduces_exchange_factor": null,
+      "sources": [
+        "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf (abridged letter of offer, not retrieved)",
+        "NSE F&O circular Annexure-1 (revised lot 4022), factor not retrieved"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "SUZLON",
+      "instrument_id": 2274,
+      "ex_date": "2022-10-03",
+      "record_date": "2022-10-04",
+      "subject": "Rights 5:21 @ Premium Rs 3/-",
+      "method": "rights",
+      "params": {
+        "new": "5",
+        "held": "21",
+        "subscription_price": "5"
+      },
+      "prev_close": "8.70",
+      "factor": "0.9182139699381078691423519009",
+      "face_value": "2",
+      "premium": "3",
+      "payment": "PARTLY PAID (Re 1 paid on application per a later BSE filing; first and final call Rs 2.50 per the call notice); not an F&O stock then; issue proceeded and closed 1.8x subscribed",
+      "exchange_factor_found": null,
+      "reproduces_exchange_factor": null,
+      "sources": [
+        "https://pv-magazine-india.com/press-releases/suzlon-energy-inr-1200-crore-rights-issue-to-open-on-october-11-2022",
+        "letter of offer not located"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "GRASIM",
+      "instrument_id": 878,
+      "ex_date": "2024-01-10",
+      "record_date": "2024-01-10",
+      "subject": "Rights 6:179 @ Premium Rs 1810/-",
+      "method": "rights",
+      "params": {
+        "new": "6",
+        "held": "179",
+        "subscription_price": "1812"
+      },
+      "prev_close": "2064.05",
+      "factor": "0.9960395365448537610064704852",
+      "face_value": "2",
+      "premium": "1810",
+      "payment": "PARTLY PAID: Rs 453 on application, balance Rs 1,359 in calls",
+      "exchange_factor_found": "0.996040",
+      "reproduces_exchange_factor": true,
+      "sources": [
+        "https://zerodha.com/marketintel/bulletin/368337/adjustment-of-futures-and-options-contracts-of-grasim-due-to-rights-issue (factor 0.996040)",
+        "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf (abridged letter of offer, not retrieved)"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "TATACONSUM",
+      "instrument_id": 2312,
+      "ex_date": "2024-07-26",
+      "record_date": "2024-07-27",
+      "subject": "Rights 1:26 @ Premium Rs 817/-",
+      "method": "rights",
+      "params": {
+        "new": "1",
+        "held": "26",
+        "subscription_price": "818"
+      },
+      "prev_close": "1223.60",
+      "factor": "0.9877229305146925284225055394",
+      "face_value": "1",
+      "premium": "817",
+      "payment": "terms say Rs 818 per share; payment structure not confirmed; the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
+      "exchange_factor_found": null,
+      "reproduces_exchange_factor": null,
+      "sources": [
+        "https://zerodha.com/marketintel/bulletin/384895/adjustment-of-futures-and-options-contracts-of-tataconsum-due-to-rights-issue",
+        "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf (abridged letter of offer, not retrieved)"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "UPL",
+      "instrument_id": 2461,
+      "ex_date": "2024-11-26",
+      "record_date": "2024-11-26",
+      "subject": "Rights 1:8 @ Premium Rs 358/-",
+      "method": "rights",
+      "params": {
+        "new": "1",
+        "held": "8",
+        "subscription_price": "360"
+      },
+      "prev_close": "568.55",
+      "factor": "0.9592432992309872091773419713",
+      "face_value": "2",
+      "premium": "358",
+      "payment": "PARTLY PAID: Rs 90 on application, balance in calls",
+      "exchange_factor_found": "0.959243",
+      "reproduces_exchange_factor": true,
+      "sources": [
+        "https://nsearchives.nseindia.com/content/circulars/FAOP65222.pdf (NSE: indicative AF 0.959243 at cum close 568.55)",
+        "NSE circular 149/2024 reported AF 0.959510 (implies a different P; not retrieved)"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    },
+    {
+      "symbol": "ADANIENT",
+      "instrument_id": 52,
+      "ex_date": "2025-11-17",
+      "record_date": "2025-11-17",
+      "subject": "Rights 3:25 @ Premium Rs 1799/-",
+      "method": "rights",
+      "params": {
+        "new": "3",
+        "held": "25",
+        "subscription_price": "1800"
+      },
+      "prev_close": "2516.80",
+      "factor": "0.9694850603941513032422123331",
+      "face_value": "1",
+      "premium": "1799",
+      "payment": "PARTLY PAID: Rs 900 on application, balance in two calls (record dates 2025-12-23 and 2026-02-13)",
+      "exchange_factor_found": "0.969485",
+      "reproduces_exchange_factor": true,
+      "sources": [
+        "https://tradingqna.com/t/adjustments-in-f-o-contracts-of-adani-enterprises-limited-adanient-on-account-of-rights-issue-2025/188697 (forum copy of the exchange notice: AF 0.969485)",
+        "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf"
+      ],
+      "status_proposed": "provisional",
+      "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
+      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+    }
+  ]
+}
