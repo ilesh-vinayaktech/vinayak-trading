@@ -1,0 +1,16 @@
+{
+ "doc_id": "pr_ind_prs19032024",
+ "announced": "2024-03-19",
+ "effective_from": "2024-03-28",
+ "source_sha256": "1bef44dabdf594b9390b15329de1d9f38a8ab96af2abea243e99311b6d61587e",
+ "supplement": true,
+ "method": "hand transcription of the revocation table of the 2024-03-19 release: the replacement rows the parser cannot read (no 'being included' heading)",
+ "verification": [
+  "pdftotext layout read in full: the replacement for the revoked IREDA inclusion is 'BSE Ltd. BSE Inclusion' under Nifty Midcap 150, Nifty Midcap 100, Nifty 200 and Nifty LargeMidcap 250, effective March 28, 2024 (close of March 27, 2024)",
+  "only the Nifty 200 component indices are transcribed"
+ ],
+ "rows": [
+  {"page": 1, "section_no": 4, "section": "Nifty Midcap 100", "action": "INCLUDED", "symbol": "BSE", "company": "BSE Ltd."},
+  {"page": 2, "section_no": 5, "section": "Nifty 200", "action": "INCLUDED", "symbol": "BSE", "company": "BSE Ltd."}
+ ]
+}

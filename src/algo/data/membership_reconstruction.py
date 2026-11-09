@@ -13,7 +13,7 @@ No database access: callers pass plain data and persist nothing here."""
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 
 Entity = str  # "i:<instrument_id>" | "s:<symbol>" (unmapped) | "p:<symbol>" (placeholder)
@@ -24,6 +24,50 @@ def entity_of(instrument_id: int | None, symbol: str, mapping_status: str) -> En
     if instrument_id is not None:
         return f"i:{instrument_id}"
     return f"p:{symbol}" if mapping_status == "PLACEHOLDER_SECURITY" else f"s:{symbol}"
+
+
+def equivalence_map(records: Iterable[Mapping[str, object]]) -> dict[Entity, Entity]:
+    """From reviewed records {"from": [entity, ...], "to": "i:<id>"} to a flat map. Two keys of ONE
+    issuer (an unmapped symbol before an alias starts, then the instrument) are then compared as one
+    entity. This never touches an identity table and refuses ambiguity: a target must be an
+    instrument, nothing maps to itself, twice, or through a chain."""
+    out: dict[Entity, Entity] = {}
+    for rec in records:
+        target = str(rec["to"])
+        if not target.startswith("i:"):
+            raise ValueError(f"{target} must be an instrument")
+        for src in rec["from"]:  # type: ignore[attr-defined]
+            if src == target:
+                raise ValueError(f"{src} maps to itself")
+            if src in out:
+                raise ValueError(f"{src} is mapped twice")
+            out[src] = target
+    if any(v in out for v in out.values()):
+        raise ValueError("an equivalence chain is not allowed")
+    return out
+
+
+def unify_entities(
+    trs: Sequence[Transition], equivalent: Mapping[Entity, Entity]
+) -> list[Transition]:
+    return [replace(x, entity=equivalent.get(x.entity, x.entity)) for x in trs]
+
+
+def closing_entity(
+    instrument_id: int | None,
+    symbol: str,
+    mapping_status: str,
+    related: str | None,
+    action: str,
+    replaced: frozenset[str] = frozenset(),
+) -> Entity:
+    """The entity a release row acts on. An EXCLUSION whose release names the dummy symbol it
+    replaces ends the placeholder's membership, unless a reviewed replacement record hands that
+    dummy over to the listing (`replaced`): then the exclusion acts on the listing itself.
+    Entities are still never merged, and no identity table is touched."""
+    if action == "EXCLUDED" and related and related.startswith("DUMMY") and related not in replaced:
+        return f"p:{related}"
+    return entity_of(instrument_id, symbol, mapping_status)
 
 
 @dataclass(frozen=True)
@@ -39,6 +83,102 @@ class Transition:
     source_hash: str
     parser_version: str
     page: int
+
+
+@dataclass(frozen=True)
+class Revocation:
+    """A later release revoked one announced change: same release, index, stock, kind and date."""
+
+    doc_id: str  # the release that announced the change
+    authority_doc: str  # the release that revokes it
+    component: str
+    symbol: str
+    action: str  # the announced action that is cancelled: INCLUDED | EXCLUDED
+    effective: date
+
+
+def apply_revocations(
+    trs: Sequence[Transition], revs: Sequence[Revocation]
+) -> tuple[list[Transition], list[tuple[Revocation, Transition]], list[Revocation]]:
+    """Cancel each revoked transition (never invent a compensating one). Returns the transitions
+    that remain, the (revocation, cancelled transition) pairs, and revocations that matched
+    nothing: those are reported, never silently dropped."""
+    cancelled: list[tuple[Revocation, Transition]] = []
+    unmatched: list[Revocation] = []
+    gone: set[int] = set()
+    for rv in revs:
+        hit = next(
+            (
+                i
+                for i, tr in enumerate(trs)
+                if i not in gone
+                and (tr.doc_id, tr.component, tr.symbol, tr.action, tr.effective)
+                == (rv.doc_id, rv.component, rv.symbol, rv.action, rv.effective)
+            ),
+            None,
+        )
+        if hit is None:
+            unmatched.append(rv)
+        else:
+            gone.add(hit)
+            cancelled.append((rv, trs[hit]))
+    return [tr for i, tr in enumerate(trs) if i not in gone], cancelled, unmatched
+
+
+@dataclass(frozen=True)
+class Replacement:
+    """A reviewed record: the listing `symbol` (entity `entity`) took over from the zero-price
+    placeholder `placeholder` on `listed_on`, as the exclusion release `evidence_doc` states."""
+
+    placeholder: str
+    entity: Entity
+    symbol: str
+    listed_on: date
+    evidence_doc: str
+    placeholder_entity: Entity | None = None  # default p:<placeholder>; s:<symbol> when pre-alias
+
+
+def apply_replacements(
+    trs: Sequence[Transition], reps: Sequence[Replacement]
+) -> tuple[list[Transition], list[Replacement]]:
+    """Add the handover on the listing date, per index the placeholder was in: the placeholder
+    leaves and the listing joins. Entities stay separate; originals are untouched. Returns the
+    transitions and the replacements that had nothing to hand over (reported, never dropped)."""
+    out = list(trs)
+    unmatched: list[Replacement] = []
+    for rep in reps:
+        ph = rep.placeholder_entity or f"p:{rep.placeholder}"
+        added: list[Transition] = []
+        for comp in sorted({x.component for x in trs if x.entity == ph and x.action == "INCLUDED"}):
+            began = any(
+                x.entity == ph and x.component == comp and x.action == "INCLUDED"
+                and x.effective is not None and x.effective < rep.listed_on
+                for x in trs
+            )  # fmt: skip
+            ended = next(
+                (
+                    x
+                    for x in trs
+                    if x.entity == rep.entity and x.component == comp and x.action == "EXCLUDED"
+                    and x.effective is not None and x.effective > rep.listed_on
+                ),
+                None,
+            )  # fmt: skip
+            if began and ended:
+                for ent, sym, act in (
+                    (ph, rep.placeholder, "EXCLUDED"),
+                    (rep.entity, rep.symbol, "INCLUDED"),
+                ):
+                    added.append(Transition(
+                        comp, ent, sym, act, rep.listed_on, ended.announced, rep.evidence_doc,
+                        "placeholder replacement", ended.source_hash,
+                        ended.parser_version, ended.page,
+                    ))  # fmt: skip
+        if added:
+            out.extend(added)
+        else:
+            unmatched.append(rep)
+    return out, unmatched
 
 
 @dataclass(frozen=True)

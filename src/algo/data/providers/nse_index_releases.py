@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import re
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
 PARSER_VERSION = (
-    "6"  # 2: wrapped dates; 3: sub-headings; 4: classification; 5: lettered; 6: "... Index"
+    "7"  # 2: wrapped dates; 3: sub-headings; 4: classification; 5: lettered; 6: "... Index";
+    # 7: index table continued on the next page; "(Symbol: X) shall be excluded from the following"
 )
 
 # Component indices of Nifty 200 (= Nifty 100 + Midcap 100; Nifty 100 = Nifty 50 + Next 50).
@@ -46,7 +48,7 @@ _ACTION = re.compile(
 )
 _SUBHEAD = re.compile(r"^\s*(NIFTY[\w &\-]*?)\s*\((?:to be )?renamed", re.I)
 _ROW = re.compile(r"^\s*(\d+)\s+(\S.*?)\s{2,}([A-Z0-9][A-Z0-9&\-_.]*)\s*$", re.M)
-_NOTICE_INDEX = re.compile(r"^\s*(\d+)\s+(Nifty\s.+?)\s*$", re.M | re.I)
+_NOTICE_INDEX = re.compile(r"^\s*(\d+)\s+(Nifty\S*\s.+?)\s*$", re.M | re.I)
 _SYMBOL_IN_PARENS = re.compile(r"\(([A-Z0-9][A-Z0-9&\-_.]*)\)")
 
 
@@ -175,6 +177,7 @@ def parse_release(pages: list[str], announced: date) -> Release:
                     symbol=r.group(3), company=r.group(2).strip(),
                     effective_from=effective_at(s.start()), raw_text=line.strip(),
                 ))  # fmt: skip
+    rows += _following_rows(text, effective_at)
     names = tuple(s.group(2).strip() for s in sections)
     if rows:
         return Release(
@@ -195,12 +198,50 @@ _INDEX_TABLES = re.compile(r"Sr\.\s*No\.\s+Index\s+Name", re.I)
 _DUMMY_TOKEN = re.compile(r"\bDUMMY[A-Z0-9]+\b")
 
 
+_FOLLOWING = re.compile(
+    r"\(Symbol:\s*([A-Z0-9][A-Z0-9&\-_.]*)\)\s+shall\s+be\s+excluded\s+from\s+the\s+following"
+    r"\s+indices",
+    re.I,
+)
+_FOLLOWING_SECTION = 200  # offset so these rows never collide with a numbered table section
+
+
+def _one_table(text: str) -> bool:
+    """Exactly one 'Index Name' table. A header repeated as the first line of a later page is the
+    same table continuing, not a second one."""
+    heads = list(_INDEX_TABLES.finditer(text))
+    return bool(heads) and all(
+        i == 0 or not text[text.rfind("\f", 0, h.start()) + 1 : h.start()].strip()
+        for i, h in enumerate(heads)
+    )
+
+
+def _following_rows(text: str, effective_at: Callable[[int], date | None]) -> list[Row]:
+    """'... (Symbol: X) shall be excluded from the following indices:' then a numbered list of
+    index names. Read next to any replacement tables in the same release."""
+    out: list[Row] = []
+    for m in _FOLLOWING.finditer(text):
+        for line in text[m.end() :].splitlines()[1:]:
+            n = _NOTICE_INDEX.match(line)
+            if n:
+                out.append(Row(
+                    page=text.count("\f", 0, m.start()) + 1,
+                    section_no=_FOLLOWING_SECTION + int(n.group(1)),
+                    section_name=n.group(2).strip(), component=canon(n.group(2)),
+                    action="EXCLUDED", symbol=m.group(1), company="",
+                    effective_from=effective_at(m.start()), raw_text=line.strip(),
+                ))  # fmt: skip
+            elif line.strip() and not _INDEX_TABLES.search(line):
+                break
+    return out
+
+
 def _notice_rows(text: str, announced: date, eff_marks: list[tuple[int, date]]) -> list[Row]:
     """Single-company corporate-action notices. Deliberately strict: exactly one decision
     sentence (or one dummy symbol) and exactly one 'Index Name' table, otherwise nothing is
     returned and the document stays MANUAL_REVIEW."""
     idx = list(_NOTICE_INDEX.finditer(text))
-    if not idx or not eff_marks or len(_INDEX_TABLES.findall(text)) != 1:
+    if not idx or not eff_marks or not _one_table(text):
         return []
     dummies = sorted(set(_DUMMY_TOKEN.findall(text)))
     decided = _DECIDED.findall(text)

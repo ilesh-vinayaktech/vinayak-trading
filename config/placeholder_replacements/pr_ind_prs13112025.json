@@ -1,0 +1,18 @@
+{
+ "evidence_doc": "pr_ind_prs13112025",
+ "announced": "2025-11-13",
+ "source_sha256": "57dd346835e402f5f5384672f7f7beb71ddf4d67e1af604251fa2ce27b286ea4",
+ "method": "hand transcription of the listing sentence in the placeholder's exclusion release",
+ "verification": [
+  "the release names both the dummy symbol DUMMYTATAM (from its earlier inclusion notice) and the listing TMCV, and states the listing date",
+  "the loader refuses the record unless the placeholder was included before the listing date and the exclusion of the listing comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "DUMMYTATAM",
+   "symbol": "TMCV",
+   "listed_on": "2025-11-12",
+   "quote": "After the demerger, Tata Motors Ltd. (TMCV) was listed on November 12, 2025 at the National Stock Exchange of India Ltd. (NSE)."
+  }
+ ]
+}

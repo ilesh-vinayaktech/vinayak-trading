@@ -1,0 +1,16 @@
+{
+ "authority_doc": "pr_ind_prs25092024",
+ "announced": "2024-09-25",
+ "source_sha256": "7687441ce0a2155326cebd96e1d7783c33c85cd573286bbc9a8081f0e83520e7",
+ "method": "hand transcription of the revocation table (Remarks column) of the 2024-09-25 NSE Indices press release; only the Nifty 200 component indices (Nifty Midcap 100, Nifty 200) are transcribed",
+ "verification": [
+  "pdftotext layout read in full; the index names are vertically centred in their cells, so each row was assigned to its index only if the SAME stock and action had been announced for that index in pr_ind_prs23082024 (the loader refuses a revocation with no matching announced row)",
+  "the release text states the decision: 'revoke its decision to exclude IDEA ... following the recalculation of the security's impact cost'; CENTRALBK 'Inclusion revoked' also appears under Nifty Midcap 150, LargeMidcap 250 and Nifty 200"
+ ],
+ "revocations": [
+  {"section": "Nifty Midcap 100", "symbol": "IDEA", "kind": "EXCLUSION_REVOKED", "effective_from": "2024-09-30", "revokes_doc_id": "pr_ind_prs23082024", "quote": "Vodafone Idea Ltd. IDEA Exclusion revoked (Nifty Midcap 100)"},
+  {"section": "Nifty 200", "symbol": "IDEA", "kind": "EXCLUSION_REVOKED", "effective_from": "2024-09-30", "revokes_doc_id": "pr_ind_prs23082024", "quote": "Vodafone Idea Ltd. IDEA Exclusion revoked (Nifty 200)"},
+  {"section": "Nifty Midcap 100", "symbol": "CENTRALBK", "kind": "INCLUSION_REVOKED", "effective_from": "2024-09-30", "revokes_doc_id": "pr_ind_prs23082024", "quote": "Central Bank of India CENTRALBK Inclusion revoked (Nifty Midcap 100)"},
+  {"section": "Nifty 200", "symbol": "CENTRALBK", "kind": "INCLUSION_REVOKED", "effective_from": "2024-09-30", "revokes_doc_id": "pr_ind_prs23082024", "quote": "Central Bank of India CENTRALBK Inclusion revoked (Nifty 200)"}
+ ]
+}

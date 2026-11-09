@@ -1,0 +1,18 @@
+{
+ "evidence_doc": "pr_ind_prs06022025_1",
+ "announced": "2025-02-06",
+ "source_sha256": "60f61a6f41b2aa2f9f769d8fc42c4c090f03ae84b44af62827ea46ccd4d88878",
+ "method": "hand transcription of the listing sentence in the placeholder's exclusion release",
+ "verification": [
+  "the release names both the dummy symbol DUMMYITC (from its earlier inclusion notice) and the listing ITCHOTELS, and states the listing date",
+  "the loader refuses the record unless the placeholder was included before the listing date and the exclusion of the listing comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "DUMMYITC",
+   "symbol": "ITCHOTELS",
+   "listed_on": "2025-01-29",
+   "quote": "After the demerger, ITC Hotels Ltd. (ITCHOTELS) was listed on January 29, 2025 at the National Stock Exchange of India Ltd. (NSE)."
+  }
+ ]
+}

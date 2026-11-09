@@ -6,30 +6,24 @@ Derived Nifty 200 = Nifty 50 + Next 50 + Midcap 100, walked back from the 2026-1
 every dated press-release transition. Counts are not forced to 200 (202 on 2020-10-01: two members
 have no instrument, 200 tradable).
 
-## Results
+## Results (revision 2, 2026-11-09; revision 1 is in git history, the change list is DIFF_v1_to_v2.md)
 - Anchor check: derived union == explicit Nifty 200 snapshot today (200 = 200).
-- Derived union vs the explicit-Nifty-200-sections walk: identical on all 21 change dates.
-- 242 union events, 322 intervals. Undated or future-dated transitions applied: none (0 unplaced).
-- Walk inconsistencies kept as exceptions: 5 (derived), 6 (explicit N200), 2 (explicit N100), e.g. CENTRALBK/IDEA/IREDA
-  Midcap 100 2024, and the two DUMMY placeholders.
-- Monthly PDF checkpoints exist only to 2022-03-31 (Midcap 100, N100, N200: 18 dates) and cover all five
-  months-end for N50/Next 50. Exact agreement is low: N50 35/73, Next 50 45/49, Midcap 100 0/18, N200 0/18.
-  Every disagreement traces to a few entities (below), not to scattered noise.
+- 258 union events, 329 intervals. Undated or future-dated transitions applied: none (0 unplaced).
+- Agreement with the monthly PDF checkpoints: Nifty 50 72/73, Next 50 45/49, Midcap 100 18/18, derived and explicit N100 18/18, derived and explicit N200 18/18 (revision 1: 35, 45, 0, 0, 0).
+- Coverage by month (all still PROVISIONAL, nothing declared in the database): 23 CLEAN, 50 INCOMPLETE.
+- What changed it: parser v7 (page-continued and "excluded from the following indices" releases), six reviewed
+  revocations (`membership_cancellations.csv`), four reviewed placeholder replacements (ITCHOTELS, TMCV, KWIL, JIOFIN),
+  one reviewed entity equivalence (`membership_entity_equivalence.csv`), BSE's 2024-03-28 inclusion. Every one is a
+  config file with its source hash and the review decision it rests on; no identity or alias table was changed.
 
-## What cannot be established (blocked per entity, never the whole universe)
-| Entity | Blocked span | Evidence |
+## What remains (exceptions: 12)
+| Kind | Entities | Why it is left |
 |---|---|---|
-| NESTLEIND (unmapped symbol; instrument has the new ISIN) | whole window | ISIN identities kept separate per owner decision |
-| JIOFIN, NESTLEIND instrument | ~2023-08..2024-04 | reconstruction has them in the union, the snapshot does not; lead: unparsed release pr_ind_prs17072023 (a person must read it) |
-| BSE (i:417) | 2020-10-01..2026-09-30 | Midcap 100 mismatch in all 18 snapshots; the parsed 2026-08-10 release also lists BSE under Nifty 50, which needs manual reading before anything depends on it |
-| ITCHOTELS | 2025-01-29..anchor | demerger/placeholder releases unparsed (pr_ind_prs06022025_1) |
-| GSPL, PEL | member without instrument | stay unmapped per owner decision |
-| DUMMY* placeholders | not tradable | reported, not blocked |
+| WALK_INCLUDED_BUT_NOT_MEMBER_AFTER (5) | DUMMYABFRL, DUMMYSIEMS placeholders | the release that removes each placeholder was not read; decisions recorded as RECONSTRUCTION_CORRECT |
+| MEMBER_WITHOUT_INSTRUMENT (4) | GSPL, PEL, JIOFIN (pre-listing span) | no instrument in the master / pre-listing; the apply step must create them from the reviewed decisions |
+| PLACEHOLDER_NOT_TRADABLE (3) | DUMMYITC, DUMMYTATAM, DUMMYHDLVR | non-tradable by design; replaced by the listing on its listing date |
 
-Every date is therefore INCOMPLETE in `membership_coverage.json` (73/73): either an unmapped member or a
-blocked entity is present. That is the honest answer today; it is not wrong data.
-
-## Next
-1. A person reads: pr_ind_prs17072023 (JIOFIN/NESTLE), the 2026-08-10 release (BSE), pr_ind_prs06022025_1 (ITCHOTELS).
-2. DHANI/MINDTREE/PEL/GSPL dates from the source documents.
-3. Then declare coverage only for spans a person verified. Do not register until readiness passes.
+## Known limits
+- The older universe pipeline (universe_build) does not see revocations or replacements; only this reconstruction does.
+- Next 50 still disagrees with 4 monthly snapshots (10 entity differences): not yet investigated.
+- Nothing here is person-verified coverage; do not register the strategy until readiness passes.

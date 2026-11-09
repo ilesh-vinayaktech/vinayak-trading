@@ -51,6 +51,8 @@ def store_transcription(
     ).fetchone()
     if row is None:
         raise TranscriptionError(f"{doc_id} has not been parsed yet: run parse_index_releases.py")
+    supplement = bool(doc.get("supplement"))  # rows the parser could not read in a TEXT release
+    prefix = "TRANSCRIBED" if supplement else "OCR"
     stored = 0
     with conn.transaction():
         for r in doc["rows"]:
@@ -62,15 +64,16 @@ def store_transcription(
                 " ON CONFLICT DO NOTHING",
                 (doc_id, PARSER_VERSION, r["page"], r["section_no"], r["section"],
                  canon(r["section"]), r["action"], r["symbol"], r["company"], effective,
-                 f"OCR: {r['company']} {r['symbol']}", iid, status),
+                 f"{prefix}: {r['company']} {r['symbol']}", iid, status),
             )  # fmt: skip
             stored += cur.rowcount
         note = {"transcription": doc["method"], "verification": doc["verification"]}
         if doc.get("summary"):
             note["summary"] = doc["summary"]
-        reason = f"scanned image, transcribed: {doc['method']}" + (
-            f" - {doc['summary']}" if doc.get("summary") else ""
+        how = (
+            "supplemented by reviewed transcription" if supplement else "scanned image, transcribed"
         )
+        reason = f"{how}: {doc['method']}" + (f" - {doc['summary']}" if doc.get("summary") else "")
         conn.execute(
             "UPDATE index_release_document SET classification=%s, classification_reason=%s,"
             " notes = notes || %s::jsonb WHERE doc_id=%s AND parser_version=%s"

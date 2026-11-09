@@ -1,0 +1,18 @@
+{
+ "evidence_doc": "pr_ind_prs20022026_1",
+ "announced": "2026-02-20",
+ "source_sha256": "5782871a33c28f33ee64e6ce056d3ee863bc7805b38e42b8c262d92336abf46e",
+ "method": "hand transcription of the listing sentence in the placeholder's exclusion release",
+ "verification": [
+  "the release names both the dummy symbol DUMMYHDLVR (from its earlier inclusion notice) and the listing KWIL, and states the listing date",
+  "the loader refuses the record unless the placeholder was included before the listing date and the exclusion of the listing comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "DUMMYHDLVR",
+   "symbol": "KWIL",
+   "listed_on": "2026-02-16",
+   "quote": "After the demerger, Kwality Wall's (India) Ltd. (KWIL) was listed on February 16, 2026 at the National Stock Exchange of India Ltd. (NSE)."
+  }
+ ]
+}

@@ -103,3 +103,20 @@ def test_rows_must_be_parsed_and_dated(conn):
     nodate = {k: v for k, v in DOC.items() if k != "effective_from"}
     with pytest.raises(TranscriptionError, match="need their effective_from"):
         store_transcription(conn, nodate, actual_sha256="abc")
+
+
+def test_a_parsed_release_can_be_supplemented_with_rows_the_parser_cannot_read(conn):
+    make_env(conn)
+    scanned(conn)
+    doc = {
+        **DOC,
+        "supplement": True,
+        "method": "hand transcription of a table",
+        "rows": [DOC["rows"][1]],
+    }
+    assert store_transcription(conn, doc, actual_sha256="abc") == 1
+    raw = conn.execute("SELECT raw_text FROM index_release_row").fetchone()[0]
+    why = conn.execute("SELECT classification_reason FROM index_release_document").fetchone()[0]
+    assert raw == "TRANSCRIBED: Indian Railway Finance Corporation Ltd. IRFC"
+    assert why.startswith("supplemented by reviewed transcription: hand transcription of a table")
+    assert "scanned image" not in why

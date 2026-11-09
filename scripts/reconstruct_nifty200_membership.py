@@ -23,16 +23,24 @@ from typing import Any
 import psycopg
 
 from algo.data.membership_reconstruction import (
+    Replacement,
+    Revocation,
     Transition,
+    apply_replacements,
+    apply_revocations,
     block_windows,
+    closing_entity,
     combine_rows,
     entity_of,
+    equivalence_map,
     intervals_from,
     reconcile,
     state_on,
+    unify_entities,
     union_events,
     walk_back,
 )
+from algo.data.providers.nse_index_releases import PARSER_VERSION
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -86,7 +94,8 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
     )
     rows = c.execute(
         """SELECT r.component, r.instrument_id, r.symbol, r.mapping_status, r.action, r.effective_from, d.announced,
-                  r.doc_id, r.section_name, d.source_hash, r.parser_version, r.page, d.source_url, r.company
+                  r.doc_id, r.section_name, d.source_hash, r.parser_version, r.page, d.source_url, r.company,
+                  r.related_symbol
            FROM index_release_row r JOIN index_release_document d USING (doc_id, parser_version)
            WHERE r.component = ANY(%s)
              AND r.parser_version = (SELECT max(parser_version) FROM index_release_document x WHERE x.doc_id = r.doc_id)
@@ -94,7 +103,7 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
         (list(COMP),),
     ).fetchall()
     manual = c.execute(
-        "SELECT doc_id, announced, extracted_text FROM index_release_document WHERE classification='MANUAL_REVIEW_REQUIRED' AND extracted_text IS NOT NULL ORDER BY announced"
+        "SELECT doc_id, announced, extracted_text FROM index_release_document d WHERE classification='MANUAL_REVIEW_REQUIRED' AND extracted_text IS NOT NULL AND parser_version = (SELECT max(parser_version) FROM index_release_document x WHERE x.doc_id = d.doc_id) ORDER BY announced"
     ).fetchall()
     snaprows = c.execute(
         """SELECT s.component, s.as_of, s.pdf_name, s.pdf_hash, s.parser_version, k.instrument_id, k.symbol, k.mapping_status
@@ -102,11 +111,57 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
            WHERE s.component = ANY(%s) AND s.parser_version = (SELECT max(parser_version) FROM index_monthly_snapshot y WHERE y.index_name = s.index_name AND y.as_of = s.as_of)""",
         (list(COMP),),
     ).fetchall()
+    revrows = c.execute(
+        """SELECT v.doc_id, v.authority_doc, v.component, v.symbol,
+                  CASE v.kind WHEN 'INCLUSION_REVOKED' THEN 'INCLUDED' ELSE 'EXCLUDED' END,
+                  v.effective_from, v.authority_date, d.source_hash
+           FROM index_release_revocation v
+           LEFT JOIN index_release_document d ON d.doc_id = v.authority_doc AND d.parser_version = %s
+           WHERE v.component = ANY(%s) ORDER BY v.authority_date, v.symbol""",
+        (PARSER_VERSION, list(COMP)),
+    ).fetchall()
+    reprows = c.execute(
+        "SELECT placeholder, symbol, listed_on, evidence_doc FROM index_placeholder_replacement"
+        " ORDER BY listed_on, symbol"
+    ).fetchall()
 
+replaced = frozenset(r[0] for r in reprows)
 trs = [
-    Transition(COMP[comp], entity_of(iid, sym, ms), sym, act, eff, ann, doc, sec, h, pv, pg)
-    for comp, iid, sym, ms, act, eff, ann, doc, sec, h, pv, pg, _, _co in rows
+    Transition(
+        COMP[comp],
+        closing_entity(iid, sym, ms, rel, act, replaced),
+        sym,
+        act,
+        eff,
+        ann,
+        doc,
+        sec,
+        h,
+        pv,
+        pg,
+    )
+    for comp, iid, sym, ms, act, eff, ann, doc, sec, h, pv, pg, _, _co, rel in rows
 ]
+revocations = [Revocation(r[0], r[1], COMP[r[2]], r[3], r[4], r[5]) for r in revrows]
+trs, cancelled, unmatched_revocations = apply_revocations(trs, revocations)
+listing_entity = {r[2]: entity_of(r[1], r[2], r[3]) for r in rows}  # stock symbol -> its entity
+replacements = [
+    Replacement(
+        ph,
+        listing_entity.get(sym, f"s:{sym}"),
+        sym,
+        listed,
+        doc,
+        None if ph.startswith("DUMMY") else f"s:{ph}",  # a pre-alias entity keeps its symbol key
+    )
+    for ph, sym, listed, doc in reprows
+]
+trs, unmatched_replacements = apply_replacements(trs, replacements)
+equiv_records = [
+    json.loads(f.read_text()) for f in sorted(Path("config/entity_equivalence").glob("*.json"))
+]
+equivalent = equivalence_map(equiv_records)
+trs = unify_entities(trs, equivalent)
 doc_url = {r[7]: r[12] for r in rows}
 company_of: dict[str, str] = {}
 for r in rows:
@@ -141,7 +196,7 @@ for comp, asof, pdf, h, pv, iid, sym, ms in snaprows:
         if sym.startswith("DUMMY")
         else (entity_of(iid, sym, ms) if ms == "MAPPED" else f"s:{sym}")
     )
-    snap[COMP[comp]][asof].add(e)
+    snap[COMP[comp]][asof].add(equivalent.get(e, e))
     snap_src[(COMP[comp], asof)] = (pdf, h, pv)
 fz = {k: {d: frozenset(v) for d, v in dd.items()} for k, dd in snap.items()}
 synth100 = {
@@ -361,7 +416,64 @@ for i in ivs:
                 "blocked": "",
             }
         )
+for rv in unmatched_revocations:
+    exc.append(
+        {
+            "kind": "REVOCATION_UNMATCHED",
+            "entity": "",
+            "symbol": rv.symbol,
+            "component": rv.component,
+            "action": rv.action,
+            "doc_id": rv.doc_id,
+            "announced": "",
+            "effective": rv.effective,
+            "detail": f"{rv.authority_doc} revokes a change that no stored transition matches",
+            "blocked": "",
+        }
+    )
+for rep in unmatched_replacements:
+    exc.append(
+        {
+            "kind": "REPLACEMENT_UNMATCHED",
+            "entity": f"p:{rep.placeholder}",
+            "symbol": rep.symbol,
+            "component": "N200",
+            "action": "",
+            "doc_id": rep.evidence_doc,
+            "announced": "",
+            "effective": rep.listed_on,
+            "detail": f"{rep.symbol} replaces {rep.placeholder} on {rep.listed_on} but no stored inclusion/exclusion pair matches",
+            "blocked": "",
+        }
+    )
+write_csv(
+    "membership_entity_equivalence.csv",
+    [
+        {"from": src, "to": rec["to"], "symbol": rec["symbol"], "reason": rec["reason"],
+         "review_decision_ids": ";".join(str(i) for i in rec["review_decision_ids"])}
+        for rec in equiv_records
+        for src in rec["from"]
+    ],
+)  # fmt: skip
 write_csv("membership_exceptions.csv", exc)
+authority_hash = {r[1]: r[7] for r in revrows}
+write_csv(
+    "membership_cancellations.csv",
+    [
+        {
+            "effective_from": tr.effective,
+            "symbol": tr.symbol,
+            "component": rv.component,
+            "cancelled_action": tr.action,
+            "announced_in": tr.doc_id,
+            "announced_on": tr.announced,
+            "announcement_hash": tr.source_hash,
+            "revoked_by": rv.authority_doc,
+            "revocation_hash": authority_hash.get(rv.authority_doc, ""),
+        }
+        for rv, tr in cancelled
+    ],
+)
 
 
 def counts_at(d: date) -> dict[str, int]:

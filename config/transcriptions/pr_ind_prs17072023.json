@@ -1,0 +1,39 @@
+{
+ "doc_id": "pr_ind_prs17072023",
+ "announced": "2023-07-17",
+ "effective_from": "2023-07-20",
+ "source_sha256": "dc666369d2d960fc7045f0e5b44e8f606e33b97617b962444ab3e500e7c80702",
+ "supplement": true,
+ "method": "hand transcription of the index list of the 2023-07-17 NSE Indices press release (the spun-off entity is named in a sentence, with no symbol)",
+ "verification": [
+  "the release says the 'spun off entity' (Reliance Strategic Investments Limited, to be renamed Jio Financial Services Limited) 'shall be included' in Nifty 50, Nifty 100, Nifty 200 and 16 other indices effective July 20, 2023 (close of July 19, 2023)",
+  "the symbol JIOFIN is NOT in this release: it comes from the 2023-09-05 release (pr_ind_prs05092023), which says 'NSE Indices Limited vide its press release dated July 17, 2023 had announced inclusion of Jio Financial Services Limited (JIOFIN or spun-off entity)'",
+  "only the Nifty 200 component indices are transcribed; no alias or instrument table is changed (JIOFIN's alias starts at its listing, 2023-08-21)"
+ ],
+ "rows": [
+  {
+   "page": 1,
+   "section_no": 1,
+   "section": "Nifty 50",
+   "action": "INCLUDED",
+   "symbol": "JIOFIN",
+   "company": "Jio Financial Services Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 2,
+   "section": "Nifty 100",
+   "action": "INCLUDED",
+   "symbol": "JIOFIN",
+   "company": "Jio Financial Services Ltd."
+  },
+  {
+   "page": 1,
+   "section_no": 3,
+   "section": "Nifty 200",
+   "action": "INCLUDED",
+   "symbol": "JIOFIN",
+   "company": "Jio Financial Services Ltd."
+  }
+ ]
+}

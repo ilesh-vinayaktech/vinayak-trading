@@ -3,12 +3,19 @@ from datetime import date
 import pytest
 
 from algo.data.membership_reconstruction import (
+    Replacement,
+    Revocation,
     Transition,
+    apply_replacements,
+    apply_revocations,
     block_windows,
+    closing_entity,
     combine_rows,
     entity_of,
+    equivalence_map,
     intervals_from,
     reconcile,
+    unify_entities,
     union_events,
     walk_back,
 )
@@ -26,6 +33,125 @@ def test_entity_keys_never_confuse_instruments_symbols_and_placeholders():
     assert entity_of(7, "X", "MAPPED") == "i:7"
     assert entity_of(None, "PEL", "UNMAPPED_SYMBOL") == "s:PEL"
     assert entity_of(None, "DUMMYSIEMS", "PLACEHOLDER_SECURITY") == "p:DUMMYSIEMS"
+
+
+def test_an_exclusion_that_names_its_dummy_closes_the_placeholder_not_a_new_entity():
+    # the same release says: listing ITCHOTELS replaces dummy DUMMYITC. Entities are NOT merged; the
+    # exclusion simply ends the membership that the placeholder began.
+    assert closing_entity(7, "ITCHOTELS", "MAPPED", "DUMMYITC", "EXCLUDED") == "p:DUMMYITC"
+    assert (
+        closing_entity(None, "TMCV", "UNMAPPED_SYMBOL", "DUMMYTATAM", "EXCLUDED") == "p:DUMMYTATAM"
+    )
+
+
+def test_closing_entity_falls_back_to_the_ordinary_key():
+    assert closing_entity(7, "X", "MAPPED", None, "EXCLUDED") == "i:7"  # no related symbol
+    assert closing_entity(7, "X", "MAPPED", "DUMMYX", "INCLUDED") == "i:7"  # only exclusions close
+    assert closing_entity(7, "X", "MAPPED", "OTHER", "EXCLUDED") == "i:7"  # not a dummy symbol
+    assert closing_entity(None, "DUMMYX", "PLACEHOLDER_SECURITY", None, "INCLUDED") == "p:DUMMYX"
+
+
+def test_a_placeholder_included_then_closed_leaves_no_phantom_membership():
+    trs = [t("N50", "p:DUMMYITC", "INCLUDED", D(2025, 1, 6)),
+           t("N50", "p:DUMMYITC", "EXCLUDED", D(2025, 2, 10))]  # fmt: skip
+    w = walk_back({"N50": frozenset({"i:1"})}, trs, START, ANCHOR)
+    assert not w.discrepancies
+    assert w.initial["N50"] == {
+        "i:1"
+    }  # neither the placeholder nor the listing is a member at the start
+
+
+def test_a_listing_replaces_its_placeholder_without_merging_the_two_entities():
+    # DUMMYITC (placeholder) is a member from 6 Jan; ITCHOTELS lists on 29 Jan and is excluded 10 Feb
+    trs = [t("N50", "p:DUMMYITC", "INCLUDED", D(2025, 1, 6), doc="inc"),
+           t("N200x", "p:DUMMYITC", "INCLUDED", D(2025, 1, 6), doc="inc"),
+           t("N50", "i:7", "EXCLUDED", D(2025, 2, 10), doc="exc"),
+           t("N200x", "i:7", "EXCLUDED", D(2025, 2, 10), doc="exc")]  # fmt: skip
+    rep = Replacement("DUMMYITC", "i:7", "ITCHOTELS", D(2025, 1, 29), "exc")
+    out, unmatched = apply_replacements(trs, [rep])
+    assert unmatched == []
+    swaps = [x for x in out if x.doc_id == "exc" and x.section == "placeholder replacement"]
+    assert {(x.component, x.entity, x.action, x.effective) for x in swaps} == {
+        ("N50", "p:DUMMYITC", "EXCLUDED", D(2025, 1, 29)),
+        ("N50", "i:7", "INCLUDED", D(2025, 1, 29)),
+        ("N200x", "p:DUMMYITC", "EXCLUDED", D(2025, 1, 29)),
+        ("N200x", "i:7", "INCLUDED", D(2025, 1, 29)),
+    }
+    assert len(out) == len(trs) + 4  # originals untouched, only the handover is added
+    w = walk_back({"N50": frozenset(), "N200x": frozenset()}, out, START, ANCHOR)
+    assert not w.discrepancies  # placeholder -> listing -> excluded is a consistent history
+    assert w.initial == {"N50": frozenset(), "N200x": frozenset()}
+
+
+def test_a_pre_alias_entity_can_hand_over_to_its_listing():
+    # JIOFIN was in the indices from 20 Jul 2023 (symbol not yet alias-valid: entity s:JIOFIN) and
+    # listed on 21 Aug; the exclusion on 7 Sep acts on the instrument i:5
+    trs = [t("N50", "s:JIOFIN", "INCLUDED", D(2023, 7, 20), doc="inc"),
+           t("N50", "i:5", "EXCLUDED", D(2023, 9, 7), doc="exc")]  # fmt: skip
+    rep = Replacement("JIOFIN", "i:5", "JIOFIN", D(2023, 8, 21), "exc", "s:JIOFIN")
+    out, unmatched = apply_replacements(trs, [rep])
+    assert unmatched == []
+    swaps = [x for x in out if x.section == "placeholder replacement"]
+    assert {(x.entity, x.action) for x in swaps} == {("s:JIOFIN", "EXCLUDED"), ("i:5", "INCLUDED")}
+    assert not walk_back({"N50": frozenset()}, out, START, ANCHOR).discrepancies
+
+
+def test_a_replacement_with_nothing_to_hand_over_is_reported():
+    inc = t("N50", "p:DUMMYX", "INCLUDED", D(2025, 1, 6))
+    exc = t("N50", "i:7", "EXCLUDED", D(2025, 2, 10))
+    no_exclusion = Replacement("DUMMYX", "i:8", "X", D(2025, 1, 29), "d")
+    no_placeholder = Replacement("DUMMYNO", "i:7", "X", D(2025, 1, 29), "d")
+    too_late = Replacement("DUMMYX", "i:7", "X", D(2025, 3, 1), "d")  # lists after the exclusion
+    too_early = Replacement("DUMMYX", "i:7", "X", D(2025, 1, 1), "d")  # lists before the inclusion
+    out, unmatched = apply_replacements(
+        [inc, exc], [no_exclusion, no_placeholder, too_late, too_early]
+    )
+    assert out == [inc, exc]
+    assert unmatched == [no_exclusion, no_placeholder, too_late, too_early]
+
+
+def test_closing_entity_leaves_a_replaced_dummy_to_the_replacement():
+    assert (
+        closing_entity(7, "ITCHOTELS", "MAPPED", "DUMMYITC", "EXCLUDED", frozenset({"DUMMYITC"}))
+        == "i:7"
+    )
+    assert (
+        closing_entity(7, "ITCHOTELS", "MAPPED", "DUMMYITC", "EXCLUDED", frozenset())
+        == "p:DUMMYITC"
+    )
+
+
+def test_a_revoked_inclusion_is_cancelled_not_compensated():
+    inc = t("MID", "i:5", "INCLUDED", D(2024, 9, 30), doc="aug")
+    other = t("MID", "i:6", "INCLUDED", D(2024, 9, 30), doc="aug")
+    rv = Revocation("aug", "sep", "MID", "5", "INCLUDED", D(2024, 9, 30))
+    kept, cancelled, unmatched = apply_revocations([inc, other], [rv])
+    assert kept == [other] and cancelled == [(rv, inc)] and unmatched == []
+    # the walk now sees no inclusion for i:5 at all, so it is not inconsistent
+    w = walk_back({"MID": frozenset({"i:6"})}, kept, START, ANCHOR)
+    assert not w.discrepancies
+
+
+def test_a_revoked_exclusion_keeps_the_stock_a_member():
+    exc = t("MID", "i:9", "EXCLUDED", D(2024, 9, 30), doc="aug")
+    rv = Revocation("aug", "sep", "MID", "9", "EXCLUDED", D(2024, 9, 30))
+    kept, cancelled, _ = apply_revocations([exc], [rv])
+    assert kept == [] and cancelled == [(rv, exc)]
+    w = walk_back({"MID": frozenset({"i:9"})}, kept, START, ANCHOR)
+    assert not w.discrepancies and w.initial["MID"] == {"i:9"}
+
+
+def test_a_revocation_that_matches_nothing_is_reported_never_dropped():
+    inc = t("MID", "i:5", "INCLUDED", D(2024, 9, 30), doc="aug")
+    wrong_date = Revocation("aug", "sep", "MID", "5", "INCLUDED", D(2024, 10, 1))
+    wrong_kind = Revocation("aug", "sep", "MID", "5", "EXCLUDED", D(2024, 9, 30))
+    wrong_doc = Revocation("other", "sep", "MID", "5", "INCLUDED", D(2024, 9, 30))
+    wrong_comp = Revocation("aug", "sep", "N50", "5", "INCLUDED", D(2024, 9, 30))
+    kept, cancelled, unmatched = apply_revocations(
+        [inc], [wrong_date, wrong_kind, wrong_doc, wrong_comp]
+    )
+    assert kept == [inc] and cancelled == []
+    assert unmatched == [wrong_date, wrong_kind, wrong_doc, wrong_comp]
 
 
 def test_walk_back_undoes_each_transition_from_the_anchor():
@@ -171,3 +297,26 @@ def test_combine_rows_prefers_the_full_comparison_on_a_shared_date():
         (D(2021, 1, 29), "FULL"),
         (D(2021, 2, 26), "PARTIAL"),
     ]
+
+
+def test_a_reviewed_equivalence_makes_two_keys_of_one_issuer_the_same_entity():
+    eq = equivalence_map([{"from": ["s:NESTLEIND"], "to": "i:1589"}])
+    assert eq == {"s:NESTLEIND": "i:1589"}
+    trs = [
+        t("N50", "s:NESTLEIND", "EXCLUDED", D(2022, 3, 31)),
+        t("N50", "i:2", "INCLUDED", D(2022, 3, 31)),
+    ]
+    out = unify_entities(trs, eq)
+    assert [x.entity for x in out] == ["i:1589", "i:2"] and out[0].action == "EXCLUDED"
+    assert unify_entities(trs, {}) == trs  # no equivalence, nothing changes
+
+
+def test_an_equivalence_must_be_unambiguous():
+    with pytest.raises(ValueError, match="must be an instrument"):
+        equivalence_map([{"from": ["s:A"], "to": "s:B"}])
+    with pytest.raises(ValueError, match="maps to itself"):
+        equivalence_map([{"from": ["i:1"], "to": "i:1"}])
+    with pytest.raises(ValueError, match="mapped twice"):
+        equivalence_map([{"from": ["s:A"], "to": "i:1"}, {"from": ["s:A"], "to": "i:2"}])
+    with pytest.raises(ValueError, match="chain"):
+        equivalence_map([{"from": ["s:A"], "to": "i:1"}, {"from": ["i:1"], "to": "i:2"}])

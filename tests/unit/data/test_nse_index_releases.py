@@ -74,6 +74,45 @@ def test_a_demerger_notice_adds_the_dummy_symbol_to_each_listed_index():
     assert all(x.effective_from == date(2025, 4, 7) for x in r.rows)
 
 
+def test_an_index_table_that_continues_on_the_next_page_is_still_one_notice():
+    # the Sr. No./Index Name header repeats at the top of page 2; this is ONE table, not two notices
+    r = parse_release(load("exclusion_pagebreak_2025_02_06"), date(2025, 2, 6))
+    assert r.kind == KIND_COMPANY_NOTICE
+    assert {(x.symbol, x.action, x.related_symbol) for x in r.rows} == {
+        ("ITCHOTELS", "EXCLUDED", "DUMMYITC")
+    }
+    assert all(x.effective_from == date(2025, 2, 10) for x in r.rows)
+    assert {x.component for x in r.rows if x.component} == {
+        "NIFTY_50",
+        "NIFTY_100",
+        "NIFTY_200",
+    }
+    assert len(r.rows) == 29  # every listed index, across both pages
+
+
+def test_a_company_excluded_from_the_following_indices_is_found_beside_other_tables():
+    # the same release also carries Shariah replacement tables; both must be read
+    r = parse_release(load("exclusion_following_indices_2024_08_23"), date(2024, 8, 23))
+    dvr = [x for x in r.rows if x.symbol == "TATAMTRDVR"]
+    assert {x.action for x in dvr} == {"EXCLUDED"}
+    assert {x.effective_from for x in dvr} == {date(2024, 8, 30)}
+    assert {x.component for x in dvr if x.component} == {"NIFTY_100", "NIFTY_200"}
+    assert len(dvr) == 14
+    assert {x.symbol for x in r.rows} >= {"BRITANNIA", "CHEMPLASTS"}  # the tables still parse
+
+
+def test_an_index_list_that_runs_to_the_end_of_the_document_is_read_to_the_end():
+    page = (
+        "Mumbai, June 25, 2025\n Tata (Symbol: ABC) shall be excluded from the following indices:\n"
+        "\n  Sr. No.      Index Name\n     1      Nifty 200\n     2      Nifty50 Equal Weight\n"
+    )
+    r = parse_release([page], date(2025, 6, 25))
+    assert [(x.symbol, x.component, x.section_name) for x in r.rows] == [
+        ("ABC", "NIFTY_200", "Nifty 200"),
+        ("ABC", None, "Nifty50 Equal Weight"),
+    ]
+
+
 def test_a_notice_about_several_companies_is_not_guessed_at():
     r = parse_release(load("two_companies_2025_06_25"), date(2025, 6, 25))
     assert r.kind == KIND_NO_STRUCTURE and r.rows == ()

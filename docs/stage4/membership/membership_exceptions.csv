@@ -1,22 +1,13 @@
 kind,entity,symbol,component,action,doc_id,announced,effective,detail,blocked
 WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,p:DUMMYABFRL,DUMMYABFRL,MID100,,,,2025-05-22,derived walk: the transition is inconsistent with the state it was undone from,
 WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,p:DUMMYSIEMS,DUMMYSIEMS,NEXT50,,,,2025-04-07,derived walk: the transition is inconsistent with the state it was undone from,
-WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,i:460,CENTRALBK,MID100,,,,2024-09-30,derived walk: the transition is inconsistent with the state it was undone from,
-WALK_EXCLUDED_BUT_MEMBER_AFTER,i:1020,IDEA,MID100,,,,2024-09-30,derived walk: the transition is inconsistent with the state it was undone from,
-WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,i:1108,IREDA,MID100,,,,2024-03-28,derived walk: the transition is inconsistent with the state it was undone from,
 WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,p:DUMMYABFRL,DUMMYABFRL,N200x,,,,2025-05-22,explicit_N200 walk: the transition is inconsistent with the state it was undone from,
 WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,p:DUMMYSIEMS,DUMMYSIEMS,N200x,,,,2025-04-07,explicit_N200 walk: the transition is inconsistent with the state it was undone from,
-WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,i:460,CENTRALBK,N200x,,,,2024-09-30,explicit_N200 walk: the transition is inconsistent with the state it was undone from,
-WALK_EXCLUDED_BUT_MEMBER_AFTER,i:1020,IDEA,N200x,,,,2024-09-30,explicit_N200 walk: the transition is inconsistent with the state it was undone from,
-WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,i:1108,IREDA,N200x,,,,2024-03-28,explicit_N200 walk: the transition is inconsistent with the state it was undone from,
-WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,i:2647,TATAMTRDVR,N200x,,,,2023-09-29,explicit_N200 walk: the transition is inconsistent with the state it was undone from,
 WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,p:DUMMYSIEMS,DUMMYSIEMS,N100x,,,,2025-04-07,explicit_N100 walk: the transition is inconsistent with the state it was undone from,
-WALK_INCLUDED_BUT_NOT_MEMBER_AFTER,i:2647,TATAMTRDVR,N100x,,,,2023-09-29,explicit_N100 walk: the transition is inconsistent with the state it was undone from,
-SNAPSHOT_MISMATCH_BLOCK,i:1118,ITCHOTELS,N200,,,,,reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs06022025_1 (announced 2025-02-06); pr_ind_prs06022025_1 (announced 2025-02-06); pr_ind_prs06022025_1 (announced 2025-02-06),2025-01-29..2026-11-07
-SNAPSHOT_MISMATCH_BLOCK,i:1154,JIOFIN,N200,,,,,reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs17072023 (announced 2023-07-17); pr_ind_prs17072023 (announced 2023-07-17); pr_ind_prs17072023 (announced 2023-07-17),2023-08-21..2024-04-30
-SNAPSHOT_MISMATCH_BLOCK,i:1589,NESTLEIND,N200,,,,,reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs20082020 (announced 2020-08-20),2023-08-01..2024-04-30
-SNAPSHOT_MISMATCH_BLOCK,i:417,BSE,N200,,,,,reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: none found,2020-10-01..2026-09-30
-SNAPSHOT_MISMATCH_BLOCK,s:NESTLEIND,NESTLEIND,N200,,,,,reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: pr_ind_prs20082020 (announced 2020-08-20),2020-10-01..2026-11-07
+PLACEHOLDER_NOT_TRADABLE,p:DUMMYHDLVR,DUMMYHDLVR,N200,,,,2025-12-05,"member 2025-12-05..2026-02-16: no tradable instrument, so the investable universe is incomplete on these dates",
+PLACEHOLDER_NOT_TRADABLE,p:DUMMYITC,DUMMYITC,N200,,,,2025-01-06,"member 2025-01-06..2025-01-29: no tradable instrument, so the investable universe is incomplete on these dates",
+PLACEHOLDER_NOT_TRADABLE,p:DUMMYTATAM,DUMMYTATAM,N200,,,,2025-10-14,"member 2025-10-14..2025-11-12: no tradable instrument, so the investable universe is incomplete on these dates",
 MEMBER_WITHOUT_INSTRUMENT,s:GSPL,GSPL,N200,,,,2020-10-01,"member 2020-10-01..2023-03-31: no tradable instrument, so the investable universe is incomplete on these dates",
+MEMBER_WITHOUT_INSTRUMENT,s:JIOFIN,JIOFIN,N200,,,,2023-07-20,"member 2023-07-20..2023-08-21: no tradable instrument, so the investable universe is incomplete on these dates",
 MEMBER_WITHOUT_INSTRUMENT,s:PEL,PEL,N200,,,,2020-10-01,"member 2020-10-01..2022-08-08: no tradable instrument, so the investable universe is incomplete on these dates",
 MEMBER_WITHOUT_INSTRUMENT,s:PEL,PEL,N200,,,,2023-03-31,"member 2023-03-31..2024-09-30: no tradable instrument, so the investable universe is incomplete on these dates",

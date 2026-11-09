@@ -1,0 +1,18 @@
+{
+ "evidence_doc": "pr_ind_prs05092023",
+ "announced": "2023-09-05",
+ "source_sha256": "b8b7f5638efcc5e40c7dd04856b5aac5ec82fa8f43c7a6f285f6f3bd2aeae3f4",
+ "method": "hand transcription of the listing sentence in the exclusion release",
+ "verification": [
+  "the release states the earlier inclusion is of 'Jio Financial Services Limited (JIOFIN or spun-off entity)' and that 'After demerger, JIOFIN was listed on August 21, 2023 at the National Stock Exchange Ltd. (NSE)'",
+  "the loader refuses the record unless JIOFIN was included before the listing date and its exclusion comes after it"
+ ],
+ "replacements": [
+  {
+   "placeholder": "JIOFIN",
+   "symbol": "JIOFIN",
+   "listed_on": "2023-08-21",
+   "quote": "After demerger, JIOFIN was listed on August 21, 2023 at the National Stock Exchange Ltd. (NSE)."
+  }
+ ]
+}

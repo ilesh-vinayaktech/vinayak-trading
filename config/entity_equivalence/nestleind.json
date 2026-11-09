@@ -1,0 +1,13 @@
+{
+ "from": ["s:NESTLEIND"],
+ "to": "i:1589",
+ "symbol": "NESTLEIND",
+ "reason": "Same issuer (Nestle India Limited), same symbol; the ISIN changed on 2024-01-05 because of the 10:1 face-value split. Before NESTLEIND's alias starts (2023-08-01) the exchange files and releases carry the symbol only, so it is keyed s:NESTLEIND; afterwards it is the instrument i:1589. For membership comparison the two keys are one entity.",
+ "evidence": [
+  "NSE circular NSE/CML/60084 (2024-01-02): ISIN change for NESTLEIND w.e.f. 2024-01-05, sub-division Rs 10 to Re 1",
+  "NSE circular NSE/CML/59895 (2023-12-22): face value split w.e.f. 2024-01-05",
+  "NSE circular NSE/FAOP/59844 (2023-12-20): split 10:1, ex-date 2024-01-05"
+ ],
+ "review_decision_ids": [15, 26],
+ "note": "Membership comparison only. No alias, instrument or ISIN table is changed; the two ISIN identities stay separate records."
+}

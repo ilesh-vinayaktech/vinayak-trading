@@ -1,0 +1,2 @@
+from,to,symbol,reason,review_decision_ids
+s:NESTLEIND,i:1589,NESTLEIND,"Same issuer (Nestle India Limited), same symbol; the ISIN changed on 2024-01-05 because of the 10:1 face-value split. Before NESTLEIND's alias starts (2023-08-01) the exchange files and releases carry the symbol only, so it is keyed s:NESTLEIND; afterwards it is the instrument i:1589. For membership comparison the two keys are one entity.",15;26
