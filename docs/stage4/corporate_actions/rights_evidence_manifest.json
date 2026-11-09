@@ -118,5 +118,20 @@
       "https://www.scribd.com/document/613476819/DUP-CAF-1208870033427583 (payment table: On Application 1.00 1.50 2.50)",
       "KFintech first and final call notice dated 2023-03-03: Rs 2.50 (Re 1.00 face value, Rs 1.50 premium)"
     ]
+  },
+  "TATACONSUM_EXCHANGE": {
+    "document": "MSE (Metropolitan Stock Exchange of India) circular MSE/TRD/15709/2024 dated 2024-07-25 (exchange document; created 09:50 IST)",
+    "url": "https://msei.in/SX-Content/Circulars/2024/July/Circular-15709.pdf",
+    "stored_at": "data/evidence/rights/msei_15709_tataconsum.pdf",
+    "sha256": "567f38c1fbeaef66de830130d4ecbc998bb9a2476905b88a12ba317d74f67dd8",
+    "retrieved": "2026-11-09",
+    "states": {
+      "P": "1231.25 ('Underlying close price on the last cum date')",
+      "S": "818",
+      "A:B": "1:26",
+      "E": "15.30555556",
+      "AF": "0.987569",
+      "revised_lot": "456"
+    }
   }
 }
