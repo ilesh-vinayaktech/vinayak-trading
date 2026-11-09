@@ -1,0 +1,109 @@
+{
+  "description": "Owner-accepted (2026-11-09) explanation of the UPL and TATACONSUM evidence conflicts; same factors, still PROVISIONAL_ISSUER_TERMS, not verified.",
+  "method": "rights",
+  "status": "provisional",
+  "expected_evidence_class": "PROVISIONAL_ISSUER_TERMS",
+  "note_prefix": "issuer-terms provisional",
+  "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+  "calculation_version": "rights_terp_full_issue_price/1",
+  "resolutions": [
+    {
+      "symbol": "TATACONSUM",
+      "ex_date": "2024-07-26",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "26",
+        "subscription_price": "818"
+      },
+      "expected_prev_close": "1223.60",
+      "payment": "FULLY PAID: all Rs 818 on application (abridged letter of offer); the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
+      "issuer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/tataconsum_abridged_lof.pdf",
+        "sha256": "3a5c268e6cbc343c25df99d0fcaf4345228c58339ce6cf67b7d18f7fae3461b3",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2024-07-26/v0001.bin",
+        "sha256": "b831ab462ee021099f6a4bd6002c2798b1e1697b326a71723c0f7ea67d6f17e6",
+        "symbol_in_file": "TATACONSUM",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "1223.60"
+        }
+      },
+      "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified. Supersedes the 2026-11-09 issuer-terms row for the same action only to record the owner-accepted explanation of the evidence conflict; the factor is unchanged.",
+      "unresolved_evidence_conflicts": [
+        {
+          "what": "cum-rights reference price",
+          "bhavcopy_prev_close": "1223.60",
+          "exchange_example_cum_price": "1231.25 (Zerodha bulletin copy of the exchange F&O adjustment example; not retrieved from the exchange)",
+          "proposed_factor": "0.9877229305146925284225055394",
+          "status": "EXPLAINED_BY_REFERENCE_DATE (owner-accepted 2026-11-09); not exchange-verified",
+          "note": "the exchange example may use a different reference price; not established as interchangeable; the recorded factor is NOT described as matching the exchange adjustment",
+          "explanation": "MSE circular MSE/TRD/15709/2024 (2024-07-25, created 09:50 IST, before that day's close) used P = 1231.25, the 2024-07-24 close, labelled 'last cum date'; AF 0.987569 equals the same formula at 1231.25. The recorded factor uses the actual last cum-date close 1223.60 (2024-07-25).",
+          "exchange_document": {
+            "document": "MSE (Metropolitan Stock Exchange of India) circular MSE/TRD/15709/2024 dated 2024-07-25 (exchange document; created 09:50 IST)",
+            "url": "https://msei.in/SX-Content/Circulars/2024/July/Circular-15709.pdf",
+            "stored_at": "data/evidence/rights/msei_15709_tataconsum.pdf",
+            "sha256": "567f38c1fbeaef66de830130d4ecbc998bb9a2476905b88a12ba317d74f67dd8",
+            "retrieved": "2026-11-09",
+            "states": {
+              "P": "1231.25 ('Underlying close price on the last cum date')",
+              "S": "818",
+              "A:B": "1:26",
+              "E": "15.30555556",
+              "AF": "0.987569",
+              "revised_lot": "456"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "symbol": "UPL",
+      "ex_date": "2024-11-26",
+      "kind": "rights",
+      "params": {
+        "new": "1",
+        "held": "8",
+        "subscription_price": "360"
+      },
+      "expected_prev_close": "568.55",
+      "payment": "PARTLY PAID: Rs 90 on application, balance in calls",
+      "issuer_document": {
+        "document": "Company FAQ on the rights issue (not the letter of offer)",
+        "url": "https://www.upl-ltd.com/downloads/right-issues-pdf/FAQs_Rights_issue.pdf",
+        "stored_at": "data/evidence/rights/upl_rights_faq.pdf",
+        "sha256": "5bd97bfbe2b174f43354e6241dd3061c5e9f02f61241c9f558296a250e3eca28",
+        "retrieved": "2026-11-09"
+      },
+      "bhavcopy": {
+        "dataset": "nse/bhav",
+        "path": "data/lake/raw/nse/bhav/dt=2024-11-26/v0001.bin",
+        "sha256": "ed333291256cbf0f6492b315b186d0b805329d59f8bdc42eba82a1535b95fdcb",
+        "symbol_in_file": "UPL",
+        "series": "EQ",
+        "fields": {
+          "PREV_CLOSE": "568.55"
+        }
+      },
+      "limitation": "terms from the issuer's FAQ on the rights issue (not the letter of offer and not an exchange adjustment circular; stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price). NOT verified. Supersedes the 2026-11-09 issuer-terms row for the same action only to record the owner-accepted explanation of the evidence conflict; the factor is unchanged.",
+      "unresolved_evidence_conflicts": [
+        {
+          "what": "exchange F&O adjustment factor",
+          "proposed_factor": "0.9592432992309872091773419713",
+          "nse_circular_factor_reported": "0.959510",
+          "circular": "NSE F&O circular 149/2024 dated 2024-11-22, as reported; not retrieved",
+          "nse_indicative_factor_reported": "0.959243 at a pre-ex-date close of 568.55 (NSE FAOP65222, as reported; described there as indicative)",
+          "status": "EXPLAINED_BY_REFERENCE_DATE (owner-accepted 2026-11-09); not exchange-verified; NSE circular 149/2024 itself NOT retrieved",
+          "note": "neither figure selected over the other; the recorded factor is the TERP from the issuer terms and the bhavcopy cum close; it is NOT described as matching the exchange adjustment",
+          "explanation": "0.959510 equals the same formula at P = 566.40, the 2024-11-22 close (the circular's own date); NSE's indicative note FAOP65222 used 568.55 (the actual last cum-date close, 2024-11-25) and gave 0.959243, the recorded factor."
+        }
+      ]
+    }
+  ]
+}

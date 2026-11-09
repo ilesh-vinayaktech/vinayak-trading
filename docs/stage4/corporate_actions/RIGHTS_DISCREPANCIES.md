@@ -15,3 +15,10 @@ when it was written. The formula is identical to ours (AF = (P - E) / P = TERP /
 Reading: a cash-market price adjustment should use the close immediately before the ex-date, which is what the recorded factors use; the
 circulars' figures are pre-close F&O operational numbers. This is an explanation, not a verification: both resolutions stay PROVISIONAL with
 their conflict recorded as UNRESOLVED until the owner decides. Still missing for UPL: the NSE circular itself (FAOP number for 149/2024).
+
+## Recorded (owner-accepted, 2026-11-09)
+
+The explanation was accepted by the owner and appended as superseding rows: TATACONSUM id 87 (supersedes 82), UPL id 88 (supersedes 83). Same
+factors (checked equal to the superseded rows), still PROVISIONAL_ISSUER_TERMS, conflict status EXPLAINED_BY_REFERENCE_DATE with both figures kept,
+not verified. Procedure: backup `data/backups/algo_pre_rights_conflicts_20261109T180531Z.dump` (SHA-256 `0753f5036bfb209ffc81dccd05835269926bc4ab7e68f7eb4a1df202d3bf35f0`) restore-tested in a disposable container (0 errors, identical);
+dry run 23/23 rolled back; apply 23/23, 51 -> 53 rows; statuses: provisional 25 -> 27, nothing else changed; readiness blockers unchanged.
