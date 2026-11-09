@@ -7,6 +7,7 @@
    "date": "2025-06-09",
    "factor": "1",
    "high": "102",
+   "instrument_id": 1,
    "low": "99",
    "open": "100",
    "volume": "1000"
@@ -16,6 +17,7 @@
    "date": "2025-06-10",
    "factor": "1",
    "high": "103",
+   "instrument_id": 1,
    "low": "100",
    "open": "101",
    "volume": "2000"
@@ -25,6 +27,7 @@
    "date": "2025-06-11",
    "factor": "1",
    "high": "104",
+   "instrument_id": 1,
    "low": "101",
    "open": "102",
    "volume": "3000"
@@ -34,6 +37,7 @@
    "date": "2025-06-12",
    "factor": "1",
    "high": "105",
+   "instrument_id": 1,
    "low": "102",
    "open": "103",
    "volume": "4000"

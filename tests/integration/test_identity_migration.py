@@ -159,3 +159,25 @@ def test_a_failed_post_check_rolls_the_whole_migration_back(issuer, monkeypatch)
         migrate_isin_change(conn, new_id=iid, dry_run=False, **KW)
     monkeypatch.undo()
     assert state(conn) == before
+
+
+def test_a_persisted_backtest_that_executed_the_new_isin_before_the_change_blocks_the_migration(
+    issuer,
+):
+    conn, iid = issuer
+    run_id = conn.execute(
+        "INSERT INTO backtest_run (strategy_id, strategy_version, params, params_hash, code_version,"
+        " reader_mode, config, cost_model, adjustment_versions, provisional_events, unapplied_events,"
+        " blocked_instruments, unmodelled_events, accounting_complete, dividends_received, metrics,"
+        " result_hash, created_at) VALUES ('s','1','{}','h','c','research','{}','{}','{}','[]','[]','{}',"
+        "'[]',true,0,'{}','r', now()) RETURNING run_id"
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO backtest_trade (run_id, seq, day, instrument_id, side, qty, price, cost)"
+        " VALUES (%s,1,'2023-12-29',%s,'BUY',1,100,0)",
+        (run_id, iid),
+    )
+    before = state(conn)
+    with pytest.raises(MigrationError, match="no execution may reference it before the change"):
+        migrate_isin_change(conn, new_id=iid, dry_run=False, **KW)
+    assert state(conn) == before

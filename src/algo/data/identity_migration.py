@@ -93,6 +93,16 @@ def migrate_isin_change(
         raise MigrationError("the old and the new ISIN are the same")
     if conn.execute("SELECT 1 FROM instrument WHERE isin=%s", (old_isin,)).fetchone():
         raise MigrationError(f"an instrument with ISIN {old_isin} already exists")
+    persisted = conn.execute(
+        "SELECT (SELECT count(*) FROM backtest_trade WHERE instrument_id=%s AND day < %s),"
+        " (SELECT count(*) FROM backtest_ledger WHERE instrument_id=%s AND day < %s)",
+        (new_id, change, new_id, change),
+    ).fetchone()
+    if persisted and any(persisted):
+        raise MigrationError(
+            f"persisted backtest results hold {persisted[0]} trades and {persisted[1]} ledger lines "
+            f"dated before {change} on instrument {new_id}: no execution may reference it before the change"
+        )
     rd = BarReader(conn)
     rows = rd._raw(new_id)
     days = [r[0].astimezone(IST).date() for r in rows]

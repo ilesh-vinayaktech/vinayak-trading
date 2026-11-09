@@ -134,6 +134,7 @@ export const barsSchema = z.object({
       close: z.string(),
       volume: z.string(),
       factor: z.string(),
+      instrument_id: z.number().optional(), // the instrument that traded the bar (differs across an ISIN change)
     }),
   ),
   unapplied: z.array(eventRef),

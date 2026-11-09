@@ -203,7 +203,9 @@ def _s(v: Any) -> str | None:
 def instrument_bars(
     conn: psycopg.Connection, instrument_id: int, start: date, end: date, adjust: str
 ) -> dict[str, Any]:
-    h = BarReader(conn).history(instrument_id, start, end, adjust=adjust)
+    # Issuer-scoped: one continuous history across an ISIN change; each bar names the instrument
+    # that traded it (`instrument_id`), so the transition is visible and nothing is merged.
+    h = BarReader(conn).issuer_history(instrument_id, start, end, adjust=adjust)
     return {
         "adjust": adjust,
         "adjustment_version": h.adjustment_version,
@@ -211,7 +213,7 @@ def instrument_bars(
         "bars": [
             {"date": b.ts.astimezone(IST).date().isoformat(), "open": str(b.open),
              "high": str(b.high), "low": str(b.low), "close": str(b.close), "volume": str(b.volume),
-             "factor": str(b.factor)} for b in h.bars
+             "factor": str(b.factor), "instrument_id": b.owner} for b in h.bars
         ],
         "unapplied": [{"kind": a.kind, "ex_date": a.ex_date.isoformat()} for a in h.unapplied],
         "provisional": [{"kind": a.kind, "ex_date": a.ex_date.isoformat()} for a in h.provisional],
@@ -370,7 +372,7 @@ def indicator_series(
     """Indicators over the instrument's WHOLE history up to `end` (so the first visible value is
     already warmed up), returned for [start, end] only. Computed by algo.indicators on the same
     adjusted bars the chart draws, as strings; None where an indicator has no value yet."""
-    h = BarReader(conn).history(instrument_id, date(1900, 1, 1), end, adjust=adjust)
+    h = BarReader(conn).issuer_history(instrument_id, date(1900, 1, 1), end, adjust=adjust)
     bars = Bars(
         [b.open for b in h.bars], [b.high for b in h.bars], [b.low for b in h.bars],
         [b.close for b in h.bars], [b.volume for b in h.bars],

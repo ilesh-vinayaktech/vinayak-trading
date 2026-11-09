@@ -98,6 +98,9 @@ class RunResult:
         default_factory=dict
     )  # id -> (version, status)
     note_charges: list[dict[str, object]] = field(default_factory=list)  # contract-note top-ups
+    signal_sources: dict[int, list[int]] = field(
+        default_factory=dict
+    )  # instruments whose bars fed each name's SIGNAL (more than one across an ISIN change)
     reconciliation: list[str] = field(default_factory=list)  # empty = the ledger agrees with itself
     pnl: dict[str, str] = field(
         default_factory=dict
@@ -191,21 +194,32 @@ def run_backtest(
     ctx0 = Context(
         clock, DataAccess({}, clock, req.adjust), PortfolioView.of(cash, {}, cash), cfg.mode.value
     )
-    loaded = {}
+    # Two identities, on purpose.
+    #   loaded: INSTRUMENT-scoped. It prices every order and fill, drives the ledger's
+    #           corporate-action entitlements and decides when a name is tradable.
+    #   signal: ISSUER-scoped. It is all a strategy ever sees, so momentum and trend run on one
+    #           continuous history across an ISIN change. A continuous signal never makes an
+    #           instrument tradable before it has bars of its own.
+    loaded, signal = {}, {}
     for iid in dict.fromkeys(strategy.universe(ctx0)):
         ld = reader.load(iid, strict=strict)
+        sg = reader.issuer_load(iid, strict=strict)
         try:
             h = ld.history(cfg.start, cfg.end, adjust=req.adjust)
+            hs = sg.history(cfg.start, cfg.end, adjust=req.adjust)
         except UnadjustableError as e:
             res.blocked[iid] = str(e)  # strict: unresolved / provisional actions block the name
             continue
         if not h.bars:
             res.blocked[iid] = "no bars in range"
             continue
-        loaded[iid] = ld
-        res.adjustment_versions[iid] = h.adjustment_version
-        res.provisional += [_event(iid, p) for p in h.provisional]
-        res.unapplied += [_event(iid, u) for u in h.unapplied]
+        loaded[iid], signal[iid] = ld, sg
+        res.adjustment_versions[iid] = (
+            hs.adjustment_version
+        )  # pins the prices the signal was computed on
+        res.signal_sources[iid] = list(dict.fromkeys(sg.owners))
+        res.provisional += [_event(iid, p) for p in hs.provisional]
+        res.unapplied += [_event(iid, u) for u in hs.unapplied]
 
     repo, step = InstrumentRepo(conn), {}
     for iid in loaded:
@@ -317,7 +331,7 @@ def run_backtest(
             clock.advance_to(datetime.combine(day, SESSION_OPEN_UTC, UTC) + reader.visible_after)
             ctx = Context(
                 clock,
-                DataAccess(loaded, clock, req.adjust),
+                DataAccess(signal, clock, req.adjust),
                 PortfolioView.of(ledger.cash, ledger.quantities(), equity),
                 cfg.mode.value,
             )

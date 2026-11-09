@@ -36,15 +36,34 @@ adjustment modes** (closes, factors, volumes and adjustment version).
 2. It does not clean `listed_on` of instrument 1589 (2023-08-01, an archive boundary).
 3. It adds no reverse script. **Take a database backup (at least the tables above) before `--apply`.**
 
-## Open decision before anyone applies it: consumers still use the instrument-scoped read
+## Consumer separation (done, tested): signals continuous, execution instrument-scoped
 
-After the split, `BarReader.history` / `load` return only an instrument's own bars. These callers would therefore lose NESTLEIND's pre-2024 history:
-`backtest/engine.py:196` (`reader.load`), `api/queries.py:206` and `:373` (charts), and, through the engine, `strategy/context.py:43`.
-Switching them to `issuer_load` / `issuer_history` keeps signals and charts continuous, but it is a decision about simulation: orders are keyed by
-instrument, so a fill before 2024-01-05 would be priced from the old ISIN's bars for the new instrument id. I have not changed these callers.
+| Consumer | Identity now |
+|---|---|
+| Strategy signals (`DataAccess` in the backtest engine) | issuer-scoped (`issuer_load`): one continuous history across the ISIN change, every bar tagged with its owning instrument |
+| Charts and indicators (`api/queries.py`) | issuer-scoped (`issuer_history`); the bars response carries `instrument_id` per bar so the transition is visible |
+| Orders, fills, tradability, liquidity | instrument-scoped (`load`): a name is tradable only on days it has bars of its own |
+| Ledger corporate-action entitlements | instrument-scoped (the held instrument's own actions) |
+| Membership comparison | same-issuer equivalence for the comparison only |
+
+`RunResult.signal_sources` records which instruments fed each name's signal. `adjustment_versions` now pins the prices the signal was computed on.
+Regression backtest (`tests/integration/test_engine_identity.py`, 27 Dec 2023 to 9 Jan 2024, old ISIN to 4 Jan, new ISIN from 5 Jan, 10:1 split ex 5 Jan):
+the decision at the 4 Jan close sees all 7 pre-change bars (owner = old ISIN) before the new ISIN has traded once; the first order on the new ISIN fills at
+the 5 Jan open at the new ISIN's own raw open; no trade ever references the new ISIN before 5 Jan or the old ISIN at all; on 8 Jan the split adjustment has
+become knowable and the closes of 4 and 5 Jan are on one scale. A backtest with no ISIN link is unchanged.
+
+Point in time, stated plainly: the split's `knowledge_time` is the ex-date proxy (start of 5 Jan IST), so a decision on 4 Jan sees the pre-change closes unadjusted
+(20,005 vs 2,002 raw). The real announcement was earlier (22 Dec 2023, NSE circular CML59895); using it would be a separate, evidenced change to `knowledge_time`.
+
+Migration invariant added and tested: the migration refuses if any persisted backtest trade or ledger line dated before the change references the new instrument
+(today: 0 trades, 0 ledger lines on instrument 1589).
+
+Not yet modelled, so not claimed: a POSITION held across the change. The ledger has no explicit ISIN-change conversion (old position to new position at the
+split ratio), so a position in the old ISIN would be stranded on 5 Jan. Today no strategy can hold the old ISIN (membership still names 1589), but the
+membership handover correction must come with that ledger event.
 
 ## To authorise
 
-1. Decide the consumer question above (switch signals and charts to the issuer read, keep execution instrument-scoped).
+1. Review this pack and the regression results above.
 2. Take a backup, then run `uv run python scripts/migrate_isin_change.py --apply`.
-3. Re-run `scripts/verify_nestleind_identity.py` (it will then be a real split, not an in-memory one) and the full `make check`.
+3. Re-run `scripts/verify_nestleind_identity.py` (it will then be a real split, not an in-memory one), then the membership handover correction (with the ledger ISIN-change conversion) and the full `make check`.
