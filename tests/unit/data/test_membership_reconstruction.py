@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
 from algo.data.membership_reconstruction import (
+    Interval,
     Replacement,
     Revocation,
     Transition,
@@ -13,6 +14,8 @@ from algo.data.membership_reconstruction import (
     combine_rows,
     entity_of,
     equivalence_map,
+    hand_over_isin_changes,
+    hand_over_spans,
     intervals_from,
     reconcile,
     state_on,
@@ -370,3 +373,90 @@ def test_an_isin_change_is_not_a_membership_disagreement_but_instruments_stay_se
     assert same[0]["common"] == ["i:2", "i:9"]
     # the walk itself still holds the two instruments apart
     assert w.initial["N50"] == {"i:2"} and w2.initial["N50"] == {"i:9", "i:2"}
+
+
+# ---- ISIN-change handover: one issuer, two instruments, never both members on one day ----
+OLD, NEW, EFF = 2653, 1589, D(2024, 1, 5)
+CONV = [(OLD, NEW, EFF)]
+
+
+def hv(*ivs):
+    return sorted(hand_over_isin_changes(list(ivs), CONV), key=lambda i: (i.start, i.entity))
+
+
+def test_membership_running_across_the_change_is_split_on_the_effective_date():
+    out = hv(Interval(f"i:{NEW}", START, None, "WINDOW_START_BACKWARD_WALK"))
+    assert out == [
+        Interval(f"i:{OLD}", START, EFF, "WINDOW_START_BACKWARD_WALK"),  # last member day 4 Jan
+        Interval(f"i:{NEW}", EFF, None, "ISIN_CHANGE_HANDOVER"),  # first member day 5 Jan
+    ]
+
+
+def test_a_bounded_interval_keeps_its_end_on_the_new_instrument():
+    out = hv(Interval(f"i:{NEW}", D(2022, 1, 1), D(2025, 6, 1), "EVENT"))
+    assert out == [
+        Interval(f"i:{OLD}", D(2022, 1, 1), EFF, "EVENT"),
+        Interval(f"i:{NEW}", EFF, D(2025, 6, 1), "ISIN_CHANGE_HANDOVER"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        (
+            D(2022, 1, 1),
+            D(2023, 6, 1),
+            [f"i:{OLD}"],
+        ),  # ended before the change: the old security only
+        (D(2022, 1, 1), EFF, [f"i:{OLD}"]),  # exclusive end exactly on the change day
+        (EFF, None, [f"i:{NEW}"]),  # starts exactly on the change day: nothing to split
+        (D(2025, 1, 1), None, [f"i:{NEW}"]),  # after the change: unchanged
+    ],
+)
+def test_intervals_not_spanning_the_change_go_whole_to_the_instrument_trading_then(
+    start, end, expected
+):
+    out = hv(Interval(f"i:{NEW}", start, end, "EVENT"))
+    assert [i.entity for i in out] == expected
+    assert (out[0].start, out[0].end) == (start, end)
+    assert out[0].start_basis == "EVENT"  # nothing was split: the basis is untouched
+
+
+def test_an_old_instrument_interval_is_clipped_at_the_change_and_never_outlives_it():
+    out = hv(Interval(f"i:{OLD}", D(2022, 1, 1), None, "EVENT"))
+    assert out == [
+        Interval(f"i:{OLD}", D(2022, 1, 1), EFF, "EVENT"),
+        Interval(f"i:{NEW}", EFF, None, "ISIN_CHANGE_HANDOVER"),
+    ]
+
+
+def test_the_two_instruments_are_never_members_on_the_same_day():
+    out = hv(Interval(f"i:{NEW}", START, None, "WINDOW_START_BACKWARD_WALK"))
+    day = START
+    while day < D(2024, 3, 1):
+        held = [i.entity for i in out if i.start <= day and (i.end is None or day < i.end)]
+        assert len(held) == 1, (day, held)  # exactly one: continuous issuer membership, never two
+        assert held[0] == (f"i:{OLD}" if day < EFF else f"i:{NEW}")
+        day += timedelta(days=1)
+
+
+def test_other_entities_and_no_conversions_are_left_alone():
+    other = Interval("i:9", START, None, "EVENT")
+    sym = Interval("s:NESTLEIND", START, EFF, "EVENT")
+    assert sorted(hv(other, sym), key=lambda i: i.entity) == [other, sym]
+    assert hand_over_isin_changes([Interval(f"i:{NEW}", START, None, "EVENT")], []) == [
+        Interval(f"i:{NEW}", START, None, "EVENT")
+    ]
+
+
+def test_blocked_spans_are_handed_over_the_same_way():
+    spans = {
+        f"i:{NEW}": [(D(2023, 12, 1), D(2024, 2, 1)), (D(2025, 1, 1), D(2025, 2, 1))],
+        "i:9": [(START, EFF)],
+    }
+    out = hand_over_spans(spans, CONV)
+    assert out == {
+        f"i:{OLD}": [(D(2023, 12, 1), EFF)],
+        f"i:{NEW}": [(EFF, D(2024, 2, 1)), (D(2025, 1, 1), D(2025, 2, 1))],
+        "i:9": [(START, EFF)],
+    }

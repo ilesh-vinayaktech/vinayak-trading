@@ -285,6 +285,59 @@ def intervals_from(walk: Walk, comps: Sequence[str], start: date, end: date) -> 
     return sorted(out, key=lambda i: (i.entity, i.start))
 
 
+HANDOVER_BASIS = "ISIN_CHANGE_HANDOVER"
+IsinChange = tuple[int, int, date]  # (source instrument, target instrument, effective date)
+
+
+def hand_over_isin_changes(
+    intervals: Sequence[Interval], changes: Sequence[IsinChange]
+) -> list[Interval]:
+    """Membership follows the INSTRUMENT that trades. For each VERIFIED ISIN change (the caller
+    passes only those), membership of either instrument is cut at the effective date: before it the
+    source holds it, from it the target does, so the issuer is a member continuously and the two are
+    never members on one day. The end is exclusive: the source's last member day is the day before
+    the change. Only a split interval gets the HANDOVER start basis; others keep their own."""
+    out = list(intervals)
+    for src, tgt, eff in changes:
+        pair = {f"i:{src}", f"i:{tgt}"}
+        nxt: list[Interval] = []
+        for iv in out:
+            if iv.entity not in pair:
+                nxt.append(iv)
+                continue
+            if iv.start < eff:
+                nxt.append(replace(iv, entity=f"i:{src}", end=min(iv.end, eff) if iv.end else eff))
+            if iv.end is None or iv.end > eff:
+                crossed = iv.start < eff
+                nxt.append(
+                    Interval(
+                        f"i:{tgt}",
+                        max(iv.start, eff),
+                        iv.end,
+                        HANDOVER_BASIS if crossed else iv.start_basis,
+                    )
+                )
+        out = nxt
+    return sorted(out, key=lambda i: (i.entity, i.start))
+
+
+def hand_over_spans(
+    spans: Mapping[Entity, Sequence[tuple[date, date]]], changes: Sequence[IsinChange]
+) -> dict[Entity, list[tuple[date, date]]]:
+    """The same cut for blocked spans: a span belongs to the instrument that trades then."""
+    out = {e: list(v) for e, v in spans.items()}
+    for src, tgt, eff in changes:
+        a, b = f"i:{src}", f"i:{tgt}"
+        pooled = out.pop(a, []) + out.pop(b, [])
+        before = [(lo, min(hi, eff)) for lo, hi in pooled if lo < eff]
+        after = [(max(lo, eff), hi) for lo, hi in pooled if hi > eff]
+        if before:
+            out[a] = sorted(before)
+        if after:
+            out[b] = sorted(after)
+    return out
+
+
 def state_on(walk: Walk, comps: Sequence[str], day: date) -> Members:
     cur = _union(walk.initial, comps)
     for s in walk.steps:

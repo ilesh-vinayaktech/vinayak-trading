@@ -16,6 +16,7 @@ have no instrument, 200 tradable).
   (`membership_entity_equivalence.csv`: NESTLEIND keys, DUMMYREL as the index placeholder for the pre-listing Jio entity);
   hand transcriptions of notices the parser refuses. Each is a config file with its source hash and the review decision it
   rests on. No identity or alias table was changed.
+- NESTLEIND handover (2026-11-09): intervals of an ISIN-changed issuer are cut at the VERIFIED conversion date (HANDOVER_REVIEW.md); only membership_intervals.csv changed.
 - Conventions (tested): an interval end date is exclusive; a handover is effective on the listing date but its
   announcement date (`known_at`) is the date of the release that states it, never backdated.
 

@@ -22,6 +22,7 @@ from typing import Any
 
 import psycopg
 
+from algo.data.conversions import load_conversions
 from algo.data.issuer_series import Link, latest_of
 from algo.data.membership_reconstruction import (
     Replacement,
@@ -34,6 +35,8 @@ from algo.data.membership_reconstruction import (
     combine_rows,
     entity_of,
     equivalence_map,
+    hand_over_isin_changes,
+    hand_over_spans,
     intervals_from,
     reconcile,
     state_on,
@@ -138,6 +141,7 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
         "SELECT placeholder, symbol, listed_on, evidence_doc FROM index_placeholder_replacement"
         " ORDER BY listed_on, symbol"
     ).fetchall()
+    handover = [(v.source, v.target, v.effective) for v in load_conversions(c)]  # VERIFIED only
 
 replaced = frozenset(r[0] for r in reprows)
 same_issuer = {f"i:{a}": f"i:{b}" for a, b in latest_of(isin_links).items()}  # comparison only
@@ -273,6 +277,9 @@ def merge(spans: list[tuple[date, date]]) -> list[tuple[date, date]]:
     return out
 
 
+blocks = defaultdict(
+    list, hand_over_spans(blocks, handover)
+)  # a span belongs to the instrument trading then
 for e in list(blocks):
     spans = merge(blocks[e])
     if e.startswith(
@@ -290,7 +297,7 @@ for e in list(blocks):
     blocks[e] = spans
 
 events = union_events(derived, DERIVED)
-ivs = intervals_from(derived, DERIVED, START, anchor_date)
+ivs = hand_over_isin_changes(intervals_from(derived, DERIVED, START, anchor_date), handover)
 
 # ---------------- outputs ----------------
 a.out.mkdir(parents=True, exist_ok=True)
