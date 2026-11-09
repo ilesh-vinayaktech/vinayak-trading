@@ -1,0 +1,137 @@
+tier,action_id,instrument_id,symbol,ex_date,kind,subject,raw_move_across_ex,move_vs_typical_daily,resolution_status,member_in_window
+A,19277,2491,VEDL,2026-04-30,demerger,Demerger,-0.6490,60.6,provisional,True
+A,19021,2380,TMPV,2025-10-14,demerger,Demerger,-0.4015,36.6,provisional,True
+A,18569,2121,SIEMENS,2025-04-07,demerger,Demerger,-0.4293,36.4,provisional,True
+A,16914,1117,ITC,2025-01-06,demerger,Demerger,-0.0809,12.2,provisional,True
+A,18413,1897,RELIANCE,2023-07-20,demerger,Demerger,-0.0781,10.6,provisional,True
+A,16574,979,HINDUNILVR,2025-12-05,demerger,Demerger,-0.0502,7.8,provisional,True
+A,18905,2326,TCS,2022-02-22,buy,Buyback,-0.0358,5.1,no_adjustment_verified,True
+A,14973,281,BAJAJ-AUTO,2024-02-29,buy,Buy Back,-0.0341,4.8,no_adjustment_verified,True
+A,17141,1366,LTF,2021-01-21,rights,Rights 17:74@ Premium Rs 55 Per Share,-0.0780,4.3,,True
+A,14977,281,BAJAJ-AUTO,2026-06-24,buy,Buy Back,-0.0274,3.3,no_adjustment_verified,True
+A,19347,2593,WIPRO,2026-06-05,buy,Buy Back,-0.0291,3.3,no_adjustment_verified,True
+A,16811,1082,INFY,2025-11-14,buy,Buy Back,-0.0253,3.1,no_adjustment_verified,True
+A,19208,2461,UPL,2024-11-26,rights,Rights 1:8 @ Premium Rs 358/-,-0.0295,3.0,,True
+A,15410,414,BRITANNIA,2021-05-25,arangement,Scheme Of Arangement- Bonus - 1 Debenture For 1 Equity Share Held,0.0179,3.0,ignored_with_reason,True
+A,19384,2629,ZYDUSLIFE,2024-02-23,buy,Buy Back,0.0210,2.7,no_adjustment_verified,True
+A,16060,782,GAIL,2021-01-27,buy,Buyback,-0.0395,2.6,no_adjustment_verified,True
+A,19341,2593,WIPRO,2023-06-16,buy,Buy Back,-0.0197,2.6,no_adjustment_verified,True
+A,16691,1049,INDHOTEL,2021-11-11,rights,Rights 1:9 @ Premium Rs 149/-,-0.0344,2.3,,True
+A,18913,2326,TCS,2023-11-24,buy,Buy Back,-0.0146,2.3,no_adjustment_verified,True
+A,17129,1365,LT,2023-09-12,buy,Buy Back,0.0172,2.2,no_adjustment_verified,True
+A,15227,356,BHARTIARTL,2021-09-27,rights,Rights 1:14 @ Premium Rs 530/-,-0.0228,2.2,,True
+A,14628,52,ADANIENT,2025-11-17,rights,Rights 3:25 @ Premium Rs 1799/-,-0.0218,2.0,,True
+A,17797,1638,NTPC,2020-11-12,buy,Buy-Back,-0.0226,1.7,no_adjustment_verified,True
+A,17539,1563,NATIONALUM,2021-02-05,buy,Buyback,-0.0281,1.7,no_adjustment_verified,True
+A,17750,1625,NMDC,2020-11-20,buy,Buy Back,-0.0286,1.6,no_adjustment_verified,True
+A,19381,2629,ZYDUSLIFE,2022-06-01,buy,Buyback,-0.0151,1.4,no_adjustment_verified,True
+A,18776,2312,TATACONSUM,2024-07-26,rights,Rights 1:26 @ Premium Rs 817/-,-0.0081,1.1,,True
+A,19336,2593,WIPRO,2020-12-10,buy,Buyback,-0.0100,1.0,no_adjustment_verified,True
+A,19387,2629,ZYDUSLIFE,2026-05-29,buy,Buy Back,-0.0075,1.0,no_adjustment_verified,True
+A,16064,782,GAIL,2022-04-21,buy,Buyback,-0.0097,0.9,no_adjustment_verified,True
+A,18899,2326,TCS,2020-11-26,buy,Buyback,0.0071,0.8,no_adjustment_verified,True
+A,14933,249,AUROPHARMA,2024-07-30,buy,Buy Back,-0.0040,0.4,no_adjustment_verified,True
+A,16758,1079,INDUSTOWER,2024-08-09,buy,Buy Back,-0.0049,0.3,no_adjustment_verified,True
+A,16232,878,GRASIM,2024-01-10,rights,Rights 6:179 @ Premium Rs 1810/-,0.0022,0.3,,True
+A,19124,2422,TVSMOTOR,2025-08-25,arrangement,Scheme Of Arrangement - Bonus Ncrps 4:1,-0.0030,0.3,ignored_with_reason,True
+A,14935,249,AUROPHARMA,2026-04-17,buy,Buy Back,-0.0004,0.0,no_adjustment_verified,True
+B,17354,1518,MOTHERSON,2022-01-14,demerger,Demerger,-0.2098,16.9,provisional,True
+B,17754,1625,NMDC,2022-10-27,demerger,Demerger,-0.2023,15.2,provisional,True
+B,16100,845,GMRAIRPORT,2022-01-11,demerger,Demerger,-0.0743,5.2,provisional,True
+B,18730,2274,SUZLON,2022-10-03,rights,Rights 5:21 @ Premium Rs 3/-,-0.0920,3.7,,True
+B,17389,1519,MOTILALOFS,2022-05-26,buy,Buyback,-0.0256,1.9,no_adjustment_verified,True
+B,15429,417,BSE,2023-09-14,buy,Buy Back,-0.0132,1.2,no_adjustment_verified,True
+C,14590,27,ABB,2019-12-20,demerger,Demerger,-0.1450,,provisional,True
+C,15630,503,COFORGE,2020-03-11,buy,Buy Back,-0.0211,,no_adjustment_verified,True
+C,18409,1897,RELIANCE,2020-05-13,rights,Rights 1:15 @ Premium Rs 1247,0.0116,,,True
+C,18528,2111,SHRIRAMFIN,2020-07-09,rights,Rights 3:26 @ Premium Rs 560/-,-0.0482,,,True
+D,19168,2452,UNITDSPR,2006-10-17,demerger,Sch Of Arngment-Demerger,,,,True
+D,15033,292,BAJFINANCE,2006-11-13,rights,Right-Eq6:10 & 1ncd:4eq,,,,True
+D,15034,292,BAJFINANCE,2006-11-13,other,Right-Eq6:10 & 1ncd:4eq,,,,True
+D,18650,2246,SUNPHARMA,2007-04-23,arrangement,Scheme Of Arrangement,,,,True
+D,15490,482,CHOLAFIN,2007-09-11,rights,Rights Equity/Warrant,,,,True
+D,15491,482,CHOLAFIN,2007-09-11,other,Rights Equity/Warrant,,,,True
+D,18807,2316,TATASTEEL,2007-10-29,other,Right-Eq1:5 & 9ccps:10eq,,,,True
+D,18806,2316,TATASTEEL,2007-10-29,rights,Right-Eq1:5 & 9ccps:10eq,,,,True
+D,15998,746,FEDERALBNK,2007-11-19,rights,Rights-Eq 1:1@Prem Rs.240,,,,True
+D,15963,735,EXIDEIND,2007-12-10,rights,Rights-Eq 1:15@Prem Rs.29,,,,True
+D,18479,2028,SBIN,2008-01-28,rights,Rights-Eq 1:5@Prem Rs1580,,,,True
+D,16674,1049,INDHOTEL,2008-02-21,rights,Rhts-Eq1:5&1ncd/Wrnt:10eq,,,,True
+D,16675,1049,INDHOTEL,2008-02-21,other,Rhts-Eq1:5&1ncd/Wrnt:10eq,,,,True
+D,16136,857,GODREJCP,2008-03-12,rights,Rights-Eq 1:7@Prem Rs122,,,,True
+D,15003,288,BAJAJHLDNG,2008-03-14,arrangement,Scheme Of Arrangement,,,,True
+D,16461,972,HINDALCO,2008-08-28,rights,Rhs 3:7@Prem Rs95/Div185%,,,,True
+D,19006,2380,TMPV,2008-09-09,rights,Rights Eq 1:6/Dif Vot 1:6,,,,True
+D,19007,2380,TMPV,2008-09-09,other,Rights Eq 1:6/Dif Vot 1:6,,,,True
+D,19365,2629,ZYDUSLIFE,2008-12-29,arrangement,Scheme Of Arrangement,,,,True
+D,16020,772,FORTIS,2009-08-18,other,Rhts Eq 2:5 & 2 Wrnt:2 Eq,,,,True
+D,16019,772,FORTIS,2009-08-18,rights,Rhts Eq 2:5 & 2 Wrnt:2 Eq,,,,True
+D,15393,414,BRITANNIA,2010-03-08,sch of,Sch Of Agmt- Bonus Deb1:1,,,,True
+D,14608,52,ADANIENT,2010-03-23,rights,Rights 1:16 @Prem Rs.474,,,,True
+D,16213,878,GRASIM,2010-05-26,arrangement,Scheme Of Arrangement,,,,True
+D,18729,2274,SUZLON,2010-06-09,rights,Rights 2:15 @ Premium Rs.61/-,,,,True
+D,19066,2403,TRENT,2010-07-08,other,4 Ccps (2 Series A Ccps And 2 Series B Ccps) Issued @ Premium Of Rs 540 Per Ccps For 9 Eq Shares,,,,True
+D,15917,643,DRREDDY,2011-03-17,arrangement,Scheme Of Arrangement - Bonus Debentures 6:1,,,,True
+D,14983,284,BAJAJFINSV,2012-09-06,rights,Rights 1:10 @ Premium Rs.645/- Per Share,,,,True
+D,15041,292,BAJFINANCE,2013-01-23,rights,Rights 3:19 @ Premium Rs 1090 Per Share,,,,True
+D,19319,2593,WIPRO,2013-04-09,arrangement,Scheme Of Arrangement,,,,True
+D,16203,859,GODREJPROP,2013-08-19,rights,Rights 8:29 @ Premium Rs.315/- Per Equity Share,,,,True
+D,17231,1426,MARICO,2013-11-01,arrangement,Scheme Of Arrangement And First Interim Dividend,,,,True
+D,17656,1600,NHPC,2013-11-07,buy,Buy Back-Tender Offer,,,,True
+D,18789,2315,TATAPOWER,2014-03-19,rights,Rights 7:50 @ Premium Rs.59/- Per Equity Share,,,,True
+D,16683,1049,INDHOTEL,2014-07-18,other,9 Ccds For Every 40 Equity Shares,,,,True
+D,16099,845,GMRAIRPORT,2015-03-11,rights,Rights 3:14 @ Premium Rs 14/- Per Share,,,,True
+D,17784,1638,NTPC,2015-03-20,arrangement,Scheme Of Arrangement - Bonus Debentures 1:1,,,,True
+D,19015,2380,TMPV,2015-04-06,rights,Rights 6:109 @ Premium Rs. 448/- Per Share,,,,True
+D,14614,52,ADANIENT,2015-06-03,arrangement,Scheme Of Arrangement,,,,True
+D,17329,1472,MFSL,2016-01-27,arrangement,Scheme Of Arrangement,,,,True
+D,15482,469,CGPOWER,2016-03-15,arrangement,Scheme Of Arrangement,,,,True
+D,19326,2593,WIPRO,2016-05-05,buy,Buyback Of Shares,,,,True
+D,16745,1079,INDUSTOWER,2016-06-15,buy,Buy-Back Of Shares,,,,True
+D,18661,2246,SUNPHARMA,2016-07-14,buy,Buy Back,,,,True
+D,17529,1563,NATIONALUM,2016-07-28,buy,Buy Back,,,,True
+D,17743,1625,NMDC,2016-08-18,buy,Buy Back,,,,True
+D,15332,405,BOSCHLTD,2016-09-02,buy,Buy Back,,,,True
+D,15560,498,COALINDIA,2016-09-08,buy,Buyback Of Shares,,,,True
+D,15140,332,BEL,2016-09-26,buy,Buy Back Of Share,,,,True
+D,14707,166,APARINDS,2017-01-19,buy,Buyback,,,,True
+D,17702,1624,NLCINDIA,2017-02-09,buy,Buy Back,,,,True
+D,15446,432,CANBK,2017-02-17,rights,Rights 1:10 @ Prem Rs 197/- Per Share,,,,True
+D,17663,1600,NHPC,2017-02-17,buy,Buyback,,,,True
+D,17410,1523,MPHASIS,2017-03-30,buy,Buyback,,,,True
+D,17875,1652,OIL,2017-04-03,buy,Buyback,,,,True
+D,18879,2326,TCS,2017-05-05,buy,Buyback,,,,True
+D,16334,942,HCLTECH,2017-05-24,buy,Buyback/Interim Dividend Rs 6/- Per Share (Purpose Revised),,,,True
+D,16222,878,GRASIM,2017-07-19,arrangement,Scheme Of Arrangement,,,,True
+D,19330,2593,WIPRO,2017-09-14,buy,Buyback,,,,True
+D,16686,1049,INDHOTEL,2017-10-04,rights,Rights 1:5 @ Premium Rs 74/-,,,,True
+D,16790,1082,INFY,2017-10-31,buy,Buyback,,,,True
+D,18819,2316,TATASTEEL,2018-01-31,other,Rights - 4:25 Fully Paid Up Shares @ Premium Rs 500/- Per Share / 2:25 Partly Paid Up Shares @ Premium Rs 605/- Per Share,,,,True
+D,18818,2316,TATASTEEL,2018-01-31,rights,Rights - 4:25 Fully Paid Up Shares @ Premium Rs 500/- Per Share / 2:25 Partly Paid Up Shares @ Premium Rs 605/- Per Share,,,,True
+D,15146,332,BEL,2018-02-08,buy,Buyback,,,,True
+D,18174,1753,PIDILITIND,2018-02-09,buy,Buyback,,,,True
+D,14618,52,ADANIENT,2018-04-05,arrangement,Scheme Of Arrangement,,,,True
+D,18887,2326,TCS,2018-08-14,buy,Buyback,,,,True
+D,16341,942,HCLTECH,2018-08-30,buy,Buyback,,,,True
+D,14620,52,ADANIENT,2018-09-06,arrangement,Scheme Of Arrangement,,,,True
+D,17120,1365,LT,2018-10-12,buy,Buyback,,,,True
+D,17706,1624,NLCINDIA,2018-10-23,buy,Buyback,,,,True
+D,17413,1523,MPHASIS,2018-10-24,buy,Buyback,,,,True
+D,17534,1563,NATIONALUM,2018-10-25,buy,Buy Back,,,,True
+D,15590,500,COCHINSHIP,2018-10-30,buy,Buy Back,,,,True
+D,15261,358,BHEL,2018-11-05,buy,Buyback,,,,True
+D,17667,1600,NHPC,2018-11-29,buy,Buyback,,,,True
+D,17880,1652,OIL,2018-11-30,buy,Buy Back,,,,True
+D,15336,405,BOSCHLTD,2018-12-20,buy,Buyback,,,,True
+D,16837,1099,IOC,2018-12-21,buy,Buyback,,,,True
+D,17940,1666,ONGC,2019-01-03,buy,Buy Back,,,,True
+D,17747,1625,NMDC,2019-01-17,buy,Buy Back,,,,True
+D,15565,498,COALINDIA,2019-02-14,buy,Buy Back,,,,True
+D,18942,2330,TECHM,2019-03-05,buy,Buy Back,,,,True
+D,16664,1020,IDEA,2019-03-29,rights,Rights 87:38 @ Premium Of Rs 2.50 Per Share,,,,True
+D,15225,356,BHARTIARTL,2019-04-23,rights,Rights 19:67 @ Premium Rs 215 Per Share,,,,True
+D,14646,54,ADANIPORTS,2019-06-20,buy,Buyback,,,,True
+D,19334,2593,WIPRO,2019-06-20,buy,Buyback,,,,True
+D,15423,417,BSE,2019-07-26,buy,Buyback,,,,True
+D,15406,414,BRITANNIA,2019-08-22,arangement,Scheme Of Arangement- Bonus - 1 Debenture For 1 Equity Share Held,,,,True
+D,18747,2311,TATACOMM,2019-09-17,demerger,Demerger,,,,True
