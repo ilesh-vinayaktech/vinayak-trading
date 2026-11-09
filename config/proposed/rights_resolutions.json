@@ -26,9 +26,22 @@
         "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Reliance-Industries-Limited-Letter-of-Offer.pdf (letter of offer, not retrieved)",
         "https://zerodha.com/marketintel/bulletin/254966/adjustment-of-futures-and-options-contracts-of-reliance (F&O adjustment, revised lot 505)"
       ],
+      "offer_document": {
+        "document": "Letter of Offer",
+        "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Reliance-Industries-Limited-Letter-of-Offer.pdf",
+        "stored_at": "data/evidence/rights/reliance_lof.pdf",
+        "sha256": "f2b92247b764c51db75a5fb64bb21f91ba8b15dd27841f2ae4f4116c7535e8c8",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "1 (one) Rights Equity Share for every 15 Equity Shares held": true,
+          "\u20b9 1,257 per Rights Equity Share (including premium of \u20b9 1,247 per Rights Equity Share)": true,
+          "On Application, Investors will have to pay \u20b9 314.25 per Rights": true,
+          "balance \u20b9 942.75 per Rights Equity Share which constitutes 75%": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "SHRIRAMFIN",
@@ -53,9 +66,20 @@
         "https://www.sebi.gov.in/filings/rights-issues/jul-2020/shriram-transport-finance-company-limited_47033.html (letter of offer, not retrieved)",
         "NSE F&O circular 096/2020 (methodology NSE/FAOP/44945), factor not retrieved"
       ],
+      "offer_document": {
+        "document": "Letter of Offer",
+        "url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/shriram-transport-finance-company-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/shriramfin_lof.pdf",
+        "sha256": "fa3a59f289dec35841d2159a5b05afc40fac25eb4d53682b12087ad7d94dd3a9",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "3 Rights Equity Shares for every 26 Equity Shares held on the Record Date": true,
+          "Issue Price Rs. 570 per Rights Equity Share (including a premium of Rs. 560": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "LTF",
@@ -79,9 +103,20 @@
       "sources": [
         "https://www.msei.in/SX-Content/Circulars/2021/January/Circular-10020.pdf (MSE circular, cum close 103.85, revised lot 8924; factor not read)"
       ],
+      "offer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/l-t-finance-holdings-rights-issue-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/ltf_abridged_lof.pdf",
+        "sha256": "1648b198cee937161c675a6eea5ebd286ecffa3b379ab9282b3c6eb41cce706f",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "RATIO OF 17 EQUITY SHARES FOR EVERY 74 FULLY PAID-UP EQUITY SHARES": true,
+          "AT A PRICE OF ` 65 PER EQUITY SHARE (INCLUDING A PREMIUM OF ` 55": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "BHARTIARTL",
@@ -106,9 +141,22 @@
         "https://www.msei.in/SX-Content/Circulars/2021/September/Circular-10921.pdf (MSE circular: AF = (P-E)/P = 0.981571)",
         "https://assets.airtel.in/teams/simplycms/web/docs/Letter_of_Offer_dated_September_22-2021.pdf (letter of offer, not retrieved)"
       ],
+      "offer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/BHARTI-AIRTEL-LIMITED-Rights-Issue-Abridged-Letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/bhartiartl_abridged_lof.pdf",
+        "sha256": "4bc9374983ec9c9de11865bdcc1a1030fdf215d4759ad12a7ed8d13c12c1c3bf",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "RATIO OF 1 (ONE) RIGHTS EQUITY SHARES FOR EVERY 14 (FOURTEEN) EQUITY SHARES": true,
+          "PARTLY PAID-UP EQUITY SHARES OF FACE VALUE OF ` 5 EACH": true,
+          "AT A PRICE OF ` 535 PER RIGHTS EQUITY SHARE (INCLUDING A PREMIUM OF ` 530": true,
+          "On Application 1.25 132.50 133.75": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "INDHOTEL",
@@ -133,9 +181,22 @@
         "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf (abridged letter of offer, not retrieved)",
         "NSE F&O circular Annexure-1 (revised lot 4022), factor not retrieved"
       ],
+      "offer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/indhotel_abridged_lof.pdf",
+        "sha256": "59e7e7cde8479e61d7b9cec43dbd9612a85fe8d8f96e1e707683873b96a421c1",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "RATIO OF ONE RIGHTS EQUITY SHARE FOR EVERY NINE FULLY PAID-UP": true,
+          "FULLY PAID-UP EQUITY SHARES OF FACE VALUE OF `1.00 EACH": true,
+          "AT A PRICE OF ` 150 PER RIGHTS EQUITY SHARE (INCLUDING A PREMIUM": true,
+          "NOVEMBER 13, 2021 (\u201cRECORD DATE\u201d)": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "SUZLON",
@@ -153,16 +214,23 @@
       "factor": "0.9182139699381078691423519009",
       "face_value": "2",
       "premium": "3",
-      "payment": "PARTLY PAID (Re 1 paid on application per a later BSE filing; first and final call Rs 2.50 per the call notice); not an F&O stock then; issue proceeded and closed 1.8x subscribed",
+      "payment": "PARTLY PAID: Rs 2.50 on application (Re 1 face value + Rs 1.50 premium), first and final call Rs 2.50 (notice 2023-03-03); not an F&O stock then; issue proceeded, 1.8x subscribed",
       "exchange_factor_found": null,
       "reproduces_exchange_factor": null,
       "sources": [
         "https://pv-magazine-india.com/press-releases/suzlon-energy-inr-1200-crore-rights-issue-to-open-on-october-11-2022",
         "letter of offer not located"
       ],
+      "offer_document": {
+        "document": "NOT RETRIEVED (letter of offer dated 2022-09-28, addendum 2022-10-10)",
+        "secondary": [
+          "https://www.scribd.com/document/613476819/DUP-CAF-1208870033427583 (payment table: On Application 1.00 1.50 2.50)",
+          "KFintech first and final call notice dated 2023-03-03: Rs 2.50 (Re 1.00 face value, Rs 1.50 premium)"
+        ]
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "the letter of offer was NOT retrieved; terms from secondary filings and reports. NOT verified."
     },
     {
       "symbol": "GRASIM",
@@ -187,9 +255,23 @@
         "https://zerodha.com/marketintel/bulletin/368337/adjustment-of-futures-and-options-contracts-of-grasim-due-to-rights-issue (factor 0.996040)",
         "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf (abridged letter of offer, not retrieved)"
       ],
+      "offer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf",
+        "stored_at": "data/evidence/rights/grasim_abridged_lof.pdf",
+        "sha256": "fdfbf3d4921cc22ca72c3771b971e7f6f585cc787a23e333aa62ee252258d583",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "RATIO OF 6 RIGHTS EQUITY SHARES FOR EVERY 179": true,
+          "PARTLY PAID-UP EQUITY SHARES OF FACE VALUE OF `2 EACH": true,
+          "`1,812 per Rights Equity Share (including premium of `1,810": true,
+          "On Application 0.50 452.50 453.00": true,
+          "WEDNESDAY, JANUARY 10, 2024 (\u201cRECORD DATE\u201d)": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "TATACONSUM",
@@ -207,16 +289,29 @@
       "factor": "0.9877229305146925284225055394",
       "face_value": "1",
       "premium": "817",
-      "payment": "terms say Rs 818 per share; payment structure not confirmed; the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
+      "payment": "FULLY PAID: all Rs 818 on application (abridged letter of offer); the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
       "exchange_factor_found": null,
       "reproduces_exchange_factor": null,
       "sources": [
         "https://zerodha.com/marketintel/bulletin/384895/adjustment-of-futures-and-options-contracts-of-tataconsum-due-to-rights-issue",
         "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf (abridged letter of offer, not retrieved)"
       ],
+      "offer_document": {
+        "document": "Abridged Letter of Offer",
+        "url": "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf",
+        "stored_at": "data/evidence/rights/tataconsum_abridged_lof.pdf",
+        "sha256": "3a5c268e6cbc343c25df99d0fcaf4345228c58339ce6cf67b7d18f7fae3461b3",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "EQUITY SHARE FOR EVERY 26 (TWENTY - SIX) FULLY PAID-UP EQUITY SHARES": true,
+          "FULLY PAID-UP EQUITY SHARES OF FACE VALUE OF ` 1 EACH": true,
+          "On Application (i.e., along with the Application Form) 1 817 818": true,
+          "SATURDAY, JULY 27, 2024 (\u201cRECORD DATE\u201d)": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "UPL",
@@ -241,9 +336,22 @@
         "https://nsearchives.nseindia.com/content/circulars/FAOP65222.pdf (NSE: indicative AF 0.959243 at cum close 568.55)",
         "NSE circular 149/2024 reported AF 0.959510 (implies a different P; not retrieved)"
       ],
+      "offer_document": {
+        "document": "Company FAQ on the rights issue (not the letter of offer)",
+        "url": "https://www.upl-ltd.com/downloads/right-issues-pdf/FAQs_Rights_issue.pdf",
+        "stored_at": "data/evidence/rights/upl_rights_faq.pdf",
+        "sha256": "5bd97bfbe2b174f43354e6241dd3061c5e9f02f61241c9f558296a250e3eca28",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "ratio of 1 Rights Equity Share for every 8 Equity Share(s)": true,
+          "Issue Price \u20b9360 per Rights Equity Share (including a premium of \u20b9358": true,
+          "*Constitutes 25% of the Issue Price.": true,
+          "Record Date i.e., Tuesday, November 26, 2024": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     },
     {
       "symbol": "ADANIENT",
@@ -268,9 +376,21 @@
         "https://tradingqna.com/t/adjustments-in-f-o-contracts-of-adani-enterprises-limited-adanient-on-account-of-rights-issue-2025/188697 (forum copy of the exchange notice: AF 0.969485)",
         "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf"
       ],
+      "offer_document": {
+        "document": "Company FAQ on the partly paid rights shares (not the letter of offer)",
+        "url": "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf",
+        "stored_at": "data/evidence/rights/adanient_rights_faq.pdf",
+        "sha256": "05fd744c872f061cb1b317a9a09147c6e9758d0f02b4a72f06a7d2982406cf5e",
+        "retrieved": "2026-11-09",
+        "quotes_found_in_extracted_text": {
+          "in the ratio of 3 (three)": true,
+          "Issue Price \u20b9 1,800.00 per Rights Equity Share (including a premium of": true,
+          "On Application 0.50 899.50 900.00": true
+        }
+      },
       "status_proposed": "provisional",
       "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-      "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified."
+      "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
     }
   ]
 }

@@ -108,7 +108,7 @@ TERMS = [
         21,
         "2",
         "3",
-        "PARTLY PAID (Re 1 paid on application per a later BSE filing; first and final call Rs 2.50 per the call notice); not an F&O stock then; issue proceeded and closed 1.8x subscribed",
+        "PARTLY PAID: Rs 2.50 on application (Re 1 face value + Rs 1.50 premium), first and final call Rs 2.50 (notice 2023-03-03); not an F&O stock then; issue proceeded, 1.8x subscribed",
         None,
         [
             "https://pv-magazine-india.com/press-releases/suzlon-energy-inr-1200-crore-rights-issue-to-open-on-october-11-2022",
@@ -136,7 +136,7 @@ TERMS = [
         26,
         "1",
         "817",
-        "terms say Rs 818 per share; payment structure not confirmed; the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
+        "FULLY PAID: all Rs 818 on application (abridged letter of offer); the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
         None,
         [
             "https://zerodha.com/marketintel/bulletin/384895/adjustment-of-futures-and-options-contracts-of-tataconsum-due-to-rights-issue",
@@ -173,6 +173,15 @@ TERMS = [
     ),
 ]
 
+MANIFEST = json.loads(
+    Path("docs/stage4/corporate_actions/rights_evidence_manifest.json").read_text()
+)
+
+
+def checked(sym: str) -> bool:
+    return "sha256" in (MANIFEST.get(sym) or {})
+
+
 with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
     rows = []
     for sym, ex, A, B, fv, prem, pay, exch, src in TERMS:
@@ -195,9 +204,10 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
             "method": "rights", "params": {"new": str(A), "held": str(B), "subscription_price": str(S)}, "prev_close": str(prev),
             "factor": str(f), "face_value": fv, "premium": prem, "payment": pay,
             "exchange_factor_found": exch, "reproduces_exchange_factor": (f"{f:.6f}" == exch) if exch else None,
-            "sources": src, "status_proposed": "provisional",
+            "sources": src, "offer_document": MANIFEST.get(sym), "status_proposed": "provisional",
             "evidence_class_when_recorded": "PROVISIONAL_FROM_TERMS",
-            "limitation": "terms from public reports and exchange-notice copies; the letter of offer has not been retrieved and read. NOT verified.",
+            "limitation": "terms confirmed against the issuer's own offer document (stored, SHA-256 recorded, quoted terms found in its text); exchange circular not retrieved. NOT verified."
+            if checked(sym) else "the letter of offer was NOT retrieved; terms from secondary filings and reports. NOT verified.",
         })  # fmt: skip
 
 a.out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -216,7 +226,7 @@ L = ["# Rights issues affecting the research window: TERP proposal (read-only; n
      "factor = TERP / P, TERP = (B x P + A x S) / (A + B), S = the FULL issue price (face value + premium), P = previous cum-rights close.",
      "This equals the exchanges' F&O rights adjustment factor (P - E) / P. No exchange adjusts the cash-market base price for a rights issue",
      "(the bhavcopy PREV_CLOSE on every ex-date is the unadjusted cum close), so there is no exchange base price to take precedence.", "",
-     "| symbol | ex-date | A:B | issue price | P (cum close) | proposed factor | exchange factor found | reproduced | payment |", "|---|---|---|---|---|---|---|---|---|"]  # fmt: skip
+     "| symbol | ex-date | A:B | issue price | P (cum close) | proposed factor | exchange factor found | reproduced | issuer document checked | payment |", "|---|---|---|---|---|---|---|---|---|---|"]  # fmt: skip
 for r in rows:
     rep = (
         "n/a"
@@ -224,7 +234,7 @@ for r in rows:
         else ("yes" if r["reproduces_exchange_factor"] else "NO")
     )
     L.append(
-        f"| {r['symbol']} | {r['ex_date']} | {r['params']['new']}:{r['params']['held']} | {r['params']['subscription_price']} | {r['prev_close']} | {D(r['factor']):.6f} | {r['exchange_factor_found'] or '-'} | {rep} | {r['payment']} |"
+        f"| {r['symbol']} | {r['ex_date']} | {r['params']['new']}:{r['params']['held']} | {r['params']['subscription_price']} | {r['prev_close']} | {D(r['factor']):.6f} | {r['exchange_factor_found'] or '-'} | {rep} | {MANIFEST[r['symbol']]['document'] if checked(r['symbol']) else 'NOT RETRIEVED'} | {r['payment']} |"
     )
 L += [
     "",
