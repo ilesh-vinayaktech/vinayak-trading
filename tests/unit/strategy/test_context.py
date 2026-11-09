@@ -4,6 +4,8 @@ from decimal import Decimal as D
 import pytest
 
 from algo.core.clock import SimClock
+from algo.data.adjust.factors import ActionRecord
+from algo.data.corporate_actions import knowledge_time_for
 from algo.data.reader import Loaded
 from algo.strategy.context import Context, DataAccess, PortfolioView
 
@@ -46,3 +48,24 @@ def test_context_exposes_clock_mode_portfolio_and_no_database_handle():
     assert ctx.now() == clock.now() and ctx.mode == "strict" and ctx.portfolio.cash == D(1)
     assert not any(hasattr(ctx, n) for n in ("conn", "db", "broker", "reader"))
     assert not any(hasattr(ctx.data, n) for n in ("conn", "db", "broker", "reader"))
+
+
+def test_strict_withholds_a_name_only_while_its_window_crosses_an_unresolved_action():
+    # unresolved demerger ex 10 Jun (known from the start of 10 Jun IST). Strict, 1-day window.
+    rec = ActionRecord(DAYS[1], "demerger", "review", None, None, None, knowledge_time_for(DAYS[1]))
+    rows = [
+        (OPEN(d), D(p), D(p), D(p), D(p), D(100)) for d, p in zip(DAYS, (100, 90, 91), strict=True)
+    ]
+    clock = SimClock(datetime(2025, 6, 9, 13, 0, tzinfo=UTC))
+    da = DataAccess(
+        {1: Loaded(rows, [rec], VISIBLE, strict=True), 2: loaded((5, 5, 5))}, clock, "split"
+    )
+    assert da.history([1, 2], 1).keys() == {1, 2} and da.withheld == {}  # not yet known: usable
+    clock.advance_to(datetime(2025, 6, 10, 13, 0, tzinfo=UTC))
+    assert da.history([1, 2], 1).keys() == {2}  # window 9..10 Jun crosses the ex-date
+    assert "demerger" in da.withheld[1] and 2 not in da.withheld
+    clock.advance_to(datetime(2025, 6, 11, 13, 0, tzinfo=UTC))
+    da2 = DataAccess({1: Loaded(rows, [rec], VISIBLE, strict=True)}, clock, "split")
+    assert (
+        da2.history([1], 1).keys() == {1} and da2.withheld == {}
+    )  # window 10..11 Jun: clear again

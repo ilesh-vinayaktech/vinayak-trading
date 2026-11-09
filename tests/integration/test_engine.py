@@ -6,7 +6,7 @@ import pytest
 from algo.backtest.costs.policy import CostModel
 from algo.backtest.engine import InvalidTargets, run_backtest
 from algo.data.review import resolve
-from algo.strategy.base import Mode, Strategy
+from algo.strategy.base import Mode, Requirements, Strategy
 from tests.support.bt import (
     DAYS,
     NOW,
@@ -189,20 +189,91 @@ def test_research_mode_applies_provisional_estimates_and_reports_them(env):
     assert r.unapplied == [] and r.blocked == {} and a in r.adjustment_versions
 
 
-def test_strict_mode_blocks_instruments_with_provisional_actions_and_records_why(env):
+class Peek(Strategy):
+    """Records which instruments its strict/research window can see on each decision; scripted targets."""
+
+    id, version, Params = "peek", "1", HoldParams
+
+    def __init__(self, params, script=(), lookback=2):
+        super().__init__(params)
+        self.script, self.lookback, self.seen = list(script), lookback, []
+
+    def universe(self, ctx):
+        return list(self.params.ids)
+
+    def requirements(self):
+        return Requirements(lookback_days=self.lookback)
+
+    def on_schedule(self, ctx):
+        self.seen.append(
+            (ctx.now().date(), set(ctx.data.history(list(self.params.ids), self.lookback)))
+        )
+        return self.script.pop(0) if self.script else None
+
+
+def peek(a, b, script=(), lookback=2):
+    return Peek(HoldParams(ids=(a, b), weights=(D(0), D(0))), script, lookback)
+
+
+def test_strict_withholds_a_name_only_while_its_lookback_crosses_an_unresolved_action(env):
+    # provisional (= unresolved in strict) demerger ex DAYS[6] = 10 Jun; 2-day lookback.
     conn, a, b = env
     put_bars(conn, a, flat(100))
     put_bars(conn, b, flat(50))
     provisional_demerger(conn, a, DAYS[6])
-    r = run_backtest(conn, hold((b, 1)), cfg(mode=Mode.STRICT))  # b is clean
-    assert r.final_positions == {b: D(200)}
-    s = Scripted(HoldParams(ids=(a, b), weights=(D(1), D(0))), [{a: D(1)}])
-    blocked_run = None
-    with pytest.raises(InvalidTargets, match="unblocked"):
-        blocked_run = run_backtest(conn, s, cfg(mode=Mode.STRICT))
-    assert blocked_run is None
-    both = run_backtest(conn, hold((b, 1)), cfg(mode=Mode.STRICT, start=DAYS[0]))
-    assert both.blocked == {}
+    s = peek(a, b)
+    r = run_backtest(conn, s, cfg(mode=Mode.STRICT))
+    seen = dict(s.seen)
+    assert all(seen[d] == {a, b} for d in DAYS[:6])  # before the action is known: eligible
+    assert seen[DAYS[6]] == {b} and seen[DAYS[7]] == {b}  # window still holds pre-ex-date bars
+    assert seen[DAYS[8]] == {a, b}  # window 10..12 Jun no longer crosses: eligible again
+    assert list(r.blocked) == [a]
+    assert (
+        "withheld on 2 decision day(s) 2025-06-10..2025-06-11" in r.blocked[a]
+        and "demerger" in r.blocked[a]
+    )
+    research = peek(a, b)
+    rr = run_backtest(conn, research, cfg(mode=Mode.RESEARCH))
+    assert all(v == {a, b} for _, v in research.seen) and rr.blocked == {}
+
+
+def test_strict_refuses_a_target_on_a_withheld_name_but_not_before_or_after(env):
+    conn, a, b = env
+    put_bars(conn, a, flat(100))
+    put_bars(conn, b, flat(50))
+    provisional_demerger(conn, a, DAYS[6])
+    script = [None] * 6 + [{a: D(1)}]  # decides on DAYS[6]: a is withheld that day
+    with pytest.raises(InvalidTargets, match="withheld"):
+        run_backtest(conn, peek(a, b, script), cfg(mode=Mode.STRICT))
+    after = run_backtest(conn, peek(a, b, [None] * 8 + [{a: D(1)}]), cfg(mode=Mode.STRICT))
+    assert [(t.day, t.instrument_id, t.side) for t in after.trades] == [(DAYS[9], a, "BUY")]
+
+
+def test_strict_holding_bought_before_the_action_is_frozen_while_withheld_and_flagged(env):
+    conn, a, b = env
+    put_bars(conn, a, flat(100))
+    put_bars(conn, b, flat(50))
+    provisional_demerger(conn, a, DAYS[6])
+    # buy a on day 0's decision; on DAYS[6] and DAYS[7] the strategy (which cannot see a) asks for b only
+    script = [{a: D(1)}] + [None] * 5 + [{b: D("0.5")}, {b: D("0.5")}]
+    r = run_backtest(conn, peek(a, b, script), cfg(mode=Mode.STRICT))
+    assert [(t.instrument_id, t.side) for t in r.trades][0] == (a, "BUY")
+    assert all(
+        not (t.instrument_id == a and t.side == "SELL") for t in r.trades
+    )  # frozen, not force-sold
+    assert [u["kind"] for u in r.unmodelled] == ["demerger"] and not r.accounting_complete
+
+
+def test_strict_run_starting_after_the_ex_date_withholds_instead_of_failing(env):
+    # the run starts after the action, but early lookbacks still reach back across it
+    conn, a, b = env
+    put_bars(conn, a, flat(100))
+    put_bars(conn, b, flat(50))
+    provisional_demerger(conn, a, DAYS[6])
+    s = peek(a, b)
+    r = run_backtest(conn, s, cfg(mode=Mode.STRICT, start=DAYS[7]))
+    assert dict(s.seen) == {DAYS[7]: {b}, DAYS[8]: {a, b}}
+    assert "2025-06-11..2025-06-11" in r.blocked[a]
 
 
 def test_blocked_instrument_is_listed_with_its_reason(env):
@@ -213,6 +284,8 @@ def test_blocked_instrument_is_listed_with_its_reason(env):
     r = run_backtest(conn, Scripted(HoldParams(ids=(a, b), weights=(D(1), D(0))), [{b: D(1)}]),
                      cfg(mode=Mode.STRICT))  # fmt: skip
     assert list(r.blocked) == [a] and "demerger" in r.blocked[a]
+    clean = run_backtest(conn, hold((b, 1)), cfg(mode=Mode.STRICT))
+    assert clean.blocked == {} and clean.final_positions == {b: D(200)}
 
 
 def test_instrument_without_bars_in_range_is_blocked(env):

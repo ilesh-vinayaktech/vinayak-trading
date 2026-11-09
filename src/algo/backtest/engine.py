@@ -211,9 +211,11 @@ def run_backtest(
         try:
             h = ld.history(cfg.start, cfg.end, adjust=req.adjust)
             hs = sg.history(cfg.start, cfg.end, adjust=req.adjust)
-        except UnadjustableError as e:
-            res.blocked[iid] = str(e)  # strict: unresolved / provisional actions block the name
-            continue
+        except UnadjustableError:
+            # strict: an unresolved action does not block the name for the whole run; it is
+            # withheld only on decisions whose lookback crosses it (DataAccess, below)
+            h = ld.lenient().history(cfg.start, cfg.end, adjust=req.adjust)
+            hs = sg.lenient().history(cfg.start, cfg.end, adjust=req.adjust)
         if not h.bars:
             res.blocked[iid] = "no bars in range"
             continue
@@ -262,6 +264,15 @@ def run_backtest(
     last_close: dict[int, Decimal] = {}
     targets: Targets = {}
     rebalance, prev_day, seq = False, None, 0
+    withheld_days: dict[int, list[date]] = {}  # strict: decision days a name could not be served
+    withheld_why: dict[int, str] = {}
+    frozen: set[int] = set()  # withheld at the last decision: neither bought nor sold
+
+    def window_withheld(iid: int) -> str | None:
+        probe = DataAccess({iid: signal[iid]}, clock, req.adjust)
+        probe.history([iid], req.lookback_days)
+        return probe.withheld.get(iid)
+
     started = False
     for i, day in enumerate(days):
         # 0. ISIN changes: convert a held old-ISIN position on the first session of the new ISIN,
@@ -325,7 +336,7 @@ def run_backtest(
             want = {
                 iid: snap_down(targets.get(iid, Decimal(0)) * equity_open / open_[iid], step[iid])
                 for iid in tradable
-                if iid in targets or ledger.qty(iid) != 0
+                if (iid in targets or ledger.qty(iid) != 0) and iid not in frozen
             }
             cap = {
                 iid: snap_down(cfg.max_participation * px[iid][day][2], step[iid]) for iid in want
@@ -391,10 +402,30 @@ def run_backtest(
                 strategy.on_start(ctx)
                 started = True
             new = strategy.on_schedule(ctx)
+            withheld = dict(ctx.data.withheld)
+            if strict:
+                for iid in set(loaded) - set(withheld):  # also names not requested this time
+                    why = window_withheld(iid)
+                    if why is not None:
+                        withheld[iid] = why
+            for iid, why in withheld.items():
+                withheld_days.setdefault(iid, []).append(day)
+                withheld_why[iid] = why
+            frozen = set(withheld)
             if new is not None:
+                for iid in new:
+                    if iid in withheld:
+                        raise InvalidTargets(
+                            f"instrument {iid} is withheld in strict mode on {day}: {withheld[iid]}"
+                        )
                 _validate(new, set(loaded), cfg)
                 targets, rebalance = dict(new), True
         prev_day = day
+    for iid, ds in withheld_days.items():
+        res.blocked[iid] = (
+            f"strict: withheld on {len(ds)} decision day(s) {ds[0]}..{ds[-1]} while the"
+            f" {req.lookback_days}-day lookback crossed an unresolved action: {withheld_why[iid]}"
+        )
     res.final_cash, res.final_positions = ledger.cash, ledger.quantities()
     res.ledger = ledger
     p = ledger.pnl(last_close)

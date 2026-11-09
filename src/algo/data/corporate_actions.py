@@ -81,7 +81,8 @@ def records_for(
     resolution into account (resolutions are keyed by (instrument, ex_date, kind), so rebuilding
     corporate_action from raw JSON never loses them):
       verified                              -> price-only factor, always applied
-      provisional (estimate)                -> strict: stays a blocking review item;
+      provisional (estimate)                -> strict: stays an unresolved review item (the name is
+                                               withheld while a lookback crosses its ex-date);
                                                research: applied but flagged provisional
       no_adjustment_verified / ignored_with_reason / rejected -> a documented decision that no
                                                adjustment is needed: not an action

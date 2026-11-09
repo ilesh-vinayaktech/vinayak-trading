@@ -94,6 +94,11 @@ class Loaded:
         self.days = [r[0].astimezone(IST).date() for r in rows]
         self._built: dict[str, Built] = {}
 
+    def lenient(self) -> Loaded:
+        """The same bars and action records without strict refusal: unresolved actions are then
+        reported in `History.unapplied` instead of raising. For audit and preflight reporting."""
+        return Loaded(self.rows, self.recs, self.visible_after, False, self.owners)
+
     def _build(self, adjust: str) -> Built:
         if adjust not in self._built:
             kinds = (*SPLIT_KINDS, *PRICE_KINDS) + (
