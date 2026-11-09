@@ -28,6 +28,7 @@ from algo.data.adjust.factors import (
     factor_on,
 )
 from algo.data.corporate_actions import records_for
+from algo.data.issuer_series import Link, chain, stitch
 
 IST = ZoneInfo("Asia/Kolkata")
 MODES = ("none", "split", "total_return")
@@ -58,6 +59,7 @@ class AdjBar:
     close: Decimal
     volume: Decimal
     factor: Decimal  # price factor applied (1 = raw)
+    owner: int | None = None  # the instrument that traded and recorded this bar (never merged away)
 
 
 @dataclass
@@ -85,8 +87,10 @@ class Loaded:
         recs: list[ActionRecord],
         visible_after: timedelta,
         strict: bool,
+        owners: list[int] | None = None,
     ) -> None:
         self.rows, self.recs, self.visible_after, self.strict = rows, recs, visible_after, strict
+        self.owners = owners if owners is not None else [0] * len(rows)  # 0: owner not tracked
         self.days = [r[0].astimezone(IST).date() for r in rows]
         self._built: dict[str, Built] = {}
 
@@ -127,7 +131,7 @@ class Loaded:
             return History([])
         known = [r for r in self.recs if as_of is None or r.knowledge_time <= as_of]
         if adjust == "none":
-            raw = [AdjBar(*self.rows[i], Decimal(1)) for i in idx]
+            raw = [AdjBar(*self.rows[i], Decimal(1), self.owners[i]) for i in idx]
             return History(raw, adjustment_version=_version("none", []))
 
         built = self._build(adjust)
@@ -153,7 +157,9 @@ class Loaded:
             r, d = self.rows[i], self.days[i]
             f = factor_on(built.adjustments, d, total_return=total, as_of=as_of)
             fs = factor_on(built.adjustments, d, volume=True, as_of=as_of)
-            bars.append(AdjBar(r[0], r[1] * f, r[2] * f, r[3] * f, r[4] * f, r[5] / fs, f))
+            bars.append(
+                AdjBar(r[0], r[1] * f, r[2] * f, r[3] * f, r[4] * f, r[5] / fs, f, self.owners[i])
+            )
         return History(bars, unapplied, provisional, _version(adjust, known))
 
 
@@ -169,14 +175,63 @@ class BarReader:
         self.conn, self.source = conn, source
         self.visible_after = session_length + publish_lag
 
-    def load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
-        rows = self.conn.execute(
+    def _raw(
+        self, instrument_id: int
+    ) -> list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]]:
+        return self.conn.execute(
             "SELECT DISTINCT ON (ts) ts,open,high,low,close,volume FROM bar_1d "
             "WHERE instrument_id=%s AND source=%s ORDER BY ts, dataset_version DESC",
             (instrument_id, self.source),
         ).fetchall()
+
+    def load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
+        """ONE instrument's own bars and actions (execution, audit). Another ISIN of the same issuer
+        is never mixed in: same issuer is not same instrument."""
+        rows = self._raw(instrument_id)
         recs = records_for(self.conn, instrument_id, strict=strict)
-        return Loaded(rows, recs, self.visible_after, strict)
+        return Loaded(rows, recs, self.visible_after, strict, [instrument_id] * len(rows))
+
+    def isin_links(self) -> list[Link]:
+        """SAME_ISSUER_ISIN_CHANGE links between instruments (none before migration 024)."""
+        table = self.conn.execute("SELECT to_regclass('corporate_action_relationship')").fetchone()
+        if table is None or table[0] is None:
+            return []
+        return [
+            Link(*r)
+            for r in self.conn.execute(
+                "SELECT source_instrument_id, target_instrument_id, effective_date"
+                " FROM corporate_action_relationship"
+                " WHERE relationship_type='SAME_ISSUER_ISIN_CHANGE'"
+                " AND target_instrument_id IS NOT NULL ORDER BY effective_date"
+            ).fetchall()
+        ]
+
+    def issuer_load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
+        """The issuer's continuous series (signals, charts): the ISIN-change chain stitched, each
+        bar keeping its owning instrument. Without a link it equals `load`. Data that does not
+        match the identity is refused, never guessed."""
+        segs = chain(self.isin_links(), instrument_id)
+        ids = [g.instrument_id for g in segs]
+        rows, owners, recs = stitch(
+            segs,
+            {i: self._raw(i) for i in ids},
+            {i: records_for(self.conn, i, strict=strict) for i in ids},
+        )
+        return Loaded(rows, recs, self.visible_after, strict, owners)
+
+    def issuer_history(
+        self,
+        instrument_id: int,
+        start: date,
+        end: date,
+        *,
+        adjust: str = "none",
+        as_of: datetime | None = None,
+        strict: bool = False,
+    ) -> History:
+        return self.issuer_load(instrument_id, strict=strict).history(
+            start, end, adjust=adjust, as_of=as_of
+        )
 
     def history(
         self,

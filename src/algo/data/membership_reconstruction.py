@@ -294,11 +294,15 @@ def state_on(walk: Walk, comps: Sequence[str], day: date) -> Members:
 
 
 def reconcile(
-    walk: Walk, comps: Sequence[str], snapshots: Mapping[date, Members], coverage: str = "FULL"
+    walk: Walk, comps: Sequence[str], snapshots: Mapping[date, Members], coverage: str = "FULL",
+    same_issuer: Mapping[Entity, Entity] | None = None,
 ) -> list[dict[str, object]]:  # fmt: skip
     """Compare the reconstructed union with independent snapshots inside the window. `coverage` is
     FULL when the snapshot speaks for the whole union, PARTIAL when it covers only part of it (an
-    entity absent from both sides then proves nothing)."""
+    entity absent from both sides then proves nothing). `same_issuer` maps a superseded ISIN's
+    entity to its issuer's latest one, so an ISIN change is not read as a membership disagreement;
+    it is applied to BOTH sides for the comparison only and merges no instrument anywhere else."""
+    same = same_issuer or {}
     for c in comps:
         if c not in walk.initial:
             raise KeyError(c)
@@ -306,7 +310,8 @@ def reconcile(
     for d in sorted(snapshots):
         if not walk.start <= d <= walk.anchor_date:
             continue
-        rec, snap = state_on(walk, comps, d), snapshots[d]
+        rec = frozenset(same.get(e, e) for e in state_on(walk, comps, d))
+        snap = frozenset(same.get(e, e) for e in snapshots[d])
         out.append({"date": d, "snapshot": len(snap), "reconstructed": len(rec),
                     "only_in_snapshot": sorted(snap - rec),
                     "only_in_reconstruction": sorted(rec - snap),

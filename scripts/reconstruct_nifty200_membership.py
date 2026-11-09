@@ -22,6 +22,7 @@ from typing import Any
 
 import psycopg
 
+from algo.data.issuer_series import Link, latest_of
 from algo.data.membership_reconstruction import (
     Replacement,
     Revocation,
@@ -120,12 +121,26 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
            WHERE v.component = ANY(%s) ORDER BY v.authority_date, v.symbol""",
         (PARSER_VERSION, list(COMP)),
     ).fetchall()
+    has_rel = c.execute("SELECT to_regclass('corporate_action_relationship')").fetchone()[0]
+    isin_links = (
+        [
+            Link(*r)
+            for r in c.execute(
+                "SELECT source_instrument_id, target_instrument_id, effective_date"
+                " FROM corporate_action_relationship"
+                " WHERE relationship_type='SAME_ISSUER_ISIN_CHANGE' AND target_instrument_id IS NOT NULL"
+            ).fetchall()
+        ]
+        if has_rel
+        else []
+    )
     reprows = c.execute(
         "SELECT placeholder, symbol, listed_on, evidence_doc FROM index_placeholder_replacement"
         " ORDER BY listed_on, symbol"
     ).fetchall()
 
 replaced = frozenset(r[0] for r in reprows)
+same_issuer = {f"i:{a}": f"i:{b}" for a, b in latest_of(isin_links).items()}  # comparison only
 trs = [
     Transition(
         COMP[comp],
@@ -223,7 +238,7 @@ for name, w, comps, sn in (
     ("explicit_N100_sections_vs_monthly_N100", exp100, ["N100x"], fz.get("N100x", {})),
     ("explicit_N200_sections_vs_monthly_N200", exp200, ["N200x"], fz.get("N200x", {})),
 ):
-    recon[name] = reconcile(w, comps, sn, "PARTIAL" if "same_date" in name else "FULL")
+    recon[name] = reconcile(w, comps, sn, "PARTIAL" if "same_date" in name else "FULL", same_issuer)
 
 # derived union vs the walk that uses ONLY the explicit Nifty 200 sections, at every date either changes
 cross = []

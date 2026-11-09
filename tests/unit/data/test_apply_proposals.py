@@ -155,7 +155,7 @@ def test_a_confirmed_mapping_is_an_alias_unless_it_is_already_there():
 
 def test_an_isin_change_is_blocked_until_the_overlap_and_its_dependents_are_resolved():
     live = {"instrument": {"id": 1589, "isin": "INE239A01024"}, "aliases": [(D(2023, 8, 1), None)],
-            "dependents": {"bar_1d": (811, 107), "corporate_action": (60, 55), "index_release_row": (63, 40)}}  # fmt: skip
+            "dependents": {"bar_1d": (811, 107), "corporate_action": (53, 43), "index_release_row": (0, 0), "unmapped_release_rows": (3, 3), "reader_check": "PASS"}}  # fmt: skip
     p = symbol_proposal(
         "NESTLEIND",
         rec("SET_EFFECTIVE_DATE", D(2024, 1, 5)),
@@ -163,7 +163,10 @@ def test_an_isin_change_is_blocked_until_the_overlap_and_its_dependents_are_reso
         live,
     )
     assert p["status"] == "BLOCKED" and p["kind"] == "BLOCKED_IDENTITY_MODEL" and p["actions"] == []
-    assert "107 bars before 2024-01-05" in p["caveats"][0] and "63 release rows" in p["caveats"][0]
+    assert "107 bars and 43 corporate actions dated before 2024-01-05" in p["caveats"][0]
+    assert "0 mapped component release rows (0 dated before the change)" in p["caveats"][0]
+    assert "3 unmapped component rows" in p["caveats"][0]
+    assert any("reader check PASSED" in c for c in p["caveats"])
     assert any("overlap" in c for c in p["caveats"]) and any(
         "MOVE bars" in x for x in p["plan_if_approved"]
     )
@@ -174,7 +177,8 @@ def test_an_isin_change_is_blocked_until_the_overlap_and_its_dependents_are_reso
         FACTS,
         {"instrument": {"id": 1}, "aliases": []},
     )
-    assert "0 bars before" in bare["caveats"][0]
+    assert "0 bars and 0 corporate actions dated before" in bare["caveats"][0]
+    assert any("readers must follow" in c for c in bare["caveats"])
 
 
 def test_a_membership_decision_writes_nothing():

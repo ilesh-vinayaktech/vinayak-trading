@@ -108,12 +108,18 @@ def symbol_proposal(
         change = rec["effective_date"]
         deps = existing.get("dependents", {})
         blockers = [
-            f"instrument {inst['id']} (new ISIN) already owns {deps.get('bar_1d', (0, 0))[1]} bars before {change} that traded under the old ISIN, "
-            f"{deps.get('corporate_action', (0, 0))[1]} corporate actions and {deps.get('index_release_row', (0, 0))[0]} release rows",
+            f"instrument {inst['id']} (new ISIN) already owns {deps.get('bar_1d', (0, 0))[1]} bars and "
+            f"{deps.get('corporate_action', (0, 0))[1]} corporate actions dated before {change} that belong to the old ISIN; "
+            f"it has {deps.get('index_release_row', (0, 0))[0]} mapped component release rows "
+            f"({deps.get('index_release_row', (0, 0))[1]} dated before the change) and "
+            f"{deps.get('unmapped_release_rows', (0, 0))[0]} unmapped component rows that would map to the old ISIN once its alias exists",
             "its alias starts before the change date: two aliases of one symbol may not overlap (enforced by migration 024)",
-            "downstream readers (adjusted bars, membership comparison) must follow a SAME_ISSUER_ISIN_CHANGE relationship before any row is moved",
             "decision needed: confirm that the old ISIN is a separate instrument that owns observations up to the day before the change",
         ]  # fmt: skip
+        if deps.get("reader_check") == "PASS":
+            blockers.append("reader check PASSED on the real data (scripts/verify_nestleind_identity.py): the issuer-scoped read equals today's read in every adjustment mode")  # fmt: skip
+        else:
+            blockers.append("downstream readers must follow a SAME_ISSUER_ISIN_CHANGE relationship before any row is moved")  # fmt: skip
         plan = [
             f"INSERT instrument (old ISIN {facts['isin']}), first_observed_on {facts['first']}, last_traded_on = day before {change}, listed_on NULL",
             f"INSERT alias {symbol} -> old instrument, valid_to {change} (EVIDENCED: NSE circular CML60084)",

@@ -90,10 +90,10 @@ MINDTREE stays its own historical instrument; any successor is an effective-date
 ### symbol:NESTLEIND (BLOCKED_IDENTITY_MODEL)
 NESTLEIND: two ISIN identities linked by the split on 2024-01-05: BLOCKED until the overlap with instrument 1589 is resolved
 
-- BLOCKER: instrument 1589 (new ISIN) already owns 107 bars before 2024-01-05 that traded under the old ISIN, 43 corporate actions and 63 release rows
+- BLOCKER: instrument 1589 (new ISIN) already owns 107 bars and 43 corporate actions dated before 2024-01-05 that belong to the old ISIN; it has 0 mapped component release rows (0 dated before the change) and 3 unmapped component rows that would map to the old ISIN once its alias exists
 - BLOCKER: its alias starts before the change date: two aliases of one symbol may not overlap (enforced by migration 024)
-- BLOCKER: downstream readers (adjusted bars, membership comparison) must follow a SAME_ISSUER_ISIN_CHANGE relationship before any row is moved
 - BLOCKER: decision needed: confirm that the old ISIN is a separate instrument that owns observations up to the day before the change
+- BLOCKER: reader check PASSED on the real data (scripts/verify_nestleind_identity.py): the issuer-scoped read equals today's read in every adjustment mode
 - PLAN IF APPROVED (1): INSERT instrument (old ISIN INE239A01016), first_observed_on 2010-01-08, last_traded_on = day before 2024-01-05, listed_on NULL
 - PLAN IF APPROVED (2): INSERT alias NESTLEIND -> old instrument, valid_to 2024-01-05 (EVIDENCED: NSE circular CML60084)
 - PLAN IF APPROVED (3): MOVE bars, corporate actions and release rows dated before 2024-01-05 from instrument 1589 to the old instrument, with pre/post counts and a duplicate check

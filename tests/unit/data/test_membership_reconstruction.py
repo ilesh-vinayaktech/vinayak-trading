@@ -351,3 +351,22 @@ def test_an_equivalence_must_be_unambiguous():
         equivalence_map([{"from": ["s:A"], "to": "i:1"}, {"from": ["s:A"], "to": "i:2"}])
     with pytest.raises(ValueError, match="chain"):
         equivalence_map([{"from": ["s:A"], "to": "i:1"}, {"from": ["i:1"], "to": "i:2"}])
+
+
+def test_an_isin_change_is_not_a_membership_disagreement_but_instruments_stay_separate():
+    # Nifty 50 membership is continuous across the ISIN change: the old ISIN until 2024-01-04, the new from 5 Jan
+    trs = [t("N50", "i:2", "EXCLUDED", D(2025, 1, 6)), t("N50", "i:3", "INCLUDED", D(2025, 1, 6))]
+    w = walk_back({"N50": frozenset({"i:3"})}, trs, START, ANCHOR)
+    snap = {
+        D(2024, 6, 28): frozenset({"i:9", "i:1"})
+    }  # the snapshot of that month names the OLD isin
+    w2 = walk_back(
+        {"N50": frozenset({"i:9", "i:2"})}, [], START, ANCHOR
+    )  # reconstruction names the NEW one
+    plain = reconcile(w2, ["N50"], snap)
+    assert plain[0]["only_in_snapshot"] == ["i:1"] and plain[0]["only_in_reconstruction"] == ["i:2"]
+    same = reconcile(w2, ["N50"], snap, same_issuer={"i:1": "i:2"})
+    assert same[0]["only_in_snapshot"] == [] and same[0]["only_in_reconstruction"] == []
+    assert same[0]["common"] == ["i:2", "i:9"]
+    # the walk itself still holds the two instruments apart
+    assert w.initial["N50"] == {"i:2"} and w2.initial["N50"] == {"i:9", "i:2"}

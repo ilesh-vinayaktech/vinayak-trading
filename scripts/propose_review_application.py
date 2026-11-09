@@ -60,11 +60,25 @@ def dependents(c, iid, change):
         col = DATE_COLUMN.get(t)
         before = f"count(*) FILTER (WHERE {col} < %s)" if col else "0"
         params = (change, iid) if col else (iid,)
+        latest = " AND parser_version = (SELECT max(parser_version) FROM index_release_document)"
+        extra = latest + " AND component IS NOT NULL" if t == "index_release_row" else ""
         out[t] = tuple(
             c.execute(
-                f"SELECT count(*), {before} FROM {t} WHERE instrument_id = %s", params
+                f"SELECT count(*), {before} FROM {t} WHERE instrument_id = %s{extra}", params
             ).fetchone()
         )
+    out["unmapped_release_rows"] = tuple(
+        c.execute(
+            "SELECT count(*), count(*) FROM index_release_row WHERE symbol = (SELECT symbol FROM instrument WHERE instrument_id=%s)"
+            " AND instrument_id IS NULL AND component IS NOT NULL"
+            " AND parser_version = (SELECT max(parser_version) FROM index_release_document)",
+            (iid,),
+        ).fetchone()
+    )
+    check = Path("docs/stage4/apply_proposals/nestleind_reader_check.md")
+    out["reader_check"] = (
+        "PASS" if check.exists() and "**Result: PASS**" in check.read_text() else "NOT RUN"
+    )
     return out
 
 
