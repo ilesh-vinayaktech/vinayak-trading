@@ -8,7 +8,7 @@
 | RELIANCE | stored bhavcopy SHA-256 equals the config | PASS | 60afba4661bc75fd |
 | RELIANCE | bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close | PASS | RELIANCE 20-Jul-2023 open 2580.00 prev 2841.85 |
 | RELIANCE | database previous close equals the exchange file | PASS | 2841.85 |
-| RELIANCE | a new row was appended and is now the latest | PASS | id 43 |
+| RELIANCE | a new row was appended and is now the latest | PASS | id 49 |
 | RELIANCE | factor = base / previous close at full precision | PASS | 0.9078593169942115171455214033 |
 | RELIANCE | status provisional, no official source claimed | PASS |  |
 | RELIANCE | evidence class PROVISIONAL_EXCHANGE_DERIVED | PASS |  |
@@ -19,7 +19,7 @@
 | ITC | stored bhavcopy SHA-256 equals the config | PASS | 9dc1eb315195c68b |
 | ITC | bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close | PASS | ITC 06-Jan-2025 open 455.60 prev 481.60 |
 | ITC | database previous close equals the exchange file | PASS | 481.60 |
-| ITC | a new row was appended and is now the latest | PASS | id 44 |
+| ITC | a new row was appended and is now the latest | PASS | id 50 |
 | ITC | factor = base / previous close at full precision | PASS | 0.9460132890365448504983388704 |
 | ITC | status provisional, no official source claimed | PASS |  |
 | ITC | evidence class PROVISIONAL_EXCHANGE_DERIVED | PASS |  |
@@ -30,7 +30,7 @@
 | SIEMENS | stored bhavcopy SHA-256 equals the config | PASS | 9a5b9c52a10cf322 |
 | SIEMENS | bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close | PASS | SIEMENS 07-Apr-2025 open 2450.00 prev 4928.15 |
 | SIEMENS | database previous close equals the exchange file | PASS | 4928.15 |
-| SIEMENS | a new row was appended and is now the latest | PASS | id 45 |
+| SIEMENS | a new row was appended and is now the latest | PASS | id 51 |
 | SIEMENS | factor = base / previous close at full precision | PASS | 0.4971439586863224536590809939 |
 | SIEMENS | status provisional, no official source claimed | PASS |  |
 | SIEMENS | evidence class PROVISIONAL_EXCHANGE_DERIVED | PASS |  |
@@ -41,7 +41,7 @@
 | TMPV | stored bhavcopy SHA-256 equals the config | PASS | d72fcbad87c23165 |
 | TMPV | bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close | PASS | TATAMOTORS 14-Oct-2025 open 400.00 prev 660.75 |
 | TMPV | database previous close equals the exchange file | PASS | 660.75 |
-| TMPV | a new row was appended and is now the latest | PASS | id 46 |
+| TMPV | a new row was appended and is now the latest | PASS | id 52 |
 | TMPV | factor = base / previous close at full precision | PASS | 0.6053726825576995838062807416 |
 | TMPV | status provisional, no official source claimed | PASS |  |
 | TMPV | evidence class PROVISIONAL_EXCHANGE_DERIVED | PASS |  |
@@ -52,7 +52,7 @@
 | HINDUNILVR | stored bhavcopy SHA-256 equals the config | PASS | 878cc00f7f71b39d |
 | HINDUNILVR | bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close | PASS | HINDUNILVR 05-Dec-2025 open 2422.00 prev 2462.20 |
 | HINDUNILVR | database previous close equals the exchange file | PASS | 2462.20 |
-| HINDUNILVR | a new row was appended and is now the latest | PASS | id 47 |
+| HINDUNILVR | a new row was appended and is now the latest | PASS | id 53 |
 | HINDUNILVR | factor = base / previous close at full precision | PASS | 0.9836731378442043700755421980 |
 | HINDUNILVR | status provisional, no official source claimed | PASS |  |
 | HINDUNILVR | evidence class PROVISIONAL_EXCHANGE_DERIVED | PASS |  |
@@ -63,7 +63,7 @@
 | VEDL | stored bhavcopy SHA-256 equals the config | PASS | 215b10ba246b88b6 |
 | VEDL | bhavcopy row: OPEN_PRICE = base price, PREV_CLOSE = expected previous close | PASS | VEDL 30-Apr-2026 open 289.50 prev 773.60 |
 | VEDL | database previous close equals the exchange file | PASS | 773.60 |
-| VEDL | a new row was appended and is now the latest | PASS | id 48 |
+| VEDL | a new row was appended and is now the latest | PASS | id 54 |
 | VEDL | factor = base / previous close at full precision | PASS | 0.3742244053774560496380558428 |
 | VEDL | status provisional, no official source claimed | PASS |  |
 | VEDL | evidence class PROVISIONAL_EXCHANGE_DERIVED | PASS |  |

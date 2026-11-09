@@ -15,12 +15,12 @@ Raw move = unadjusted close-to-close across the ex-date; x typical = that move o
 
 | id | symbol | ex-date | kind | raw move | x typical | evidence class | subject |
 |---|---|---|---|---|---|---|---|
-| 19277 | VEDL | 2026-04-30 | demerger | -64.9% | 60.6 | PROVISIONAL_GAP_ESTIMATE | Demerger |
-| 19021 | TMPV | 2025-10-14 | demerger | -40.2% | 36.6 | PROVISIONAL_GAP_ESTIMATE | Demerger |
-| 18569 | SIEMENS | 2025-04-07 | demerger | -42.9% | 36.4 | PROVISIONAL_GAP_ESTIMATE | Demerger |
-| 16914 | ITC | 2025-01-06 | demerger | -8.1% | 12.2 | PROVISIONAL_GAP_ESTIMATE | Demerger |
-| 18413 | RELIANCE | 2023-07-20 | demerger | -7.8% | 10.6 | PROVISIONAL_GAP_ESTIMATE | Demerger |
-| 16574 | HINDUNILVR | 2025-12-05 | demerger | -5.0% | 7.8 | PROVISIONAL_GAP_ESTIMATE | Demerger |
+| 19277 | VEDL | 2026-04-30 | demerger | -64.9% | 60.6 | PROVISIONAL_EXCHANGE_DERIVED | Demerger |
+| 19021 | TMPV | 2025-10-14 | demerger | -40.2% | 36.6 | PROVISIONAL_EXCHANGE_DERIVED | Demerger |
+| 18569 | SIEMENS | 2025-04-07 | demerger | -42.9% | 36.4 | PROVISIONAL_EXCHANGE_DERIVED | Demerger |
+| 16914 | ITC | 2025-01-06 | demerger | -8.1% | 12.2 | PROVISIONAL_EXCHANGE_DERIVED | Demerger |
+| 18413 | RELIANCE | 2023-07-20 | demerger | -7.8% | 10.6 | PROVISIONAL_EXCHANGE_DERIVED | Demerger |
+| 16574 | HINDUNILVR | 2025-12-05 | demerger | -5.0% | 7.8 | PROVISIONAL_EXCHANGE_DERIVED | Demerger |
 | 18905 | TCS | 2022-02-22 | buy | -3.6% | 5.1 | NO_ADJUSTMENT_VERIFIED | Buyback |
 | 14973 | BAJAJ-AUTO | 2024-02-29 | buy | -3.4% | 4.8 | NO_ADJUSTMENT_VERIFIED | Buy Back |
 | 17141 | LTF | 2021-01-21 | rights | -7.8% | 4.3 | UNRESOLVED | Rights 17:74@ Premium Rs 55 Per Share |

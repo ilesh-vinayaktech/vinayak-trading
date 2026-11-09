@@ -28,7 +28,7 @@
       "status": "FAIL"
     },
     {
-      "evidence": "136 non-dividend actions still in review ({'buy': 63, 'rights': 34, 'arrangement': 15, 'demerger': 12, 'other': 9, 'arangement': 2, 'sch of': 1}); by evidence of their latest resolution: {'IGNORED_WITH_REASON': 2, 'NO_ADJUSTMENT_VERIFIED': 24, 'PROVISIONAL_GAP_ESTIMATE': 10, 'UNRESOLVED': 100}. A further 393 dividends in review matter only to the total-return basis.",
+      "evidence": "136 non-dividend actions still in review ({'buy': 63, 'rights': 34, 'arrangement': 15, 'demerger': 12, 'other': 9, 'arangement': 2, 'sch of': 1}); by evidence of their latest resolution: {'IGNORED_WITH_REASON': 2, 'NO_ADJUSTMENT_VERIFIED': 24, 'PROVISIONAL_EXCHANGE_DERIVED': 6, 'PROVISIONAL_GAP_ESTIMATE': 4, 'UNRESOLVED': 100}. A further 393 dividends in review matter only to the total-return basis.",
       "id": "C1",
       "requirement": "Strict mode: every price-affecting corporate action verified (none pending review)",
       "status": "FAIL"
