@@ -460,3 +460,12 @@ def test_blocked_spans_are_handed_over_the_same_way():
         f"i:{NEW}": [(EFF, D(2024, 2, 1)), (D(2025, 1, 1), D(2025, 2, 1))],
         "i:9": [(START, EFF)],
     }
+
+
+def test_a_span_wholly_before_or_wholly_after_the_change_goes_to_one_instrument_only():
+    assert hand_over_spans({f"i:{NEW}": [(D(2022, 1, 1), D(2022, 2, 1))]}, CONV) == {
+        f"i:{OLD}": [(D(2022, 1, 1), D(2022, 2, 1))]
+    }
+    assert hand_over_spans({f"i:{OLD}": [(D(2025, 1, 1), D(2025, 2, 1))]}, CONV) == {
+        f"i:{NEW}": [(D(2025, 1, 1), D(2025, 2, 1))]
+    }
