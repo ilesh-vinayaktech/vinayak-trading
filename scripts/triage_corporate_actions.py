@@ -23,6 +23,8 @@ from statistics import median
 
 import psycopg
 
+from algo.data.review import evidence_class
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument(
@@ -55,11 +57,13 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
     ).fetchone()  # type: ignore[misc]
     actions = c.execute(
         "SELECT a.id, a.instrument_id, i.symbol, a.ex_date, a.kind, a.subject,"
-        " (SELECT r.status FROM action_resolution r WHERE r.instrument_id=a.instrument_id AND r.ex_date=a.ex_date AND r.kind=a.kind ORDER BY r.id DESC LIMIT 1)"
+        " (SELECT r.status FROM action_resolution r WHERE r.instrument_id=a.instrument_id AND r.ex_date=a.ex_date AND r.kind=a.kind ORDER BY r.id DESC LIMIT 1),"
+        " (SELECT r.method FROM action_resolution r WHERE r.instrument_id=a.instrument_id AND r.ex_date=a.ex_date AND r.kind=a.kind ORDER BY r.id DESC LIMIT 1)"
         " FROM corporate_action a JOIN instrument i USING (instrument_id) WHERE a.status='review' AND a.kind <> 'dividend' ORDER BY a.ex_date, i.symbol"
     ).fetchall()
     out = []
-    for aid, iid, sym, ex, kind, subject, res in actions:
+    for aid, iid, sym, ex, kind, subject, st, method in actions:
+        res = evidence_class(st, method)
         closes = c.execute(
             "SELECT (ts AT TIME ZONE 'Asia/Kolkata')::date, close FROM bar_1d WHERE instrument_id=%s"
             " AND (ts AT TIME ZONE 'Asia/Kolkata')::date BETWEEN %s AND %s ORDER BY ts",
@@ -108,7 +112,7 @@ with (a.out_dir / "triage.csv").open("w", newline="") as f:
             "subject",
             "raw_move_across_ex",
             "move_vs_typical_daily",
-            "resolution_status",
+            "evidence_class",
             "member_in_window",
         ]
     )
@@ -158,7 +162,7 @@ for t in "ABC":
     lines += [
         f"## Tier {t}: {meaning[t]} ({len(by[t])})",
         "",
-        "| id | symbol | ex-date | kind | raw move | x typical | status | subject |",
+        "| id | symbol | ex-date | kind | raw move | x typical | evidence class | subject |",
         "|---|---|---|---|---|---|---|---|",
     ]
     lines += [

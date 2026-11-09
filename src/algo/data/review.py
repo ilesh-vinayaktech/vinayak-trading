@@ -84,6 +84,20 @@ ORDER BY c.ex_date, a.source_symbol, c.kind
 """
 
 
+def evidence_class(status: str | None, method: str | None) -> str:
+    """How strong the evidence behind an action's latest resolution is. Both a gap estimate and an
+    exchange-derived factor can be PROVISIONAL; they must never be reported as equivalent."""
+    if status is None:
+        return "UNRESOLVED"
+    if status == "provisional":
+        if method == "gap":
+            return "PROVISIONAL_GAP_ESTIMATE"
+        if method == "exchange_adjusted_price":
+            return "PROVISIONAL_EXCHANGE_DERIVED"
+        return "PROVISIONAL_FROM_TERMS"
+    return status.upper()
+
+
 def review_queue(
     conn: psycopg.Connection,
     *,

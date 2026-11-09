@@ -8,7 +8,14 @@ from algo.data.adjust.factors import build_adjustments
 from algo.data.corporate_actions import _replace, knowledge_time_for, records_for
 from algo.data.quality.continuity import continuity_issues
 from algo.data.reader import BarReader, UnadjustableError
-from algo.data.review import ResolveError, resolve, review_queue, stale_resolutions, verify
+from algo.data.review import (
+    ResolveError,
+    evidence_class,
+    resolve,
+    review_queue,
+    stale_resolutions,
+    verify,
+)
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 
@@ -459,3 +466,23 @@ def test_exchange_adjusted_price_needs_a_previous_close_and_its_parameter(env):
     with pytest.raises(ResolveError, match="no bar before"):
         do_resolve(conn, ex_date=date(2025, 1, 1), method="exchange_adjusted_price",
                    params={"base_price": D(5)})  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("status", "method", "expected"),
+    [
+        (None, None, "UNRESOLVED"),
+        ("provisional", "gap", "PROVISIONAL_GAP_ESTIMATE"),
+        ("provisional", "exchange_adjusted_price", "PROVISIONAL_EXCHANGE_DERIVED"),
+        ("provisional", "rights", "PROVISIONAL_FROM_TERMS"),
+        ("provisional", "direct", "PROVISIONAL_FROM_TERMS"),
+        ("verified", "exchange_adjusted_price", "VERIFIED"),
+        ("no_adjustment_verified", "ignore", "NO_ADJUSTMENT_VERIFIED"),
+        ("ignored_with_reason", "ignore", "IGNORED_WITH_REASON"),
+        ("rejected", "ignore", "REJECTED"),
+    ],
+)
+def test_evidence_class_never_lets_a_gap_estimate_look_like_exchange_evidence(
+    status, method, expected
+):
+    assert evidence_class(status, method) == expected

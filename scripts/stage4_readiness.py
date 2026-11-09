@@ -8,9 +8,12 @@ usage: stage4_readiness.py --db postgresql://... [--out docs/stage4/readiness.js
 import argparse
 import json
 import os
+from collections import Counter
 from pathlib import Path
 
 import psycopg
+
+from algo.data.review import evidence_class
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -65,11 +68,19 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
         "SELECT kind, count(*) FROM corporate_action WHERE status <> 'ok' GROUP BY 1 ORDER BY 2 DESC"
     ).fetchall()
     price_moving = sum(n for k, n in review if k != "dividend")
+    classes = Counter(
+        evidence_class(st, m)
+        for st, m in c.execute(
+            "SELECT r.status, r.method FROM corporate_action a LEFT JOIN LATERAL (SELECT status, method FROM action_resolution x"
+            " WHERE x.instrument_id=a.instrument_id AND x.ex_date=a.ex_date AND x.kind=a.kind ORDER BY x.id DESC LIMIT 1) r ON true"
+            " WHERE a.status <> 'ok' AND a.kind <> 'dividend'"
+        ).fetchall()
+    )
     check(
         "C1",
         "Strict mode: every price-affecting corporate action verified (none pending review)",
         "FAIL" if price_moving else "PASS",
-        f"{price_moving} non-dividend actions still in review ({dict((k, n) for k, n in review if k != 'dividend')}); a further {dict(review).get('dividend', 0)} dividends in review matter only to the total-return basis.",
+        f"{price_moving} non-dividend actions still in review ({dict((k, n) for k, n in review if k != 'dividend')}); by evidence of their latest resolution: {dict(sorted(classes.items()))}. A further {dict(review).get('dividend', 0)} dividends in review matter only to the total-return basis.",
     )
 
 sch = [
