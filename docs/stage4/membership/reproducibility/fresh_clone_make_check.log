@@ -1,0 +1,142 @@
+uv run ruff check . && uv run ruff format --check .
+All checks passed!
+283 files already formatted
+uv run mypy src
+Success: no issues found in 98 source files
+uv run pytest -q -n auto --cov --cov-report=term-missing && uv run python scripts/check_floors.py
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 16%]
+........................................................................ [ 21%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+........................................................................ [ 54%]
+........................................................................ [ 60%]
+........................................................................ [ 65%]
+........................................................................ [ 71%]
+........................................................................ [ 76%]
+........................................................................ [ 82%]
+........................................................................ [ 87%]
+........................................................................ [ 93%]
+........................................................................ [ 98%]
+..............                                                           [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: 16 warnings
+  /tmp/claude-1000/-home-ilesh-Work-trading/1f7b1d31-8e34-411b-8701-d6fb48aba171/scratchpad/fresh/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Name                                               Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------------------------------------------
+src/algo/__init__.py                                   0      0      0      0   100%
+src/algo/api/__init__.py                               0      0      0      0   100%
+src/algo/api/app.py                                  165      0     40      0   100%
+src/algo/api/artifacts.py                             86      0     26      0   100%
+src/algo/api/freshness.py                             23      0      6      0   100%
+src/algo/api/main.py                                  12      0      2      0   100%
+src/algo/api/queries.py                              124      0     12      0   100%
+src/algo/api/reviews.py                               52      0     14      0   100%
+src/algo/backtest/__init__.py                          0      0      0      0   100%
+src/algo/backtest/costs/__init__.py                    0      0      0      0   100%
+src/algo/backtest/costs/calculator.py                 69      0     20      0   100%
+src/algo/backtest/costs/policy.py                     53      0      0      0   100%
+src/algo/backtest/costs/reconcile.py                  51      0     16      0   100%
+src/algo/backtest/costs/scaled.py                     36      0      2      0   100%
+src/algo/backtest/costs/schedule.py                  164      0     60      0   100%
+src/algo/backtest/costs/slippage.py                   28      0      6      0   100%
+src/algo/backtest/engine.py                          253      0     78      0   100%
+src/algo/backtest/metrics.py                          24      0      6      0   100%
+src/algo/backtest/store.py                            35      0      4      0   100%
+src/algo/backtest/validation/__init__.py               0      0      0      0   100%
+src/algo/backtest/validation/evidence.py              31      0      0      0   100%
+src/algo/backtest/validation/gates.py                 79      0     12      0   100%
+src/algo/backtest/validation/registry.py              64      0     18      0   100%
+src/algo/backtest/validation/robustness.py            47      0     18      0   100%
+src/algo/backtest/validation/stats.py                123      0     38      0   100%
+src/algo/backtest/validation/walkforward.py           45      0     10      0   100%
+src/algo/core/__init__.py                              0      0      0      0   100%
+src/algo/core/calendar.py                             80      0     24      0   100%
+src/algo/core/clock.py                                23      0      4      0   100%
+src/algo/core/money.py                                10      0      2      0   100%
+src/algo/data/__init__.py                              0      0      0      0   100%
+src/algo/data/adjust/__init__.py                       0      0      0      0   100%
+src/algo/data/adjust/factors.py                       88      0     32      0   100%
+src/algo/data/apply_proposals.py                      86      0     32      0   100%
+src/algo/data/bars.py                                 26      0      0      0   100%
+src/algo/data/benchmark.py                            76      0     20      0   100%
+src/algo/data/benchmark_audit.py                     138      0     50      0   100%
+src/algo/data/benchmark_compare.py                    86      0      6      0   100%
+src/algo/data/benchmark_eligibility.py                32      0     10      0   100%
+src/algo/data/benchmark_validate.py                  155      0     38      0   100%
+src/algo/data/calendar_evidence.py                    72      0     24      0   100%
+src/algo/data/conversions.py                          33      0      8      0   100%
+src/algo/data/corporate_actions.py                    72      0     18      0   100%
+src/algo/data/delisted.py                            124      0     38      0   100%
+src/algo/data/identity_migration.py                   76      0     24      0   100%
+src/algo/data/index_monthly.py                        47      0      8      0   100%
+src/algo/data/index_releases.py                       31      0      6      0   100%
+src/algo/data/instrument_sync.py                      64      0     14      0   100%
+src/algo/data/issuer_series.py                        67      0     24      0   100%
+src/algo/data/lake.py                                 56      0     10      0   100%
+src/algo/data/membership_reconstruction.py           242      0     94      0   100%
+src/algo/data/pipeline.py                             68      0      8      0   100%
+src/algo/data/placeholder_replacements.py             34      0     14      0   100%
+src/algo/data/providers/__init__.py                    0      0      0      0   100%
+src/algo/data/providers/base.py                       11      0      0      0   100%
+src/algo/data/providers/niftyindices_archive.py       49      0     14      0   100%
+src/algo/data/providers/niftyindices_price.py         20      0      6      0   100%
+src/algo/data/providers/niftyindices_tri.py           69      0     16      0   100%
+src/algo/data/providers/nse_bhavcopy.py               64      0     12      0   100%
+src/algo/data/providers/nse_bhavcopy_legacy.py        64      0     12      0   100%
+src/algo/data/providers/nse_client.py                 50      0     10      0   100%
+src/algo/data/providers/nse_corporate_actions.py     100      0     42      0   100%
+src/algo/data/providers/nse_holidays.py               23      0      6      0   100%
+src/algo/data/providers/nse_index_monthly.py          95      0     26      0   100%
+src/algo/data/providers/nse_index_releases.py        164      0     44      0   100%
+src/algo/data/providers/nse_security_master.py        32      0      4      0   100%
+src/algo/data/providers/nse_symbol_changes.py         33      0      2      0   100%
+src/algo/data/providers/xlsx_table.py                 78      0     24      0   100%
+src/algo/data/quality/__init__.py                      0      0      0      0   100%
+src/algo/data/quality/checks.py                       14      0      8      0   100%
+src/algo/data/quality/continuity.py                   26      0     12      0   100%
+src/algo/data/reader.py                              105      0     16      0   100%
+src/algo/data/review.py                              176      0     64      0   100%
+src/algo/data/revocations.py                          43      0     20      0   100%
+src/algo/data/sessions.py                             43      0     12      0   100%
+src/algo/data/store/__init__.py                        0      0      0      0   100%
+src/algo/data/store/instruments.py                    45      0      4      0   100%
+src/algo/data/store/migrate.py                        16      0      4      0   100%
+src/algo/data/transcriptions.py                       49      0     20      0   100%
+src/algo/data/universe.py                             86      0     28      0   100%
+src/algo/data/universe_build.py                       82      0     16      0   100%
+src/algo/data/universe_derive.py                     170      0     66      0   100%
+src/algo/data/universe_monthly.py                    164      0     60      0   100%
+src/algo/indicators/__init__.py                        0      0      0      0   100%
+src/algo/indicators/catalog.py                       234      0     70      0   100%
+src/algo/indicators/core.py                           72      0     26      0   100%
+src/algo/ledger/__init__.py                            0      0      0      0   100%
+src/algo/ledger/ledger.py                            337      0    164      0   100%
+src/algo/platform_state/__init__.py                    0      0      0      0   100%
+src/algo/platform_state/machine.py                    55      0     10      0   100%
+src/algo/research/__init__.py                          0      0      0      0   100%
+src/algo/research/run.py                              27      0      2      0   100%
+src/algo/strategies/__init__.py                        0      0      0      0   100%
+src/algo/strategies/nifty200_momentum.py             103      0     16      0   100%
+src/algo/strategy/__init__.py                          0      0      0      0   100%
+src/algo/strategy/base.py                             33      0      0      0   100%
+src/algo/strategy/context.py                          30      0      0      0   100%
+src/algo/strategy/lifecycle.py                        34      0     18      0   100%
+----------------------------------------------------------------------------------------------
+TOTAL                                               6146      0   1750      0   100%
+Required test coverage of 90.0% reached. Total coverage: 100.00%
+1310 passed, 16 warnings in 105.27s (0:01:45)
+MAKE_EXIT=0

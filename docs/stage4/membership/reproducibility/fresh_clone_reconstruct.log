@@ -1,0 +1,60 @@
+{
+ "anchor": "2026-11-07",
+ "derived_equals_explicit_N200_now": true,
+ "events": 282,
+ "intervals": 342,
+ "walk_discrepancies": {
+  "derived": 0,
+  "explicit_N200": 0,
+  "explicit_N100": 0
+ },
+ "unplaced": 0,
+ "future": 0,
+ "reconciliation": {
+  "N50_vs_monthly": {
+   "snapshots_compared": 73,
+   "exact_agreement": 73,
+   "total_entity_differences": 0
+  },
+  "NEXT50_vs_monthly": {
+   "snapshots_compared": 49,
+   "exact_agreement": 49,
+   "total_entity_differences": 0
+  },
+  "MID100_vs_monthly": {
+   "snapshots_compared": 18,
+   "exact_agreement": 18,
+   "total_entity_differences": 0
+  },
+  "derived_N100_vs_monthly_N100": {
+   "snapshots_compared": 18,
+   "exact_agreement": 18,
+   "total_entity_differences": 0
+  },
+  "derived_N100_vs_N50_plus_NEXT50_same_date": {
+   "snapshots_compared": 49,
+   "exact_agreement": 49,
+   "total_entity_differences": 0
+  },
+  "derived_N200_vs_monthly_N200": {
+   "snapshots_compared": 18,
+   "exact_agreement": 18,
+   "total_entity_differences": 0
+  },
+  "explicit_N100_sections_vs_monthly_N100": {
+   "snapshots_compared": 18,
+   "exact_agreement": 18,
+   "total_entity_differences": 0
+  },
+  "explicit_N200_sections_vs_monthly_N200": {
+   "snapshots_compared": 18,
+   "exact_agreement": 18,
+   "total_entity_differences": 0
+  }
+ },
+ "blocked_entities": {},
+ "coverage_status_counts": {
+  "INCOMPLETE": 54,
+  "CLEAN": 19
+ }
+}
