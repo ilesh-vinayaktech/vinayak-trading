@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
 import psycopg
@@ -95,14 +96,15 @@ def classification_counts(conn: psycopg.Connection) -> dict[str, int]:
     )
 
 
-def remap(conn: psycopg.Connection) -> int:
+def remap(conn: psycopg.Connection, symbols: Sequence[str] | None = None) -> int:
     """Re-resolve rows still UNMAPPED after instruments/aliases were added (same day rule as
-    `map_symbol`). Returns rows fixed."""
+    `map_symbol`), optionally only for these symbols. Returns rows fixed."""
     on = "COALESCE(r.effective_from, DATE '9999-12-31') - (r.action = 'EXCLUDED')::int"
     return conn.execute(
         "UPDATE index_release_row r SET instrument_id=a.instrument_id, mapping_status='MAPPED'"
         " FROM instrument_alias a WHERE r.mapping_status='UNMAPPED_SYMBOL' AND a.source=%s"
         f" AND a.source_symbol=r.symbol AND a.valid_from <= {on}"
-        f" AND (a.valid_to IS NULL OR {on} < a.valid_to)",
-        (SOURCE,),
+        f" AND (a.valid_to IS NULL OR {on} < a.valid_to)"
+        " AND (%s::text[] IS NULL OR r.symbol = ANY(%s::text[]))",
+        (SOURCE, symbols, symbols),
     ).rowcount

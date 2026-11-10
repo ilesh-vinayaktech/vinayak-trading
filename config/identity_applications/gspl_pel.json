@@ -1,0 +1,97 @@
+{
+  "description": "Reviewed historical-instrument applications for GSPL and PEL (review decisions 12 and 16, KEEP_SEPARATE). Each creates ONE delisted historical instrument with its own ISIN and alias, and ONE effective-dated relationship to the surviving security. No alias, no membership transfer, no ratio that is not evidenced. NOT applied by committing this file.",
+  "guards": {
+    "GSPL": "never mapped to GNRL (Gujarat Natural Resources, INE207H01026); successor is GUJENERGY (INE844O01030)",
+    "PEL": "old Piramal Enterprises (INE140A01024) stays a distinct security from Piramal Finance (INE202B01038); the relationship is MERGED_INTO, not a same-issuer alias; membership is not transferred"
+  },
+  "targets_expected": {
+    "GUJENERGY": "INE844O01030",
+    "PIRAMALFIN": "INE202B01038"
+  },
+  "applications": [
+    {
+      "item_id": "symbol:GSPL",
+      "decision_id": 12,
+      "name": "Gujarat State Petronet Limited",
+      "instrument": {
+        "symbol": "GSPL",
+        "isin": "INE246F01010",
+        "status": "delisted",
+        "listed_on": null,
+        "first_observed_on": "2006-02-16",
+        "last_traded_on": "2026-05-11",
+        "delisted_on": null
+      },
+      "alias": {
+        "instrument_id": "<new>",
+        "source": "nse",
+        "source_symbol": "GSPL",
+        "valid_from": "2006-02-16",
+        "valid_from_basis": "FIRST_OBSERVED",
+        "valid_to": "2026-05-12",
+        "valid_to_basis": "LAST_OBSERVED"
+      },
+      "relationship": {
+        "relationship_type": "AMALGAMATED_INTO",
+        "source_instrument_id": "<new>",
+        "target_symbol": "GUJENERGY",
+        "appointed_date": null,
+        "effective_date": "2026-05-01",
+        "ratio_num": 10,
+        "ratio_den": 13,
+        "known_at": null,
+        "evidence": [
+          "NSE Indices press release 2026-05-04 (https://www.niftyindices.com/Press_Release/ind_prs04052026.pdf, read): GSPL (Gujarat State Petronet Ltd.) excluded from Nifty 500, Smallcap 250, MidSmallcap 400, Total Market and others effective 2026-05-12 (close 2026-05-11) on account of the scheme of amalgamation of Gujarat State Petronet Ltd. into Gujarat Gas Ltd. Company results filings on NSE (read): .../ixbrl/INTEGRATED_FILING_INDAS_165371_01062026162832_iXBRL_WEB.html and ..._210488_05112026181948_iXBRL_WEB.html: amalgamation of GSPC, GSPL and GEL with Gujarat Gas Ltd, appointed date 2024-04-01, scheme effective 2026-05-01; Gujarat Gas Ltd is now Gujarat Energy Ltd, ISIN INE844O01030, NSE symbol GUJENERGY (GUJGASLTD in the Jun-2026 filing).",
+          "NSE results filings: scheme effective 2026-05-01; ratio 10 Gujarat Gas per 13 GSPL from search results"
+        ],
+        "verification_status": "PROVISIONAL",
+        "review_decision_id": 12
+      },
+      "evidence": [
+        "NSE Indices press release 2026-05-04 (https://www.niftyindices.com/Press_Release/ind_prs04052026.pdf, read): GSPL (Gujarat State Petronet Ltd.) excluded from Nifty 500, Smallcap 250, MidSmallcap 400, Total Market and others effective 2026-05-12 (close 2026-05-11) on account of the scheme of amalgamation of Gujarat State Petronet Ltd. into Gujarat Gas Ltd. Company results filings on NSE (read): .../ixbrl/INTEGRATED_FILING_INDAS_165371_01062026162832_iXBRL_WEB.html and ..._210488_05112026181948_iXBRL_WEB.html: amalgamation of GSPC, GSPL and GEL with Gujarat Gas Ltd, appointed date 2024-04-01, scheme effective 2026-05-01; Gujarat Gas Ltd is now Gujarat Energy Ltd, ISIN INE844O01030, NSE symbol GUJENERGY (GUJGASLTD in the Jun-2026 filing)."
+      ]
+    },
+    {
+      "item_id": "symbol:PEL",
+      "decision_id": 16,
+      "name": "Piramal Enterprises Limited",
+      "instrument": {
+        "symbol": "PEL",
+        "isin": "INE140A01024",
+        "status": "delisted",
+        "listed_on": null,
+        "first_observed_on": "2012-09-21",
+        "last_traded_on": "2025-09-22",
+        "delisted_on": null
+      },
+      "alias": {
+        "instrument_id": "<new>",
+        "source": "nse",
+        "source_symbol": "PEL",
+        "valid_from": "2012-09-21",
+        "valid_from_basis": "FIRST_OBSERVED",
+        "valid_to": "2025-09-23",
+        "valid_to_basis": "LAST_OBSERVED"
+      },
+      "relationship": {
+        "relationship_type": "MERGED_INTO",
+        "source_instrument_id": "<new>",
+        "target_symbol": "PIRAMALFIN",
+        "appointed_date": null,
+        "effective_date": "2025-09-16",
+        "ratio_num": null,
+        "ratio_den": null,
+        "known_at": null,
+        "evidence": [
+          "Piramal Enterprises filing 2025-09-16 (https://www.piramalenterprises.com/Assets/download/CompositeArrangement/Regulations_30_and_51_Disclosure_Effective_Date_PEL_s.pdf, read): Scheme of Merger effective 2025-09-16; PEL merged with Piramal Finance Limited (PFL) and dissolved without being wound up. Filing 2025-09-17 (PEL_Regulations_51_And_60_Disclosure_Signed.pdf, read): Record Date 2025-09-23. Piramal Finance letter 2025-11-04 (PFL-SE-Listing-sd.pdf, read): PFL equity shares issued to PEL shareholders commence trading 2025-11-07. Our exchange files: PEL, ISIN INE140A01024, last session 2025-09-22.",
+          "PEL filing of 2025-09-16 (1:1 ratio not verified, so not stored)"
+        ],
+        "verification_status": "PROVISIONAL",
+        "review_decision_id": 16
+      },
+      "evidence": [
+        "Piramal Enterprises filing 2025-09-16 (https://www.piramalenterprises.com/Assets/download/CompositeArrangement/Regulations_30_and_51_Disclosure_Effective_Date_PEL_s.pdf, read): Scheme of Merger effective 2025-09-16; PEL merged with Piramal Finance Limited (PFL) and dissolved without being wound up. Filing 2025-09-17 (PEL_Regulations_51_And_60_Disclosure_Signed.pdf, read): Record Date 2025-09-23. Piramal Finance letter 2025-11-04 (PFL-SE-Listing-sd.pdf, read): PFL equity shares issued to PEL shareholders commence trading 2025-11-07. Our exchange files: PEL, ISIN INE140A01024, last session 2025-09-22."
+      ]
+    }
+  ]
+}

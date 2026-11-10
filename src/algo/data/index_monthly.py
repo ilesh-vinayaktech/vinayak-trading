@@ -8,6 +8,7 @@ import io
 import re
 import subprocess
 import zipfile
+from collections.abc import Sequence
 from datetime import datetime
 
 import psycopg
@@ -97,3 +98,17 @@ def parse_archive(
             stored.append(snap.index_name)
             problems += [f"{name}: {p}" for p in snap.problems]
     return stored, problems
+
+
+def remap_monthly(conn: psycopg.Connection, symbols: Sequence[str] | None = None) -> int:
+    """Re-resolve constituents still UNMAPPED after an alias was added (the `map_symbol` rule: the
+    alias must be valid on the snapshot date), optionally only for these symbols. Idempotent."""
+    return conn.execute(
+        "UPDATE index_monthly_constituent k SET instrument_id=a.instrument_id,"
+        " mapping_status='MAPPED' FROM index_monthly_snapshot s, instrument_alias a"
+        " WHERE k.snapshot_id=s.snapshot_id"
+        " AND k.mapping_status='UNMAPPED_SYMBOL' AND a.source='nse' AND a.source_symbol=k.symbol"
+        " AND a.valid_from <= s.as_of AND (a.valid_to IS NULL OR s.as_of < a.valid_to)"
+        " AND (%s::text[] IS NULL OR k.symbol = ANY(%s::text[]))",
+        (symbols, symbols),
+    ).rowcount
