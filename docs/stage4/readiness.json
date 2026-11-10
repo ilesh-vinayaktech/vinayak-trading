@@ -29,7 +29,7 @@
       "status": "FAIL"
     },
     {
-      "evidence": "members without an instrument: s:PEL 2020-10-01..2024-09-27 (831 sessions); s:GSPL 2020-10-01..2023-03-29 (620 sessions); p:DUMMYSIEMS 2025-04-07..2025-06-18 (49 sessions); p:DUMMYHDLVR 2025-12-05..2026-02-13 (49 sessions); p:DUMMYVEDL1 2026-04-30..2026-06-12 (30 sessions); p:DUMMYVEDL2 2026-04-30..2026-06-12 (30 sessions); p:DUMMYVEDL3 2026-04-30..2026-06-12 (30 sessions); p:DUMMYVEDL4 2026-04-30..2026-06-12 (30 sessions); p:DUMMYABFRL 2025-05-22..2025-06-20 (22 sessions); s:JIOFIN 2023-07-20..2023-08-18 (21 sessions); p:DUMMYTATAM 2025-10-14..2025-11-11 (19 sessions); p:DUMMYITC 2025-01-06..2025-01-28 (17 sessions). Members without a bar: i:2653 2020-10-01..2023-07-31 (702 sessions); i:1179 2022-03-07..2022-03-07 (1 sessions).",
+      "evidence": "members without an instrument: s:PEL 2020-10-01..2024-09-27 (831 sessions); s:GSPL 2020-10-01..2023-03-29 (620 sessions); p:DUMMYSIEMS 2025-04-07..2025-06-18 (49 sessions); p:DUMMYHDLVR 2025-12-05..2026-02-13 (49 sessions); p:DUMMYVEDL1 2026-04-30..2026-06-12 (30 sessions); p:DUMMYVEDL2 2026-04-30..2026-06-12 (30 sessions); p:DUMMYVEDL3 2026-04-30..2026-06-12 (30 sessions); p:DUMMYVEDL4 2026-04-30..2026-06-12 (30 sessions); p:DUMMYABFRL 2025-05-22..2025-06-20 (22 sessions); s:JIOFIN 2023-07-20..2023-08-18 (21 sessions); p:DUMMYTATAM 2025-10-14..2025-11-11 (19 sessions); p:DUMMYITC 2025-01-06..2025-01-28 (17 sessions). Members without a bar: i:1179 2022-03-07..2022-03-07 (1 sessions).",
       "id": "U2",
       "requirement": "Every research-window Nifty 200 member maps to a permanent instrument with prices on its member sessions",
       "status": "FAIL"

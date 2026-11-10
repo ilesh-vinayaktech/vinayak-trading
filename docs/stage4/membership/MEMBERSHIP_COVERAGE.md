@@ -19,7 +19,6 @@ Verification status: PROVISIONAL: nothing here is person-verified, and no covera
 | reason | sessions |
 |---|---|
 | member without an instrument: s:PEL | 831 |
-| member without a bar: i:2653 | 702 |
 | member without an instrument: s:GSPL | 620 |
 | member without an instrument: p:DUMMYSIEMS | 49 |
 | member without an instrument: p:DUMMYHDLVR | 49 |
