@@ -8,7 +8,7 @@ import pytest
 from algo.core.calendar import nse
 from algo.data.instrument_sync import sync_equities
 from algo.data.lake import LocalLake
-from algo.data.pipeline import backfill, run_partition
+from algo.data.pipeline import backfill, backfill_instruments, run_partition
 from algo.data.providers.base import NotPublishedError
 from algo.data.providers.nse_bhavcopy import NseBhavcopy
 from algo.data.providers.nse_security_master import parse_security_master
@@ -164,3 +164,88 @@ def test_stale_file_on_a_holiday_is_recorded_not_published_and_loads_nothing(env
     prov.payload = RAW.replace(b"05-Nov-2026", b"04-Nov-2026")  # NSE re-served the prior day
     out = backfill(conn, lake, prov, "bhav", D0, D0, NOW)
     assert out == {"not_published": 1} and count(conn) == 0
+
+
+# ---- loading one instrument's bars from raw files already stored, after its alias became known ------
+def late_alias(env, symbol="AGSTRA", valid_from=date(2000, 1, 1)):
+    conn, lake, prov, ids = env
+    repo = InstrumentRepo(conn)
+    x = conn.execute("SELECT exchange_id FROM exchange WHERE mic='XNSE'").fetchone()[0]
+    iid = repo.add_instrument(x, symbol)
+    repo.add_alias(iid, "nse", symbol, valid_from)
+    return iid
+
+
+def test_a_late_alias_gets_its_bars_from_the_stored_raw_file_under_the_same_dataset_version(env):
+    conn, lake, prov, ids = env
+    run_partition(conn, lake, prov, "bhav", D0, NOW)  # AGSTRA unknown: its row was skipped
+    iid = late_alias(env)
+    (r,) = backfill_instruments(conn, lake, prov, "bhav", [D0], {iid}, NOW)
+    assert (r.day, r.instrument_id, r.status, r.rows, r.already_loaded) == (D0, iid, "loaded", 1, 0)
+    assert count(conn, f"instrument_id={iid} AND dataset_version=1 AND source='nse'") == 1
+    assert count(conn) == 5  # the four existing bars are untouched
+    (audit,) = conn.execute(
+        "SELECT status, dataset_version, detail FROM partition_load WHERE detail->>'kind'='instrument_backfill'"
+    ).fetchall()
+    raw_sha = lake.versions("nse", "bhav", D0)[-1].checksum
+    assert audit[:2] == ("noop", 1)
+    assert (
+        audit[2]["instrument_ids"] == [iid]
+        and audit[2]["rows"] == 1
+        and audit[2]["raw_sha256"] == raw_sha
+    )
+    (again,) = backfill_instruments(conn, lake, prov, "bhav", [D0], {iid}, NOW)  # idempotent
+    assert (again.rows, again.already_loaded) == (0, 1) and count(conn) == 5
+
+
+def test_only_the_requested_instruments_are_loaded(env):
+    conn, lake, prov, ids = env
+    run_partition(conn, lake, prov, "bhav", D0, NOW)
+    iid = late_alias(env)
+    backfill_instruments(conn, lake, prov, "bhav", [D0], {ids["RELIANCE"]}, NOW)  # already loaded
+    assert count(conn, f"instrument_id={iid}") == 0  # AGSTRA was not asked for
+
+
+def test_an_instrument_not_mapped_on_that_day_loads_nothing(env):
+    conn, lake, prov, ids = env
+    run_partition(conn, lake, prov, "bhav", D0, NOW)
+    iid = late_alias(env, valid_from=date(2026, 11, 6))  # alias starts after the file's day
+    (r,) = backfill_instruments(conn, lake, prov, "bhav", [D0], {iid}, NOW)
+    assert (r.status, r.rows) == ("not_mapped", 0) and count(conn, f"instrument_id={iid}") == 0
+
+
+def test_a_day_with_no_stored_raw_file_or_no_loaded_partition_is_skipped_not_guessed(env):
+    conn, lake, prov, ids = env
+    iid = late_alias(env)
+    (nothing,) = backfill_instruments(conn, lake, prov, "bhav", [date(2026, 11, 4)], {iid}, NOW)
+    assert nothing.status == "no_raw_file"
+    lake.put("nse", "bhav", D0, RAW, url="u", fetched_at=NOW)  # stored but never loaded
+    (unloaded,) = backfill_instruments(conn, lake, prov, "bhav", [D0], {iid}, NOW)
+    assert unloaded.status == "partition_not_loaded" and count(conn) == 0
+
+
+def test_a_raw_file_that_changed_since_the_partition_was_loaded_is_refused(env):
+    conn, lake, prov, ids = env
+    run_partition(conn, lake, prov, "bhav", D0, NOW)
+    lake.put(
+        "nse",
+        "bhav",
+        D0,
+        RAW.replace(b"1313.40", b"1399.40"),
+        url="u",
+        fetched_at=NOW,
+        ingest_kind="provider_correction",
+    )
+    iid = late_alias(env)
+    (r,) = backfill_instruments(conn, lake, prov, "bhav", [D0], {iid}, NOW)
+    assert r.status == "raw_changed_since_load" and count(conn, f"instrument_id={iid}") == 0
+
+
+def test_rows_failing_validity_now_are_refused_loudly_not_loaded(env, monkeypatch):
+    conn, lake, prov, ids = env
+    run_partition(conn, lake, prov, "bhav", D0, NOW)
+    iid = late_alias(env)
+    monkeypatch.setattr("algo.data.pipeline.validity", lambda bars: ["AGSTRA: forced issue"])
+    with pytest.raises(ValueError, match="forced issue"):
+        backfill_instruments(conn, lake, prov, "bhav", [D0], {iid}, NOW)
+    assert count(conn, f"instrument_id={iid}") == 0
