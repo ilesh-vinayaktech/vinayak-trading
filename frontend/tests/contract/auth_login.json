@@ -1,0 +1,17 @@
+{
+ "user": {
+  "email": "jane@example.com",
+  "enrolment_required": false,
+  "id": "<id>",
+  "mfa_enabled": false,
+  "must_change_password": false,
+  "name": "Jane Roe",
+  "permissions": [
+   "kite:own",
+   "research:read",
+   "strategy:own",
+   "tickets:own"
+  ],
+  "role": "TRADER"
+ }
+}

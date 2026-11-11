@@ -118,3 +118,62 @@ def test_the_api_responses_match_the_fixtures_the_frontend_is_tested_against(see
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_sign_in_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    """The portal's own shapes (login, me, sessions, 2FA). Random values (ids, seeds, codes, times) are replaced by
+    placeholders so the frozen JSON is stable; only the SHAPE is under test."""
+    from fastapi.testclient import TestClient
+
+    from algo.portal import accounts, totp
+    from tests.support.portal import FAST, make_app
+
+    migrate(conn)
+    now = datetime(2026, 11, 11, 10, 0, tzinfo=UTC)
+    accounts.create_user(
+        conn,
+        FAST,
+        email="jane@example.com",
+        display_name="Jane Roe",
+        role="TRADER",
+        password="violet-harbor-lantern-42",
+        now=now,
+    )
+    c = TestClient(make_app(pg_url, tmp_path))
+    login = c.post(
+        "/api/auth/login",
+        json={"email": "jane@example.com", "password": "violet-harbor-lantern-42"},
+    )
+    c.headers["x-csrf-token"] = c.cookies.get("csrf", "")
+    enrol = c.post("/api/auth/mfa/enrol")
+    code = totp.code_at(enrol.json()["secret"], int(now.timestamp()) // 30)
+    confirm = c.post("/api/auth/mfa/confirm", json={"code": code})
+    mfa_step = TestClient(make_app(pg_url, tmp_path)).post(
+        "/api/auth/login",
+        json={"email": "jane@example.com", "password": "violet-harbor-lantern-42"},
+    )
+    shots = {
+        "auth_login": login, "auth_me": c.get("/api/auth/me"), "auth_sessions": c.get("/api/auth/sessions"),
+        "auth_mfa_enrol": enrol, "auth_mfa_confirm": confirm, "auth_mfa_required": mfa_step,
+    }  # fmt: skip
+
+    def scrub(v, key=""):
+        if isinstance(v, dict):
+            return {k: scrub(x, k) for k, x in v.items()}
+        if isinstance(v, list):
+            return [scrub(x, key) for x in v]
+        if key in ("id", "session_id", "secret", "uri", "created_at", "last_seen_at", "expires_at"):
+            return f"<{key}>"
+        if key == "recovery_codes" or (isinstance(v, str) and len(v) == 11 and v[5] == "-"):
+            return "<recovery code>"
+        return v
+
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        text = json.dumps(scrub(resp.json()), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

@@ -1,0 +1,13 @@
+{
+ "sessions": [
+  {
+   "created_at": "<created_at>",
+   "current": true,
+   "expires_at": "<expires_at>",
+   "ip": "testclient",
+   "last_seen_at": "<last_seen_at>",
+   "session_id": "<session_id>",
+   "user_agent": "testclient"
+  }
+ ]
+}

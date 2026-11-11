@@ -373,3 +373,36 @@ export const reviewHistorySchema = z.array(reviewDecision);
 export type ReviewItem = z.infer<typeof reviewListSchema>["items"][number];
 export type ReviewDecision = z.infer<typeof reviewDecision>;
 export type ReviewDraft = { decision: string; reviewer: string; effective_date?: string; effective_to?: string; evidence_ref: string; note: string };
+
+
+// ---- portal: sign-in and the signed-in user ------------------------------------------------------------------------
+export const userSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  role: z.enum(["ADMIN", "OPERATOR", "TRADER", "VIEWER"]),
+  permissions: z.array(z.string()),
+  mfa_enabled: z.boolean(),
+  enrolment_required: z.boolean(), // an admin/operator who has not set up a second factor yet
+  must_change_password: z.boolean(),
+});
+export const meSchema = z.object({ user: userSchema });
+export const loginSchema = z.union([z.object({ mfa_required: z.literal(true) }), meSchema]);
+export const okSchema = z.object({ ok: z.boolean() });
+export const mfaEnrolSchema = z.object({ secret: z.string(), uri: z.string() });
+export const recoverySchema = z.object({ recovery_codes: z.array(z.string()) });
+export const sessionListSchema = z.object({
+  sessions: z.array(
+    z.object({
+      session_id: z.string(),
+      created_at: z.string(),
+      last_seen_at: z.string(),
+      expires_at: z.string(),
+      ip: z.string().nullable(),
+      user_agent: z.string().nullable(),
+      current: z.boolean(),
+    }),
+  ),
+});
+export type User = z.infer<typeof userSchema>;
+export type SessionRow = z.infer<typeof sessionListSchema>["sessions"][number];

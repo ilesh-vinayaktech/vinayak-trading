@@ -12,6 +12,12 @@ import {
   indicatorCatalogSchema,
   indicatorSeriesSchema,
   levelsSchema,
+  loginSchema,
+  meSchema,
+  mfaEnrolSchema,
+  okSchema,
+  recoverySchema,
+  sessionListSchema,
   reviewHistorySchema,
   reviewListSchema,
   type ReviewDraft,
@@ -19,7 +25,15 @@ import {
   type Timeframe,
 } from "@/lib/schemas";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+/** The browser talks to its own origin; Next proxies /api to the backend, so the session cookie never crosses sites. */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window === "undefined" ? "http://localhost:3000" : window.location.origin);
+
+/** The CSRF token the server set at sign-in (a cookie the page may read); sent back as a header on every write. */
+export function csrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const hit = document.cookie.split("; ").find((c) => c.startsWith("csrf="));
+  return hit ? decodeURIComponent(hit.slice(5)) : "";
+}
 
 export class ApiError extends Error {
   constructor(
@@ -43,17 +57,8 @@ export async function get<T>(
   for (const [k, v] of Object.entries(params ?? {})) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
-  const res = await fetcher(url.toString());
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = (await res.json()) as { detail?: unknown };
-      if (typeof body.detail === "string") detail = body.detail;
-    } catch {
-      /* keep statusText */
-    }
-    throw new ApiError(res.status, detail);
-  }
+  const res = await fetcher(url.toString(), { credentials: "same-origin" });
+  if (!res.ok) throw await failure(res);
   const parsed = schema.safeParse(await res.json());
   if (!parsed.success) {
     throw new ApiError(502, `unexpected response shape from ${path}: ${parsed.error.issues[0]?.message ?? "invalid"}`);
@@ -61,22 +66,52 @@ export async function get<T>(
   return parsed.data;
 }
 
-/** POST a JSON body (review decisions only). A refusal's reason is shown as-is. */
-export async function post(path: string, body: unknown, fetcher: typeof fetch = fetch): Promise<void> {
-  const res = await fetcher(new URL(path, API_URL).toString(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const j = (await res.json()) as { detail?: unknown };
-      if (typeof j.detail === "string") detail = j.detail;
-    } catch {
-      /* keep statusText */
-    }
-    throw new ApiError(res.status, detail);
+async function failure(res: Response): Promise<ApiError> {
+  let detail = res.statusText;
+  try {
+    const j = (await res.json()) as { detail?: unknown };
+    if (typeof j.detail === "string") detail = j.detail;
+  } catch {
+    /* keep statusText */
   }
+  return new ApiError(res.status, detail);
+}
+
+/** Send a JSON body with the CSRF header and validate the answer. A refusal's reason is shown as-is. */
+export async function send<T>(
+  method: "POST" | "DELETE",
+  path: string,
+  body: unknown,
+  schema: z.ZodType<T>,
+  fetcher: typeof fetch = fetch,
+): Promise<T> {
+  const res = await fetcher(new URL(path, API_URL).toString(), {
+    method,
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken() },
+    credentials: "same-origin",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) throw await failure(res);
+  const parsed = schema.safeParse(await res.json());
+  if (!parsed.success) throw new ApiError(502, `unexpected response shape from ${path}: ${parsed.error.issues[0]?.message ?? "invalid"}`);
+  return parsed.data;
+}
+
+/** POST whose answer is not used (review decisions). */
+export async function post(path: string, body: unknown, fetcher: typeof fetch = fetch): Promise<void> {
+  const res = await fetcher(new URL(path, API_URL).toString(), { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken() }, credentials: "same-origin", body: JSON.stringify(body) });
+  if (!res.ok) throw await failure(res);
 }
 
 export const api = {
+  login: (email: string, password: string, totpCode?: string) => send("POST", "/api/auth/login", { email, password, totp_code: totpCode || undefined }, loginSchema),
+  logout: () => send("POST", "/api/auth/logout", undefined, okSchema),
+  me: () => get("/api/auth/me", meSchema),
+  changePassword: (current: string, next: string) => send("POST", "/api/auth/password", { current, new: next }, okSchema),
+  mfaEnrol: () => send("POST", "/api/auth/mfa/enrol", undefined, mfaEnrolSchema),
+  mfaConfirm: (code: string) => send("POST", "/api/auth/mfa/confirm", { code }, recoverySchema),
+  mySessions: () => get("/api/auth/sessions", sessionListSchema),
+  endSession: (id: string) => send("DELETE", `/api/auth/sessions/${encodeURIComponent(id)}`, undefined, okSchema),
   health: () => get("/api/health", healthSchema),
   dashboard: () => get("/api/dashboard", dashboardSchema),
   searchInstruments: (q: string) => get("/api/instruments", z.array(instrumentSchema), { q, limit: 15 }),

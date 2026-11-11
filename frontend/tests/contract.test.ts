@@ -15,6 +15,11 @@ import {
   instrumentDetailSchema,
   instrumentSchema,
   levelsSchema,
+  loginSchema,
+  meSchema,
+  mfaEnrolSchema,
+  recoverySchema,
+  sessionListSchema,
 } from "@/lib/schemas";
 
 // Fixtures are the API's real responses, written by tests/integration/test_contract.py. If the API
@@ -31,6 +36,12 @@ const CASES: [string, z.ZodTypeAny][] = [
   ["bars_none", barsSchema],
   ["bars_split", barsSchema],
   ["bars_5m", barsSchema],
+  ["auth_login", loginSchema],
+  ["auth_mfa_required", loginSchema],
+  ["auth_me", meSchema],
+  ["auth_sessions", sessionListSchema],
+  ["auth_mfa_enrol", mfaEnrolSchema],
+  ["auth_mfa_confirm", recoverySchema],
   ["benchmark_list", benchmarkListSchema],
   ["benchmark_detail", benchmarkDetailSchema],
   ["benchmark_levels", levelsSchema],
