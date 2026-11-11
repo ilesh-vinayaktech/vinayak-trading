@@ -1,0 +1,52 @@
+{
+ "orders": [
+  {
+   "created_at": "2026-11-11T10:00:00+00:00",
+   "decision_day": "2026-11-11",
+   "expires_at": "2026-11-12T06:00:00+00:00",
+   "failure": "you do not hold that many shares",
+   "fill_commission": null,
+   "fill_day": null,
+   "fill_price": null,
+   "order_id": "<order_id>",
+   "qty": "10",
+   "reason": "entry: oversold in an uptrend",
+   "ref_price": "3500",
+   "side": "SELL",
+   "status": "FAILED",
+   "symbol": "TCS"
+  },
+  {
+   "created_at": "2026-11-11T10:00:00+00:00",
+   "decision_day": "2026-11-11",
+   "expires_at": "2026-11-12T06:00:00+00:00",
+   "failure": null,
+   "fill_commission": "28.5",
+   "fill_day": "2026-11-11",
+   "fill_price": "2850.5",
+   "order_id": "<order_id>",
+   "qty": "10",
+   "reason": "entry: oversold in an uptrend",
+   "ref_price": "3500",
+   "side": "BUY",
+   "status": "FILLED",
+   "symbol": "RELIANCE"
+  },
+  {
+   "created_at": "2026-11-11T10:00:00+00:00",
+   "decision_day": "2026-11-11",
+   "expires_at": "2026-11-12T06:00:00+00:00",
+   "failure": null,
+   "fill_commission": null,
+   "fill_day": null,
+   "fill_price": null,
+   "order_id": "<order_id>",
+   "qty": "10",
+   "reason": "entry: oversold in an uptrend",
+   "ref_price": "3500",
+   "side": "BUY",
+   "status": "PENDING",
+   "symbol": "TCS"
+  }
+ ]
+}

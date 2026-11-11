@@ -1,0 +1,33 @@
+{
+ "cash": "714636.5",
+ "equity": "1004636.5",
+ "equity_curve": [
+  {
+   "day": "2026-11-10",
+   "equity": "1000000"
+  },
+  {
+   "day": "2026-11-11",
+   "equity": "1004600"
+  }
+ ],
+ "invested": "290000",
+ "pending_orders": 1,
+ "pnl": {
+  "fees": "313.5",
+  "net": "4636.5",
+  "realized": "0",
+  "unrealized": "4950"
+ },
+ "positions": [
+  {
+   "avg_cost": "2850.5",
+   "instrument_id": 1,
+   "last_price": "2900",
+   "qty": "100",
+   "symbol": "RELIANCE",
+   "unrealized": "4950",
+   "value": "290000"
+  }
+ ]
+}

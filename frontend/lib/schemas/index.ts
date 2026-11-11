@@ -547,3 +547,64 @@ export const marketCalendarSchema = z.object({
 });
 export const marketIdSchema = z.object({ id: z.number() });
 export type MarketCalendar = z.infer<typeof marketCalendarSchema>;
+
+
+// ---- paper trading (UNVALIDATED research: nothing here places a real order) ----------------------------------------------
+const decimal = z.string(); // money and quantities arrive as decimal strings and are only ever formatted, never computed
+export const paperParamsSchema = z.object({ trend_sma: z.number(), entry_rsi: z.number(), exit_rsi: z.number(), max_positions: z.number() });
+export const paperAccountSchema = z.object({
+  label: z.string(),
+  options: z.object({
+    universes: z.array(z.object({ key: z.string(), label: z.string() })),
+    timeframes: z.array(z.object({ key: z.string(), label: z.string(), available: z.boolean() })),
+    params: z.object({ trend_sma: z.array(z.number()), entry_rsi: z.array(z.number()), exit_rsi: z.array(z.number()), max_positions: z.array(z.number()) }),
+  }),
+  account: z
+    .object({
+      strategy_id: z.string(),
+      enabled: z.boolean(),
+      mode: z.string(),
+      initial_cash: decimal,
+      started_on: z.string(),
+      attention: z.string().nullable(),
+      universe: z.string(),
+      max_instruments: z.number().nullable(),
+      timeframe: z.string(),
+      params: paperParamsSchema,
+    })
+    .nullable(),
+});
+export const paperSummarySchema = z.object({
+  equity: decimal,
+  cash: decimal,
+  invested: decimal,
+  pnl: z.object({ realized: decimal, unrealized: decimal, fees: decimal, net: decimal }),
+  positions: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), qty: decimal, avg_cost: decimal, last_price: decimal, value: decimal, unrealized: decimal })),
+  equity_curve: z.array(z.object({ day: z.string(), equity: decimal })),
+  pending_orders: z.number(),
+});
+export const PAPER_STATUSES = ["PENDING", "APPROVED", "REJECTED", "EXPIRED", "FILLED", "FAILED"] as const;
+export const paperOrderSchema = z.object({
+  order_id: z.string(),
+  symbol: z.string(),
+  side: z.enum(["BUY", "SELL"]),
+  qty: decimal,
+  ref_price: decimal,
+  reason: z.string(),
+  status: z.enum(PAPER_STATUSES),
+  decision_day: z.string(),
+  created_at: z.string(),
+  expires_at: z.string(),
+  fill_price: decimal.nullable(),
+  fill_commission: decimal.nullable(),
+  fill_day: z.string().nullable(),
+  failure: z.string().nullable(),
+});
+export const paperOrdersSchema = z.object({ orders: z.array(paperOrderSchema) });
+export const paperRunsSchema = z.object({
+  runs: z.array(z.object({ decision_day: z.string(), status: z.enum(["PROPOSED", "NO_CHANGE", "SKIPPED", "ERROR"]), reason: z.string().nullable(), orders: z.number(), universe: z.string().nullable(), strategy_version: z.string(), created_at: z.string() })),
+});
+export type PaperAccount = z.infer<typeof paperAccountSchema>;
+export type PaperSummary = z.infer<typeof paperSummarySchema>;
+export type PaperOrder = z.infer<typeof paperOrderSchema>;
+export type PaperRun = z.infer<typeof paperRunsSchema>["runs"][number];

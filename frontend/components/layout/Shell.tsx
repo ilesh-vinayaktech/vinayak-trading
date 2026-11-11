@@ -22,6 +22,10 @@ const GROUPS: { title: string; items: Item[] }[] = [
     ],
   },
   {
+    title: "Trading",
+    items: [{ href: "/paper", label: "Paper trading", icon: "chart", need: "strategy:own" }],
+  },
+  {
     title: "Research",
     items: [
       { href: "/dashboard", label: "Data health", icon: "benchmark", need: "research:read" },

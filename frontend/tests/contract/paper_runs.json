@@ -1,0 +1,13 @@
+{
+ "runs": [
+  {
+   "created_at": "2026-11-11T10:00:00+00:00",
+   "decision_day": "2026-11-11",
+   "orders": 3,
+   "reason": null,
+   "status": "PROPOSED",
+   "strategy_version": "1",
+   "universe": "nifty200"
+  }
+ ]
+}

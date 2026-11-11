@@ -448,3 +448,98 @@ def test_the_market_calendar_response_matches_the_fixture_the_frontend_is_tested
     assert path.read_text() == text, (
         "market_calendar: the API response changed; run UPDATE_CONTRACT=1"
     )
+
+
+def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    from datetime import timedelta
+    from decimal import Decimal as D
+
+    from psycopg.types.json import Jsonb
+
+    from algo.core.clock import SimClock
+    from algo.data.store.instruments import InstrumentRepo
+    from algo.paper import book
+    from tests.support.bt import put_bars
+    from tests.support.portal import add_user, make_app, settings, sign_in
+
+    migrate(conn)
+    start = datetime(2026, 11, 11, 10, 0, tzinfo=UTC)
+    today = start.date()
+    clock = SimClock(start)
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    repo = InstrumentRepo(conn)
+    x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
+    a, b = repo.add_instrument(x, "RELIANCE"), repo.add_instrument(x, "TCS")
+    put_bars(conn, a, {today - timedelta(days=1): D("2850"), today: D("2900")})
+    uid = add_user(conn, clock, "TRADER", "jane@example.com")
+    c = sign_in(app, "jane@example.com")
+    shots = {"paper_account_none": c.get("/api/paper/account")}
+    c.post(
+        "/api/paper/account",
+        json={
+            "initial_cash": "1000000",
+            "universe": "nifty200",
+            "max_instruments": 100,
+            "timeframe": "1D",
+            "params": {},
+        },
+    )
+    shots["paper_account"] = c.get("/api/paper/account")
+    book.record_fill(
+        conn,
+        uid,
+        day=today,
+        side="BUY",
+        iid=a,
+        qty=D(100),
+        price=D("2850.5"),
+        commission=D("28.5"),
+        charges=[("STT", D("285"))],
+        ref="seed",
+        now=start,
+    )
+    conn.execute(
+        "INSERT INTO paper_equity (user_id, day, equity, cash) VALUES (%s,%s,1000000,1000000),(%s,%s,1004600,714686.5)",
+        (uid, today - timedelta(days=1), uid, today),
+    )
+    for _sym, iid, status, side in (
+        ("RELIANCE", a, "FILLED", "BUY"),
+        ("TCS", b, "PENDING", "BUY"),
+        ("TCS", b, "FAILED", "SELL"),
+    ):
+        conn.execute(
+            "INSERT INTO paper_order (user_id, decision_day, instrument_id, side, qty, ref_price, reason, status, created_at, not_before, expires_at, fill_price, fill_commission, fill_day, failure)"
+            " VALUES (%s,%s,%s,%s,10,3500,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (uid, today, iid, side, "entry: oversold in an uptrend", status, start, start, start + timedelta(hours=20),
+             D("2850.5") if status == "FILLED" else None, D("28.5") if status == "FILLED" else None, today if status == "FILLED" else None,
+             "you do not hold that many shares" if status == "FAILED" else None),
+        )  # fmt: skip
+    conn.execute(
+        "INSERT INTO paper_run (user_id, decision_day, strategy_id, strategy_version, params_hash, status, detail, created_at) VALUES (%s,%s,'trend_pullback','1','h','PROPOSED',%s,%s)",
+        (uid, today, Jsonb({"label": "UNVALIDATED", "universe": {"universe": "nifty200"}}), start),
+    )
+    shots["paper_summary"] = c.get("/api/paper/summary")
+    shots["paper_orders"] = c.get("/api/paper/orders")
+    shots["paper_runs"] = c.get("/api/paper/runs")
+
+    def scrub(v, key=""):
+        if isinstance(v, dict):
+            return {k: scrub(x, k) for k, x in v.items()}
+        if isinstance(v, list):
+            return [scrub(x, key) for x in v]
+        return "<order_id>" if key == "order_id" else v
+
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        doc = scrub(resp.json())
+        if (
+            name == "paper_orders"
+        ):  # same-second orders come back in an arbitrary order: compare them in a fixed one
+            doc["orders"].sort(key=lambda o: (o["status"], o["symbol"], o["side"]))
+        text = json.dumps(doc, indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

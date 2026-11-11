@@ -21,6 +21,10 @@ import {
   kiteLoginSchema,
   kiteSystemSchema,
   marketCalendarSchema,
+  paperAccountSchema,
+  paperOrdersSchema,
+  paperRunsSchema,
+  paperSummarySchema,
   myDashboardSchema,
   opsDashboardSchema,
   kiteUserSchema,
@@ -47,7 +51,8 @@ import {
 // changes shape that test fails until they are regenerated, and this one fails until the UI schema
 // follows - so the UI is checked against what the backend really sends, not against hand-made mocks.
 const dir = join(__dirname, "contract");
-const load = (name: string): unknown => JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8"));
+const load = (name: string): unknown =>
+  JSON.parse(readFileSync(join(dir, `${name}.json`), "utf8"));
 
 const CASES: [string, z.ZodTypeAny][] = [
   ["health", healthSchema],
@@ -85,6 +90,11 @@ const CASES: [string, z.ZodTypeAny][] = [
   ["kite_system", kiteSystemSchema],
   ["dashboard_me", myDashboardSchema],
   ["market_calendar", marketCalendarSchema],
+  ["paper_account_none", paperAccountSchema],
+  ["paper_account", paperAccountSchema],
+  ["paper_summary", paperSummarySchema],
+  ["paper_orders", paperOrdersSchema],
+  ["paper_runs", paperRunsSchema],
   ["dashboard_operations", opsDashboardSchema],
   ["benchmark_list", benchmarkListSchema],
   ["benchmark_detail", benchmarkDetailSchema],
@@ -96,14 +106,23 @@ const CASES: [string, z.ZodTypeAny][] = [
 ];
 
 describe("API contract", () => {
-  it.each(CASES)("the real %s response parses with the UI schema", (name, schema) => {
-    const r = schema.safeParse(load(name));
-    expect(r.success, r.success ? "" : JSON.stringify(r.error.issues[0])).toBe(true);
-  });
+  it.each(CASES)(
+    "the real %s response parses with the UI schema",
+    (name, schema) => {
+      const r = schema.safeParse(load(name));
+      expect(
+        r.success,
+        r.success ? "" : JSON.stringify(r.error.issues[0]),
+      ).toBe(true);
+    },
+  );
 
   it("the schemas are strict about what matters: a mangled response is rejected", () => {
-    const bad = load("dashboard") as { benchmarks: { series: { gate?: unknown }[] } };
-    delete (bad.benchmarks.series[0] as Record<string, unknown>).technically_validated;
+    const bad = load("dashboard") as {
+      benchmarks: { series: { gate?: unknown }[] };
+    };
+    delete (bad.benchmarks.series[0] as Record<string, unknown>)
+      .technically_validated;
     expect(dashboardSchema.safeParse(bad).success).toBe(false);
     const levels = load("benchmark_levels") as Record<string, unknown>;
     delete levels.downsampled;
@@ -114,7 +133,10 @@ describe("API contract", () => {
     const d = benchmarkDetailSchema.parse(load("benchmark_detail"));
     const rows = d.session_calendar?.this_series?.observed ?? [];
     expect(rows.length).toBeGreaterThan(0);
-    for (const r of rows) expect(Object.keys(r)).toEqual(expect.arrayContaining(["existence", "kind", "hours"]));
+    for (const r of rows)
+      expect(Object.keys(r)).toEqual(
+        expect.arrayContaining(["existence", "kind", "hours"]),
+      );
     expect(JSON.stringify(rows)).not.toMatch(/confirmed special/i);
   });
 
