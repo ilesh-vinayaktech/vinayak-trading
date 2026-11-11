@@ -121,7 +121,10 @@ def factor_on(
     total_return: bool = False,
     volume: bool = False,
     as_of: datetime | None = None,
+    applied_through: date | None = None,
 ) -> Decimal:
+    """applied_through: the vendor (Kite) already applied every split/bonus with ex_date <= this
+    day, so those are skipped; price-only actions and dividends are never vendor-applied."""
     f = Decimal(1)
     for a in adjustments:
         if a.ex_date <= d or (a.kind == "dividend" and not total_return):
@@ -129,6 +132,8 @@ def factor_on(
         if volume and a.kind != "split":  # share count changes only with splits and bonuses
             continue
         if as_of is not None and a.knowledge_time > as_of:
+            continue
+        if applied_through is not None and a.kind == "split" and a.ex_date <= applied_through:
             continue
         f *= a.factor
     return f

@@ -299,3 +299,18 @@ def test_a_malformed_record_does_not_stop_later_actions_from_being_processed():
     b = build(bad, good)
     assert [(a.ex_date, a.factor) for a in b.adjustments] == [(d2, D("0.5"))]
     assert b.unapplied == [bad]
+
+
+def test_splits_the_vendor_already_applied_are_skipped_but_price_only_actions_and_later_splits_still_count():
+    adj = [
+        Adjustment(date(2025, 3, 1), "split", D("0.5"), KT),  # inside Kite's basis
+        Adjustment(date(2025, 4, 1), "price", D("0.9"), KT),  # Kite never applies these
+        Adjustment(date(2025, 8, 1), "split", D("0.1"), KT),  # after the basis date
+    ]
+    through = date(2025, 6, 1)
+    assert factor_on(adj, date(2025, 1, 1), applied_through=through) == D("0.9") * D("0.1")
+    assert factor_on(adj, date(2025, 1, 1), volume=True, applied_through=through) == D("0.1")
+    assert factor_on(adj, date(2025, 1, 1)) == D("0.5") * D("0.9") * D("0.1")  # raw bars: unchanged
+    assert factor_on(adj, date(2025, 3, 1), applied_through=date(2025, 3, 1)) == D("0.9") * D(
+        "0.1"
+    )  # ex-date == basis day: applied by the vendor
