@@ -20,12 +20,25 @@ from psycopg.types.json import Jsonb
 
 from algo.data.adjust.factors import ActionRecord
 from algo.ledger.ledger import Ledger
+from algo.paper.universe import UNIVERSES
 
-COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at"
+COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe"
 
 
 class PaperError(ValueError):
     pass
+
+
+SETTINGS = ("universe", "max_instruments", "timeframe", "params")
+
+
+def _check_settings(universe: str, max_instruments: int | None, timeframe: str) -> None:
+    if universe not in UNIVERSES:
+        raise PaperError(f"unknown universe {universe!r}")
+    if max_instruments is not None and not 5 <= max_instruments <= 500:
+        raise PaperError("the instrument cap must be between 5 and 500")
+    if timeframe != "1D":
+        raise PaperError("only the daily timeframe is supported yet")
 
 
 def create_account(
@@ -37,14 +50,29 @@ def create_account(
     initial_cash: Decimal,
     started_on: date,
     now: datetime,
+    universe: str = "nifty200",
+    max_instruments: int | None = None,
+    timeframe: str = "1D",
 ) -> None:
     if initial_cash <= 0:
         raise PaperError("the starting cash must be positive")
+    _check_settings(universe, max_instruments, timeframe)
     if get_account(conn, user_id) is not None:
         raise PaperError("this user already has a paper account")
     conn.execute(
-        "INSERT INTO paper_account (user_id, strategy_id, params, initial_cash, started_on, actions_through, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)",
-        (user_id, strategy_id, Jsonb(dict(params)), initial_cash, started_on, started_on, now),
+        "INSERT INTO paper_account (user_id, strategy_id, params, initial_cash, started_on, actions_through, created_at, universe, max_instruments, timeframe) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (
+            user_id,
+            strategy_id,
+            Jsonb(dict(params)),
+            initial_cash,
+            started_on,
+            started_on,
+            now,
+            universe,
+            max_instruments,
+            timeframe,
+        ),
     )
 
 
@@ -65,6 +93,26 @@ def _need(conn: psycopg.Connection, user_id: UUID) -> dict[str, Any]:
 def set_enabled(conn: psycopg.Connection, user_id: UUID, enabled: bool) -> None:
     _need(conn, user_id)
     conn.execute("UPDATE paper_account SET enabled=%s WHERE user_id=%s", (enabled, user_id))
+
+
+def update_settings(conn: psycopg.Connection, user_id: UUID, **changes: Any) -> None:
+    """Change what the strategy runs on (universe, instrument cap, timeframe) or its parameters. Holdings the new settings
+    no longer allow are sold by the strategy's next decision, not here."""
+    acct = _need(conn, user_id)
+    if set(changes) - set(SETTINGS):
+        raise PaperError(f"{', '.join(sorted(set(changes) - set(SETTINGS)))} cannot be changed")
+    new = {**acct, **changes}
+    _check_settings(new["universe"], new["max_instruments"], new["timeframe"])
+    conn.execute(
+        "UPDATE paper_account SET universe=%s, max_instruments=%s, timeframe=%s, params=%s WHERE user_id=%s",
+        (
+            new["universe"],
+            new["max_instruments"],
+            new["timeframe"],
+            Jsonb(dict(new["params"])),
+            user_id,
+        ),
+    )
 
 
 def clear_attention(conn: psycopg.Connection, user_id: UUID) -> None:

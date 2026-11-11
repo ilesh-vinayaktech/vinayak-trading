@@ -25,9 +25,13 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 from algo.core.clock import SystemClock
+from algo.data.lake import LocalLake
+from algo.data.providers.kite import KiteClient, KiteError
+from algo.data.providers.kite_session import urllib_http
 from algo.live.bar_store import save_status, token_map
 from algo.live.bars import BarBuilder
 from algo.live.feed import Feed
+from algo.live.instrument_refresh import RefreshError, last_refresh, refresh
 from algo.live.kite_socket import connect
 from algo.live.market_calendar import windows_for
 from algo.portal.crypto import KeyRing
@@ -42,6 +46,7 @@ ap.add_argument(
     action="store_true",
     help="wait (until the session ends) for the Zerodha connection instead of exiting",
 )
+ap.add_argument("--lake", type=Path, default=Path("data/lake"))
 ap.add_argument("--mode", default="full", choices=["ltp", "quote", "full"])
 ap.add_argument(
     "--record", type=int, default=0, help="save the first N raw frames for parser checks"
@@ -74,11 +79,6 @@ async def main(conn: psycopg.Connection) -> str:
         + " IST",
         flush=True,
     )
-    ids = token_map(conn)
-    if not ids:
-        sys.exit(
-            "no instruments mapped to Kite tokens: run scripts/kite_load_minutes.py once to map them"
-        )
     stopping = False
     current: list[Feed] = []
 
@@ -106,7 +106,7 @@ async def main(conn: psycopg.Connection) -> str:
                 conn,
                 "STOPPED",
                 "waiting for you to connect to Zerodha on the Kite page",
-                subscribed=len(ids),
+                subscribed=len(token_map(conn)),
                 last_tick_at=None,
                 last_bar_at=None,
                 ticks=0,
@@ -117,6 +117,30 @@ async def main(conn: psycopg.Connection) -> str:
             )
             await asyncio.sleep(30)
             continue
+        if last_refresh(conn) != clock.now().astimezone(IST).date():
+            # the first connection of the day: bring the Kite instrument list (and our token mapping) up to date
+            try:
+                r = refresh(
+                    conn,
+                    KiteClient(creds[0], creds[1], urllib_http, retries=3),
+                    LocalLake(a.lake),
+                    a.lake,
+                    now=clock.now(),
+                )
+                print(
+                    f"instrument dump: {r.total_rows} instruments, {r.mapped} mapped; added {r.added}; dropped {r.dropped}; token changes {r.token_changes}; unmatched {len(r.unmatched)}",
+                    flush=True,
+                )
+            except (KiteError, RefreshError, OSError) as e:
+                print(
+                    f"instrument refresh failed ({e}); continuing with the existing mapping",
+                    flush=True,
+                )
+        ids = token_map(conn)
+        if not ids:
+            sys.exit(
+                "no instruments mapped to Kite tokens: run scripts/kite_load_minutes.py once to map them"
+            )
         feed = Feed(
             functools.partial(connect, *creds),
             conn,

@@ -44,7 +44,7 @@ def put_list(lake, day, extra=()):
     (d / "v1.bin").write_bytes(("Company Name,Industry,Symbol,Series,ISIN Code\n" + rows).encode())
 
 
-def user(conn, email="jane@example.com", cash="1000000", params=PARAMS):
+def user(conn, email="jane@example.com", cash="1000000", params=PARAMS, **settings):
     uid = add_user(conn, SimClock(NOW), "TRADER", email)
     book.create_account(
         conn,
@@ -54,6 +54,7 @@ def user(conn, email="jane@example.com", cash="1000000", params=PARAMS):
         initial_cash=D(cash),
         started_on=DAYS[250],
         now=NOW,
+        **settings,
     )
     return uid
 
@@ -199,7 +200,7 @@ def test_data_that_cannot_support_a_decision_is_an_error_not_a_guess(env, tmp_pa
     out = run_day(conn, uid, day=late, now=NOW + timedelta(days=100), lake_root=lake)
     assert out.status == "ERROR" and "unready" in out.detail["reason"] and orders(conn, uid) == []
     no_list = run_day(conn, uid, day=DAY, now=NOW, lake_root=tmp_path / "empty")
-    assert no_list.status == "ERROR" and "no Nifty 200 list" in no_list.detail["reason"]
+    assert no_list.status == "ERROR" and "no nifty200_list" in no_list.detail["reason"]
 
 
 def test_an_account_that_does_not_exist_is_refused(env):
@@ -319,4 +320,33 @@ def test_an_error_run_can_be_retried_once_the_cause_is_fixed(env, tmp_path):
     assert run_day(conn, uid, day=DAY, now=NOW, lake_root=lake).status == "PROPOSED"
     assert conn.execute("SELECT count(*) FROM paper_run WHERE user_id=%s", (uid,)).fetchone() == (
         1,
+    )
+
+
+def test_the_account_chooses_which_index_the_strategy_trades(env):
+    conn, ids, lake = env
+    d = lake / "raw/niftyindices/nifty50_list" / f"dt={DAY - timedelta(days=5)}"
+    d.mkdir(parents=True)
+    rows = "".join(f"S{k:02d} Ltd.,X,S{k:02d},EQ,INE{k:09d}\n" for k in range(5))
+    (d / "v1.bin").write_bytes(("Company Name,Industry,Symbol,Series,ISIN Code\n" + rows).encode())
+    uid = user(conn, universe="nifty50")
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert out.detail["universe"]["universe"] == "nifty50" and out.detail["audit"]["members"] == 5
+    assert {r[0] for r in orders(conn, uid)} <= set(ids[:5])
+
+
+def test_the_instrument_cap_keeps_the_most_liquid_names(env):
+    conn, ids, lake = env
+    conn.execute(
+        "UPDATE bar_1d SET volume = 1 WHERE instrument_id = ANY(%s)", (ids[5:],)
+    )  # all but five are illiquid
+    uid = user(conn, max_instruments=5)
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert out.detail["universe"]["capped_to"] == 5 and out.detail["audit"]["members"] == 5
+    assert out.orders and {r[0] for r in orders(conn, uid)} <= set(ids[:5])
+    roomy = user(
+        conn, "big@example.com", max_instruments=500
+    )  # a cap above the universe size changes nothing
+    assert (
+        "capped_to" not in run_day(conn, roomy, day=DAY, now=NOW, lake_root=lake).detail["universe"]
     )

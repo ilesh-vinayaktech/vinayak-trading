@@ -1,3 +1,5 @@
+import time
+
 import psycopg
 import pytest
 from testcontainers.community.postgres import PostgresContainer
@@ -15,5 +17,14 @@ def pg_url():
 def conn(pg_url):
     """Fresh database state per test: drop and recreate the public schema."""
     with psycopg.connect(pg_url, autocommit=True) as c:
-        c.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+        for attempt in range(5):
+            try:
+                c.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+                break
+            except (
+                psycopg.errors.DeadlockDetected
+            ):  # a TimescaleDB background worker touched a table being dropped: the victim retries
+                if attempt == 4:
+                    raise
+                time.sleep(0.5)
         yield c

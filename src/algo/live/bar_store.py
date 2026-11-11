@@ -16,9 +16,9 @@ CHANNEL = "live_bar"
 
 
 def token_map(conn: psycopg.Connection) -> dict[int, int]:
-    """Kite instrument token -> our instrument id, for the instruments we could match."""
+    """Kite instrument token -> our instrument id, for the instruments we could match and that are in today's mapping."""
     rows = conn.execute(
-        "SELECT instrument_token, instrument_id FROM kite_instrument WHERE instrument_id IS NOT NULL"
+        "SELECT instrument_token, instrument_id FROM kite_instrument WHERE instrument_id IS NOT NULL AND active"
     ).fetchall()
     return {int(t): int(i) for t, i in rows}
 

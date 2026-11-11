@@ -181,3 +181,53 @@ def test_an_account_can_be_switched_off_and_on(env):
     assert book.get_account(conn, jane)["enabled"] is True
     with pytest.raises(book.PaperError, match="no paper account"):
         book.set_enabled(conn, add_user(conn, SimClock(NOW), "VIEWER", "v@example.com"), False)
+
+
+def test_what_the_strategy_runs_on_has_sensible_defaults_and_can_be_chosen_at_creation(env):
+    conn, jane, bob, *_ = env
+    open_account(conn, jane)
+    got = book.get_account(conn, jane)
+    assert (got["universe"], got["max_instruments"], got["timeframe"]) == ("nifty200", None, "1D")
+    book.create_account(
+        conn, bob, strategy_id="trend_pullback", params={}, initial_cash=D(1000), started_on=D0, now=NOW,
+        universe="nifty500", max_instruments=100,
+    )  # fmt: skip
+    got = book.get_account(conn, bob)
+    assert (got["universe"], got["max_instruments"], got["timeframe"]) == ("nifty500", 100, "1D")
+
+
+def test_the_settings_can_be_changed_later_and_nonsense_is_refused(env):
+    conn, jane, *_ = env
+    open_account(conn, jane)
+    book.update_settings(conn, jane, universe="nifty50", max_instruments=20)
+    got = book.get_account(conn, jane)
+    assert (got["universe"], got["max_instruments"]) == ("nifty50", 20)
+    book.update_settings(conn, jane, max_instruments=None)  # back to the whole universe
+    assert book.get_account(conn, jane)["max_instruments"] is None
+    book.update_settings(conn, jane, params={"max_positions": 5})
+    assert book.get_account(conn, jane)["params"] == {"max_positions": 5}
+    for bad, why in (
+        (dict(universe="nifty9000"), "unknown universe"),
+        (dict(max_instruments=4), "between 5 and 500"),
+        (dict(max_instruments=501), "between 5 and 500"),
+        (dict(timeframe="15m"), "daily timeframe"),
+    ):
+        with pytest.raises(book.PaperError, match=why):
+            book.update_settings(conn, jane, **bad)
+    with pytest.raises(book.PaperError, match="unknown universe"):
+        book.create_account(
+            conn,
+            add_user(conn, SimClock(NOW), "TRADER", "x@example.com"),
+            strategy_id="s",
+            params={},
+            initial_cash=D(1),
+            started_on=D0,
+            now=NOW,
+            universe="nope",
+        )
+    with pytest.raises(book.PaperError, match="cannot be changed"):
+        book.update_settings(conn, jane, strategy_id="momentum")
+    with pytest.raises(book.PaperError, match="no paper account"):
+        book.update_settings(
+            conn, add_user(conn, SimClock(NOW), "VIEWER", "v2@example.com"), universe="nifty50"
+        )

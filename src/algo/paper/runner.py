@@ -27,10 +27,11 @@ from algo.core.clock import SimClock
 from algo.core.money import snap_down
 from algo.data.reader import BarReader
 from algo.data.store.instruments import InstrumentRepo, NotFoundError
+from algo.data.universe import Interval
 from algo.live.market_calendar import windows_for
 from algo.paper import book
-from algo.paper.universe import UniverseError, current_nifty200
-from algo.strategies.nifty200_momentum import DataNotReady
+from algo.paper.universe import FOREVER, UniverseError, current_universe
+from algo.strategies.nifty200_momentum import DataNotReady, IntervalMembership
 from algo.strategies.trend_pullback import TrendPullback, TrendPullbackParams
 from algo.strategy.context import Context, DataAccess, PortfolioView
 
@@ -132,6 +133,13 @@ def _next_session(conn: psycopg.Connection, day: date, now: datetime) -> tuple[d
     return now, now + timedelta(days=4)
 
 
+def _traded_value(ld: Any, day: date) -> Decimal:
+    """Average of close x volume over the last 20 sessions up to `day` (0 when there is no history)."""
+    end = bisect.bisect_right(ld.days, day)
+    rows = ld.rows[max(0, end - 20) : end]
+    return sum((r[4] * r[5] for r in rows), Decimal(0)) / len(rows) if rows else Decimal(0)
+
+
 def _step(repo: InstrumentRepo, iid: int, day: date) -> Decimal:
     try:
         return repo.terms_as_of(iid, day).qty_step
@@ -148,9 +156,7 @@ def _decide(
     lake_root: Path,
 ) -> Outcome:
     strategy_cls, params_cls = STRATEGIES[acct["strategy_id"]]
-    members, universe = current_nifty200(conn, lake_root, day)
-    strategy = strategy_cls(params_cls(**acct["params"]), members)
-    ident = (strategy.id, strategy.version, strategy.params_hash)
+    members, universe = current_universe(conn, lake_root, day, acct["universe"])
     reader = BarReader.for_env(conn)
     held = book.load(conn, user_id).quantities()
     loaded, signal = {}, {}
@@ -158,6 +164,19 @@ def _decide(
         ld = reader.load(iid)
         if ld.rows:
             loaded[iid], signal[iid] = ld, reader.issuer_load(iid)
+    cap = acct["max_instruments"]
+    if (
+        cap is not None and len(members.ever()) > cap
+    ):  # keep the most liquid: 20-session average traded value up to the decision day
+        value = {
+            iid: _traded_value(loaded[iid], day) if iid in loaded else Decimal(0)
+            for iid in members.ever()
+        }
+        keep = sorted(members.ever(), key=lambda i: (-value[i], i))[:cap]
+        members = IntervalMembership([Interval(i, FOREVER, None) for i in keep])
+        universe = {**universe, "capped_to": cap}
+    strategy = strategy_cls(params_cls(**acct["params"]), members)
+    ident = (strategy.id, strategy.version, strategy.params_hash)
     book.apply_actions(
         conn, user_id, {i: loaded[i].recs for i in held if i in loaded}, through=day, now=now
     )

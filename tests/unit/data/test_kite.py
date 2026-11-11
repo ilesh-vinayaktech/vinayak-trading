@@ -149,6 +149,12 @@ def test_requests_are_signed_with_the_version_header_and_the_token_scheme():
     assert headers["X-Kite-Version"] == "3" and headers["Authorization"] == "token KEY:TOKEN"
 
 
+def test_with_no_exchange_it_asks_for_the_whole_dump_of_every_exchange():
+    http = Http(ok(INSTRUMENTS))
+    client(http).instruments()
+    assert http.calls[0][:2] == ("GET", "https://api.kite.trade/instruments")
+
+
 def test_the_historical_call_formats_the_range_as_the_documentation_requires():
     http = Http(ok(CANDLES))
     out = client(http).historical(

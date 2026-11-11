@@ -185,9 +185,13 @@ class KiteClient:
         raise KiteError("unreachable")  # pragma: no cover
 
     def instruments(
-        self, exchange: str, *, raw_sink: Callable[[bytes], None] | None = None
+        self, exchange: str | None = None, *, raw_sink: Callable[[bytes], None] | None = None
     ) -> list[KiteInstrument]:
-        body = self._request(f"{BASE}/instruments/{exchange}")
+        """The instrument dump. No exchange = every exchange (the archive keeps all of it); the return value is
+        always the NSE cash equities, which is what we map to tokens."""
+        body = self._request(
+            f"{BASE}/instruments/{exchange}" if exchange else f"{BASE}/instruments"
+        )
         if raw_sink:
             raw_sink(body)  # the response exactly as received, for the archive
         return parse_instruments(body)
