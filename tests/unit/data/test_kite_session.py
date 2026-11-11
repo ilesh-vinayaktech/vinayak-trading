@@ -5,6 +5,7 @@ import urllib.error
 from datetime import UTC, datetime
 
 import pytest
+
 from algo.data.providers.kite_session import (
     expires_at,
     load_env,
@@ -136,3 +137,9 @@ def test_an_http_error_is_returned_as_its_status_and_body_not_raised():
     assert (
         status == 0 and b"down" in body
     )  # a network failure is a status 0 the client treats as an error
+
+
+def test_a_read_timeout_after_the_connection_was_made_is_also_status_0():
+    for failure in (TimeoutError("The read operation timed out"), ConnectionResetError("reset")):
+        status, body = urllib_http("GET", "https://api.kite.trade/x", {}, opener=Opener(failure))
+        assert status == 0 and str(failure).encode() in body

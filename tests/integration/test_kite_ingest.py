@@ -249,3 +249,128 @@ def test_without_a_lake_nothing_is_archived_and_the_hash_stays_empty(env):
     conn, iid = env
     load_minutes(conn, FakeKite({}), 1, iid, date(2026, 1, 1), date(2026, 1, 31), NOW)
     assert conn.execute("SELECT raw_sha256 FROM kite_fetch").fetchone() == (None,)
+
+
+class FakeDayKite:
+    """Serves one day candle per listed date (ts 00:00 IST like Kite) within each requested window."""
+
+    def __init__(self, days: dict[date, tuple], raises: bool = False):
+        self.days, self.calls, self.raises = days, [], raises
+
+    def historical(self, token, interval, start, end, *, raw_sink=None):
+        self.calls.append((token, interval, start.date(), end.date()))
+        if self.raises:
+            raise KiteTokenExpired("session expired")
+        if raw_sink:
+            raw_sink(b'{"day":"raw"}')
+        return [
+            Candle(datetime(d.year, d.month, d.day, tzinfo=IST).astimezone(UTC), *map(D, v), None)
+            for d, v in sorted(self.days.items())
+            if start.date() <= d <= end.date()
+        ]
+
+
+GOOD = {
+    date(2026, 1, 5): ("100", "105", "99", "104", "5000"),
+    date(2026, 1, 6): ("104", "106", "103", "105", "6000"),
+}
+
+
+def day_rows(conn, iid):
+    return conn.execute(
+        "SELECT (ts AT TIME ZONE 'Asia/Kolkata')::time, (ts AT TIME ZONE 'Asia/Kolkata')::date, open, high, low, close,"
+        " volume, source, adjusted_through, dataset_version, series FROM bar_1d WHERE instrument_id=%s AND source='kite'"
+        " ORDER BY ts",
+        (iid,),
+    ).fetchall()
+
+
+def test_kite_day_candles_are_stored_at_the_session_open_with_their_adjustment_basis(env):
+    from datetime import time
+
+    from algo.data.kite_ingest import load_days
+
+    conn, iid = env
+    kite = FakeDayKite(GOOD)
+    r = load_days(conn, kite, 738561, iid, date(2026, 1, 1), date(2026, 1, 31), NOW)
+    assert (r.loaded, r.rows) == (1, 2) and kite.calls == [
+        (738561, "day", date(2026, 1, 1), date(2026, 1, 31))
+    ]
+    assert day_rows(conn, iid) == [
+        (
+            time(9, 15),
+            date(2026, 1, 5),
+            D(100),
+            D(105),
+            D(99),
+            D(104),
+            D(5000),
+            "kite",
+            date(2026, 11, 11),
+            1,
+            None,
+        ),
+        (
+            time(9, 15),
+            date(2026, 1, 6),
+            D(104),
+            D(106),
+            D(103),
+            D(105),
+            D(6000),
+            "kite",
+            date(2026, 11, 11),
+            1,
+            None,
+        ),
+    ]
+    assert conn.execute("SELECT status, candles FROM kite_day_fetch").fetchone() == ("loaded", 2)
+
+
+def test_day_windows_are_at_most_2000_days_skipped_when_done_but_the_one_touching_today_is_refetched(
+    env,
+):
+    from algo.data.kite_ingest import load_days
+
+    conn, iid = env
+    kite = FakeDayKite(GOOD)
+    load_days(conn, kite, 1, iid, date(2020, 1, 1), date(2026, 1, 31), NOW)
+    assert [(c[2], c[3]) for c in kite.calls] == [
+        (date(2020, 1, 1), date(2025, 6, 22)),
+        (date(2025, 6, 23), date(2026, 1, 31)),
+    ]
+    again = FakeDayKite(GOOD)
+    r = load_days(conn, again, 1, iid, date(2020, 1, 1), date(2026, 1, 31), NOW)
+    assert again.calls == [] and r.skipped == 2
+    today = FakeDayKite({})
+    load_days(conn, today, 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW)
+    load_days(conn, today, 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW)
+    assert len(today.calls) == 2  # the window ending today is asked again
+
+
+def test_an_inconsistent_day_window_is_refused_whole_and_an_expired_session_propagates(
+    env, tmp_path
+):
+    import gzip
+
+    from algo.data.kite_ingest import load_days
+    from algo.data.lake import LocalLake
+
+    conn, iid = env
+    bad = {date(2026, 1, 5): ("100", "90", "95", "100", "5")}  # high below low
+    lake = LocalLake(tmp_path)
+    r = load_days(
+        conn, FakeDayKite(bad), 9, iid, date(2026, 1, 1), date(2026, 1, 31), NOW, lake=lake
+    )
+    assert (r.failed, r.rows) == (1, 0) and day_rows(conn, iid) == []
+    status, sha = conn.execute("SELECT status, raw_sha256 FROM kite_day_fetch").fetchone()
+    (m,) = lake.versions("kite", "day_9", date(2026, 1, 1))
+    assert (
+        status == "failed"
+        and sha == m.checksum
+        and gzip.decompress(lake.get(m)) == b'{"day":"raw"}'
+    )
+    with pytest.raises(KiteTokenExpired):
+        load_days(
+            conn, FakeDayKite({}, raises=True), 9, iid, date(2026, 2, 1), date(2026, 2, 28), NOW
+        )

@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -198,18 +198,14 @@ class BarReader:
     def _kite_days(
         self, instrument_id: int
     ) -> tuple[list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]], list[date]]:
-        """Kite minutes rolled to one bar per IST day, each with its vendor adjustment day."""
+        """Kite's own daily candles (full-day volume), each with its vendor adjustment day."""
         rows = self.conn.execute(
-            "SELECT d, (array_agg(open ORDER BY ts))[1], max(high), min(low), "
-            "(array_agg(close ORDER BY ts DESC))[1], sum(volume), max(adjusted_through) FROM ("
-            "SELECT DISTINCT ON (ts) ts, open, high, low, close, volume, adjusted_through, "
-            "(ts AT TIME ZONE 'Asia/Kolkata')::date AS d FROM bar_1m "
-            "WHERE instrument_id=%s AND source='kite' ORDER BY ts, dataset_version DESC"
-            ") m GROUP BY d ORDER BY d",
+            "SELECT DISTINCT ON (ts) ts, open, high, low, close, volume, adjusted_through "
+            "FROM bar_1d WHERE instrument_id=%s AND source='kite' "
+            "ORDER BY ts, dataset_version DESC",
             (instrument_id,),
         ).fetchall()
-        bars = [(datetime.combine(r[0], time(9, 15), IST).astimezone(UTC), *r[1:6]) for r in rows]
-        return bars, [r[6] for r in rows]
+        return [tuple(r[:6]) for r in rows], [r[6] for r in rows]
 
     def _raw(
         self, instrument_id: int

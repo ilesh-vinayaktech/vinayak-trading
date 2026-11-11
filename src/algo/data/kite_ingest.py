@@ -240,3 +240,131 @@ def load_minutes(
         else:
             res.empty += 1
     return res
+
+
+def _day_ledger(
+    conn: psycopg.Connection,
+    iid: int,
+    ws: date,
+    we: date,
+    status: str,
+    n: int,
+    sha: str | None,
+    adj: date,
+    detail: str,
+    now: datetime,
+    raw_sha256: str | None,
+) -> None:
+    conn.execute(
+        "INSERT INTO kite_day_fetch (instrument_id, window_start, window_end, status, candles, content_sha256,"
+        " adjusted_through, detail, fetched_at, raw_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        " ON CONFLICT (instrument_id, window_start, window_end) DO UPDATE SET status=EXCLUDED.status,"
+        " candles=EXCLUDED.candles, content_sha256=EXCLUDED.content_sha256, adjusted_through=EXCLUDED.adjusted_through,"
+        " detail=EXCLUDED.detail, fetched_at=EXCLUDED.fetched_at, raw_sha256=EXCLUDED.raw_sha256",
+        (iid, ws, we, status, n, sha, adj, detail, now, raw_sha256),
+    )
+
+
+def load_days(
+    conn: psycopg.Connection,
+    client: MinuteClient,
+    token: int,
+    instrument_id: int,
+    start: date,
+    end: date,
+    now: datetime,
+    *,
+    window_days: int = 2000,
+    lake: LocalLake | None = None,
+) -> MinuteLoad:
+    """Kite DAILY candles into bar_1d (source 'kite', ts = 09:15 IST of the day like the bhavcopy rows). Same rules as
+    load_minutes: finished windows are skipped except the one touching today, an inconsistent window is refused whole,
+    an expired session raises, the raw response is archived. The day candle carries the full day's volume."""
+    res = MinuteLoad()
+    today = now.astimezone(IST).date()
+    for ws, we in windows(start, end, window_days):
+        done = conn.execute(
+            "SELECT 1 FROM kite_day_fetch WHERE instrument_id=%s AND window_start=%s AND window_end=%s AND status IN ('loaded','empty')",
+            (instrument_id, ws, we),
+        ).fetchone()
+        if done and we < today:
+            res.skipped += 1
+            continue
+        raw: list[bytes] = []
+        candles = sorted(
+            client.historical(
+                token,
+                "day",
+                datetime.combine(ws, time(0, 0), IST),
+                datetime.combine(we, time(23, 59, 59), IST),
+                raw_sink=raw.append,
+            ),
+            key=lambda c: c.ts,
+        )
+        raw_sha = None
+        if lake is not None and raw:
+            url = f"historical/{token}/day?from={ws}&to={we}"
+            raw_sha = lake.put(
+                "kite", f"day_{token}", ws, gzip.compress(raw[0], mtime=0), url=url, fetched_at=now
+            ).checksum
+        issues = validity(
+            [
+                Bar(str(instrument_id), c.ts, c.open, c.high, c.low, c.close, c.volume)
+                for c in candles
+            ]
+        )
+        with conn.transaction():
+            if issues:
+                _day_ledger(
+                    conn,
+                    instrument_id,
+                    ws,
+                    we,
+                    "failed",
+                    len(candles),
+                    None,
+                    today,
+                    "; ".join(issues[:3]),
+                    now,
+                    raw_sha,
+                )
+                res.failed += 1
+                continue
+            n = 0
+            for c in candles:
+                opened = datetime.combine(c.ts.astimezone(IST).date(), time(9, 15), IST)
+                n += conn.execute(
+                    "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, source, dataset_version, ingested_at,"
+                    " adjusted_through) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,1,%s,%s) ON CONFLICT DO NOTHING",
+                    (
+                        instrument_id,
+                        opened,
+                        c.open,
+                        c.high,
+                        c.low,
+                        c.close,
+                        c.volume,
+                        SOURCE,
+                        now.astimezone(UTC),
+                        today,
+                    ),
+                ).rowcount
+            _day_ledger(
+                conn,
+                instrument_id,
+                ws,
+                we,
+                "loaded" if candles else "empty",
+                len(candles),
+                _digest(candles) if candles else None,
+                today,
+                "",
+                now,
+                raw_sha,
+            )
+        res.rows += n
+        if candles:
+            res.loaded += 1
+        else:
+            res.empty += 1
+    return res

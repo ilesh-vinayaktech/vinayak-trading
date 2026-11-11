@@ -87,30 +87,28 @@ def test_unpriced_actions_are_reported_and_strict_refuses(env):
     assert minute_history(conn, iid, D2, D2, adjust="split").bars == []
 
 
-def test_a_kite_backed_reader_serves_daily_bars_rolled_from_minutes_with_each_days_basis(env):
+def test_a_kite_backed_reader_serves_kites_daily_candles_with_each_days_basis(env):
     from datetime import timedelta
 
     from algo.data.reader import BarReader
 
     conn, iid = env
-    through = date(2026, 11, 1)
-    for minute, o, h, low, c, v in [
-        (0, 10, 12, 9, 11, 5),
-        (1, 11, 15, 10, 14, 7),
-        (374, 14, 14, 8, 9, 3),
-    ]:
-        conn.execute(
-            "INSERT INTO bar_1m (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,"
-            "dataset_version,ingested_at) VALUES (%s,%s,%s,%s,%s,%s,%s,'kite',%s,1,%s)",
-            (iid, ts(D1) + timedelta(minutes=minute), o, h, low, c, v, through, INGESTED),
-        )
+    conn.execute(
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,"
+        "dataset_version,ingested_at) VALUES (%s,%s,10,15,8,9,15,'kite',%s,1,%s)",
+        (iid, ts(D1), date(2026, 11, 1), INGESTED),
+    )
+    conn.execute(  # an NSE bar for the same day must not leak into the Kite series
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,dataset_version,ingested_at)"
+        " VALUES (%s,%s,1,1,1,1,1,'nse',1,%s)",
+        (iid, ts(D1), INGESTED),
+    )
     action(conn, iid, date(2027, 1, 5), "split", num=D(10), den=D(1))  # after the basis day: x0.1
     action(
         conn, iid, date(2025, 6, 12), "bonus", num=D(2), den=D(1)
     )  # inside the basis: already in the vendor prices
     rd = BarReader(conn, source="kite", publish_lag=timedelta(0))
-    h = rd.history(iid, D1, D1, adjust="split")
-    (b,) = h.bars
+    (b,) = rd.history(iid, D1, D1, adjust="split").bars
     assert (b.open, b.high, b.low, b.close, b.volume) == (
         D(1),
         D("1.5"),
@@ -145,7 +143,11 @@ def test_for_env_follows_the_setting_and_a_kite_issuer_read_merges_the_chains_ac
         (old, new, date(2025, 1, 1)),
     )
     action(conn, old, date(2027, 1, 5), "split", num=D(10), den=D(1))  # recorded on the OLD isin
-    bar(conn, new, D1, D(100), date(2026, 11, 1))
+    conn.execute(
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,"
+        "dataset_version,ingested_at) VALUES (%s,%s,100,100,100,100,1,'kite',%s,1,%s)",
+        (new, ts(D1), date(2026, 11, 1), INGESTED),
+    )
     assert BarReader.for_env(conn).source == "nse"  # tests default to bhavcopy
     monkeypatch.setenv("ALGO_PRICE_SOURCE", "kite")
     rd = BarReader.for_env(conn)

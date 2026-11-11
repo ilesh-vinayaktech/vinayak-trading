@@ -110,3 +110,5 @@ def urllib_http(
         return e.code, e.read()
     except urllib.error.URLError as e:
         return 0, repr(e.reason).encode()
+    except OSError as e:  # a timeout or reset while reading the response (not wrapped in URLError)
+        return 0, str(e).encode()
