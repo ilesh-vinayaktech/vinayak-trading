@@ -6,6 +6,7 @@ expired from 6 AM IST the next day (Kite invalidates tokens then; there is no au
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -110,5 +111,8 @@ def urllib_http(
         return e.code, e.read()
     except urllib.error.URLError as e:
         return 0, repr(e.reason).encode()
-    except OSError as e:  # a timeout or reset while reading the response (not wrapped in URLError)
-        return 0, str(e).encode()
+    except (
+        OSError,
+        http.client.HTTPException,
+    ) as e:  # a timeout, reset or truncated body while reading (not wrapped in URLError)
+        return 0, (str(e) or repr(e)).encode()

@@ -143,3 +143,11 @@ def test_a_read_timeout_after_the_connection_was_made_is_also_status_0():
     for failure in (TimeoutError("The read operation timed out"), ConnectionResetError("reset")):
         status, body = urllib_http("GET", "https://api.kite.trade/x", {}, opener=Opener(failure))
         assert status == 0 and str(failure).encode() in body
+
+
+def test_a_response_cut_short_mid_body_is_status_0_too():
+    import http.client
+
+    short = http.client.IncompleteRead(b"abc", 100)  # not an OSError, so it needs its own handling
+    status, body = urllib_http("GET", "https://api.kite.trade/x", {}, opener=Opener(short))
+    assert status == 0 and body
