@@ -16,6 +16,9 @@ def test_real_cm_holidays_weekday_only_with_muhurat_flagged():
     assert date(2026, 2, 15) not in h.weekday_holidays  # Sunday
     assert h.special_review == [(date(2026, 11, 8), "Diwali Laxmi Pujan*")]
     assert len(h.weekday_holidays) == 16  # 20 CM entries minus 4 on weekends
+    assert (
+        len(h.names) == 20 and h.names[date(2026, 1, 26)]
+    )  # every listed day keeps NSE's name for it
 
 
 def test_feeds_calendar():

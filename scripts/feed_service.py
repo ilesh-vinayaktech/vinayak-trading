@@ -2,7 +2,8 @@
 """Run the live market-data service: Kite WebSocket -> 1-minute bars in live_bar_1m, status in feed_status.
 
 Needs the portal's system data feed connected today (Kite page -> "Use my connection as the data feed") plus
-ALGO_DB_URL and ALGO_VAULT_KEYS (`set -a; . ./.env; set +a`). Stops by itself at --until (IST, default 15:35),
+ALGO_DB_URL and ALGO_VAULT_KEYS (`set -a; . ./.env; set +a`). Follows the trading calendar (market_session; regular Mon-Fri 09:15-15:30 IST plus any special sessions added on the
+portal): idle on a closed day, connects 15 minutes before the first window, stops 5 minutes after the last,
 on Ctrl-C / SIGTERM, or (without --wait) when there is no valid Kite login (exit code 2).
 With --wait it keeps checking every 30 s, so it can start before you connect and carries on after a mid-day token refusal.
 --record N saves the first N raw frames to data/logs/ticks_sample_<date>.bin (4-byte length + 8-byte epoch ms + frame),
@@ -17,7 +18,7 @@ import os
 import signal
 import struct
 import sys
-from datetime import UTC, datetime, time
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -25,8 +26,10 @@ import psycopg
 
 from algo.core.clock import SystemClock
 from algo.live.bar_store import save_status, token_map
+from algo.live.bars import BarBuilder
 from algo.live.feed import Feed
 from algo.live.kite_socket import connect
+from algo.live.market_calendar import windows_for
 from algo.portal.crypto import KeyRing
 from algo.portal.kite_vault import system_feed_credentials
 
@@ -34,11 +37,10 @@ IST = ZoneInfo("Asia/Kolkata")
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
-ap.add_argument("--until", default="15:35", help="HH:MM IST to stop at")
 ap.add_argument(
     "--wait",
     action="store_true",
-    help="wait (until --until) for the Zerodha connection instead of exiting",
+    help="wait (until the session ends) for the Zerodha connection instead of exiting",
 )
 ap.add_argument("--mode", default="full", choices=["ltp", "quote", "full"])
 ap.add_argument(
@@ -50,8 +52,6 @@ if not a.db:
 
 clock = SystemClock()
 now = clock.now()
-hh, mm = (int(x) for x in a.until.split(":"))
-until = datetime.combine(now.astimezone(IST).date(), time(hh, mm), IST).astimezone(UTC)
 ring = KeyRing.from_env(os.environ)
 kept: list[bytes] = []
 
@@ -62,6 +62,18 @@ def sink(data: bytes, when: datetime) -> None:
 
 
 async def main(conn: psycopg.Connection) -> str:
+    today = clock.now().astimezone(IST).date()
+    windows = windows_for(conn, today)
+    if not windows:
+        print(f"no trading session on {today}: nothing to do", flush=True)
+        return "STOPPED"
+    open_at, until = windows[0][0] - timedelta(minutes=15), windows[-1][1] + timedelta(minutes=5)
+    print(
+        f"{today}: "
+        + ", ".join(f"{s.astimezone(IST):%H:%M}-{e.astimezone(IST):%H:%M}" for s, e in windows)
+        + " IST",
+        flush=True,
+    )
     ids = token_map(conn)
     if not ids:
         sys.exit(
@@ -80,6 +92,8 @@ async def main(conn: psycopg.Connection) -> str:
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop)
     state = "STOPPED"
+    while not stopping and clock.now() < open_at:
+        await asyncio.sleep(30)  # an evening session: stay idle until shortly before it
     while not stopping and clock.now() < until:
         creds = system_feed_credentials(conn, ring, now=clock.now())
         if creds is None:
@@ -110,6 +124,7 @@ async def main(conn: psycopg.Connection) -> str:
             clock,
             mode=a.mode,
             until=until,
+            builder=BarBuilder(windows=windows),
             frame_sink=sink if a.record else None,
         )
         current[:] = [feed]

@@ -407,3 +407,44 @@ def test_the_dashboard_responses_match_the_fixtures_the_frontend_is_tested_again
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_market_calendar_response_matches_the_fixture_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    from algo.core.clock import SimClock
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    clock = SimClock(datetime(2026, 11, 12, 10, 0, tzinfo=UTC))
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    add_user(conn, clock, "OPERATOR", "ops@example.com", name="Olive Ops")
+    c = sign_in(app, "ops@example.com")
+    enrol_second_factor(c, clock)
+    c.post(
+        "/api/market/sessions",
+        json={
+            "day": "2026-11-14",
+            "start": "09:15",
+            "end": "10:00",
+            "note": "Special live session",
+        },
+    )
+    conn.execute(
+        "INSERT INTO market_session (session_date, kind, note, source, created_at) VALUES"
+        " ('2026-11-24','CLOSED','Prakash Gurpurb Sri Guru Nanak Dev','nse',%s),"
+        " ('2026-11-28','CLOSED','Special Muhurat*','nse',%s)",
+        (clock.now(), clock.now()),
+    )
+    resp = c.get("/api/market/calendar")
+    assert resp.status_code == 200
+    doc = resp.json()
+    for row in doc["exceptions"]:
+        row["id"] = 0
+    text = json.dumps(doc, indent=1, sort_keys=True) + "\n"
+    path = OUT / "market_calendar.json"
+    if os.environ.get("UPDATE_CONTRACT") == "1":
+        path.write_text(text)
+    assert path.read_text() == text, (
+        "market_calendar: the API response changed; run UPDATE_CONTRACT=1"
+    )

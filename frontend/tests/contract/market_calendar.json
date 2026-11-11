@@ -1,0 +1,43 @@
+{
+ "exceptions": [
+  {
+   "day": "2026-11-14",
+   "end": "10:00",
+   "id": 0,
+   "kind": "SESSION",
+   "needs_times": false,
+   "note": "Special live session",
+   "source": "manual",
+   "start": "09:15"
+  },
+  {
+   "day": "2026-11-24",
+   "end": null,
+   "id": 0,
+   "kind": "CLOSED",
+   "needs_times": false,
+   "note": "Prakash Gurpurb Sri Guru Nanak Dev",
+   "source": "nse",
+   "start": null
+  },
+  {
+   "day": "2026-11-28",
+   "end": null,
+   "id": 0,
+   "kind": "CLOSED",
+   "needs_times": true,
+   "note": "Special Muhurat*",
+   "source": "nse",
+   "start": null
+  }
+ ],
+ "today": {
+  "day": "2026-11-12",
+  "windows": [
+   {
+    "end": "15:30",
+    "start": "09:15"
+   }
+  ]
+ }
+}

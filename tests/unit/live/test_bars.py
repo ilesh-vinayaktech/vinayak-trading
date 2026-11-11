@@ -107,3 +107,40 @@ def test_after_a_gap_the_next_tick_is_a_new_baseline_so_the_outage_volume_is_not
     assert old.ts == at(34) and old.volume == 0 and old.partial
     (new,) = b.flush(at(37))
     assert new.volume == 100 and not new.partial
+
+
+def _evening():
+    start = datetime(2026, 11, 8, 12, 45, tzinfo=UTC)  # Sunday 18:15 IST, a special session
+    return start, start + timedelta(hours=1)
+
+
+def test_a_special_window_decides_which_ticks_count_and_which_minute_is_the_open():
+    start, end = _evening()
+    b = BarBuilder(windows=[(start, end)])
+    for when in (
+        start - timedelta(minutes=1),
+        end,
+    ):  # one minute before, and the end instant itself
+        assert b.on_tick(tick(100, 1, when), when) == []
+    assert b.stats["outside_session"] == 2
+    b.on_tick(tick(100, 500, start + timedelta(seconds=3)), start + timedelta(seconds=3))
+    (bar,) = b.flush(start + timedelta(minutes=2))
+    assert bar.ts == start and not bar.partial  # the window's first minute counts as the open
+    mid = start + timedelta(minutes=20)
+    b.on_tick(tick(100, 900, mid, token=2), mid)  # another instrument first seen mid-window
+    (late,) = b.flush(mid + timedelta(minutes=2))
+    assert late.partial  # joined mid-window
+
+
+def test_several_windows_in_a_day_each_count():
+    first = (OPEN, OPEN + timedelta(minutes=30))
+    second = (OPEN + timedelta(hours=5), OPEN + timedelta(hours=6))
+    b = BarBuilder(windows=[first, second])
+    b.on_tick(tick(100, 10, at(5)), at(5))
+    between = OPEN + timedelta(hours=2)
+    assert b.on_tick(tick(100, 11, between), between) == [] and b.stats["outside_session"] == 1
+    inside = OPEN + timedelta(hours=5, minutes=1)
+    b.on_tick(tick(100, 12, inside), inside)
+    assert (
+        len(b.flush(OPEN + timedelta(hours=7))) == 1
+    )  # the second window's bar; the first closed on the way

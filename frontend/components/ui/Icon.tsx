@@ -14,6 +14,7 @@ const GLYPHS = {
   users: <><circle cx={9} cy={8} r={3.5} /><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5" /><path d="M16 4.7a3.5 3.5 0 010 6.6M18 14.8c2 .6 3.2 2.3 3.5 5.2" /></>,
   scroll: <><path d="M7 4h11a2 2 0 012 2v12a2 2 0 01-2 2H8a3 3 0 01-3-3V6" /><path d="M9 9h7M9 13h7M9 17h4" /></>,
   shield: <><path d="M12 3l8 3v5.5c0 4.5-3.2 8-8 9.5-4.8-1.5-8-5-8-9.5V6l8-3z" /><path d="M9 12l2 2 4-4" /></>,
+  calendar: <><rect x={4} y={5} width={16} height={15} rx={2} /><path d="M4 10h16M9 3v4M15 3v4" /></>,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
   chevron: <path d="M7 10l5 5 5-5" />,

@@ -10,6 +10,7 @@ already emitted is dropped and counted: bars are never revised after they leave.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
@@ -61,26 +62,30 @@ class _Open:
 
 
 class BarBuilder:
-    def __init__(self, grace: timedelta = timedelta(seconds=2)) -> None:
+    def __init__(
+        self,
+        grace: timedelta = timedelta(seconds=2),
+        windows: Sequence[tuple[datetime, datetime]] | None = None,
+    ) -> None:
+        """`windows`: the day's trading windows as UTC (start, end); None means the regular 09:15-15:30 IST session."""
         self.grace = grace
+        self.windows = windows
         self.stats: Counter[str] = Counter()
         self._open: dict[int, _Open] = {}
         self._total: dict[int, int] = {}  # last running day volume seen per instrument
 
     def on_tick(self, t: Tick, received_at: datetime) -> list[LiveBar]:
         when = (t.exchange_ts or received_at).astimezone(UTC)
-        local = when.astimezone(IST)
-        if not SESSION_OPEN <= local.time() < SESSION_CLOSE:
+        minute = when.replace(second=0, microsecond=0)
+        opens = self._session_opens(when, minute)
+        if opens is None:
             self.stats["outside_session"] += 1
             return []
-        minute = when.replace(second=0, microsecond=0)
         current = self._open.get(t.token)
         if current is not None and minute < current.ts:
             self.stats["late"] += 1
             return []
-        delta, partial = self._volume(
-            t, local.time().replace(second=0, microsecond=0) == SESSION_OPEN
-        )
+        delta, partial = self._volume(t, opens)
         out: list[LiveBar] = []
         if current is not None and minute > current.ts:
             out.append(current.bar(t.token))
@@ -96,6 +101,20 @@ class BarBuilder:
         current.ticks += 1
         current.partial = current.partial or partial
         return out
+
+    def _session_opens(self, when: datetime, minute: datetime) -> bool | None:
+        """None when `when` is outside every trading window; else whether `minute` is the first minute of its window."""
+        if self.windows is None:
+            local = when.astimezone(IST).time()
+            return (
+                minute.astimezone(IST).time() == SESSION_OPEN
+                if SESSION_OPEN <= local < SESSION_CLOSE
+                else None
+            )
+        for start, end in self.windows:
+            if start <= when < end:
+                return minute == start.replace(second=0, microsecond=0)
+        return None
 
     def _volume(self, t: Tick, at_open: bool) -> tuple[int, bool]:
         """(volume since the previous tick of this instrument, whether that figure is unreliable)."""

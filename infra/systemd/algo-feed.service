@@ -4,8 +4,9 @@ Description=Live market feed (Kite WebSocket to 1-minute bars)
 [Service]
 Type=simple
 WorkingDirectory=%h/Work/trading
-# Starts before you connect to Zerodha, waits for the connection, streams until 15:35 IST, then exits.
+# Looks up today's trading windows (regular, holiday or special session); on a closed day it exits at once. Otherwise it
+# waits for the Zerodha connection, streams through the window(s) and exits 5 minutes after the last one.
 ExecStart=/bin/bash -c 'set -a; . ./.env; set +a; exec %h/.local/bin/uv run python scripts/feed_service.py --wait'
-# a crash is retried; a clean end at 15:35 is not
+# a crash is retried; a clean end is not
 Restart=on-failure
 RestartSec=20

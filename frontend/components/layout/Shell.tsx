@@ -33,6 +33,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "Operations",
     items: [
+      { href: "/market", label: "Trading calendar", icon: "calendar", need: "ops:read" },
       { href: "/research/reviews", label: "Reviews", icon: "review", need: "ops:read" },
       { href: "/system", label: "System Activity", icon: "activity", need: "ops:read" },
       { href: "/support", label: "Support", icon: "support", need: "tickets:own" },

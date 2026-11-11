@@ -538,3 +538,12 @@ export const opsDashboardSchema = z.object({
 });
 export type MyDashboard = z.infer<typeof myDashboardSchema>;
 export type OpsDashboard = z.infer<typeof opsDashboardSchema>;
+
+
+// ---- portal: the trading calendar (holidays and special sessions the live feed follows) ---------------------------------
+export const marketCalendarSchema = z.object({
+  today: z.object({ day: z.string(), windows: z.array(z.object({ start: z.string(), end: z.string() })) }),
+  exceptions: z.array(z.object({ id: z.number(), day: z.string(), kind: z.enum(["SESSION", "CLOSED"]), start: z.string().nullable(), end: z.string().nullable(), note: z.string(), source: z.enum(["nse", "manual"]), needs_times: z.boolean() })),
+});
+export const marketIdSchema = z.object({ id: z.number() });
+export type MarketCalendar = z.infer<typeof marketCalendarSchema>;
