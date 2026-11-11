@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from algo.api.security import CSRF_COOKIE, CurrentUser, PortalSettings, Principal, WConn, client_ip
-from algo.portal import accounts, audit, sessions
+from algo.portal import accounts, audit, sessions, users
 from algo.portal.passwords import PasswordPolicyError
 from algo.portal.rbac import permissions_of
 
@@ -28,6 +28,15 @@ class LoginBody(BaseModel):
 class PasswordBody(BaseModel):
     current: str = Field(max_length=256)
     new: str = Field(max_length=256)
+
+
+class ForgotBody(BaseModel):
+    email: str = Field(max_length=254)
+
+
+class TokenPasswordBody(BaseModel):
+    token: str = Field(max_length=200)
+    password: str = Field(max_length=256)
 
 
 class CodeBody(BaseModel):
@@ -210,4 +219,38 @@ def end_session(
         target_type="session",
         target_id=str(session_id),
     )
+    return {"ok": True}
+
+
+@router.post("/forgot")
+def forgot_password(body: ForgotBody, request: Request, conn: WConn) -> dict[str, bool]:
+    """Always the same answer, so it cannot be used to find out who has an account."""
+    st: PortalSettings = request.app.state.portal
+    users.request_reset(conn, st.mailer, st.public_url, email=body.email, now=st.clock.now())
+    return {"ok": True}
+
+
+@router.post("/accept-invite")
+def accept_invite(body: TokenPasswordBody, request: Request, conn: WConn) -> dict[str, bool]:
+    st: PortalSettings = request.app.state.portal
+    try:
+        users.accept_invite(
+            conn, st.hasher, token=body.token, password=body.password, now=st.clock.now()
+        )
+    except (users.UserError, PasswordPolicyError) as e:
+        conn.commit()  # a refused attempt still spends the link: guessing gets no second try
+        raise HTTPException(getattr(e, "status", 422), str(e)) from e
+    return {"ok": True}
+
+
+@router.post("/reset-password")
+def reset_password(body: TokenPasswordBody, request: Request, conn: WConn) -> dict[str, bool]:
+    st: PortalSettings = request.app.state.portal
+    try:
+        users.complete_reset(
+            conn, st.hasher, token=body.token, password=body.password, now=st.clock.now()
+        )
+    except (users.UserError, PasswordPolicyError) as e:
+        conn.commit()
+        raise HTTPException(getattr(e, "status", 422), str(e)) from e
     return {"ok": True}

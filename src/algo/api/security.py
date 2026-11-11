@@ -9,7 +9,7 @@ screens that do that. The guard runs as an app-wide dependency, so a new route i
 from __future__ import annotations
 
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated
 
 import psycopg
@@ -18,6 +18,7 @@ from fastapi import Depends, HTTPException, Request
 from algo.core.clock import Clock
 from algo.portal import accounts, sessions
 from algo.portal.crypto import KeyRing
+from algo.portal.mailer import ConsoleMailer, Mailer
 from algo.portal.passwords import Hasher
 from algo.portal.rbac import can, permissions_of
 
@@ -30,7 +31,15 @@ CSRF_COOKIE, CSRF_HEADER = "csrf", "x-csrf-token"
 UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 SELF = "self"  # any signed-in user
 DEFAULT_PERMISSION = "research:read"
-PUBLIC = frozenset({("GET", "/api/health"), ("POST", "/api/auth/login")})
+PUBLIC = frozenset(
+    {
+        ("GET", "/api/health"),
+        ("POST", "/api/auth/login"),
+        ("POST", "/api/auth/forgot"),
+        ("POST", "/api/auth/accept-invite"),
+        ("POST", "/api/auth/reset-password"),
+    }
+)
 ROUTE_PERMISSIONS = {
     ("GET", "/api/auth/me"): SELF,
     ("POST", "/api/auth/logout"): SELF,
@@ -39,6 +48,20 @@ ROUTE_PERMISSIONS = {
     ("POST", "/api/auth/mfa/confirm"): SELF,
     ("GET", "/api/auth/sessions"): SELF,
     ("DELETE", "/api/auth/sessions/{session_id}"): SELF,
+    ("GET", "/api/users"): "users:read",
+    ("GET", "/api/users/{user_id}"): "users:read",
+    (
+        "POST",
+        "/api/users",
+    ): "users:write",  # the route also requires roles:write: choosing a role is a role decision
+    ("POST", "/api/users/{user_id}/name"): "users:write",
+    ("POST", "/api/users/{user_id}/role"): "roles:write",
+    ("POST", "/api/users/{user_id}/status"): "users:write",
+    ("POST", "/api/users/{user_id}/reset-password"): "users:write",
+    ("POST", "/api/users/{user_id}/resend-invite"): "users:write",
+    ("POST", "/api/users/{user_id}/reset-mfa"): "users:write",
+    ("POST", "/api/users/{user_id}/end-sessions"): "users:write",
+    ("GET", "/api/audit"): "audit:read",
     ("GET", "/api/system/activity"): "ops:read",
     ("GET", "/api/reviews"): "ops:read",
     ("GET", "/api/reviews/{item_id}/history"): "ops:read",
@@ -66,6 +89,8 @@ class PortalSettings:
     trust_proxy: bool = (
         False  # True only behind a proxy that appends the real client address to X-Forwarded-For
     )
+    mailer: Mailer = field(default_factory=ConsoleMailer)
+    public_url: str = "http://localhost:3000"  # what links in invitation and reset mails point to
 
     @property
     def cookie_name(self) -> str:

@@ -44,3 +44,43 @@ def open_app(dsn: str, docs: Path, **kw: Any) -> FastAPI:
     app = make_app(dsn, docs, **kw)
     app.dependency_overrides[guard] = lambda: None
     return app
+
+
+# ---- helpers shared by the API tests -------------------------------------------------------------------------------
+PW = "violet-harbor-lantern-42"
+
+
+def add_user(conn: Any, clock: Any, role: str, email: str | None = None, **kw: Any) -> Any:
+    from algo.portal import accounts
+
+    return accounts.create_user(
+        conn,
+        FAST,
+        email=email or f"{role.lower()}@example.com",
+        display_name=kw.pop("name", "Test User"),
+        role=role,
+        password=kw.pop("password", PW),
+        now=clock.now(),
+        **kw,
+    )
+
+
+def sign_in(app: FastAPI, email: str, password: str = PW, **extra: Any) -> Any:
+    from fastapi.testclient import TestClient
+
+    c = TestClient(app)
+    r = c.post("/api/auth/login", json={"email": email, "password": password, **extra})
+    assert r.status_code == 200, r.text
+    c.headers["x-csrf-token"] = c.cookies.get("csrf", "")
+    return c
+
+
+def enrol_second_factor(client: Any, clock: Any) -> str:
+    from algo.portal import totp
+
+    secret = client.post("/api/auth/mfa/enrol").json()["secret"]
+    client.post(
+        "/api/auth/mfa/confirm",
+        json={"code": totp.code_at(secret, int(clock.now().timestamp()) // 30)},
+    )
+    return str(secret)
