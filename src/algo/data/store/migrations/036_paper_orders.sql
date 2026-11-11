@@ -27,7 +27,8 @@ CREATE TABLE paper_order (
   reason         TEXT NOT NULL,
   status         TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'EXPIRED', 'FILLED', 'FAILED')),
   created_at     TIMESTAMPTZ NOT NULL,
-  expires_at     TIMESTAMPTZ NOT NULL,
+  not_before     TIMESTAMPTZ NOT NULL,                     -- the start of the next trading session: the earliest it can fill
+  expires_at     TIMESTAMPTZ NOT NULL,                     -- the close of that session
   decided_at     TIMESTAMPTZ,
   decided_by     UUID REFERENCES portal_user(user_id),
   fill_day       DATE,

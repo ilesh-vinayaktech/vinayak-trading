@@ -122,13 +122,14 @@ def run_day(
         return _record(conn, user_id, day, now, ident, "ERROR", {"reason": str(e)}, [])
 
 
-def _expiry(conn: psycopg.Connection, day: date, now: datetime) -> datetime:
-    """Orders stay open until the close of the next trading session."""
+def _next_session(conn: psycopg.Connection, day: date, now: datetime) -> tuple[datetime, datetime]:
+    """(open, close) of the next trading session: orders cannot fill before it and expire when it ends. With no session
+    in the next week (a long closure) they fill from now and stay open four days."""
     for k in range(1, 8):
         windows = windows_for(conn, day + timedelta(days=k))
         if windows:
-            return windows[-1][1]
-    return now + timedelta(days=4)
+            return windows[0][0], windows[-1][1]
+    return now, now + timedelta(days=4)
 
 
 def _step(repo: InstrumentRepo, iid: int, day: date) -> Decimal:
@@ -260,12 +261,12 @@ def _decide(
         "UPDATE paper_order SET status='EXPIRED' WHERE user_id=%s AND status='PENDING' AND decision_day < %s",
         (user_id, day),
     )
-    expires = _expiry(conn, day, now)
+    not_before, expires = _next_session(conn, day, now)
     ids: list[UUID] = []
     for side, iid, qty, px, reason in proposals:
         row = conn.execute(
-            "INSERT INTO paper_order (user_id, decision_day, instrument_id, side, qty, ref_price, reason, created_at, expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING order_id",
-            (user_id, day, iid, side, qty, px, reason, now, expires),
+            "INSERT INTO paper_order (user_id, decision_day, instrument_id, side, qty, ref_price, reason, created_at, not_before, expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING order_id",
+            (user_id, day, iid, side, qty, px, reason, now, not_before, expires),
         ).fetchone()
         assert row is not None
         ids.append(row[0])

@@ -59,7 +59,7 @@ def user(conn, email="jane@example.com", cash="1000000", params=PARAMS):
 
 
 def orders(conn, uid, status=None):
-    sql = "SELECT instrument_id, side, qty, ref_price, reason, status, expires_at FROM paper_order WHERE user_id=%s"
+    sql = "SELECT instrument_id, side, qty, ref_price, reason, status, expires_at, not_before FROM paper_order WHERE user_id=%s"
     sql += " AND status=%s" if status else ""
     args = (uid, status) if status else (uid,)
     return conn.execute(sql + " ORDER BY side DESC, instrument_id", args).fetchall()
@@ -79,6 +79,7 @@ def test_oversold_uptrend_names_become_pending_buy_orders_sized_to_their_slot(en
         assert qty == (D("0.1") * D(1_000_000) / px).to_integral_value(rounding="ROUND_DOWN")
     assert sum(r[2] * r[3] for r in rows) <= D(1_000_000)
     assert all(r[6] > NOW for r in rows)  # valid until a later session closes
+    assert all(NOW < r[7] < r[6] for r in rows)  # and cannot fill before that session opens
     run = conn.execute(
         "SELECT status, strategy_id, strategy_version, detail FROM paper_run WHERE user_id=%s",
         (uid,),
@@ -292,7 +293,7 @@ def test_with_no_session_in_the_next_week_orders_stay_open_four_days(env):
         )
     uid = user(conn)
     run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
-    assert {r[6] for r in orders(conn, uid)} == {NOW + timedelta(days=4)}
+    assert {(r[7], r[6]) for r in orders(conn, uid)} == {(NOW, NOW + timedelta(days=4))}
 
 
 def test_a_strategy_that_keeps_its_targets_proposes_nothing(env, monkeypatch):
