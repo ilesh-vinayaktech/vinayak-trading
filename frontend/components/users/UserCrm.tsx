@@ -2,11 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { Badge } from "@/components/status/Badge";
+import { Avatar } from "@/components/ui/Alert";
+import { RelativeTime } from "@/components/ui/Layout";
 import { Card } from "@/components/status/LoadState";
 import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
-import { fmtDateTime } from "@/lib/formatting";
 import { buttonClass, inputClass } from "@/components/ui/styles";
 
 const input = inputClass;
@@ -51,10 +51,12 @@ export function UserCrm({ userId, tags }: { userId: string; tags: string[] }) {
         <div className="mb-3 flex flex-wrap gap-2" aria-label="Tags of this user">
           {tags.length === 0 ? <span className="text-sm text-ink-soft">No tags.</span> : null}
           {tags.map((t) => (
-            <span key={t} className="inline-flex items-center gap-1">
-              <Badge>{t}</Badge>
+            <span key={t} className="inline-flex items-center gap-1 rounded-full border border-line bg-slate-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-ink">
+              {t}
               {write ? (
-                <button type="button" aria-label={`Remove tag ${t}`} onClick={() => dropTag.mutate(t)} className="text-xs text-ink-soft hover:text-red-700">×</button>
+                <button type="button" aria-label={`Remove tag ${t}`} onClick={() => dropTag.mutate(t)} className="flex h-4 w-4 items-center justify-center rounded-full text-ink-faint hover:bg-slate-200 hover:text-ink">
+                  ×
+                </button>
               ) : null}
             </span>
           ))}
@@ -78,9 +80,12 @@ export function UserCrm({ userId, tags }: { userId: string; tags: string[] }) {
         ) : null}
         <ul className="divide-y divide-line text-sm">
           {notes.data?.notes.map((n) => (
-            <li key={n.id} className="py-2">
-              <p className="whitespace-pre-wrap">{n.body}</p>
-              <p className="text-xs text-ink-soft">{n.author} · {fmtDateTime(n.created_at)}</p>
+            <li key={n.id} className="flex gap-3 py-3">
+              <Avatar name={n.author} />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-ink-soft"><span className="font-medium text-ink">{n.author}</span> · <RelativeTime iso={n.created_at} /></p>
+                <p className="mt-0.5 whitespace-pre-wrap leading-relaxed">{n.body}</p>
+              </div>
             </li>
           ))}
         </ul>
@@ -91,11 +96,11 @@ export function UserCrm({ userId, tags }: { userId: string; tags: string[] }) {
         {write ? (
           <form onSubmit={submit(() => addTask.mutate())} className="mb-3 flex flex-wrap items-end gap-2">
             <div className="space-y-1">
-              <label htmlFor="task-title" className="text-sm font-medium">Task</label>
+              <label htmlFor="task-title" className="block text-sm font-medium text-ink">Task</label>
               <input id="task-title" required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} className={`${input} w-64`} />
             </div>
             <div className="space-y-1">
-              <label htmlFor="task-owner" className="text-sm font-medium">Owner</label>
+              <label htmlFor="task-owner" className="block text-sm font-medium text-ink">Owner</label>
               <select id="task-owner" value={owner} onChange={(e) => setOwner(e.target.value)} className={input}>
                 {staff.data?.staff.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -103,7 +108,7 @@ export function UserCrm({ userId, tags }: { userId: string; tags: string[] }) {
               </select>
             </div>
             <div className="space-y-1">
-              <label htmlFor="task-due" className="text-sm font-medium">Due</label>
+              <label htmlFor="task-due" className="block text-sm font-medium text-ink">Due</label>
               <input id="task-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} className={input} />
             </div>
             <button type="submit" disabled={addTask.isPending} className={button}>Add task</button>

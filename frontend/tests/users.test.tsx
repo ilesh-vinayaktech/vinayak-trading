@@ -71,8 +71,8 @@ describe("user directory", () => {
     backend({ "GET /api/auth/me": me(), "GET /api/users": list() });
     mount(<UsersPage />);
     expect(await screen.findByText("Jane Roe")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Jane Roe" })).toHaveAttribute("href", "/users/u2");
-    expect(within(screen.getByRole("table")).getByText("INVITED")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Jane Roe/ })).toHaveAttribute("href", "/users/u2");
+    expect(within(screen.getByRole("table")).getByText("Invited")).toBeInTheDocument();
     expect(screen.getByText("Never")).toBeInTheDocument();
     expect(screen.getByText("1–2 of 2")).toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe("user directory", () => {
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     await screen.findByText("1–25 of 60");
     fireEvent.change(screen.getByLabelText("Search users"), { target: { value: "zzz" } });
-    expect(await screen.findByText("No user matches.")).toBeInTheDocument();
+    expect(await screen.findByText("No user matches")).toBeInTheDocument();
   });
 
   it("invites someone and shows the one-time link to copy", async () => {
@@ -148,13 +148,15 @@ describe("user profile", () => {
     expect(await screen.findByRole("heading", { name: "Jane Roe" })).toBeInTheDocument();
     expect(screen.getByText("7 recovery codes left")).toBeInTheDocument();
     expect(screen.getAllByText("by The Boss").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("tab", { name: "Activity" }));
     expect(await screen.findByText("Role changed")).toBeInTheDocument();
   });
 
   it("says when nothing is recorded", async () => {
     backend({ "GET /api/auth/me": me(), "GET /api/users/u2": detail({ created_by: null, last_login_at: null, password_changed_at: null }), "GET /api/audit": { events: [] } });
     mount(<UserProfile />);
-    expect(await screen.findByText("Nothing recorded yet.")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("tab", { name: "Activity" }));
+    expect(await screen.findByText("Nothing recorded yet")).toBeInTheDocument();
     expect(screen.getByText("by the system")).toBeInTheDocument();
     expect(screen.getByText("Not set")).toBeInTheDocument();
   });
@@ -181,7 +183,7 @@ describe("user profile", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Suspend" }));
     expect(calls.some((c) => c.path === "/api/users/u2/status")).toBe(false); // nothing yet: it asked first
     fireEvent.click(within(screen.getByRole("group", { name: "Suspend Jane Roe?" })).getByRole("button", { name: "Suspend" }));
-    expect((await screen.findByRole("status")).textContent).toBe("Suspended and signed out.");
+    expect(await screen.findByText("Suspended and signed out.")).toBeInTheDocument();
     expect(calls.find((c) => c.path === "/api/users/u2/status")?.body).toEqual({ status: "SUSPENDED" });
     expect(await screen.findByRole("button", { name: "Reactivate" })).toBeInTheDocument();
   });
@@ -199,7 +201,7 @@ describe("user profile", () => {
     const calls = backend({ "GET /api/auth/me": me(), "GET /api/users/u2": detail(), "GET /api/audit": events, "POST /api/users/u2/role": { ok: true }, "POST /api/users/u2/name": { ok: true } });
     mount(<UserProfile />);
     fireEvent.change(await screen.findByLabelText("Role"), { target: { value: "OPERATOR" } });
-    expect((await screen.findByRole("status")).textContent).toContain("Role changed");
+    expect(await screen.findByText(/Role changed/)).toBeInTheDocument();
     expect(calls.find((c) => c.path === "/api/users/u2/role")?.body).toEqual({ role: "OPERATOR" });
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Jane Q. Roe" } });
     fireEvent.click(screen.getByRole("button", { name: "Save name" }));
@@ -232,10 +234,10 @@ describe("user profile", () => {
     mount(<UserProfile />);
     fireEvent.click(await screen.findByRole("button", { name: "Reset two-factor" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset 2FA" }));
-    expect((await screen.findByRole("status")).textContent).toContain("Two-factor removed");
+    expect(await screen.findByText(/Two-factor removed/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "End all sessions" }));
     fireEvent.click(screen.getByRole("button", { name: "End sessions" }));
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("2 session(s) ended."));
+    expect(await screen.findByText("2 session(s) ended.")).toBeInTheDocument();
     expect(calls.some((c) => c.path === "/api/users/u2/reset-mfa")).toBe(true);
   });
 
@@ -253,7 +255,7 @@ describe("user profile", () => {
     backend({ "GET /api/auth/me": me({ permissions: ["research:read", "users:read"] }), "GET /api/users/u2": detail(), "GET /api/audit": events });
     mount(<UserProfile />);
     await screen.findByRole("heading", { name: "Jane Roe" });
-    expect(screen.queryByText("Manage access")).not.toBeInTheDocument();
+    expect(screen.queryByText("Account actions")).not.toBeInTheDocument();
   });
 
   it("shows when the activity cannot be loaded", async () => {
@@ -265,7 +267,7 @@ describe("user profile", () => {
   it("does not offer a role change to someone without roles:write", async () => {
     backend({ "GET /api/auth/me": me({ permissions: ["research:read", "users:read", "users:write"] }), "GET /api/users/u2": detail({ status: "DISABLED", active_sessions: 0 }), "GET /api/audit": events });
     mount(<UserProfile />);
-    await screen.findByText("Manage access");
+    await screen.findByText("Account actions");
     expect(screen.queryByLabelText("Role")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reactivate" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Disable" })).not.toBeInTheDocument();
@@ -278,14 +280,14 @@ describe("audit log", () => {
     mount(<AuditPage />);
     expect(await screen.findByText("auth.login")).toBeInTheDocument();
     expect(screen.getAllByText("The Boss")).toHaveLength(2);
-    fireEvent.change(screen.getByLabelText("Show"), { target: { value: "user." } });
+    fireEvent.click(screen.getByRole("tab", { name: "User administration" }));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/audit" && c.search.get("action") === "user.")).toBe(true));
   });
 
   it("handles an empty log", async () => {
     backend({ "GET /api/auth/me": me(), "GET /api/audit": { events: [] } });
     mount(<AuditPage />);
-    expect(await screen.findByText("No events.")).toBeInTheDocument();
+    expect(await screen.findByText("No events")).toBeInTheDocument();
   });
 
   it("shows a refusal", async () => {

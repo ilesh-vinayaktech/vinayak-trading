@@ -5,8 +5,8 @@ import QRCode from "qrcode";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/status/Badge";
-import { Card } from "@/components/status/LoadState";
 import { Alert } from "@/components/ui/Alert";
+import { Panel, SettingsSection } from "@/components/ui/Layout";
 import { Field, PasswordInput } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, inputFull } from "@/components/ui/styles";
@@ -70,24 +70,26 @@ function PasswordForm() {
 
 function PasswordCard() {
   return (
-    <Card title="Password" note="Changing it signs out your other sessions.">
+    <SettingsSection title="Password" description="Use at least 12 characters. Changing it signs out your other sessions.">
       <PasswordForm />
-    </Card>
+    </SettingsSection>
   );
 }
 
 /** While two-factor setup is still required the password form is optional, so it stays out of the way until asked for. */
 function OptionalPassword() {
   return (
-    <details className="group rounded-xl border border-line bg-panel shadow-card">
-      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 text-sm font-medium">
-        Change your password instead (optional)
-        <Icon name="chevron" size={16} className="text-ink-faint transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="border-t border-line px-5 py-5">
-        <PasswordForm />
-      </div>
-    </details>
+    <SettingsSection title="Password" description="Optional while two-factor setup is pending.">
+      <details className="group rounded-lg border border-line">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium">
+          Change your password instead (optional)
+          <Icon name="chevron" size={16} className="text-ink-faint transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-line p-4">
+          <PasswordForm />
+        </div>
+      </details>
+    </SettingsSection>
   );
 }
 
@@ -121,7 +123,7 @@ function TwoFactorCard() {
   if (confirm.data) {
     const codes = confirm.data.recovery_codes;
     return (
-      <Card title="Two-factor authentication" note="Each code works once. If you lose your phone, a recovery code is the only way back in without an administrator.">
+      <SettingsSection title="Two-factor authentication" description="Each recovery code works once. If you lose your phone, a recovery code is the only way back in without an administrator.">
         <div className="space-y-4">
           <Alert tone="success" title="Two-factor authentication is on">Save your recovery codes now: they are not shown again.</Alert>
           <ul className="grid max-w-md grid-cols-2 gap-2 font-mono text-sm" aria-label="Recovery codes">
@@ -140,21 +142,21 @@ function TwoFactorCard() {
             {copied ? "Copied" : "Copy all codes"}
           </button>
         </div>
-      </Card>
+      </SettingsSection>
     );
   }
   if (user?.mfa_enabled) {
     return (
-      <Card title="Two-factor authentication">
+      <SettingsSection title="Two-factor authentication" description="A second step at sign-in keeps your account safe even if your password leaks.">
         <div className="flex items-start gap-3">
           <Badge tone="good">On</Badge>
           <p className="text-sm text-ink-soft">A code from your authenticator app is asked for at every sign-in.</p>
         </div>
-      </Card>
+      </SettingsSection>
     );
   }
   return (
-    <Card title="Two-factor authentication" note={user?.enrolment_required ? "Required for your role before you can use the console." : "Adds a second step at sign-in."}>
+    <SettingsSection title="Two-factor authentication" description={user?.enrolment_required ? "Required for your role before you can use the console." : "Adds a second step at sign-in."}>
       {!enrol.data ? (
         <div className="space-y-3">
           <p className="text-sm text-ink-soft">Protect your account with a code from an authenticator app (Google Authenticator, Authy or 1Password). It takes about a minute.</p>
@@ -191,7 +193,7 @@ function TwoFactorCard() {
           </ol>
         </form>
       )}
-    </Card>
+    </SettingsSection>
   );
 }
 
@@ -200,7 +202,7 @@ function SessionsCard() {
   const list = useQuery({ queryKey: ["my-sessions"], queryFn: api.mySessions });
   const end = useMutation({ mutationFn: (id: string) => api.endSession(id), onSuccess: () => void qc.invalidateQueries({ queryKey: ["my-sessions"] }) });
   return (
-    <Card title="Active sessions" note="Where you are signed in. End any you do not recognise.">
+    <SettingsSection title="Active sessions" description="Where you are signed in. End any you do not recognise.">
       {list.isError ? <Alert tone="error">{message(list.error)}</Alert> : null}
       <ul className="divide-y divide-line">
         {list.data?.sessions.map((s) => (
@@ -220,7 +222,7 @@ function SessionsCard() {
           </li>
         ))}
       </ul>
-    </Card>
+    </SettingsSection>
   );
 }
 
@@ -229,17 +231,23 @@ export default function SecurityPage() {
   const mustChange = Boolean(user?.must_change_password);
   const restricted = Boolean(user?.enrolment_required) || mustChange;
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-5xl">
       <PageHeader title="Account security" subtitle={user ? `${user.name} · ${user.email} · ${user.role}` : ""} />
       {restricted ? (
-        <Alert tone="warn" title="Finish setting up your account">
-          {mustChange ? "Choose a new password to continue." : "Set up two-factor authentication to continue."}
-        </Alert>
+        <div className="mb-6">
+          <Alert tone="warn" title="Finish setting up your account">
+            {mustChange ? "Choose a new password to continue." : "Set up two-factor authentication to continue."}
+          </Alert>
+        </div>
       ) : null}
-      {mustChange ? <PasswordCard /> : null}
-      <TwoFactorCard />
-      {mustChange ? null : restricted ? <OptionalPassword /> : <PasswordCard />}
-      {restricted ? null : <SessionsCard />}
+      <Panel>
+        <div className="px-6 py-6">
+          {mustChange ? <PasswordCard /> : null}
+          <TwoFactorCard />
+          {mustChange ? null : restricted ? <OptionalPassword /> : <PasswordCard />}
+          {restricted ? null : <SessionsCard />}
+        </div>
+      </Panel>
     </div>
   );
 }

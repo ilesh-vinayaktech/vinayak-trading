@@ -69,16 +69,19 @@ describe("directory tags", () => {
     });
     mount(<UsersPage />);
     const table = within(await screen.findByRole("table"));
-    expect(table.getByText("kyc pending")).toBeInTheDocument();
+    expect(await table.findByText("kyc pending")).toBeInTheDocument();
     fireEvent.change(await screen.findByLabelText("Tag"), { target: { value: "onboarding" } });
     await waitFor(() => expect(calls.some((c) => c.path === "/api/users" && c.search.get("tag") === "onboarding")).toBe(true));
   });
 });
 
+const openCrm = async () => fireEvent.click(await screen.findByRole("tab", { name: /Notes & tasks/ }));
+
 describe("profile CRM panels", () => {
   it("shows tags, notes and tasks about the user to staff", async () => {
     backend(profileBase());
     mount(<UserProfile />);
+    await openCrm();
     expect(await screen.findByText("Asked about Kite")).toBeInTheDocument();
     expect(screen.getByLabelText("Tags of this user").textContent).toContain("kyc pending");
     expect(await screen.findByText("Call Jane")).toBeInTheDocument();
@@ -98,6 +101,7 @@ describe("profile CRM panels", () => {
       },
     }));
     mount(<UserProfile />);
+    await openCrm();
     fireEvent.change(await screen.findByLabelText("New tag"), { target: { value: "onboarding" } });
     fireEvent.click(screen.getByRole("button", { name: "Add tag" }));
     await waitFor(() => expect(screen.getByLabelText("Tags of this user").textContent).toContain("onboarding"));
@@ -109,6 +113,7 @@ describe("profile CRM panels", () => {
   it("adds a note and clears the box", async () => {
     const calls = backend(profileBase({ "POST /api/users/u2/notes": { id: "n2" } }));
     mount(<UserProfile />);
+    await openCrm();
     fireEvent.change(await screen.findByLabelText("New note"), { target: { value: "Called back" } });
     fireEvent.click(screen.getByRole("button", { name: "Add note" }));
     await waitFor(() => expect(screen.getByLabelText("New note")).toHaveValue(""));
@@ -118,6 +123,7 @@ describe("profile CRM panels", () => {
   it("creates a task for a chosen owner and marks one done", async () => {
     const calls = backend(profileBase({ "POST /api/tasks": { id: "k2" }, "POST /api/tasks/k1/status": { ok: true } }));
     mount(<UserProfile />);
+    await openCrm();
     fireEvent.change(await screen.findByLabelText("Task"), { target: { value: "Send KYC form" } });
     await screen.findByRole("option", { name: "The Boss" });
     fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "u3" } });
@@ -131,6 +137,7 @@ describe("profile CRM panels", () => {
   it("defaults the owner to the first staff member and shows a refusal", async () => {
     const calls = backend(profileBase({ "POST /api/tasks": [422, { detail: "a task can only be assigned to an active administrator or operator" }] }));
     mount(<UserProfile />);
+    await openCrm();
     fireEvent.change(await screen.findByLabelText("Task"), { target: { value: "x" } });
     await screen.findByRole("option", { name: "The Boss" });
     fireEvent.click(screen.getByRole("button", { name: "Add task" }));
@@ -141,6 +148,7 @@ describe("profile CRM panels", () => {
   it("is read-only for someone who may read the CRM but not write it", async () => {
     backend(profileBase({ "GET /api/auth/me": me(["research:read", "users:read", "crm:read"]) }));
     mount(<UserProfile />);
+    await openCrm();
     expect(await screen.findByText("Asked about Kite")).toBeInTheDocument();
     for (const label of ["New tag", "New note", "Task"]) expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mark done" })).not.toBeInTheDocument();
@@ -150,6 +158,7 @@ describe("profile CRM panels", () => {
   it("says when there is nothing yet", async () => {
     backend(profileBase({ "GET /api/users/u2": detail(), "GET /api/users/u2/notes": { notes: [] }, "GET /api/tasks": { tasks: [] } }));
     mount(<UserProfile />);
+    await openCrm();
     expect(await screen.findByText("No notes yet.")).toBeInTheDocument();
     expect(screen.getByText("No tags.")).toBeInTheDocument();
     expect(screen.getByText("No tasks about this user.")).toBeInTheDocument();
@@ -159,6 +168,7 @@ describe("profile CRM panels", () => {
     backend(profileBase({ "GET /api/auth/me": me(["research:read", "users:read"]) }));
     mount(<UserProfile />);
     await screen.findByRole("heading", { name: "Jane Roe" });
+    expect(screen.queryByRole("tab", { name: /Notes & tasks/ })).not.toBeInTheDocument();
     expect(screen.queryByText("Internal notes")).not.toBeInTheDocument();
   });
 });
@@ -180,9 +190,9 @@ describe("tasks page", () => {
   it("switches to everyone's tasks and to done ones, and says when empty", async () => {
     const calls = backend({ "GET /api/auth/me": me(), "GET /api/tasks": { tasks: [] } });
     mount(<TasksPage />);
-    expect(await screen.findByText("Nothing here.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing here")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Whose tasks"), { target: { value: "all" } });
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "DONE" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Done" }));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/tasks" && c.search.get("mine") === null && c.search.get("status") === "DONE")).toBe(true));
   });
 
@@ -198,9 +208,9 @@ describe("support: list and new ticket", () => {
     nav.path = "/support";
     const calls = backend({ "GET /api/auth/me": me(["research:read", "tickets:own"]), "GET /api/tickets": { total: 1, items: [ticketRow({ priority: "HIGH", assignee: "Olive Ops", assignee_id: "u1" })] }, "POST /api/tickets": { number: 8 } });
     mount(<SupportPage />);
-    expect(await screen.findByRole("link", { name: "#7 Cannot connect Kite" })).toHaveAttribute("href", "/support/t1");
+    expect(await screen.findByRole("link", { name: /#7 Cannot connect Kite/ })).toHaveAttribute("href", "/support/t1");
     expect(screen.getByText("High")).toBeInTheDocument();
-    expect(screen.getByText(/assigned to Olive Ops/)).toBeInTheDocument();
+    expect(screen.queryByText("Assignee")).not.toBeInTheDocument(); // staff-only column
     expect(screen.queryByLabelText(/Only tickets I raised/)).not.toBeInTheDocument(); // staff-only
     fireEvent.click(screen.getByRole("button", { name: "New ticket" }));
     fireEvent.change(screen.getByLabelText("Subject"), { target: { value: "Need help" } });
@@ -214,8 +224,8 @@ describe("support: list and new ticket", () => {
   it("shows why a ticket was refused and lets the form be cancelled", async () => {
     backend({ "GET /api/auth/me": me(["research:read", "tickets:own"]), "GET /api/tickets": { total: 0, items: [] }, "POST /api/tickets": [422, { detail: "a ticket needs a subject" }] });
     mount(<SupportPage />);
-    expect(await screen.findByText("No tickets.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New ticket" }));
+    expect(await screen.findByText("No tickets")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "New ticket" })[0] as HTMLElement);
     fireEvent.change(screen.getByLabelText("Subject"), { target: { value: "x" } });
     fireEvent.change(screen.getByLabelText("What do you need help with?"), { target: { value: "y" } });
     fireEvent.click(screen.getByRole("button", { name: "Send ticket" }));
@@ -227,9 +237,9 @@ describe("support: list and new ticket", () => {
   it("staff see the whole queue with requester and assignment, filter it and page through it", async () => {
     const calls = backend({ "GET /api/auth/me": me(), "GET /api/tickets": { total: 60, items: [ticketRow()] } });
     mount(<SupportPage />);
-    expect(await screen.findByText(/Jane Roe · unassigned/)).toBeInTheDocument();
-    expect(screen.getByText("Queue")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "PENDING" } });
+    expect(await screen.findByText(/Jane Roe · opened/)).toBeInTheDocument();
+    expect(screen.getByText("Unassigned")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Pending" }));
     fireEvent.click(screen.getByLabelText(/Only tickets I raised/));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/tickets" && c.search.get("status") === "PENDING" && c.search.get("mine") === "true")).toBe(true));
     fireEvent.click(await screen.findByRole("button", { name: "Next" }));
