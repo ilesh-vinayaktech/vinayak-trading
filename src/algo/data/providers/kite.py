@@ -176,7 +176,9 @@ class KiteClient:
                 raise KiteTokenExpired(message or "session expired: log in again")
             if status == 400:
                 raise KiteInputError(message)
-            if status in (429, 500, 502, 503, 504) and attempt < self.retries:
+            if (
+                status in (0, 429, 500, 502, 503, 504) and attempt < self.retries
+            ):  # 0: no answer (network)
                 self._sleep(self.backoff * 2**attempt)
                 continue
             raise KiteError(f"HTTP {status}: {message}")

@@ -20,6 +20,9 @@ from algo.core.clock import Clock, SystemClock
 from algo.indicators.catalog import IndicatorError, parse_spec
 
 Adjust = Literal["none", "split", "total_return"]
+Timeframe = Literal["1m", "5m", "15m", "30m", "1h", "1d"]
+# Longest calendar span served per intraday timeframe (about 12k bars at most for 1m, ~3k for 30m).
+INTRADAY_MAX_DAYS = {"1m": 31, "5m": 124, "15m": 366, "30m": 366, "1h": 731}
 
 # Every connection is read-only and bounded: the API cannot write and a runaway query is cut.
 DB_OPTIONS = (
@@ -172,14 +175,29 @@ def create_app(
 
     @app.get("/api/instruments/{instrument_id}/bars")
     def bars(
-        c: Conn, instrument_id: int, start: date, end: date, adjust: Adjust = "none"
+        c: Conn,
+        instrument_id: int,
+        start: date,
+        end: date,
+        adjust: Adjust = "none",
+        timeframe: Timeframe = "1d",
     ) -> dict[str, Any]:
         if end < start:
             raise HTTPException(422, "end before start")
         if (end - start).days > MAX_RANGE_DAYS:
             raise HTTPException(422, "range longer than 40 years")
+        if timeframe != "1d":
+            if adjust == "total_return":
+                raise HTTPException(422, "intraday bars have no total-return basis")
+            if (end - start).days > INTRADAY_MAX_DAYS[timeframe]:
+                raise HTTPException(
+                    422,
+                    f"{timeframe} bars: at most {INTRADAY_MAX_DAYS[timeframe]} days per request",
+                )
         if queries.instrument(c, instrument_id) is None:
             raise HTTPException(404, f"no instrument {instrument_id}")
+        if timeframe != "1d":
+            return queries.instrument_intraday_bars(c, instrument_id, start, end, adjust, timeframe)
         return queries.instrument_bars(c, instrument_id, start, end, adjust)
 
     @app.get("/api/indicators")

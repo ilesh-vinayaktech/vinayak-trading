@@ -163,6 +163,7 @@ describe("Data Explorer", () => {
   const detail = { ...inst, bars: { first: "2024-01-01", last: "2024-12-31", count: 250 }, actions: [{ ex_date: "2024-06-12", kind: "bonus", status: "review", num: "1", den: "1", amount: null, subject: "Bonus 1:1" }] };
   const bars = {
     adjust: "none",
+    timeframe: "1d",
     adjustment_version: "a7ca8ba234cb8b8a",
     clean: false,
     bars: [{ date: "2024-06-11", open: "100", high: "101", low: "99", close: "100.5", volume: "1000", factor: "1" }],
@@ -218,6 +219,27 @@ describe("Data Explorer", () => {
     fireEvent.click(screen.getByRole("button", { name: /XYZ/ })); // the chosen symbol is now the toolbar's button
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "XY" } });
     expect(await screen.findByRole("list", { name: "Matches" })).toBeInTheDocument();
+  });
+
+  it("offers intraday timeframes: asks the API for them, narrows the ranges and turns indicators off", async () => {
+    const urls: string[] = [];
+    const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars });
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+      urls.push(String(input));
+      return respond(input);
+    });
+    wrap(<InstrumentsPage />);
+    fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+    fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+    await screen.findByText("basis: Raw (as traded)");
+    const tf = within(screen.getByRole("group", { name: "Timeframe" }));
+    expect(tf.getAllByRole("button").map((b) => b.textContent)).toEqual(["1m", "5m", "15m", "30m", "1h", "1D"]);
+    expect(tf.getByRole("button", { name: "1D" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(tf.getByRole("button", { name: "5m" }));
+    await waitFor(() => expect(urls.some((u) => u.includes("timeframe=5m") && u.includes("start=2024-12-01") && u.includes("end=2024-12-31"))).toBe(true));
+    expect(screen.getByRole("button", { name: "Indicators" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "2Y" })).not.toBeInTheDocument(); // 5m is served up to 124 days
+    expect(screen.getByRole("button", { name: "3M" })).toBeInTheDocument();
   });
 
   it("explains an empty search instead of showing nothing", async () => {

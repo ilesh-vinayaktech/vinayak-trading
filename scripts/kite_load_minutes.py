@@ -52,7 +52,9 @@ now = datetime.now(UTC)
 env, tok = load_env(a.env), load_token(a.token_file, now)
 if tok is None:
     sys.exit("no valid Kite session: run scripts/kite_login.py first")
-client = KiteClient(env["ZERODHA_API_KEY"], tok[0], urllib_http, min_interval=a.interval)
+client = KiteClient(
+    env["ZERODHA_API_KEY"], tok[0], urllib_http, min_interval=a.interval, retries=6
+)  # waits 1..32 s: rides out a short network drop
 end = a.end or now.astimezone().date()
 
 latest = sorted((a.lake / "raw/niftyindices/nifty500_list").glob("dt=*/v*.bin"))[-1]

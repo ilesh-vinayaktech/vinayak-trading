@@ -276,3 +276,12 @@ def test_the_untouched_response_bytes_can_be_captured_for_the_archive():
     c2 = client(lambda m, u, h, d=None: (200, INSTRUMENTS))
     c2.instruments("NSE", raw_sink=seen.append)
     assert seen == [CANDLES, INSTRUMENTS]  # exactly as received, before any parsing
+
+
+def test_a_dropped_connection_is_retried_like_a_server_error():
+    sleeps = []
+    http = Http(
+        (0, b"gaierror: Name or service not known"), ok(INSTRUMENTS)
+    )  # status 0 = no HTTP answer
+    assert len(client(http, sleeps).instruments("NSE")) == 2
+    assert len(http.calls) == 2 and [x for x in sleeps if x >= 1.0] == [1.0]

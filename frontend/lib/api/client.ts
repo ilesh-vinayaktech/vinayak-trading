@@ -16,6 +16,7 @@ import {
   reviewListSchema,
   type ReviewDraft,
   type Adjust,
+  type Timeframe,
 } from "@/lib/schemas";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -80,8 +81,8 @@ export const api = {
   dashboard: () => get("/api/dashboard", dashboardSchema),
   searchInstruments: (q: string) => get("/api/instruments", z.array(instrumentSchema), { q, limit: 15 }),
   instrument: (id: number) => get(`/api/instruments/${id}`, instrumentDetailSchema),
-  bars: (id: number, start: string, end: string, adjust: Adjust) =>
-    get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust }),
+  bars: (id: number, start: string, end: string, adjust: Adjust, timeframe: Timeframe = "1d") =>
+    get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust, ...(timeframe === "1d" ? {} : { timeframe }) }),
   reviews: () => get("/api/reviews", reviewListSchema),
   reviewHistory: (id: string) => get(`/api/reviews/${encodeURIComponent(id)}/history`, reviewHistorySchema),
   decideReview: (id: string, d: ReviewDraft) => post(`/api/reviews/${encodeURIComponent(id)}/decisions`, d),

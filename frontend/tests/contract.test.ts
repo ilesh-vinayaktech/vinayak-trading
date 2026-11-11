@@ -30,6 +30,7 @@ const CASES: [string, z.ZodTypeAny][] = [
   ["instrument_detail", instrumentDetailSchema],
   ["bars_none", barsSchema],
   ["bars_split", barsSchema],
+  ["bars_5m", barsSchema],
   ["benchmark_list", benchmarkListSchema],
   ["benchmark_detail", benchmarkDetailSchema],
   ["benchmark_levels", levelsSchema],

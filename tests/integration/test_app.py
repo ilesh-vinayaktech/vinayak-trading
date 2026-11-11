@@ -413,3 +413,69 @@ def test_indicator_requests_are_validated(api):
     assert c.get(url, params={**ok, "start": "1900-01-01", "end": "2100-01-01"}).status_code == 422
     assert c.get(url, params={**ok, "adjust": "magic"}).status_code == 422
     assert c.get("/api/instruments/999/indicators", params=ok).status_code == 404
+
+
+def put_minutes(conn, iid, day, n, close0=100):
+    """n consecutive Kite minutes from 09:15 IST on `day`: open=close0+i, close=close0+i+0.5, volume 10."""
+    for i in range(n):
+        conn.execute(
+            "INSERT INTO bar_1m (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,"
+            "dataset_version,ingested_at) VALUES (%s,%s,%s,%s,%s,%s,10,'kite',%s,1,%s)",
+            (iid, datetime(day.year, day.month, day.day, 3, 45 + i, tzinfo=UTC), close0 + i,
+             close0 + i + 1, close0 + i - 1, close0 + i + D("0.5"), date(2026, 11, 1), NOW))  # fmt: skip
+
+
+def test_intraday_bars_come_from_the_stored_minutes_with_a_utc_time_and_the_ist_date(api, conn):
+    c, iid, _ = api
+    put_minutes(conn, iid, date(2025, 6, 9), 7)
+    q = {"start": "2025-06-09", "end": "2025-06-09", "timeframe": "5m"}
+    b = c.get(f"/api/instruments/{iid}/bars", params=q).json()
+    assert b["timeframe"] == "5m" and b["adjust"] == "none" and b["clean"] is True
+    assert [
+        (x["time"], x["date"], x["open"], x["high"], x["low"], x["close"], x["volume"])
+        for x in b["bars"]
+    ] == [
+        (1749440700, "2025-06-09", "100", "105", "99", "104.5", "50"),  # 09:15-09:19 IST
+        (
+            1749441000,
+            "2025-06-09",
+            "105",
+            "107",
+            "104",
+            "106.5",
+            "20",
+        ),  # 09:20-09:21 only: not padded
+    ]
+    one = c.get(f"/api/instruments/{iid}/bars", params={**q, "timeframe": "1m"}).json()
+    assert len(one["bars"]) == 7 and one["bars"][0]["time"] == 1749440700
+    sp = c.get(f"/api/instruments/{iid}/bars", params={**q, "adjust": "split"}).json()
+    assert sp["adjust"] == "split" and sp["bars"][0]["factor"] == "1"
+    assert (
+        c.get(
+            f"/api/instruments/{iid}/bars", params={**q, "start": "2025-06-10", "end": "2025-06-10"}
+        ).json()["bars"]
+        == []
+    )
+
+
+def test_the_daily_timeframe_is_the_default_and_still_has_no_time_field(api):
+    c, iid, _ = api
+    b = c.get(
+        f"/api/instruments/{iid}/bars", params={"start": "2025-06-01", "end": "2025-06-30"}
+    ).json()
+    assert b["timeframe"] == "1d" and all("time" not in x for x in b["bars"])
+
+
+def test_intraday_requests_are_refused_when_unsupported_or_too_wide(api):
+    c, iid, _ = api
+    url = f"/api/instruments/{iid}/bars"
+    base = {"start": "2025-06-01", "end": "2025-06-09", "timeframe": "1m"}
+    assert c.get(url, params={**base, "timeframe": "2m"}).status_code == 422  # not a timeframe
+    assert (
+        c.get(url, params={**base, "adjust": "total_return"}).status_code == 422
+    )  # no dividends on minutes
+    assert (
+        c.get(url, params={**base, "end": "2025-07-15"}).status_code == 422
+    )  # 1m: at most 31 days
+    assert c.get(url, params={**base, "timeframe": "5m", "end": "2025-07-15"}).status_code == 200
+    assert c.get(url, params={**base, "timeframe": "1h", "end": "2027-07-01"}).status_code == 422

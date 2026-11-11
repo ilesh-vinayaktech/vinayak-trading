@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorBox, Loading } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { MAX_ACTIVE, defaultSpec, loadActive, newUid, saveActive, type Active } from "@/lib/indicators";
-import type { Adjust, Bars, Instrument, InstrumentDetail } from "@/lib/schemas";
+import { TIMEFRAMES, type Adjust, type Bars, type Instrument, type InstrumentDetail, type Timeframe } from "@/lib/schemas";
+import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, TIMEFRAME_LABELS, isIntraday, shiftDays } from "@/lib/timeframes";
 import { Icon, type IconName } from "./icons";
 import { IndicatorDialog } from "./IndicatorDialog";
 import { PriceChart, type ChartType, type IndicatorControls } from "./PriceChart";
@@ -44,7 +45,7 @@ export function presetStart(last: string, first: string | null, months: number):
 const tbBtn = (active = false) => `flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[13px] transition-colors ${active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"} disabled:opacity-35 disabled:hover:bg-transparent`;
 const Sep = () => <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />;
 
-export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, start, end, onRange, bars, loading, error }: { picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
+export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error }: { picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
   const box = useRef<HTMLDivElement>(null);
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [full, setFull] = useState(false);
@@ -64,7 +65,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
   const series = useQuery({
     queryKey: ["indicators", picked?.id, start, end, adjust, names],
     queryFn: () => api.indicatorSeries(picked?.id as number, start, end, adjust, names),
-    enabled: picked !== null && names !== "" && start !== "" && start <= end,
+    enabled: picked !== null && names !== "" && start !== "" && start <= end && !isIntraday(timeframe), // indicators are computed on daily bars
     placeholderData: (prev) => prev,
   });
   const controls: IndicatorControls = useMemo(
@@ -100,9 +101,13 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
     <div className="flex flex-wrap items-center gap-0.5 border-b border-line bg-white px-2 py-1" role="toolbar" aria-label="Chart controls">
       <SymbolSearch current={picked?.symbol ?? null} onPick={onPick} />
       <Sep />
-      <span className="flex h-8 items-center rounded-md px-2 text-[13px] font-medium text-slate-700" title="Daily bars are the only stored resolution">
-        1D
-      </span>
+      <div className="flex items-center" role="group" aria-label="Timeframe" title="Intraday bars are built from the stored 1-minute bars; indicators and drawings are on 1D only">
+        {TIMEFRAMES.map((t) => (
+          <button key={t} type="button" aria-pressed={timeframe === t} onClick={() => onTimeframe(t)} className={tbBtn(timeframe === t)}>
+            {TIMEFRAME_LABELS[t]}
+          </button>
+        ))}
+      </div>
       <Sep />
       <div className="flex items-center" role="group" aria-label="Chart type">
         {TYPES.map((t) => (
@@ -112,7 +117,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
         ))}
       </div>
       <Sep />
-      <button type="button" title="Indicators" aria-label="Indicators" onClick={() => setDialog(true)} className={tbBtn(active.length > 0)}>
+      <button type="button" title={isIntraday(timeframe) ? "Indicators are available on the 1D timeframe" : "Indicators"} aria-label="Indicators" disabled={isIntraday(timeframe)} onClick={() => setDialog(true)} className={tbBtn(active.length > 0 && !isIntraday(timeframe))}>
         <Icon name="line" size={18} />
         <span>Indicators</span>
       </button>
@@ -122,15 +127,18 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
       </label>
       <select id="adjust" value={adjust} onChange={(e) => onAdjust(e.target.value as Adjust)} title={BASES.find((b) => b.value === adjust)?.blurb} className="h-8 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium text-slate-800 hover:bg-slate-100">
         {BASES.map((b) => (
-          <option key={b.value} value={b.value}>
+          <option key={b.value} value={b.value} disabled={isIntraday(timeframe) && b.value === "total_return"}>
             {b.label}
           </option>
         ))}
       </select>
       <Sep />
       <div className="flex items-center" role="group" aria-label="Date range">
-        {PRESETS.map((p) => (
-          <button key={p.key} type="button" disabled={!last} onClick={() => last && onRange(presetStart(last, first, p.months), last)} className={tbBtn(false)}>
+        {(isIntraday(timeframe)
+          ? INTRADAY_PRESETS.filter((p) => p.days <= INTRADAY_MAX_DAYS[timeframe]).map((p) => ({ key: p.key, from: (l: string) => shiftDays(l, -p.days) }))
+          : PRESETS.map((p) => ({ key: p.key, from: (l: string) => presetStart(l, first, p.months) }))
+        ).map((p) => (
+          <button key={p.key} type="button" disabled={!last} onClick={() => last && onRange(p.from(last), last)} className={tbBtn(false)}>
             {p.key}
           </button>
         ))}
@@ -194,7 +202,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, s
   return (
     <div ref={box} className={`flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm ${full ? "h-screen" : "h-[calc(100vh-15rem)] min-h-[560px]"}`} data-testid="chart-workspace">
       {bars && bars.bars.length > 0 && picked ? (
-        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} />
+        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} />
       ) : (
         <>
           {topbar({ undo: () => {}, redo: () => {}, canUndo: false, canRedo: false, count: 0, listOpen: false, toggleList: () => {}, screenshot: () => {} })}

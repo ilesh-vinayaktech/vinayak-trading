@@ -1,0 +1,32 @@
+{
+ "adjust": "none",
+ "adjustment_version": "140bedbf9c3f6d56",
+ "bars": [
+  {
+   "close": "104",
+   "date": "2025-06-09",
+   "factor": "1",
+   "high": "105",
+   "instrument_id": 1,
+   "low": "99",
+   "open": "100",
+   "time": 1749440700,
+   "volume": "150"
+  },
+  {
+   "close": "105",
+   "date": "2025-06-09",
+   "factor": "1",
+   "high": "106",
+   "instrument_id": 1,
+   "low": "104",
+   "open": "105",
+   "time": 1749441000,
+   "volume": "60"
+  }
+ ],
+ "clean": true,
+ "provisional": [],
+ "timeframe": "5m",
+ "unapplied": []
+}

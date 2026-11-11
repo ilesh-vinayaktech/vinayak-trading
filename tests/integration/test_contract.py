@@ -40,6 +40,11 @@ def seeded(conn, pg_url, docs):  # noqa: F811
             "knowledge_time_source,source,raw_checksum,ingested_at) VALUES (%s,%s,%s,%s,%s,%s,'t',%s,"
             "'ex_date_proxy','nse','x',%s)", (iid, ex, kind, status, 2 if kind == "bonus" else None,
                                              1 if kind == "bonus" else None, NOW, NOW))  # fmt: skip
+    for i in range(6):  # six Kite minutes from 09:15 IST on 2025-06-09
+        conn.execute(
+            "INSERT INTO bar_1m (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,"
+            "dataset_version,ingested_at) VALUES (%s,%s,%s,%s,%s,%s,%s,'kite','2025-06-30',1,%s)",
+            (iid, datetime(2025, 6, 9, 3, 45 + i, tzinfo=UTC), 100 + i, 101 + i, 99 + i, 100 + i, 10 * (i + 1), NOW))  # fmt: skip
     bid = register(
         conn,
         name="N200",
@@ -90,6 +95,7 @@ def snapshots(c, iid, bid):
         "instrument_detail": c.get(f"/api/instruments/{iid}"),
         "bars_none": c.get(f"/api/instruments/{iid}/bars", params={**rng, "adjust": "none"}),
         "bars_split": c.get(f"/api/instruments/{iid}/bars", params={**rng, "adjust": "split"}),
+        "bars_5m": c.get(f"/api/instruments/{iid}/bars", params={**rng, "timeframe": "5m"}),
         "indicator_catalog": c.get("/api/indicators"),
         "indicator_series": c.get(
             f"/api/instruments/{iid}/indicators",

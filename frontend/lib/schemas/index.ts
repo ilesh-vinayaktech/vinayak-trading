@@ -121,13 +121,18 @@ export const instrumentDetailSchema = instrumentSchema.extend({
 
 const eventRef = z.object({ kind: z.string(), ex_date: z.string() });
 
+export const TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "1d"] as const;
+export type Timeframe = (typeof TIMEFRAMES)[number];
+
 export const barsSchema = z.object({
   adjust: z.enum(["none", "split", "total_return"]),
+  timeframe: z.enum(TIMEFRAMES),
   adjustment_version: z.string(),
   clean: z.boolean(),
   bars: z.array(
     z.object({
-      date: z.string(),
+      date: z.string(), // the IST trading day
+      time: z.number().optional(), // intraday bars only: UTC epoch seconds of the bar open
       open: z.string(),
       high: z.string(),
       low: z.string(),

@@ -19,7 +19,8 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { plotNumber } from "@/lib/formatting";
 import { toPoints, type Active } from "@/lib/indicators";
-import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail } from "@/lib/schemas";
+import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail, Timeframe } from "@/lib/schemas";
+import { TIMEFRAME_LABELS, barLabel, barTime } from "@/lib/timeframes";
 import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools";
 import { IndicatorRow } from "./IndicatorLegend";
 
@@ -44,7 +45,7 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ bars, actions, instrumentId, adjust, symbol, exchange, chartType, indicators, topbar }: { bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar }: { bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -61,7 +62,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, symbol, exchan
       grid: { vertLines: { color: "#f1f5f9" }, horzLines: { color: "#f1f5f9" } },
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: "#e2e8f0", scaleMargins: { top: 0.14, bottom: 0.27 }, minimumWidth: 64 },
-      timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true },
+      timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true, timeVisible: timeframe !== "1d", secondsVisible: false },
     });
     const series: ISeriesApi<SeriesType> =
       chartType === "candles"
@@ -69,19 +70,19 @@ export function PriceChart({ bars, actions, instrumentId, adjust, symbol, exchan
         : chartType === "line"
           ? chart.addSeries(LineSeries, { color: "#2563eb", lineWidth: 2 })
           : chart.addSeries(AreaSeries, { lineColor: "#2563eb", topColor: "rgba(37,99,235,0.28)", bottomColor: "rgba(37,99,235,0.02)", lineWidth: 2 });
-    if (chartType === "candles") (series as ISeriesApi<"Candlestick">).setData(bars.map((b) => ({ time: b.date as Time, open: plotNumber(b.open), high: plotNumber(b.high), low: plotNumber(b.low), close: plotNumber(b.close) })));
-    else (series as ISeriesApi<"Line">).setData(bars.map((b) => ({ time: b.date as Time, value: plotNumber(b.close) })));
+    if (chartType === "candles") (series as ISeriesApi<"Candlestick">).setData(bars.map((b) => ({ time: barTime(b) as Time, open: plotNumber(b.open), high: plotNumber(b.high), low: plotNumber(b.low), close: plotNumber(b.close) })));
+    else (series as ISeriesApi<"Line">).setData(bars.map((b) => ({ time: barTime(b) as Time, value: plotNumber(b.close) })));
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "vol", lastValueVisible: false, priceLineVisible: false });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
-    volume.setData(bars.map((b, i) => ({ time: b.date as Time, value: plotNumber(b.volume), color: plotNumber(b.close) >= plotNumber(bars[Math.max(0, i - 1)]?.close ?? b.close) ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" })));
-    const byDate = new Map(bars.map((b) => [b.date, b]));
-    const onMove = (p: MouseEventParams<Time>) => setHover(typeof p.time === "string" ? (byDate.get(p.time) ?? null) : null);
+    volume.setData(bars.map((b, i) => ({ time: barTime(b) as Time, value: plotNumber(b.volume), color: plotNumber(b.close) >= plotNumber(bars[Math.max(0, i - 1)]?.close ?? b.close) ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" })));
+    const byTime = new Map<string | number, Bar>(bars.map((b) => [barTime(b), b]));
+    const onMove = (p: MouseEventParams<Time>) => setHover(typeof p.time === "string" || typeof p.time === "number" ? (byTime.get(p.time) ?? null) : null);
     chart.subscribeCrosshairMove(onMove);
     const onRange = () => setTick((n) => n + 1);
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
     const days = bars.map((b) => b.date);
     const markers: SeriesMarker<Time>[] = [];
-    for (const a of actions) {
+    for (const a of timeframe === "1d" ? actions : []) { // action markers sit on daily bars
       const day = days.find((d) => d >= a.ex_date);
       if (!day || a.ex_date < (days[0] ?? "")) continue;
       markers.push({ time: day as Time, position: "aboveBar", color: a.status === "ok" ? "#2563eb" : "#d97706", shape: "arrowDown", text: a.kind });
@@ -107,7 +108,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, symbol, exchan
       handles.current = null;
       chart.remove();
     };
-  }, [bars, actions, chartType]);
+  }, [bars, actions, chartType, timeframe]);
 
   // indicators: overlays on the price pane, oscillators one pane each below it
   const { active, data, catalog } = indicators;
@@ -187,13 +188,13 @@ export function PriceChart({ bars, actions, instrumentId, adjust, symbol, exchan
       <div data-testid="ohlc-legend">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-slate-600">
           <span className="font-sans text-[13px] font-semibold text-slate-900">
-            {symbol} <span className="font-normal text-slate-500">· 1D · {exchange}</span>
+            {symbol} <span className="font-normal text-slate-500">· {TIMEFRAME_LABELS[timeframe]} · {exchange}</span>
           </span>
           <span>O <b className="font-medium text-slate-900">{shown.open}</b></span>
           <span>H <b className="font-medium text-slate-900">{shown.high}</b></span>
           <span>L <b className="font-medium text-slate-900">{shown.low}</b></span>
           <span>C <b className="font-medium text-slate-900">{shown.close}</b></span>
-          <span className="text-slate-500">{shown.date}</span>
+          <span className="text-slate-500">{barLabel(shown)}</span>
           <span className="text-slate-500">factor {shown.factor}</span>
         </div>
         <div className="mt-0.5 font-mono text-slate-500">

@@ -10,7 +10,8 @@ import { Card, Stat } from "@/components/status/LoadState";
 import { DataTable } from "@/components/tables/DataTable";
 import { api } from "@/lib/api/client";
 import { shortHash } from "@/lib/formatting";
-import type { Adjust, Instrument, InstrumentDetail } from "@/lib/schemas";
+import type { Adjust, Instrument, InstrumentDetail, Timeframe } from "@/lib/schemas";
+import { intradayStart, isIntraday } from "@/lib/timeframes";
 
 type Action = InstrumentDetail["actions"][number];
 
@@ -32,6 +33,7 @@ const ACTION_COLUMNS: ColumnDef<Action, unknown>[] = [
 export default function InstrumentsPage() {
   const [picked, setPicked] = useState<Instrument | null>(null);
   const [adjust, setAdjust] = useState<Adjust>("none");
+  const [timeframe, setTimeframe] = useState<Timeframe>("1d");
   const [range, setRange] = useState<{ id: number | null; start: string; end: string }>({ id: null, start: "", end: "" });
   const id = picked?.id ?? null;
 
@@ -43,16 +45,25 @@ export default function InstrumentsPage() {
   }, [detail.data, id, range.id]);
   const ready = range.id === id && id !== null;
   const bars = useQuery({
-    queryKey: ["bars", id, range.start, range.end, adjust],
-    queryFn: () => api.bars(id as number, range.start, range.end, adjust),
+    queryKey: ["bars", id, range.start, range.end, adjust, timeframe],
+    queryFn: () => api.bars(id as number, range.start, range.end, adjust, timeframe),
     enabled: ready && range.start <= range.end,
   });
+  const pickTimeframe = (t: Timeframe) => {
+    setTimeframe(t);
+    const last = detail.data?.bars.last ?? null;
+    if (!last) return;
+    if (isIntraday(t)) {
+      if (adjust === "total_return") setAdjust("split"); // minutes carry no dividend basis
+      setRange((r) => ({ ...r, start: intradayStart(last, t), end: last }));
+    } else setRange((r) => ({ ...r, start: presetStart(last, detail.data?.bars.first ?? null, 12), end: last }));
+  };
   const actions = useMemo(() => detail.data?.actions ?? [], [detail.data]);
   const mode = BASES.find((m) => m.value === adjust) ?? BASES[0];
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Data Explorer" subtitle="Daily bars from the backend bar reader. Adjustment happens there, never in the browser." />
+      <PageHeader title="Data Explorer" subtitle="Bars from the backend bar reader; intraday timeframes are built from stored 1-minute bars. Adjustment happens there, never in the browser." />
 
       <ChartWorkspace
         picked={picked}
@@ -60,6 +71,8 @@ export default function InstrumentsPage() {
         instrument={detail.data ?? null}
         adjust={adjust}
         onAdjust={setAdjust}
+        timeframe={timeframe}
+        onTimeframe={pickTimeframe}
         start={range.start}
         end={range.end}
         onRange={(s, e) => setRange((r) => ({ ...r, start: s, end: e }))}

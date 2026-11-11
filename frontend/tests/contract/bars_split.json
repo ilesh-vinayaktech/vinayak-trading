@@ -45,6 +45,7 @@
  ],
  "clean": false,
  "provisional": [],
+ "timeframe": "1d",
  "unapplied": [
   {
    "ex_date": "2025-06-12",

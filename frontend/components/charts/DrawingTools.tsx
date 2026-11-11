@@ -22,7 +22,7 @@ export const SHORTCUTS: Partial<Record<ToolType, { code: string; label: string }
   rect: { code: "KeyR", label: "Alt+R" },
   text: { code: "KeyX", label: "Alt+X" },
 };
-type Bar = { date: string; open: string; high: string; low: string; close: string };
+type Bar = { date: string; time?: number; open: string; high: string; low: string; close: string };
 type Tool = ToolType | "cursor";
 type Drag = { kind: "handle"; index: number; original: Drawing } | { kind: "move"; original: Drawing; startX: number; startY: number };
 
@@ -48,7 +48,8 @@ export function makeProjection(h: ChartHandles | null, bars: Bar[], width: numbe
       guard(() => {
         const l = h.chart.timeScale().coordinateToLogical(x);
         if (l === null || bars.length === 0) return null;
-        return bars[Math.max(0, Math.min(bars.length - 1, Math.round(l)))]?.date ?? null;
+        const b = bars[Math.max(0, Math.min(bars.length - 1, Math.round(l)))];
+        return b && b.time === undefined ? b.date : null; // drawings are anchored to daily bars only
       }),
     price: (y) => guard(() => h.series.coordinateToPrice(y)),
     index: (t) => idx.get(t) ?? null,

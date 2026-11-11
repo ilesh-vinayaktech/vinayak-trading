@@ -4,14 +4,17 @@ service already owns (adjustment, eligibility, metrics)."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
 import psycopg
 
+from algo.data.bars import Bar
 from algo.data.benchmark import dataset_hash, levels
+from algo.data.minute_reader import minute_history
 from algo.data.reader import IST, BarReader
+from algo.data.resample import resample
 from algo.indicators.catalog import CATALOG, Bars, Indicator, compute
 
 IST_DAY = "(ts AT TIME ZONE 'Asia/Kolkata')::date"
@@ -200,6 +203,45 @@ def _s(v: Any) -> str | None:
     return None if v is None else str(v)
 
 
+def _ist_day(ts: datetime) -> date:
+    return ts.astimezone(IST).date()
+
+
+INTRADAY_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60}
+
+
+def instrument_intraday_bars(
+    conn: psycopg.Connection,
+    instrument_id: int,
+    start: date,
+    end: date,
+    adjust: str,
+    timeframe: str,
+) -> dict[str, Any]:
+    # Built at read time from the stored 1-minute bars (the only intraday copy), one instrument's
+    # own (no ISIN-change stitching). `time` = UTC epoch seconds of the bar open.
+    h = minute_history(conn, instrument_id, start, end, adjust=adjust)
+    factor_of_day = {b.ts.astimezone(IST).date(): b.factor for b in h.bars}
+    minutes = [
+        Bar(str(instrument_id), b.ts, b.open, b.high, b.low, b.close, b.volume) for b in h.bars
+    ]
+    out = resample(minutes, INTRADAY_MINUTES[timeframe])
+    return {
+        "adjust": adjust,
+        "timeframe": timeframe,
+        "adjustment_version": h.adjustment_version,
+        "clean": h.clean,
+        "bars": [
+            {"time": int(b.ts.astimezone(UTC).timestamp()), "date": _ist_day(b.ts).isoformat(),
+             "open": str(b.open), "high": str(b.high), "low": str(b.low), "close": str(b.close),
+             "volume": str(b.volume), "factor": str(factor_of_day[_ist_day(b.ts)]),
+             "instrument_id": instrument_id} for b in out
+        ],
+        "unapplied": [{"kind": a.kind, "ex_date": a.ex_date.isoformat()} for a in h.unapplied],
+        "provisional": [{"kind": a.kind, "ex_date": a.ex_date.isoformat()} for a in h.provisional],
+    }  # fmt: skip
+
+
 def instrument_bars(
     conn: psycopg.Connection, instrument_id: int, start: date, end: date, adjust: str
 ) -> dict[str, Any]:
@@ -208,6 +250,7 @@ def instrument_bars(
     h = BarReader.for_env(conn).issuer_history(instrument_id, start, end, adjust=adjust)
     return {
         "adjust": adjust,
+        "timeframe": "1d",
         "adjustment_version": h.adjustment_version,
         "clean": h.clean,
         "bars": [
