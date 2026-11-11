@@ -23,3 +23,14 @@ describe("timeframes", () => {
     expect(intradayStart("2026-11-11", "1m", 400)).toBe(shiftDays("2026-11-11", -INTRADAY_MAX_DAYS["1m"]));
   });
 });
+
+describe("timeframe menu data", () => {
+  it("has every API timeframe exactly once, in minute / hour / day sections, and only minute and hour bars are intraday", async () => {
+    const { TIMEFRAME_GROUPS } = await import("@/lib/timeframes");
+    const { TIMEFRAMES } = await import("@/lib/schemas");
+    expect(TIMEFRAME_GROUPS.flatMap((g) => g.items.map((i) => i.value))).toEqual([...TIMEFRAMES]);
+    expect(TIMEFRAMES.filter((t) => isIntraday(t))).toHaveLength(11);
+    expect(isIntraday("1w") || isIntraday("1mo")).toBe(false);
+    for (const t of TIMEFRAMES.filter(isIntraday)) expect(INTRADAY_MAX_DAYS[t]).toBeGreaterThan(0);
+  });
+});

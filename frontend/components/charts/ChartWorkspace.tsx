@@ -5,8 +5,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorBox, Loading } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { MAX_ACTIVE, defaultSpec, loadActive, newUid, saveActive, type Active } from "@/lib/indicators";
-import { TIMEFRAMES, type Adjust, type Bars, type Instrument, type InstrumentDetail, type Timeframe } from "@/lib/schemas";
-import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, TIMEFRAME_LABELS, isIntraday, shiftDays } from "@/lib/timeframes";
+import { type Adjust, type Bars, type Instrument, type InstrumentDetail, type Timeframe } from "@/lib/schemas";
+import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, isIntraday, shiftDays } from "@/lib/timeframes";
+import { TimeframeMenu } from "./TimeframeMenu";
 import { Icon, type IconName } from "./icons";
 import { IndicatorDialog } from "./IndicatorDialog";
 import { PriceChart, type ChartType, type IndicatorControls } from "./PriceChart";
@@ -65,7 +66,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   const series = useQuery({
     queryKey: ["indicators", picked?.id, start, end, adjust, names],
     queryFn: () => api.indicatorSeries(picked?.id as number, start, end, adjust, names),
-    enabled: picked !== null && names !== "" && start !== "" && start <= end && !isIntraday(timeframe), // indicators are computed on daily bars
+    enabled: picked !== null && names !== "" && start !== "" && start <= end && timeframe === "1d", // indicators are computed on daily bars
     placeholderData: (prev) => prev,
   });
   const controls: IndicatorControls = useMemo(
@@ -101,13 +102,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
     <div className="flex flex-wrap items-center gap-0.5 border-b border-line bg-white px-2 py-1" role="toolbar" aria-label="Chart controls">
       <SymbolSearch current={picked?.symbol ?? null} onPick={onPick} />
       <Sep />
-      <div className="flex items-center" role="group" aria-label="Timeframe" title="Intraday bars are built from the stored 1-minute bars; indicators and drawings are on 1D only">
-        {TIMEFRAMES.map((t) => (
-          <button key={t} type="button" aria-pressed={timeframe === t} onClick={() => onTimeframe(t)} className={tbBtn(timeframe === t)}>
-            {TIMEFRAME_LABELS[t]}
-          </button>
-        ))}
-      </div>
+      <TimeframeMenu value={timeframe} onChange={onTimeframe} className={tbBtn(false)} />
       <Sep />
       <div className="flex items-center" role="group" aria-label="Chart type">
         {TYPES.map((t) => (
@@ -117,7 +112,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
         ))}
       </div>
       <Sep />
-      <button type="button" title={isIntraday(timeframe) ? "Indicators are available on the 1D timeframe" : "Indicators"} aria-label="Indicators" disabled={isIntraday(timeframe)} onClick={() => setDialog(true)} className={tbBtn(active.length > 0 && !isIntraday(timeframe))}>
+      <button type="button" title={timeframe !== "1d" ? "Indicators are available on the 1D timeframe" : "Indicators"} aria-label="Indicators" disabled={timeframe !== "1d"} onClick={() => setDialog(true)} className={tbBtn(active.length > 0 && timeframe === "1d")}>
         <Icon name="line" size={18} />
         <span>Indicators</span>
       </button>

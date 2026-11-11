@@ -13,8 +13,8 @@ import psycopg
 from algo.data.bars import Bar
 from algo.data.benchmark import dataset_hash, levels
 from algo.data.minute_reader import minute_history
-from algo.data.reader import IST, BarReader
-from algo.data.resample import resample
+from algo.data.reader import IST, AdjBar, BarReader
+from algo.data.resample import resample, resample_calendar
 from algo.indicators.catalog import CATALOG, Bars, Indicator, compute
 
 IST_DAY = "(ts AT TIME ZONE 'Asia/Kolkata')::date"
@@ -207,7 +207,8 @@ def _ist_day(ts: datetime) -> date:
     return ts.astimezone(IST).date()
 
 
-INTRADAY_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60}
+INTRADAY_MINUTES = {"1m": 1, "3m": 3, "5m": 5, "10m": 10, "15m": 15, "30m": 30, "45m": 45,
+                    "1h": 60, "2h": 120, "3h": 180, "4h": 240}  # fmt: skip
 
 
 def instrument_intraday_bars(
@@ -242,15 +243,43 @@ def instrument_intraday_bars(
     }  # fmt: skip
 
 
+CALENDAR_PERIODS = {"1w": "week", "1mo": "month"}
+
+
 def instrument_bars(
-    conn: psycopg.Connection, instrument_id: int, start: date, end: date, adjust: str
+    conn: psycopg.Connection,
+    instrument_id: int,
+    start: date,
+    end: date,
+    adjust: str,
+    timeframe: str = "1d",
 ) -> dict[str, Any]:
     # Issuer-scoped: one continuous history across an ISIN change; each bar names the instrument
     # that traded it (`instrument_id`), so the transition is visible and nothing is merged.
+    # 1w / 1mo are rolled up from these adjusted daily bars (dated by their first trading day).
     h = BarReader.for_env(conn).issuer_history(instrument_id, start, end, adjust=adjust)
+    if timeframe in CALENDAR_PERIODS:
+        by_ts = {b.ts: b for b in h.bars}
+        rolled = resample_calendar(
+            [Bar(str(b.owner), b.ts, b.open, b.high, b.low, b.close, b.volume) for b in h.bars],
+            CALENDAR_PERIODS[timeframe],
+        )
+        h.bars = [
+            AdjBar(
+                r.ts,
+                r.open,
+                r.high,
+                r.low,
+                r.close,
+                r.volume,
+                by_ts[r.ts].factor,
+                by_ts[r.ts].owner,
+            )
+            for r in rolled
+        ]
     return {
         "adjust": adjust,
-        "timeframe": "1d",
+        "timeframe": timeframe,
         "adjustment_version": h.adjustment_version,
         "clean": h.clean,
         "bars": [

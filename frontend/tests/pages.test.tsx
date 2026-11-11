@@ -232,12 +232,18 @@ describe("Data Explorer", () => {
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
     await screen.findByText("basis: Raw (as traded)");
-    const tf = within(screen.getByRole("group", { name: "Timeframe" }));
-    expect(tf.getAllByRole("button").map((b) => b.textContent)).toEqual(["1m", "5m", "15m", "30m", "1h", "1D"]);
-    expect(tf.getByRole("button", { name: "1D" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(tf.getByRole("button", { name: "5m" }));
+    fireEvent.click(screen.getByRole("button", { name: "Timeframe: 1D" }));
+    const menu = within(screen.getByRole("menu", { name: "Timeframes" }));
+    expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"))).toEqual(expect.arrayContaining(["MINUTES", "HOURS", "DAYS"]));
+    expect(menu.getAllByRole("menuitemradio").map((b) => b.textContent?.replace("✓", ""))).toEqual([
+      "1 minute", "3 minutes", "5 minutes", "10 minutes", "15 minutes", "30 minutes", "45 minutes", "1 hour", "2 hours", "3 hours", "4 hours", "1 day", "1 week", "1 month",
+    ]);
+    expect(menu.getByRole("menuitemradio", { name: /1 day/ })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(menu.getByRole("menuitemradio", { name: "5 minutes" }));
+    expect(screen.queryByRole("menu", { name: "Timeframes" })).not.toBeInTheDocument(); // closes on pick
     await waitFor(() => expect(urls.some((u) => u.includes("timeframe=5m") && u.includes("start=2024-12-01") && u.includes("end=2024-12-31"))).toBe(true));
     expect(screen.getByRole("button", { name: "Indicators" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Timeframe: 5m" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "2Y" })).not.toBeInTheDocument(); // 5m is served up to 124 days
     expect(screen.getByRole("button", { name: "3M" })).toBeInTheDocument();
   });

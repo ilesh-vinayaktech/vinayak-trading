@@ -46,3 +46,28 @@ def resample(bars: Iterable[Bar], minutes: int) -> list[Bar]:
                 cur.volume + b.volume,
             )
     return list(out.values())
+
+
+def resample_calendar(bars: Iterable[Bar], period: str) -> list[Bar]:
+    """Daily bars into weekly (Monday-Friday) or monthly bars. Each is dated by its first trading day, which keeps the
+    chart's day-based time axis. Input is one instrument's already-adjusted daily bars; adjustment is not redone."""
+    if period not in ("week", "month"):
+        raise ValueError("period must be 'week' or 'month'")
+    out: dict[tuple[int, ...], Bar] = {}
+    for b in sorted(bars, key=lambda x: x.ts):
+        day = b.ts.astimezone(IST).date()
+        key = (day.year, day.month) if period == "month" else day.isocalendar()[:2]
+        cur = out.get(key)
+        if cur is None:
+            out[key] = b
+        else:
+            out[key] = Bar(
+                cur.symbol,
+                cur.ts,
+                cur.open,
+                max(cur.high, b.high),
+                min(cur.low, b.low),
+                b.close,
+                cur.volume + b.volume,
+            )
+    return list(out.values())

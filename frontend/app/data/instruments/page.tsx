@@ -56,7 +56,10 @@ export default function InstrumentsPage() {
     if (isIntraday(t)) {
       if (adjust === "total_return") setAdjust("split"); // minutes carry no dividend basis
       setRange((r) => ({ ...r, start: intradayStart(last, t), end: last }));
-    } else setRange((r) => ({ ...r, start: presetStart(last, detail.data?.bars.first ?? null, 12), end: last }));
+    } else {
+      const months = t === "1mo" ? 0 : t === "1w" ? 60 : 12; // monthly: all history; weekly: 5 years; daily: 1 year
+      setRange((r) => ({ ...r, start: presetStart(last, detail.data?.bars.first ?? null, months), end: last }));
+    }
   };
   const actions = useMemo(() => detail.data?.actions ?? [], [detail.data]);
   const mode = BASES.find((m) => m.value === adjust) ?? BASES[0];

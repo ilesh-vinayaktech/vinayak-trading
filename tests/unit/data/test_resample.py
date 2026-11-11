@@ -53,3 +53,43 @@ def test_empty_input_and_negative_minutes():
     assert resample([], 5) == []
     with pytest.raises(ValueError):
         resample([], -1)
+
+
+def d(day: int, month: int, o, h, low, c, v) -> Bar:
+    ts = datetime(2026, month, day, 9, 15, tzinfo=IST).astimezone(UTC)
+    return Bar("X", ts, D(str(o)), D(str(h)), D(str(low)), D(str(c)), D(str(v)))
+
+
+def test_weekly_bars_run_monday_to_friday_and_are_dated_by_their_first_trading_day():
+    from algo.data.resample import resample_calendar
+
+    # Tue 3 Nov starts a short week (Mon 2 Nov was a holiday); Mon 9 Nov starts the next
+    bars = [
+        d(4, 11, 12, 15, 11, 14, 5),
+        d(3, 11, 10, 11, 9, 11, 3),
+        d(6, 11, 14, 14, 8, 9, 2),
+        d(9, 11, 9, 20, 9, 19, 7),
+    ]
+    out = resample_calendar(bars, "week")
+    assert [
+        (b.ts.astimezone(IST).date().isoformat(), b.open, b.high, b.low, b.close, b.volume)
+        for b in out
+    ] == [
+        ("2026-11-03", D(10), D(15), D(8), D(9), D(10)),
+        ("2026-11-09", D(9), D(20), D(9), D(19), D(7)),
+    ]
+
+
+def test_monthly_bars_group_by_calendar_month_and_bad_period_is_refused():
+    from algo.data.resample import resample_calendar
+
+    out = resample_calendar(
+        [d(30, 10, 1, 2, 1, 2, 1), d(2, 11, 2, 5, 2, 4, 1), d(30, 11, 4, 9, 3, 8, 2)], "month"
+    )
+    assert [(b.ts.astimezone(IST).date().isoformat(), b.open, b.close, b.volume) for b in out] == [
+        ("2026-10-30", D(1), D(2), D(1)),
+        ("2026-11-02", D(2), D(8), D(3)),
+    ]
+    assert resample_calendar([], "week") == []
+    with pytest.raises(ValueError):
+        resample_calendar([], "year")

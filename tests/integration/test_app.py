@@ -479,3 +479,41 @@ def test_intraday_requests_are_refused_when_unsupported_or_too_wide(api):
     )  # 1m: at most 31 days
     assert c.get(url, params={**base, "timeframe": "5m", "end": "2025-07-15"}).status_code == 200
     assert c.get(url, params={**base, "timeframe": "1h", "end": "2027-07-01"}).status_code == 422
+
+
+def test_weekly_and_monthly_bars_are_built_from_the_daily_series_with_every_price_basis(api):
+    c, iid, _ = api
+    url = f"/api/instruments/{iid}/bars"
+    for tf in ("1w", "1mo"):
+        for adjust in ("none", "split", "total_return"):
+            b = c.get(
+                url,
+                params={
+                    "start": "2025-06-01",
+                    "end": "2025-06-30",
+                    "timeframe": tf,
+                    "adjust": adjust,
+                },
+            ).json()
+            assert b["timeframe"] == tf and b["adjust"] == adjust
+            assert [
+                (x["date"], x["open"], x["high"], x["low"], x["close"], x["volume"])
+                for x in b["bars"]
+            ] == [("2025-06-09", "1", "2", "1", "2", "200")]
+            assert "time" not in b["bars"][0]  # a daily-style axis, like 1D
+
+
+def test_the_wider_minute_and_hour_timeframes_are_accepted_with_their_own_range_caps(api, conn):
+    c, iid, _ = api
+    put_minutes(conn, iid, date(2025, 6, 9), 7)
+    url = f"/api/instruments/{iid}/bars"
+    q = {"start": "2025-06-09", "end": "2025-06-09"}
+    three = c.get(url, params={**q, "timeframe": "3m"}).json()["bars"]
+    assert [x["volume"] for x in three] == ["30", "30", "10"]
+    assert c.get(url, params={**q, "timeframe": "4h"}).json()["bars"][0]["volume"] == "70"
+    assert (
+        c.get(url, params={**q, "timeframe": "10m", "end": "2026-02-01"}).status_code == 200
+    )  # 237 days <= 248
+    assert (
+        c.get(url, params={**q, "timeframe": "10m", "end": "2026-02-15"}).status_code == 422
+    )  # 251 days > 248

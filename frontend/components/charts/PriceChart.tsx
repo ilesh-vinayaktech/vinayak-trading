@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { plotNumber } from "@/lib/formatting";
 import { toPoints, type Active } from "@/lib/indicators";
 import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail, Timeframe } from "@/lib/schemas";
-import { TIMEFRAME_LABELS, barLabel, barTime } from "@/lib/timeframes";
+import { TIMEFRAME_LABELS, barLabel, barTime, isIntraday } from "@/lib/timeframes";
 import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools";
 import { IndicatorRow } from "./IndicatorLegend";
 
@@ -62,7 +62,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
       grid: { vertLines: { color: "#f1f5f9" }, horzLines: { color: "#f1f5f9" } },
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: "#e2e8f0", scaleMargins: { top: 0.14, bottom: 0.27 }, minimumWidth: 64 },
-      timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true, timeVisible: timeframe !== "1d", secondsVisible: false },
+      timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true, timeVisible: isIntraday(timeframe), secondsVisible: false },
     });
     const series: ISeriesApi<SeriesType> =
       chartType === "candles"
@@ -82,7 +82,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
     const days = bars.map((b) => b.date);
     const markers: SeriesMarker<Time>[] = [];
-    for (const a of timeframe === "1d" ? actions : []) { // action markers sit on daily bars
+    for (const a of isIntraday(timeframe) ? [] : actions) { // action markers sit on date-axis bars
       const day = days.find((d) => d >= a.ex_date);
       if (!day || a.ex_date < (days[0] ?? "")) continue;
       markers.push({ time: day as Time, position: "aboveBar", color: a.status === "ok" ? "#2563eb" : "#d97706", shape: "arrowDown", text: a.kind });
