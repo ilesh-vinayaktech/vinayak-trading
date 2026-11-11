@@ -453,3 +453,21 @@ export type UserDetail = z.infer<typeof userDetailSchema>;
 export type AuditEvent = z.infer<typeof auditSchema>["events"][number];
 export type Role = (typeof ROLES)[number];
 export type Status = (typeof STATUSES)[number];
+
+
+// ---- portal: the signed-in user's own Kite connection --------------------------------------------------------------
+export const kiteConnectionSchema = z.object({
+  state: z.enum(["not_configured", "saved", "connected", "expired"]),
+  api_key_hint: z.string().nullable(), // the last four characters only: the key, secret and token never reach the browser
+  kite_user_id: z.string().nullable(),
+  connected_at: z.string().nullable(),
+  token_expires_at: z.string().nullable(),
+  is_system: z.boolean(),
+  redirect_url: z.string(), // the address to register as the redirect URL of the user's Kite Connect app
+});
+export const kiteLoginSchema = z.object({ login_url: z.string() });
+export const kiteUserSchema = z.object({ kite_user: z.string() });
+export const kiteSystemSchema = z.object({
+  feed: z.object({ owner_id: z.string(), owner: z.string(), api_key_hint: z.string(), state: z.enum(["saved", "connected", "expired"]), token_expires_at: z.string().nullable() }).nullable(),
+});
+export type KiteConnection = z.infer<typeof kiteConnectionSchema>;

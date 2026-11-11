@@ -8,7 +8,7 @@ screens that do that. The guard runs as an app-wide dependency, so a new route i
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Annotated
 
@@ -16,6 +16,7 @@ import psycopg
 from fastapi import Depends, HTTPException, Request
 
 from algo.core.clock import Clock
+from algo.data.providers.kite_session import urllib_http
 from algo.portal import accounts, sessions
 from algo.portal.crypto import KeyRing
 from algo.portal.mailer import ConsoleMailer, Mailer
@@ -48,6 +49,14 @@ ROUTE_PERMISSIONS = {
     ("POST", "/api/auth/mfa/confirm"): SELF,
     ("GET", "/api/auth/sessions"): SELF,
     ("DELETE", "/api/auth/sessions/{session_id}"): SELF,
+    ("GET", "/api/kite/connection"): "kite:own",
+    ("POST", "/api/kite/credentials"): "kite:own",
+    ("POST", "/api/kite/credentials/remove"): "kite:own",
+    ("POST", "/api/kite/connect/start"): "kite:own",
+    ("POST", "/api/kite/connect/complete"): "kite:own",
+    ("POST", "/api/kite/disconnect"): "kite:own",
+    ("GET", "/api/kite/system"): "system:settings",
+    ("POST", "/api/kite/system"): "system:settings",
     ("GET", "/api/users"): "users:read",
     ("GET", "/api/users/{user_id}"): "users:read",
     (
@@ -91,6 +100,9 @@ class PortalSettings:
     )
     mailer: Mailer = field(default_factory=ConsoleMailer)
     public_url: str = "http://localhost:3000"  # what links in invitation and reset mails point to
+    kite_http: Callable[..., tuple[int, bytes]] = (
+        urllib_http  # the transport to Kite (replaced in tests)
+    )
 
     @property
     def cookie_name(self) -> str:

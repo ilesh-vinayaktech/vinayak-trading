@@ -1,0 +1,9 @@
+{
+ "api_key_hint": null,
+ "connected_at": null,
+ "is_system": false,
+ "kite_user_id": null,
+ "redirect_url": "https://portal.example/kite/callback",
+ "state": "not_configured",
+ "token_expires_at": null
+}

@@ -17,6 +17,7 @@ const NAV: { href: string; label: string; need?: string }[] = [
   { href: "/research/backtests", label: "Backtests" },
   { href: "/research/reviews", label: "Reviews", need: "ops:read" },
   { href: "/system", label: "System Activity", need: "ops:read" },
+  { href: "/kite", label: "Kite connection", need: "kite:own" },
   { href: "/users", label: "Users", need: "users:read" },
   { href: "/audit", label: "Audit log", need: "audit:read" },
 ];

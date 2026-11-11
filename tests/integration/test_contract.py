@@ -229,3 +229,66 @@ def test_the_user_administration_responses_match_the_fixtures_the_frontend_is_te
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_kite_connection_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    """The user's own Kite connection shapes. They must never carry the key, secret or token, so the fixtures also prove that."""
+    import json as _json
+
+    from algo.core.clock import SimClock
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    clock = SimClock(datetime(2026, 11, 11, 10, 0, tzinfo=UTC))
+    st = settings(clock)
+    object.__setattr__(st, "public_url", "https://portal.example")
+    object.__setattr__(
+        st,
+        "kite_http",
+        lambda m, u, h, d=None: (
+            200,
+            _json.dumps(
+                {"status": "success", "data": {"access_token": "TOKEN-XYZ", "user_id": "AB1234"}}
+            ).encode(),
+        ),
+    )
+    app = make_app(pg_url, tmp_path, portal=st)
+    add_user(conn, clock, "ADMIN", "boss@example.com", name="The Boss")
+    c = sign_in(app, "boss@example.com")
+    enrol_second_factor(c, clock)
+    shots = {"kite_connection_empty": c.get("/api/kite/connection")}
+    c.post(
+        "/api/kite/credentials",
+        json={"api_key": "abcd1234efgh5678", "api_secret": "zyxw9876vuts5432"},
+    )
+    login = c.post("/api/kite/connect/start")
+    shots["kite_login"] = login
+    state = login.json()["login_url"].split("state%3D")[1]
+    shots["kite_complete"] = c.post(
+        "/api/kite/connect/complete", json={"request_token": "REQ", "state": state}
+    )
+    c.post("/api/kite/system", json={"enabled": True})
+    shots["kite_connection"] = c.get("/api/kite/connection")
+    shots["kite_system"] = c.get("/api/kite/system")
+
+    def scrub(v, key=""):
+        if isinstance(v, dict):
+            return {k: scrub(x, k) for k, x in v.items()}
+        if key in ("connected_at", "token_expires_at") and isinstance(v, str):
+            return f"<{key}>"
+        if key == "owner_id":
+            return "<owner_id>"
+        if key == "login_url":
+            return v.split("redirect_params=")[0] + "redirect_params=state%3D<state>"
+        return v
+
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        assert "TOKEN-XYZ" not in resp.text and "zyxw9876vuts5432" not in resp.text
+        text = json.dumps(scrub(resp.json()), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

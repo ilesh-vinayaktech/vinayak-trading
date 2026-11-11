@@ -1,0 +1,9 @@
+{
+ "feed": {
+  "api_key_hint": "5678",
+  "owner": "The Boss",
+  "owner_id": "<owner_id>",
+  "state": "connected",
+  "token_expires_at": "<token_expires_at>"
+ }
+}

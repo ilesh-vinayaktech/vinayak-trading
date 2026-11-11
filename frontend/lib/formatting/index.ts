@@ -21,3 +21,9 @@ export function humanize(code: string): string {
 export function plotNumber(s: string): number {
   return Number.parseFloat(s);
 }
+
+/** A time in Indian Standard Time, for things that follow the exchange day (Kite tokens end at 06:00 IST). */
+export function fmtIst(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : `${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(d)} IST`;
+}
