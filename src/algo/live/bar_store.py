@@ -1,0 +1,99 @@
+# ruff: noqa: E501
+"""Where live bars and the feed's heartbeat are kept (migration 033). A bar is written once; every new one is announced
+on the Postgres channel `live_bar` as "<instrument_id>,<minute open>" so a strategy runner can wake on it instead of polling."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import Any
+
+import psycopg
+
+from algo.live.bars import LiveBar
+
+CHANNEL = "live_bar"
+
+
+def token_map(conn: psycopg.Connection) -> dict[int, int]:
+    """Kite instrument token -> our instrument id, for the instruments we could match."""
+    rows = conn.execute(
+        "SELECT instrument_token, instrument_id FROM kite_instrument WHERE instrument_id IS NOT NULL"
+    ).fetchall()
+    return {int(t): int(i) for t, i in rows}
+
+
+def save_bars(
+    conn: psycopg.Connection, bars: Sequence[LiveBar], ids: Mapping[int, int], now: datetime
+) -> int:
+    """Store the bars of instruments we know; returns how many were new. Re-sending a bar changes nothing."""
+    new = 0
+    for b in bars:
+        iid = ids.get(b.token)
+        if iid is None:
+            continue
+        n = conn.execute(
+            "INSERT INTO live_bar_1m (instrument_id, ts, open, high, low, close, volume, ticks, partial, built_at)"
+            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+            (iid, b.ts, b.open, b.high, b.low, b.close, b.volume, b.ticks, b.partial, now),
+        ).rowcount
+        if n:
+            conn.execute("SELECT pg_notify(%s, %s)", (CHANNEL, f"{iid},{b.ts.isoformat()}"))
+            new += n
+    return new
+
+
+def save_status(
+    conn: psycopg.Connection,
+    state: str,
+    detail: str,
+    *,
+    subscribed: int,
+    last_tick_at: datetime | None,
+    last_bar_at: datetime | None,
+    ticks: int,
+    bars: int,
+    bad_frames: int,
+    late_ticks: int,
+    now: datetime,
+) -> None:
+    conn.execute(
+        "INSERT INTO feed_status (feed_id, state, detail, subscribed, last_tick_at, last_bar_at, ticks_total, bars_total, bad_frames, late_ticks, updated_at)"
+        " VALUES (1,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        " ON CONFLICT (feed_id) DO UPDATE SET state=EXCLUDED.state, detail=EXCLUDED.detail, subscribed=EXCLUDED.subscribed,"
+        " last_tick_at=EXCLUDED.last_tick_at, last_bar_at=EXCLUDED.last_bar_at, ticks_total=EXCLUDED.ticks_total,"
+        " bars_total=EXCLUDED.bars_total, bad_frames=EXCLUDED.bad_frames, late_ticks=EXCLUDED.late_ticks, updated_at=EXCLUDED.updated_at",
+        (
+            state,
+            detail,
+            subscribed,
+            last_tick_at,
+            last_bar_at,
+            ticks,
+            bars,
+            bad_frames,
+            late_ticks,
+            now,
+        ),
+    )
+
+
+def read_status(conn: psycopg.Connection) -> dict[str, Any] | None:
+    row = conn.execute(
+        "SELECT state, detail, subscribed, last_tick_at, last_bar_at, ticks_total, bars_total, bad_frames, late_ticks, updated_at FROM feed_status"
+    ).fetchone()
+    if row is None:
+        return None
+    keys = (
+        "state",
+        "detail",
+        "subscribed",
+        "last_tick_at",
+        "last_bar_at",
+        "ticks",
+        "bars",
+        "bad_frames",
+        "late_ticks",
+        "updated_at",
+    )
+    return dict(zip(keys, row, strict=True))

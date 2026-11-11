@@ -21,6 +21,20 @@ const feedState = (f: OpsDashboard["kite"]["feed"]): { text: string; tone: "good
       ? { text: "Live", tone: "good", hint: `${f.owner}${f.token_expires_at ? `, until ${fmtIst(f.token_expires_at)}` : ""}` }
       : { text: f.state === "expired" ? "Expired" : "Not connected", tone: "bad", hint: `${f.owner} needs to connect to Zerodha` };
 
+/** The streaming service writes its status every few seconds; a CONNECTED row that has gone quiet means it died without saying so. */
+const liveState = (f: OpsDashboard["feed"]): { text: string; tone: "good" | "warn" | "bad" | undefined; hint: string } => {
+  if (f === null) return { text: "Not started", tone: undefined, hint: "The streaming service has not run yet" };
+  const ticks = f.tick_age === null ? "no ticks yet" : `last tick ${f.tick_age}s ago`;
+  if (f.state === "CONNECTED") {
+    return f.heartbeat_age > 30
+      ? { text: "Stopped unexpectedly", tone: "bad", hint: `No status for ${f.heartbeat_age}s` }
+      : { text: "Streaming", tone: "good", hint: `${f.subscribed} instruments, ${ticks}` };
+  }
+  if (f.state === "RECONNECTING") return { text: "Reconnecting", tone: "warn", hint: f.detail };
+  if (f.state === "TOKEN_EXPIRED") return { text: "Token expired", tone: "bad", hint: "Connect to Zerodha, then restart the feed" };
+  return { text: f.state === "STARTING" ? "Starting" : "Stopped", tone: undefined, hint: f.detail };
+};
+
 const columns: Column<OpsDashboard["recent"][number]>[] = [
   { key: "when", header: "When", cell: (e) => <span className="whitespace-nowrap text-ink-soft"><RelativeTime iso={e.at} /></span> },
   { key: "who", header: "Who", cell: (e) => e.actor },
@@ -31,6 +45,7 @@ export default function OperationsPage() {
   const q = useQuery({ queryKey: ["dashboard", "operations"], queryFn: api.opsDashboard, refetchInterval: 30_000 });
   const d = q.data;
   const feed = d ? feedState(d.kite.feed) : null;
+  const live = liveState(d?.feed ?? null);
   return (
     <div className="space-y-6">
       <PageHeader title="Operations" subtitle="What needs attention across the platform. It refreshes every 30 seconds." actions={<Link href="/dashboard" className={buttonClass("secondary")}>Data health</Link>} />
@@ -40,6 +55,7 @@ export default function OperationsPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Data feed" value={feed.text} tone={feed.tone} href="/kite" hint={feed.hint} />
+            <StatCard label="Live market feed" value={live.text} tone={live.tone} hint={live.hint} />
             <StatCard label="Kite connections today" value={d.kite.connected} hint="Users connected to Zerodha now" />
             <StatCard label="Sign-ins, last 24 hours" value={d.signins.successes_24h} tone={d.signins.failures_24h > 0 ? "warn" : undefined} href="/audit" hint={`${d.signins.failures_24h} failed`} />
             <StatCard label="Users" value={sum(d.users.by_status)} href="/users" hint={Object.entries(d.users.by_status).map(([k, n]) => `${n} ${k.toLowerCase()}`).join(", ")} />

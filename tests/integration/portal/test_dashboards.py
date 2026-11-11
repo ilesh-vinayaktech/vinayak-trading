@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from algo.core.clock import SimClock
 from algo.data.store.migrate import migrate
+from algo.live.bar_store import save_status
 from algo.portal import kite_vault
 from tests.support.portal import (
     RING,
@@ -103,3 +104,22 @@ def test_operations_dashboard_counts_users_signins_tickets_tasks_feed_and_recent
     assert d["kite"]["connected"] == 1
     assert d["kite"]["feed"]["owner"] == "Jane Roe" and d["kite"]["feed"]["state"] == "connected"
     assert "k" * 16 not in str(d)
+
+
+def test_operations_dashboard_reports_the_live_feed_with_its_heartbeat_and_tick_age(env):
+    conn, app, clock = env
+    _, ops = staff(conn, app, clock)
+    assert ops.get("/api/dashboard/operations").json()["feed"] is None
+    now = clock.now()
+    save_status(
+        conn, "CONNECTED", "497 instruments", subscribed=497, ticks=9, bars=2, bad_frames=0,
+        late_ticks=0, last_tick_at=now - timedelta(seconds=3), last_bar_at=None, now=now - timedelta(seconds=10),
+    )  # fmt: skip
+    assert ops.get("/api/dashboard/operations").json()["feed"] == {
+        "state": "CONNECTED", "detail": "497 instruments", "subscribed": 497, "heartbeat_age": 10, "tick_age": 3,
+    }  # fmt: skip
+    save_status(
+        conn, "STOPPED", "stopped", subscribed=497, ticks=0, bars=0, bad_frames=0, late_ticks=0,
+        last_tick_at=None, last_bar_at=None, now=now,
+    )  # fmt: skip
+    assert ops.get("/api/dashboard/operations").json()["feed"]["tick_age"] is None

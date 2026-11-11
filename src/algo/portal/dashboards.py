@@ -10,6 +10,7 @@ from uuid import UUID
 
 import psycopg
 
+from algo.live import bar_store
 from algo.portal import audit, kite_vault
 
 OPEN_TICKET = "status IN ('OPEN', 'PENDING')"
@@ -69,6 +70,22 @@ def mine(
     }
 
 
+def _feed(conn: psycopg.Connection, now: datetime) -> dict[str, Any] | None:
+    """The live feed service's heartbeat: how old its last status and its last tick are (the service writes every few seconds)."""
+    st = bar_store.read_status(conn)
+    if st is None:
+        return None
+    return {
+        "state": st["state"],
+        "detail": st["detail"],
+        "subscribed": st["subscribed"],
+        "heartbeat_age": int((now - st["updated_at"]).total_seconds()),
+        "tick_age": None
+        if st["last_tick_at"] is None
+        else int((now - st["last_tick_at"]).total_seconds()),
+    }
+
+
 def operations(conn: psycopg.Connection, *, now: datetime) -> dict[str, Any]:
     since = now - timedelta(hours=24)
     signins: dict[str, int] = dict(
@@ -93,6 +110,7 @@ def operations(conn: psycopg.Connection, *, now: datetime) -> dict[str, Any]:
         "tickets": {"open": int(tickets[0]), "unassigned": int(tickets[1])},
         "tasks": _tasks(conn, now, None),
         "kite": {"connected": int(connected[0]), "feed": kite_vault.system_feed(conn, now=now)},
+        "feed": _feed(conn, now),
         "recent": [
             {"id": e["id"], "at": e["at"], "actor": e["actor"], "action": e["action"]}
             for e in audit.recent(conn, limit=8)

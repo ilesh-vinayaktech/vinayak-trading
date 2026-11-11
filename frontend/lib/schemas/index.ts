@@ -533,6 +533,7 @@ export const opsDashboardSchema = z.object({
   tickets: z.object({ open: z.number(), unassigned: z.number() }),
   tasks: z.object({ open: z.number(), overdue: z.number() }),
   kite: z.object({ connected: z.number(), feed: kiteSystemSchema.shape.feed }),
+  feed: z.object({ state: z.enum(["STARTING", "CONNECTED", "RECONNECTING", "TOKEN_EXPIRED", "STOPPED"]), detail: z.string(), subscribed: z.number(), heartbeat_age: z.number(), tick_age: z.number().nullable() }).nullable(),
   recent: z.array(z.object({ id: z.number(), at: z.string(), actor: z.string(), action: z.string() })),
 });
 export type MyDashboard = z.infer<typeof myDashboardSchema>;
