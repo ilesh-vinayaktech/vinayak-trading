@@ -8,7 +8,8 @@
    "mfa_enabled": false,
    "name": "Jane Roe",
    "role": "TRADER",
-   "status": "ACTIVE"
+   "status": "ACTIVE",
+   "tags": []
   },
   {
    "created_at": "<created_at>",
@@ -18,7 +19,8 @@
    "mfa_enabled": false,
    "name": "New Hire",
    "role": "VIEWER",
-   "status": "INVITED"
+   "status": "INVITED",
+   "tags": []
   },
   {
    "created_at": "<created_at>",
@@ -28,7 +30,8 @@
    "mfa_enabled": true,
    "name": "The Boss",
    "role": "ADMIN",
-   "status": "ACTIVE"
+   "status": "ACTIVE",
+   "tags": []
   }
  ],
  "total": 3

@@ -44,6 +44,7 @@ def list_users(
     q: str | None = None,
     role: str | None = None,
     status: str | None = None,
+    tag: str | None = None,
     limit: int = 25,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -61,16 +62,32 @@ def list_users(
     if status:
         where.append("status = %s")
         args.append(status)
+    if tag:
+        where.append(
+            "EXISTS (SELECT 1 FROM portal_user_tag t WHERE t.user_id = portal_user.user_id AND t.tag = %s)"
+        )
+        args.append(tag.strip().lower())
     clause = (" WHERE " + " AND ".join(where)) if where else ""
     total = conn.execute("SELECT count(*) FROM portal_user" + clause, args).fetchone()
     assert total is not None
     rows = conn.execute(
-        "SELECT user_id, email, display_name, role, status, totp_enabled, last_login_at, created_at FROM portal_user"
+        "SELECT user_id, email, display_name, role, status, totp_enabled, last_login_at, created_at,"
+        " COALESCE((SELECT array_agg(t.tag ORDER BY t.tag) FROM portal_user_tag t WHERE t.user_id = portal_user.user_id), '{}') FROM portal_user"
         + clause
         + " ORDER BY lower(display_name), email LIMIT %s OFFSET %s",
         (*args, min(max(limit, 1), 100), max(offset, 0)),
     ).fetchall()
-    keys = ("id", "email", "name", "role", "status", "mfa_enabled", "last_login_at", "created_at")
+    keys = (
+        "id",
+        "email",
+        "name",
+        "role",
+        "status",
+        "mfa_enabled",
+        "last_login_at",
+        "created_at",
+        "tags",
+    )
     return {
         "total": int(total[0]),
         "items": [{**dict(zip(keys, r, strict=True)), "id": str(r[0])} for r in rows],
@@ -103,6 +120,12 @@ def get_user(conn: psycopg.Connection, user_id: UUID, now: datetime) -> dict[str
     )
     out = dict(zip(keys, row, strict=True))
     out["id"] = str(row[0])
+    out["tags"] = [
+        r[0]
+        for r in conn.execute(
+            "SELECT tag FROM portal_user_tag WHERE user_id=%s ORDER BY tag", (user_id,)
+        ).fetchall()
+    ]
     out["active_sessions"] = len(sessions.active_for(conn, user_id, now))
     return out
 

@@ -420,6 +420,7 @@ export const userRowSchema = z.object({
   mfa_enabled: z.boolean(),
   last_login_at: z.string().nullable(),
   created_at: z.string(),
+  tags: z.array(z.string()),
 });
 export const userListSchema = z.object({ total: z.number(), items: z.array(userRowSchema) });
 export const userDetailSchema = userRowSchema.extend({
@@ -471,3 +472,48 @@ export const kiteSystemSchema = z.object({
   feed: z.object({ owner_id: z.string(), owner: z.string(), api_key_hint: z.string(), state: z.enum(["saved", "connected", "expired"]), token_expires_at: z.string().nullable() }).nullable(),
 });
 export type KiteConnection = z.infer<typeof kiteConnectionSchema>;
+
+
+// ---- portal CRM and support tickets -------------------------------------------------------------------------------
+export const noteListSchema = z.object({ notes: z.array(z.object({ id: z.string(), body: z.string(), created_at: z.string(), author: z.string() })) });
+export const tagListSchema = z.object({ tags: z.array(z.object({ tag: z.string(), users: z.number() })) });
+export const staffListSchema = z.object({ staff: z.array(z.object({ id: z.string(), name: z.string(), role: z.string() })) });
+export const taskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  detail: z.string(),
+  due_date: z.string().nullable(),
+  status: z.enum(["OPEN", "DONE"]),
+  created_at: z.string(),
+  completed_at: z.string().nullable(),
+  owner: z.string(),
+  owner_id: z.string(),
+  about: z.string().nullable(),
+  about_id: z.string().nullable(),
+});
+export const taskListSchema = z.object({ tasks: z.array(taskSchema) });
+export const TICKET_STATUSES = ["OPEN", "PENDING", "RESOLVED", "CLOSED"] as const;
+export const PRIORITIES = ["LOW", "NORMAL", "HIGH"] as const;
+export const ticketRowSchema = z.object({
+  id: z.string(),
+  number: z.number(),
+  subject: z.string(),
+  status: z.enum(TICKET_STATUSES),
+  priority: z.enum(PRIORITIES),
+  requester: z.string(),
+  requester_id: z.string(),
+  assignee: z.string().nullable(),
+  assignee_id: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export const ticketListSchema = z.object({ total: z.number(), items: z.array(ticketRowSchema) });
+export const ticketDetailSchema = ticketRowSchema.extend({
+  messages: z.array(z.object({ id: z.string(), body: z.string(), internal: z.boolean(), created_at: z.string(), author: z.string(), mine: z.boolean() })),
+});
+export const ticketCreatedSchema = z.object({ number: z.number() });
+export const idSchema = z.object({ id: z.string() });
+export const tagSchema = z.object({ tag: z.string() });
+export type Task = z.infer<typeof taskSchema>;
+export type TicketRow = z.infer<typeof ticketRowSchema>;
+export type TicketStatus = (typeof TICKET_STATUSES)[number];

@@ -48,11 +48,14 @@ def list_users(
     q: str | None = Query(default=None, max_length=100),
     role: str | None = Query(default=None, max_length=20),
     status: str | None = Query(default=None, max_length=20),
+    tag: str | None = Query(default=None, max_length=30),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0, le=100000),
 ) -> dict[str, Any]:
     try:
-        return users.list_users(conn, q=q, role=role, status=status, limit=limit, offset=offset)
+        return users.list_users(
+            conn, q=q, role=role, status=status, tag=tag, limit=limit, offset=offset
+        )
     except users.UserError as e:
         raise _fail(e) from e
 

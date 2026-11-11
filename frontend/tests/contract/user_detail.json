@@ -11,5 +11,6 @@
  "password_changed_at": "<password_changed_at>",
  "recovery_codes_left": 0,
  "role": "TRADER",
- "status": "ACTIVE"
+ "status": "ACTIVE",
+ "tags": []
 }

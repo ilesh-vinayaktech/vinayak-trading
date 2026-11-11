@@ -9,6 +9,7 @@ import { Card, ErrorBox, Loading } from "@/components/status/LoadState";
 import { CopyLink } from "@/components/users/CopyLink";
 import { statusTone } from "@/components/users/format";
 import { ApiError, api } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth";
 import { fmtDateTime } from "@/lib/formatting";
 import { ROLES, STATUSES } from "@/lib/schemas";
 
@@ -64,10 +65,12 @@ function InviteForm({ onDone }: { onDone: () => void }) {
 }
 
 export default function UsersPage() {
+  const { can } = useAuth();
   const [q, setQ] = useState("");
   const [typed, setTyped] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
+  const [tag, setTag] = useState("");
   const [offset, setOffset] = useState(0);
   const [inviting, setInviting] = useState(false);
   useEffect(() => {
@@ -77,7 +80,8 @@ export default function UsersPage() {
     }, 250);
     return () => clearTimeout(t);
   }, [typed]);
-  const list = useQuery({ queryKey: ["users", q, role, status, offset], queryFn: () => api.users({ q, role, status, limit: PAGE, offset }), placeholderData: (prev) => prev });
+  const list = useQuery({ queryKey: ["users", q, role, status, tag, offset], queryFn: () => api.users({ q, role, status, tag, limit: PAGE, offset }), placeholderData: (prev) => prev });
+  const allTags = useQuery({ queryKey: ["tags"], queryFn: api.tags, enabled: can("crm:read") });
   const total = list.data?.total ?? 0;
   return (
     <div className="space-y-4">
@@ -113,6 +117,17 @@ export default function UsersPage() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          {allTags.data && allTags.data.tags.length > 0 ? (
+            <>
+              <label className="sr-only" htmlFor="tag-filter">Tag</label>
+              <select id="tag-filter" value={tag} onChange={(e) => { setTag(e.target.value); setOffset(0); }} className={input}>
+                <option value="">All tags</option>
+                {allTags.data.tags.map((t) => (
+                  <option key={t.tag} value={t.tag}>{t.tag} ({t.users})</option>
+                ))}
+              </select>
+            </>
+          ) : null}
         </div>
         {list.isError ? <ErrorBox error={list.error} what="users" /> : null}
         {list.isLoading ? <Loading what="users" /> : null}
@@ -135,6 +150,7 @@ export default function UsersPage() {
                       <td className="py-2 pr-4">
                         <Link href={`/users/${u.id}`} className="font-medium text-blue-700 hover:underline">{u.name}</Link>
                         <div className="text-xs text-ink-soft">{u.email}</div>
+                        {u.tags.length > 0 ? <div className="mt-1 flex flex-wrap gap-1">{u.tags.map((t) => <Badge key={t}>{t}</Badge>)}</div> : null}
                       </td>
                       <td className="py-2 pr-4">{u.role}</td>
                       <td className="py-2 pr-4"><Badge tone={statusTone(u.status)}>{u.status}</Badge></td>

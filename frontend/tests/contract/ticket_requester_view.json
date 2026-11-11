@@ -1,0 +1,31 @@
+{
+ "assignee": "Olive Ops",
+ "assignee_id": "<assignee_id>",
+ "created_at": "<created_at>",
+ "id": "<id>",
+ "messages": [
+  {
+   "author": "Jane Roe",
+   "body": "Invalid token",
+   "created_at": "<created_at>",
+   "id": "<id>",
+   "internal": false,
+   "mine": true
+  },
+  {
+   "author": "Olive Ops",
+   "body": "Which browser?",
+   "created_at": "<created_at>",
+   "id": "<id>",
+   "internal": false,
+   "mine": false
+  }
+ ],
+ "number": 0,
+ "priority": "HIGH",
+ "requester": "Jane Roe",
+ "requester_id": "<requester_id>",
+ "status": "PENDING",
+ "subject": "Cannot connect Kite",
+ "updated_at": "<updated_at>"
+}

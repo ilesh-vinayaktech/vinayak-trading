@@ -24,7 +24,7 @@ type Reply = unknown | ((call: Call) => unknown);
 const me = (over: Record<string, unknown> = {}) => ({
   user: { id: "u1", email: "boss@example.com", name: "The Boss", role: "ADMIN", permissions: ["research:read", "users:read", "users:write", "roles:write", "audit:read", "ops:read"], mfa_enabled: true, enrolment_required: false, must_change_password: false, ...over },
 });
-const row = (over: Record<string, unknown> = {}) => ({ id: "u2", email: "jane@example.com", name: "Jane Roe", role: "TRADER", status: "ACTIVE", mfa_enabled: false, last_login_at: "2026-11-10T09:30:00Z", created_at: "2026-11-01T08:00:00Z", ...over });
+const row = (over: Record<string, unknown> = {}) => ({ id: "u2", email: "jane@example.com", name: "Jane Roe", role: "TRADER", status: "ACTIVE", mfa_enabled: false, last_login_at: "2026-11-10T09:30:00Z", created_at: "2026-11-01T08:00:00Z", tags: [], ...over });
 const detail = (over: Record<string, unknown> = {}) => ({ ...row(), must_change_password: false, password_changed_at: "2026-11-01T08:00:00Z", created_by: "The Boss", recovery_codes_left: 0, active_sessions: 2, ...over });
 const event = (id: number, action: string, actor = "The Boss") => ({ id, at: "2026-11-11T10:00:00Z", actor_user_id: "u1", actor, action, target_type: "user", target_id: "u2", detail: {}, ip: "203.0.113.7" });
 

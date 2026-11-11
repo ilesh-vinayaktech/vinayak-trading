@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/status/Badge";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { ConfirmButton } from "@/components/users/ConfirmButton";
+import { UserCrm } from "@/components/users/UserCrm";
 import { CopyLink } from "@/components/users/CopyLink";
 import { actionLabel, statusTone } from "@/components/users/format";
 import { ApiError, api } from "@/lib/api/client";
@@ -141,6 +142,8 @@ export default function UserProfile() {
           </div>
         </Card>
       ) : null}
+
+      {can("crm:read") ? <UserCrm userId={id} tags={u.tags} /> : null}
 
       <Card title="Activity" note="Changes made to this account and its sign-ins, newest first.">
         {activity.isError ? <p role="alert" className="text-sm text-red-700">{message(activity.error)}</p> : null}

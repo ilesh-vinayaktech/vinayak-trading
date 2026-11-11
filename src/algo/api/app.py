@@ -15,7 +15,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from algo.api import artifacts, auth_routes, freshness, kite_routes, queries, reviews, users_routes
+from algo.api import (
+    artifacts,
+    auth_routes,
+    crm_routes,
+    freshness,
+    kite_routes,
+    queries,
+    reviews,
+    tickets_routes,
+    users_routes,
+)
 from algo.api.security import PortalSettings, WConn, guard
 from algo.core.clock import Clock, SystemClock
 from algo.indicators.catalog import IndicatorError, parse_spec
@@ -87,6 +97,8 @@ def create_app(
     app.include_router(auth_routes.router)
     app.include_router(users_routes.router)
     app.include_router(kite_routes.router)
+    app.include_router(crm_routes.router)
+    app.include_router(tickets_routes.router)
     app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["GET", "POST"],

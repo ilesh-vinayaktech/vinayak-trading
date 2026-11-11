@@ -1,5 +1,5 @@
 import type { Tone } from "@/components/status/Badge";
-import type { UserRow } from "@/lib/schemas";
+import type { TicketStatus, UserRow } from "@/lib/schemas";
 
 export const statusTone = (s: UserRow["status"]): Tone => (s === "ACTIVE" ? "good" : s === "INVITED" ? "warn" : s === "SUSPENDED" ? "bad" : "neutral");
 
@@ -9,3 +9,5 @@ export function actionLabel(action: string): string {
   const text = tail.replace(/_/g, " ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+export const ticketTone = (s: TicketStatus): Tone => (s === "OPEN" ? "warn" : s === "RESOLVED" ? "good" : "neutral");

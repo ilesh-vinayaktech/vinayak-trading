@@ -292,3 +292,76 @@ def test_the_kite_connection_responses_match_the_fixtures_the_frontend_is_tested
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_crm_and_ticket_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    """Notes, tags, tasks, staff and tickets (random ids and times scrubbed): the UI schemas parse exactly these."""
+    import re
+
+    from algo.core.clock import SimClock
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    clock = SimClock(datetime(2026, 11, 11, 10, 0, tzinfo=UTC))
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    jane = add_user(conn, clock, "TRADER", "jane@example.com", name="Jane Roe")
+    ops_id = add_user(conn, clock, "OPERATOR", "ops@example.com", name="Olive Ops")
+    staff = sign_in(app, "ops@example.com")
+    enrol_second_factor(staff, clock)
+    janes = sign_in(app, "jane@example.com")
+    staff.post(f"/api/users/{jane}/notes", json={"body": "Asked about Kite"})
+    staff.post(f"/api/users/{jane}/tags", json={"tag": "kyc pending"})
+    created = staff.post(
+        "/api/tasks",
+        json={
+            "title": "Call Jane",
+            "owner_id": str(ops_id),
+            "user_id": str(jane),
+            "due_date": "2026-11-15",
+        },
+    )
+    number = janes.post(
+        "/api/tickets",
+        json={"subject": "Cannot connect Kite", "body": "Invalid token", "priority": "HIGH"},
+    ).json()["number"]
+    ticket_id = janes.get("/api/tickets").json()["items"][0]["id"]
+    staff.post(
+        f"/api/tickets/{ticket_id}/messages", json={"body": "Check expiry", "internal": True}
+    )
+    staff.post(f"/api/tickets/{ticket_id}/messages", json={"body": "Which browser?"})
+    shots = {
+        "notes": staff.get(f"/api/users/{jane}/notes"), "tags": staff.get("/api/tags"), "staff": staff.get("/api/staff"),
+        "tasks": staff.get("/api/tasks"), "task_created": created, "tickets": staff.get("/api/tickets"),
+        "ticket_created": janes.post("/api/tickets", json={"subject": "Second", "body": "b"}),
+        "ticket_requester_view": janes.get(f"/api/tickets/{ticket_id}"), "ticket_staff_view": staff.get(f"/api/tickets/{ticket_id}"),
+    }  # fmt: skip
+    assert number >= 1
+
+    def scrub(v, key=""):
+        if isinstance(v, dict):
+            return {k: scrub(x, k) for k, x in v.items()}
+        if isinstance(v, list):
+            return [scrub(x, key) for x in v]
+        if key == "number" and isinstance(v, int):
+            return 0
+        if key in ("id", "owner_id", "about_id", "requester_id", "assignee_id") and isinstance(
+            v, str
+        ):
+            return f"<{key}>"
+        if key in ("created_at", "updated_at", "completed_at") and isinstance(v, str):
+            return f"<{key}>"
+        return re.sub(r"token=[\w-]+", "token=<token>", v) if isinstance(v, str) else v
+
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        text = json.dumps(scrub(resp.json()), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+    assert (
+        "Check expiry" not in shots["ticket_requester_view"].text
+        and "Check expiry" in shots["ticket_staff_view"].text
+    )
