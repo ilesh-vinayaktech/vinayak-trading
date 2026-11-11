@@ -307,6 +307,15 @@ def load_days(
             raw_sha = lake.put(
                 "kite", f"day_{token}", ws, gzip.compress(raw[0], mtime=0), url=url, fetched_at=now
             ).checksum
+        # Kite pads the time before a listing with candles that have no price at all (some even carry a volume): there is
+        # nothing usable in them, so they are left out and counted in the ledger rather than failing the whole window
+        real = [c for c in candles if any((c.open, c.high, c.low, c.close))]
+        note = (
+            f"{len(candles) - len(real)} candle(s) without any price dropped"
+            if len(real) != len(candles)
+            else ""
+        )
+        candles = real
         issues = validity(
             [
                 Bar(str(instrument_id), c.ts, c.open, c.high, c.low, c.close, c.volume)
@@ -358,7 +367,7 @@ def load_days(
                 len(candles),
                 _digest(candles) if candles else None,
                 today,
-                "",
+                note,
                 now,
                 raw_sha,
             )

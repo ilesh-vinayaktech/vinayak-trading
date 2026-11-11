@@ -374,3 +374,25 @@ def test_an_inconsistent_day_window_is_refused_whole_and_an_expired_session_prop
         load_days(
             conn, FakeDayKite({}, raises=True), 9, iid, date(2026, 2, 1), date(2026, 2, 28), NOW
         )
+
+
+def test_kites_all_zero_placeholder_day_candles_before_a_listing_are_dropped_not_fatal(env):
+    from algo.data.kite_ingest import load_days
+
+    conn, iid = env
+    zero = {
+        date(2026, 1, 3): ("0", "0", "0", "0", "7154666")
+    }  # no price at all, even though a volume is attached
+    r = load_days(
+        conn, FakeDayKite({**zero, **GOOD}), 5, iid, date(2026, 1, 1), date(2026, 1, 31), NOW
+    )
+    assert (r.loaded, r.failed, r.rows) == (1, 0, 2)  # only the two real candles are stored
+    assert [d[1] for d in day_rows(conn, iid)] == [date(2026, 1, 5), date(2026, 1, 6)]
+    detail, n = conn.execute("SELECT detail, candles FROM kite_day_fetch").fetchone()
+    assert "1 candle(s) without any price dropped" in detail and n == 2
+    # a candle with SOME prices but not all is real damage and still refuses the window
+    bad = {date(2026, 2, 5): ("0", "5", "0", "3", "100")}
+    assert (
+        load_days(conn, FakeDayKite(bad), 6, iid, date(2026, 2, 1), date(2026, 2, 28), NOW).failed
+        == 1
+    )
