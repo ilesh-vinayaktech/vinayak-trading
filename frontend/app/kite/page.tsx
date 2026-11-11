@@ -11,9 +11,10 @@ import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { fmtIst } from "@/lib/formatting";
 import type { KiteConnection } from "@/lib/schemas";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
-const field = "w-full max-w-md rounded-md border border-line bg-white px-3 py-2 font-mono text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
-const button = "rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50";
+const field = `${inputClass} w-full max-w-md font-mono`;
+const button = buttonClass("primary");
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong. Try again.");
 const LABEL: Record<KiteConnection["state"], { text: string; tone: Tone }> = {
   not_configured: { text: "Not set up", tone: "neutral" },
@@ -114,9 +115,9 @@ function SystemFeed({ c }: { c: KiteConnection }) {
       </p>
       {set.isError ? <p role="alert" className="mb-2 text-sm text-red-700">{message(set.error)}</p> : null}
       {c.is_system ? (
-        <button type="button" onClick={() => set.mutate(false)} className="rounded-md border border-line px-3 py-2 text-sm hover:bg-slate-50">Stop using my connection as the feed</button>
+        <button type="button" onClick={() => set.mutate(false)} className={buttonClass("secondary")}>Stop using my connection as the feed</button>
       ) : (
-        <button type="button" onClick={() => set.mutate(true)} className="rounded-md border border-line px-3 py-2 text-sm hover:bg-slate-50">Use my connection as the data feed</button>
+        <button type="button" onClick={() => set.mutate(true)} className={buttonClass("secondary")}>Use my connection as the data feed</button>
       )}
     </Card>
   );

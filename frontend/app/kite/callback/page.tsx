@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "@/lib/api/client";
+import { buttonClass } from "@/components/ui/styles";
 
 /** Where Zerodha sends the browser back to. It hands the one-time request token and our `state` to the server, which checks
  * the state belongs to this signed-in user before it exchanges the token. Nothing here is kept in the page or the URL after. */
@@ -30,7 +31,7 @@ function Callback() {
       {error ? (
         <>
           <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
-          <button type="button" onClick={() => router.replace("/kite")} className="rounded-md border border-line px-3 py-2 text-sm hover:bg-slate-50">Back to the Kite page</button>
+          <button type="button" onClick={() => router.replace("/kite")} className={buttonClass("secondary")}>Back to the Kite page</button>
         </>
       ) : (
         <p role="status" className="text-sm text-ink-soft">Finishing your Kite connection…</p>

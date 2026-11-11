@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
-import { PublicCard, fieldClass, primaryClass } from "@/components/users/PublicCard";
+import { Alert } from "@/components/ui/Alert";
+import { Field, PasswordInput } from "@/components/ui/Field";
+import { PublicCard, primaryClass } from "@/components/users/PublicCard";
 import { ApiError, api } from "@/lib/api/client";
 
 function Form() {
@@ -31,26 +33,22 @@ function Form() {
   return (
     <PublicCard title="Choose a new password" subtitle="Vinayak Trading Research Console" onSubmit={submit}>
       {!token ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">This link is missing its token. Open the link from your email again.</p>
+        <Alert tone="error">This link is missing its token. Open the link from your email again.</Alert>
       ) : done ? (
-        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Your password was changed and your other sessions were ended. You can sign in now.</p>
+        <Alert tone="success">Your password was changed and your other sessions were ended. You can sign in now.</Alert>
       ) : (
         <>
-          {error ? <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
-          <div className="space-y-1">
-            <label htmlFor="pw" className="text-sm font-medium">New password</label>
-            <input id="pw" type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} className={fieldClass} />
-            <p className="text-xs text-ink-soft">At least 12 characters. A few unrelated words make a strong one.</p>
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="pw2" className="text-sm font-medium">Repeat password</label>
-            <input id="pw2" type="password" autoComplete="new-password" required value={again} onChange={(e) => setAgain(e.target.value)} className={fieldClass} />
-            {mismatch ? <p className="text-xs text-red-700">The passwords differ.</p> : null}
-          </div>
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          <Field id="pw" label="New password" hint="At least 12 characters. A few unrelated words make a strong one.">
+            <PasswordInput id="pw" value={password} onChange={setPassword} autoComplete="new-password" minLength={12} />
+          </Field>
+          <Field id="pw2" label="Repeat password" error={mismatch ? "The passwords differ." : null}>
+            <PasswordInput id="pw2" value={again} onChange={setAgain} autoComplete="new-password" />
+          </Field>
           <button type="submit" disabled={busy || mismatch} className={primaryClass}>Change password</button>
         </>
       )}
-      <Link href="/login" className="block text-center text-xs text-blue-700 hover:underline">Go to sign in</Link>
+      <Link href="/login" className="block text-center text-sm text-brand hover:underline">Go to sign in</Link>
     </PublicCard>
   );
 }

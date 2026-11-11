@@ -11,9 +11,10 @@ import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { fmtDateTime } from "@/lib/formatting";
 import { PRIORITIES, TICKET_STATUSES } from "@/lib/schemas";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
 const PAGE = 25;
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const input = inputClass;
 
 function NewTicket({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
@@ -51,8 +52,8 @@ function NewTicket({ onDone }: { onDone: () => void }) {
       </div>
       {create.isError ? <p role="alert" className="text-sm text-red-700">{create.error instanceof ApiError ? create.error.message : "Could not send the ticket."}</p> : null}
       <div className="flex gap-2">
-        <button type="submit" disabled={create.isPending} className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">Send ticket</button>
-        <button type="button" onClick={onDone} className="rounded-md border border-line px-3 py-2 text-sm hover:bg-slate-50">Cancel</button>
+        <button type="submit" disabled={create.isPending} className={buttonClass("primary")}>Send ticket</button>
+        <button type="button" onClick={onDone} className={buttonClass("secondary")}>Cancel</button>
       </div>
     </form>
   );
@@ -73,7 +74,7 @@ export default function SupportPage() {
         title="Support"
         subtitle={staff ? "The support queue: every ticket, newest activity first." : "Ask for help and follow your requests."}
         actions={
-          <button type="button" onClick={() => setCreating(true)} className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">New ticket</button>
+          <button type="button" onClick={() => setCreating(true)} className={buttonClass("primary")}>New ticket</button>
         }
       />
       {creating ? (

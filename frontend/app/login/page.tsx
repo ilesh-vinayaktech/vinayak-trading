@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
+import { Alert } from "@/components/ui/Alert";
+import { Field, PasswordInput } from "@/components/ui/Field";
+import { inputFull } from "@/components/ui/styles";
+import { PublicCard, primaryClass } from "@/components/users/PublicCard";
 import { ApiError, api } from "@/lib/api/client";
 import { safeNext, useAuth } from "@/lib/auth";
-
-const field = "w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
 function SignIn() {
   const router = useRouter();
@@ -40,38 +42,24 @@ function SignIn() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-white p-6 shadow-sm" aria-labelledby="signin-title">
-        <div>
-          <h1 id="signin-title" className="text-lg font-semibold">Sign in</h1>
-          <p className="text-xs text-ink-soft">Vinayak Trading Research Console</p>
-        </div>
-        {error ? (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </p>
-        ) : null}
-        <div className="space-y-1">
-          <label htmlFor="email" className="text-sm font-medium">Email</label>
-          <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} readOnly={needCode} className={field} />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="password" className="text-sm font-medium">Password</label>
-          <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} readOnly={needCode} className={field} />
-        </div>
-        {needCode ? (
-          <div className="space-y-1">
-            <label htmlFor="code" className="text-sm font-medium">Authentication code</label>
-            <input id="code" inputMode="numeric" autoComplete="one-time-code" autoFocus required value={code} onChange={(e) => setCode(e.target.value)} className={field} />
-            <p className="text-xs text-ink-soft">Enter the 6-digit code from your authenticator app, or one of your recovery codes.</p>
-          </div>
-        ) : null}
-        <button type="submit" disabled={busy} className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
-          {busy ? "Signing in..." : needCode ? "Verify" : "Sign in"}
-        </button>
-        <Link href="/forgot-password" className="block text-center text-xs text-blue-700 hover:underline">Forgot your password?</Link>
-      </form>
-    </main>
+    <PublicCard title={needCode ? "Two-step verification" : "Sign in"} subtitle={needCode ? "Enter the code from your authenticator app." : "Welcome back. Sign in to continue."} onSubmit={submit}>
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      <Field id="email" label="Email">
+        <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} readOnly={needCode} className={inputFull} />
+      </Field>
+      <Field id="password" label="Password">
+        <PasswordInput id="password" value={password} onChange={setPassword} autoComplete="current-password" readOnly={needCode} />
+      </Field>
+      {needCode ? (
+        <Field id="code" label="Authentication code" hint="The 6-digit code, or one of your recovery codes.">
+          <input id="code" inputMode="numeric" autoComplete="one-time-code" autoFocus required value={code} onChange={(e) => setCode(e.target.value)} className={inputFull} />
+        </Field>
+      ) : null}
+      <button type="submit" disabled={busy} className={primaryClass}>
+        {busy ? "Signing in..." : needCode ? "Verify" : "Sign in"}
+      </button>
+      <Link href="/forgot-password" className="block text-center text-sm text-brand hover:underline">Forgot your password?</Link>
+    </PublicCard>
   );
 }
 

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { PublicCard, fieldClass, primaryClass } from "@/components/users/PublicCard";
+import { Alert } from "@/components/ui/Alert";
+import { Field } from "@/components/ui/Field";
+import { inputFull } from "@/components/ui/styles";
+import { PublicCard, primaryClass } from "@/components/users/PublicCard";
 import { ApiError, api } from "@/lib/api/client";
 
 export default function ForgotPassword() {
@@ -24,22 +27,19 @@ export default function ForgotPassword() {
     }
   }
   return (
-    <PublicCard title="Reset your password" onSubmit={submit}>
+    <PublicCard title="Reset your password" subtitle="We will email you a link to choose a new one." onSubmit={submit}>
       {sent ? (
-        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          If that address has an account, a reset link is on its way. It works for 2 hours.
-        </p>
+        <Alert tone="success">If that address has an account, a reset link is on its way. It works for 2 hours.</Alert>
       ) : (
         <>
-          {error ? <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
-            <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className={fieldClass} />
-          </div>
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          <Field id="email" label="Email">
+            <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputFull} />
+          </Field>
           <button type="submit" disabled={busy} className={primaryClass}>Send reset link</button>
         </>
       )}
-      <Link href="/login" className="block text-center text-xs text-blue-700 hover:underline">Back to sign in</Link>
+      <Link href="/login" className="block text-center text-sm text-brand hover:underline">Back to sign in</Link>
     </PublicCard>
   );
 }

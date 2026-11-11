@@ -21,10 +21,10 @@ export function ErrorBox({ error, what }: { error: unknown; what: string }) {
 
 export function Card({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
   return (
-    <section className="rounded-lg border border-line bg-panel p-4 shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold">{title}</h2>
+    <section className="rounded-xl border border-line bg-panel p-5 shadow-card">
+      <h2 className="mb-4 text-base font-semibold tracking-tight">{title}</h2>
       {children}
-      {note ? <p className="mt-3 text-xs text-ink-faint">{note}</p> : null}
+      {note ? <p className="mt-4 text-xs leading-relaxed text-ink-soft">{note}</p> : null}
     </section>
   );
 }

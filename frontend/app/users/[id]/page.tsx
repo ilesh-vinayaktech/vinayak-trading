@@ -15,8 +15,9 @@ import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { fmtDateTime } from "@/lib/formatting";
 import { ROLES } from "@/lib/schemas";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const input = inputClass;
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong. Try again.");
 
 export default function UserProfile() {
@@ -96,7 +97,7 @@ export default function UserProfile() {
                 <label htmlFor="rename" className="text-sm font-medium">Name</label>
                 <input id="rename" value={name ?? u.name} onChange={(e) => setName(e.target.value)} className={`${input} w-64`} />
               </div>
-              <button type="submit" className="rounded-md border border-line px-3 py-2 text-sm hover:bg-slate-50">Save name</button>
+              <button type="submit" className={buttonClass("secondary")}>Save name</button>
             </form>
             {can("roles:write") ? (
               <div className="space-y-1">

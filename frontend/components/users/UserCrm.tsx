@@ -7,9 +7,10 @@ import { Card } from "@/components/status/LoadState";
 import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { fmtDateTime } from "@/lib/formatting";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
-const button = "rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50";
+const input = inputClass;
+const button = buttonClass("primary");
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong. Try again.");
 
 /** Staff-only panels on a user's profile: tags, internal notes and follow-up tasks. The person they are about never sees them. */
@@ -116,7 +117,7 @@ export function UserCrm({ userId, tags }: { userId: string; tags: string[] }) {
                 <span className="text-xs text-ink-soft"> · {t.owner}{t.due_date ? ` · due ${t.due_date}` : ""}</span>
               </span>
               {write ? (
-                <button type="button" onClick={() => done.mutate({ id: t.id, status: t.status === "DONE" ? "OPEN" : "DONE" })} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-slate-50">
+                <button type="button" onClick={() => done.mutate({ id: t.id, status: t.status === "DONE" ? "OPEN" : "DONE" })} className={buttonClass("secondary", true)}>
                   {t.status === "DONE" ? "Reopen" : "Mark done"}
                 </button>
               ) : null}

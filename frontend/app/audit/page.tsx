@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, ErrorBox, Loading } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { fmtDateTime } from "@/lib/formatting";
+import { inputClass } from "@/components/ui/styles";
 
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const input = inputClass;
 
 export default function AuditPage() {
   const [action, setAction] = useState("");

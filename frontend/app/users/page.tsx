@@ -12,9 +12,10 @@ import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { fmtDateTime } from "@/lib/formatting";
 import { ROLES, STATUSES } from "@/lib/schemas";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
 const PAGE = 25;
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const input = inputClass;
 
 function InviteForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
@@ -33,7 +34,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
     return (
       <div className="space-y-2">
         <CopyLink label={`Invitation for ${email}`} url={invite.data.invite_url} />
-        <button type="button" onClick={onDone} className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-slate-50">Done</button>
+        <button type="button" onClick={onDone} className={buttonClass("secondary")}>Done</button>
       </div>
     );
   }
@@ -56,8 +57,8 @@ function InviteForm({ onDone }: { onDone: () => void }) {
         </select>
       </div>
       <div className="flex items-end gap-2">
-        <button type="submit" disabled={invite.isPending} className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">Send invitation</button>
-        <button type="button" onClick={onDone} className="rounded-md border border-line px-3 py-2 text-sm hover:bg-slate-50">Cancel</button>
+        <button type="submit" disabled={invite.isPending} className={buttonClass("primary")}>Send invitation</button>
+        <button type="button" onClick={onDone} className={buttonClass("secondary")}>Cancel</button>
       </div>
       {invite.isError ? <p role="alert" className="text-sm text-red-700 sm:col-span-2">{invite.error instanceof ApiError ? invite.error.message : "Could not send the invitation."}</p> : null}
     </form>
@@ -89,7 +90,7 @@ export default function UsersPage() {
         title="Users"
         subtitle="Everyone who can sign in. Invite people, change their role, suspend access, reset passwords and two-factor setup."
         actions={
-          <button type="button" onClick={() => setInviting(true)} className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="button" onClick={() => setInviting(true)} className={buttonClass("primary")}>
             Invite user
           </button>
         }

@@ -8,8 +8,9 @@ import { Badge } from "@/components/status/Badge";
 import { Card, ErrorBox, Loading } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const input = inputClass;
 
 export default function TasksPage() {
   const { can } = useAuth();
@@ -51,7 +52,7 @@ export default function TasksPage() {
                 </span>
               </span>
               {can("crm:write") ? (
-                <button type="button" onClick={() => toggle.mutate({ id: t.id, to: t.status === "DONE" ? "OPEN" : "DONE" })} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-slate-50">
+                <button type="button" onClick={() => toggle.mutate({ id: t.id, to: t.status === "DONE" ? "OPEN" : "DONE" })} className={buttonClass("secondary", true)}>
                   {t.status === "DONE" ? "Reopen" : "Mark done"}
                 </button>
               ) : null}

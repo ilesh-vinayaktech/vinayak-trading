@@ -13,8 +13,9 @@ import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { fmtDateTime } from "@/lib/formatting";
 import { TICKET_STATUSES } from "@/lib/schemas";
+import { buttonClass, inputClass } from "@/components/ui/styles";
 
-const input = "rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const input = inputClass;
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong. Try again.");
 
 export default function TicketPage() {
@@ -108,7 +109,7 @@ export default function TicketPage() {
               </label>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              <button type="submit" disabled={reply.isPending} className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">{internal ? "Add internal note" : "Send reply"}</button>
+              <button type="submit" disabled={reply.isPending} className={buttonClass("primary")}>{internal ? "Add internal note" : "Send reply"}</button>
               {!staff ? (
                 <ConfirmButton question="Close this ticket?" confirmLabel="Close" onConfirm={() => status.mutate("CLOSED")}>Close ticket</ConfirmButton>
               ) : null}

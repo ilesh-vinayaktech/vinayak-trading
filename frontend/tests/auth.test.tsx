@@ -192,7 +192,8 @@ describe("app shell", () => {
     document.cookie = "csrf=abc123";
     const calls = backend({ "GET /api/auth/me": { user: user() }, "GET /api/health": { api: "ok", database: "ok", redis: "x" }, "POST /api/auth/logout": { ok: true } });
     mount(<Shell>page</Shell>);
-    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/login?next=%2Fdashboard"));
     expect(calls.find((c) => c.path === "/api/auth/logout")?.headers["X-CSRF-Token"]).toBe("abc123");
   });
