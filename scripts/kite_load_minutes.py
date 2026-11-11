@@ -18,13 +18,16 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import psycopg
 
 from algo.data.kite_ingest import load_minutes, map_universe, upsert_kite_instruments
+from algo.data.lake import LocalLake
 from algo.data.providers.kite import KiteClient, KiteTokenExpired
 from algo.data.providers.kite_session import load_env, load_token, urllib_http
 
+IST = ZoneInfo("Asia/Kolkata")
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2016, 1, 1))
@@ -61,7 +64,18 @@ if a.symbols:
     want = {s.strip() for s in a.symbols.split(",")}
     universe = [u for u in universe if u[0] in want]
 with psycopg.connect(a.db, autocommit=True) as conn:
-    mapping = map_universe(conn, client.instruments("NSE"), universe)
+    lake = LocalLake(a.lake)
+    listing: list[bytes] = []
+    instruments = client.instruments("NSE", raw_sink=listing.append)
+    lake.put(
+        "kite",
+        "instruments_NSE",
+        now.astimezone(IST).date(),
+        listing[0],
+        url="instruments/NSE",
+        fetched_at=now,
+    )  # the full dump, every field
+    mapping = map_universe(conn, instruments, universe)
     upsert_kite_instruments(conn, mapping.mapped, now)
     print(
         f"universe {len(universe)}: mapped {len(mapping.mapped)}, unmatched {mapping.unmatched}",
@@ -93,7 +107,7 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         if stop.is_set():
             return None
         with psycopg.connect(a.db, autocommit=True) as wconn:
-            return k, load_minutes(wconn, client, k.instrument_token, iid, ps, pe, now)
+            return k, load_minutes(wconn, client, k.instrument_token, iid, ps, pe, now, lake=lake)
 
     try:
         for ps, pe in passes:

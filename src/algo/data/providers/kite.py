@@ -182,19 +182,31 @@ class KiteClient:
             raise KiteError(f"HTTP {status}: {message}")
         raise KiteError("unreachable")  # pragma: no cover
 
-    def instruments(self, exchange: str) -> list[KiteInstrument]:
-        return parse_instruments(self._request(f"{BASE}/instruments/{exchange}"))
+    def instruments(
+        self, exchange: str, *, raw_sink: Callable[[bytes], None] | None = None
+    ) -> list[KiteInstrument]:
+        body = self._request(f"{BASE}/instruments/{exchange}")
+        if raw_sink:
+            raw_sink(body)  # the response exactly as received, for the archive
+        return parse_instruments(body)
 
     def historical(
-        self, instrument_token: int, interval: str, start: datetime, end: datetime
+        self,
+        instrument_token: int,
+        interval: str,
+        start: datetime,
+        end: datetime,
+        *,
+        raw_sink: Callable[[bytes], None] | None = None,
     ) -> list[Candle]:
         def local(d: datetime) -> str:
             return d.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S")
 
         q = urlencode({"from": local(start), "to": local(end)})
-        return parse_candles(
-            self._request(f"{BASE}/instruments/historical/{instrument_token}/{interval}?{q}")
-        )
+        body = self._request(f"{BASE}/instruments/historical/{instrument_token}/{interval}?{q}")
+        if raw_sink:
+            raw_sink(body)
+        return parse_candles(body)
 
     @staticmethod
     def exchange_token(

@@ -261,3 +261,18 @@ def test_no_wait_is_added_when_the_previous_call_was_long_enough_ago():
     c.instruments("NSE")
     c.instruments("NSE")  # a full second later: the 0.4s spacing is already satisfied
     assert sleeps == []
+
+
+def test_the_untouched_response_bytes_can_be_captured_for_the_archive():
+    seen: list[bytes] = []
+    c = client(lambda m, u, h, d=None: (200, CANDLES))
+    c.historical(
+        738561,
+        "minute",
+        datetime(2024, 12, 2, tzinfo=IST),
+        datetime(2024, 12, 3, tzinfo=IST),
+        raw_sink=seen.append,
+    )
+    c2 = client(lambda m, u, h, d=None: (200, INSTRUMENTS))
+    c2.instruments("NSE", raw_sink=seen.append)
+    assert seen == [CANDLES, INSTRUMENTS]  # exactly as received, before any parsing

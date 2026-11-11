@@ -3,8 +3,8 @@ from decimal import Decimal as D
 from zoneinfo import ZoneInfo
 
 import pytest
-from algo.data.kite_ingest import load_minutes, map_universe, upsert_kite_instruments
 
+from algo.data.kite_ingest import load_minutes, map_universe, upsert_kite_instruments
 from algo.data.providers.kite import Candle, KiteInstrument, KiteTokenExpired
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
@@ -34,7 +34,9 @@ class FakeKite:
     def __init__(self, days: dict[date, list[Candle]], raises_on_call: int | None = None):
         self.days, self.calls, self.raises_on_call = days, [], raises_on_call
 
-    def historical(self, token, interval, start, end):
+    def historical(self, token, interval, start, end, *, raw_sink=None):
+        if raw_sink:
+            raw_sink(b'{"raw":"' + str(start.date()).encode() + b'"}')
         self.calls.append((token, interval, start.date(), end.date()))
         if self.raises_on_call is not None and len(self.calls) == self.raises_on_call:
             raise KiteTokenExpired("session expired")
@@ -215,3 +217,35 @@ def test_the_kite_instrument_table_is_refreshed_idempotently(env):
     assert conn.execute(
         "SELECT instrument_token, tradingsymbol, instrument_id FROM kite_instrument"
     ).fetchall() == [(1, "RELIANCE", iid)]
+
+
+def test_every_response_is_archived_in_the_lake_and_its_hash_is_in_the_ledger_even_when_refused(
+    env, tmp_path
+):
+    import gzip
+    import hashlib
+
+    from algo.data.lake import LocalLake
+
+    conn, iid = env
+    lake = LocalLake(tmp_path)
+    bad = {
+        date(2026, 1, 5): [
+            candle(date(2026, 1, 5), 0),
+            candle(date(2026, 1, 5), 1, high="90", low="95"),
+        ]
+    }
+    load_minutes(
+        conn, FakeKite(bad), 738561, iid, date(2026, 1, 1), date(2026, 1, 31), NOW, lake=lake
+    )
+    (m,) = lake.versions("kite", "minute_738561", date(2026, 1, 1))
+    raw = gzip.decompress(lake.get(m))
+    assert raw == b'{"raw":"2026-01-01"}' and "from=2026-01-01" in m.url
+    status, sha = conn.execute("SELECT status, raw_sha256 FROM kite_fetch").fetchone()
+    assert status == "failed" and sha == m.checksum == hashlib.sha256(lake.get(m)).hexdigest()
+
+
+def test_without_a_lake_nothing_is_archived_and_the_hash_stays_empty(env):
+    conn, iid = env
+    load_minutes(conn, FakeKite({}), 1, iid, date(2026, 1, 1), date(2026, 1, 31), NOW)
+    assert conn.execute("SELECT raw_sha256 FROM kite_fetch").fetchone() == (None,)

@@ -8,8 +8,9 @@ was already stored stays, and the next run resumes at the window it was in. The 
 
 from __future__ import annotations
 
+import gzip
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time
 from typing import Protocol
@@ -18,6 +19,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 from algo.data.bars import Bar
+from algo.data.lake import LocalLake
 from algo.data.providers.kite import Candle, KiteInstrument, windows
 from algo.data.quality.checks import validity
 
@@ -27,7 +29,13 @@ SOURCE = "kite"
 
 class MinuteClient(Protocol):
     def historical(
-        self, instrument_token: int, interval: str, start: datetime, end: datetime
+        self,
+        instrument_token: int,
+        interval: str,
+        start: datetime,
+        end: datetime,
+        *,
+        raw_sink: Callable[[bytes], None] | None = None,
     ) -> list[Candle]: ...
 
 
@@ -108,13 +116,15 @@ def _ledger(
     adj: date,
     detail: str,
     now: datetime,
+    raw_sha256: str | None = None,
 ) -> None:
     conn.execute(
         "INSERT INTO kite_fetch (instrument_id, window_start, window_end, status, candles, content_sha256, adjusted_through,"
-        " detail, fetched_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_id, window_start, window_end)"
+        " detail, fetched_at, raw_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_id, window_start, window_end)"
         " DO UPDATE SET status=EXCLUDED.status, candles=EXCLUDED.candles, content_sha256=EXCLUDED.content_sha256,"
-        " adjusted_through=EXCLUDED.adjusted_through, detail=EXCLUDED.detail, fetched_at=EXCLUDED.fetched_at",
-        (iid, ws, we, status, n, sha, adj, detail, now),
+        " adjusted_through=EXCLUDED.adjusted_through, detail=EXCLUDED.detail, fetched_at=EXCLUDED.fetched_at,"
+        " raw_sha256=EXCLUDED.raw_sha256",
+        (iid, ws, we, status, n, sha, adj, detail, now, raw_sha256),
     )
 
 
@@ -151,6 +161,7 @@ def load_minutes(
     now: datetime,
     *,
     window_days: int = 60,
+    lake: LocalLake | None = None,
 ) -> MinuteLoad:
     res = MinuteLoad()
     today = now.astimezone(IST).date()
@@ -162,15 +173,30 @@ def load_minutes(
         if done and we < today:
             res.skipped += 1
             continue
+        raw: list[bytes] = []
         candles = sorted(
             client.historical(
                 token,
                 "minute",
                 datetime.combine(ws, time(0, 0), IST),
                 datetime.combine(we, time(23, 59, 59), IST),
+                raw_sink=raw.append,
             ),
             key=lambda c: c.ts,
         )
+        raw_sha = None
+        if (
+            lake is not None and raw
+        ):  # the bytes Kite sent, kept even if the window is refused below
+            url = f"historical/{token}/minute?from={ws}&to={we}"
+            raw_sha = lake.put(
+                "kite",
+                f"minute_{token}",
+                ws,
+                gzip.compress(raw[0], mtime=0),
+                url=url,
+                fetched_at=now,
+            ).checksum
         issues = validity(
             [
                 Bar(str(instrument_id), c.ts, c.open, c.high, c.low, c.close, c.volume)
@@ -190,6 +216,7 @@ def load_minutes(
                     today,
                     "; ".join(issues[:3]),
                     now,
+                    raw_sha,
                 )
                 res.failed += 1
                 continue
@@ -205,6 +232,7 @@ def load_minutes(
                 today,
                 "",
                 now,
+                raw_sha,
             )
         res.rows += n
         if candles:
