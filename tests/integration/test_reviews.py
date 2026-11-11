@@ -6,8 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from algo.api import reviews
-from algo.api.app import create_app
 from algo.data.store.migrate import migrate
+from tests.support.portal import open_app
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 11, 8, tzinfo=UTC)
@@ -90,7 +90,7 @@ def client(conn_m, tmp_path, pg_url):
     f.write_text(json.dumps({"items": [ITEM]}))
 
     def make(writes):
-        return TestClient(create_app(pg_url, tmp_path, reviews_file=f, review_writes=writes))
+        return TestClient(open_app(pg_url, tmp_path, reviews_file=f, review_writes=writes))
 
     return make
 

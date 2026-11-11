@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from algo.api import artifacts, freshness, queries, reviews
+from algo.api import artifacts, auth_routes, freshness, queries, reviews
+from algo.api.security import PortalSettings, WConn, guard
 from algo.core.clock import Clock, SystemClock
 from algo.indicators.catalog import IndicatorError, parse_spec
 
@@ -59,17 +60,6 @@ def get_conn(request: Request) -> Iterator[psycopg.Connection]:
 
 Conn = Annotated[psycopg.Connection, Depends(get_conn)]
 
-WRITE_OPTIONS = "-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000"
-
-
-def get_write_conn(request: Request) -> Iterator[psycopg.Connection]:
-    """The ONLY writable session: used by the review endpoint, which appends to review_decision."""
-    with psycopg.connect(request.app.state.dsn, options=WRITE_OPTIONS, connect_timeout=5) as c:
-        yield c
-
-
-WConn = Annotated[psycopg.Connection, Depends(get_write_conn)]
-
 
 def create_app(
     dsn: str,
@@ -81,6 +71,7 @@ def create_app(
     sessions_file: Path | None = None,
     reviews_file: Path | None = None,
     review_writes: bool = False,
+    portal: PortalSettings,
 ) -> FastAPI:
     clock = clock or SystemClock()
     sessions_path = sessions_file or docs_root.parent / "config" / "exchange_sessions.json"
@@ -90,7 +81,10 @@ def create_app(
         docs_url="/docs" if interactive_docs else None,
         redoc_url=None,
         openapi_url="/openapi.json" if interactive_docs else None,
+        dependencies=[Depends(guard)],  # every route: sign-in, permission, CSRF (security.py)
     )
+    app.state.portal = portal
+    app.include_router(auth_routes.router)
     app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["GET", "POST"],

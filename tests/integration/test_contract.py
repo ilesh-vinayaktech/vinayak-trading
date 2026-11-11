@@ -11,12 +11,12 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from algo.api.app import create_app
 from algo.core.clock import SimClock
 from algo.data.benchmark import ingest, register, store_validation
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 from tests.integration.test_app import NOW, docs, write  # noqa: F401
+from tests.support.portal import open_app
 
 pytestmark = pytest.mark.integration
 OUT = Path(__file__).parents[2] / "frontend" / "tests" / "contract"
@@ -83,7 +83,7 @@ def seeded(conn, pg_url, docs):  # noqa: F811
         "accounting_complete,dividends_received,metrics,result_hash,created_at,ledger_reconciled,reconciliation,pnl)"
         " VALUES ('s','1','{}','ph','c','research','{}','{}','{}','[]','[]','[]','[]',true,0,'{\"sharpe\": 1.2}','rh',%s,true,'{}','{}')", (NOW,))  # fmt: skip
     clock = SimClock(datetime(2026, 11, 8, 4, 51, tzinfo=UTC))
-    return TestClient(create_app(pg_url, docs, clock=clock)), iid, bid
+    return TestClient(open_app(pg_url, docs, clock=clock)), iid, bid
 
 
 def snapshots(c, iid, bid):

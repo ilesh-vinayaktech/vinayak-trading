@@ -5,10 +5,10 @@ from decimal import Decimal as D
 import pytest
 from fastapi.testclient import TestClient
 
-from algo.api.app import create_app
 from algo.data.benchmark import ingest, register, store_validation
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
+from tests.support.portal import open_app
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 11, 7, tzinfo=UTC)
@@ -95,7 +95,7 @@ def api(conn, pg_url, docs):
     store_validation(conn, bid, report={"report_version": "2", "technical_validation_passed": True,
                                         "check_states": {}}, passed=True, normalized_sha256="n",
                      factsheet_sha256=None, unresolved=[], now=NOW)  # fmt: skip
-    return TestClient(create_app(pg_url, docs)), iid, bid
+    return TestClient(open_app(pg_url, docs)), iid, bid
 
 
 def test_health_reports_the_database_and_what_is_not_configured(api):
@@ -104,7 +104,7 @@ def test_health_reports_the_database_and_what_is_not_configured(api):
 
 
 def test_health_says_so_when_the_database_is_unreachable(docs):
-    bad = TestClient(create_app("postgresql://nobody@127.0.0.1:1/none", docs))
+    bad = TestClient(open_app("postgresql://nobody@127.0.0.1:1/none", docs))
     assert bad.get("/api/health").json()["database"].startswith("error")
 
 
@@ -133,7 +133,7 @@ def test_without_release_artifacts_nothing_is_called_eligible(conn, pg_url, tmp_
         raw_hash="h",
         now=NOW,
     )
-    c = TestClient(create_app(pg_url, tmp_path))
+    c = TestClient(open_app(pg_url, tmp_path))
     s = c.get("/api/dashboard").json()["benchmarks"]["series"][0]
     assert s["research_eligible_daily"] is False and s["benchmark_gate_eligible"] is False
     assert s["eligibility_state"].startswith("UNKNOWN") and s["technically_validated"] is False
@@ -215,7 +215,7 @@ def test_the_dashboard_judges_freshness_by_sessions_with_an_injected_clock(api, 
     from algo.core.clock import SimClock
 
     sunday = SimClock(datetime(2026, 11, 8, 4, 51, tzinfo=UTC))
-    c = TestClient(create_app(pg_url, docs, clock=sunday))
+    c = TestClient(open_app(pg_url, docs, clock=sunday))
     f = c.get("/api/dashboard").json()["data"]["freshness"]
     assert (
         f["latest_bar_session"] == "2025-06-10"
@@ -245,7 +245,7 @@ def test_session_properties_appear_when_the_sessions_file_is_the_frozen_one(
             },
         },
     )
-    c = TestClient(create_app(pg_url, docs, sessions_file=sess))
+    c = TestClient(open_app(pg_url, docs, sessions_file=sess))
     props = c.get(f"/api/benchmarks/{api[2]}").json()["session_calendar"]["listed_special_sessions"]
     assert props == {
         "listed_sessions": 1,
@@ -258,8 +258,7 @@ def test_session_properties_appear_when_the_sessions_file_is_the_frozen_one(
 def test_an_empty_database_has_no_freshness(conn, pg_url, docs):
     migrate(conn)
     assert (
-        TestClient(create_app(pg_url, docs)).get("/api/dashboard").json()["data"]["freshness"]
-        is None
+        TestClient(open_app(pg_url, docs)).get("/api/dashboard").json()["data"]["freshness"] is None
     )
 
 
@@ -280,7 +279,7 @@ def test_the_validation_list_tolerates_a_benchmark_with_no_validation(conn, pg_u
     register(
         conn, name="N", provider="p", index_symbol="X", return_type="PRICE", methodology_version="m"
     )
-    a = TestClient(create_app(pg_url, docs)).get("/api/system/activity").json()
+    a = TestClient(open_app(pg_url, docs)).get("/api/system/activity").json()
     assert a["validations"] == [{"benchmark_id": 1, "name": "N", "latest": None}]
 
 
@@ -341,7 +340,7 @@ def test_responses_carry_security_headers_and_are_never_cached(api):
 def test_interactive_docs_are_off_unless_asked_for(api, pg_url, docs):
     c = api[0]
     assert c.get("/docs").status_code == 404 and c.get("/openapi.json").status_code == 404
-    on = TestClient(create_app(pg_url, docs, interactive_docs=True))
+    on = TestClient(open_app(pg_url, docs, interactive_docs=True))
     assert on.get("/docs").status_code == 200 and on.get("/openapi.json").status_code == 200
 
 

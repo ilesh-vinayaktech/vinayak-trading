@@ -3,6 +3,13 @@ from pathlib import Path
 import pytest
 
 from algo.api.main import build
+from algo.portal.crypto import VaultError
+
+
+@pytest.fixture(autouse=True)
+def _vault_keys(monkeypatch):
+    monkeypatch.setenv("ALGO_VAULT_KEYS", "v1:" + "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=")
+    monkeypatch.setenv("ALGO_VAULT_CURRENT", "v1")
 
 
 def test_the_app_is_built_from_the_environment(monkeypatch):
@@ -38,3 +45,24 @@ def test_interactive_docs_need_an_explicit_opt_in(monkeypatch):
     assert build().docs_url == "/docs"
     monkeypatch.setenv("ALGO_API_DOCS", "yes")
     assert build().docs_url is None  # only the exact value 1 turns them on
+
+
+def test_the_app_will_not_start_without_a_key_ring(monkeypatch):
+    monkeypatch.setenv("ALGO_DB_URL", "postgresql://u@h/db")
+    monkeypatch.delenv("ALGO_VAULT_KEYS")
+    with pytest.raises(VaultError):
+        build()
+
+
+def test_cookie_and_proxy_settings_default_to_the_safe_choice(monkeypatch):
+    monkeypatch.setenv("ALGO_DB_URL", "postgresql://u@h/db")
+    monkeypatch.delenv("ALGO_COOKIE_SECURE", raising=False)
+    monkeypatch.delenv("ALGO_TRUST_PROXY", raising=False)
+    st = build().state.portal
+    assert (
+        st.cookie_secure is True and st.trust_proxy is False and st.cookie_name == "__Host-session"
+    )
+    monkeypatch.setenv("ALGO_COOKIE_SECURE", "0")
+    monkeypatch.setenv("ALGO_TRUST_PROXY", "1")
+    st = build().state.portal
+    assert st.cookie_secure is False and st.trust_proxy is True and st.cookie_name == "session"
