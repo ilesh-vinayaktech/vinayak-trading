@@ -1,0 +1,71 @@
+{
+ "kite": {
+  "connected": 0,
+  "feed": null
+ },
+ "recent": [
+  {
+   "action": "crm.task_created",
+   "actor": "boss@example.com",
+   "at": "<at>",
+   "id": 0
+  },
+  {
+   "action": "ticket.created",
+   "actor": "jane@example.com",
+   "at": "<at>",
+   "id": 0
+  },
+  {
+   "action": "auth.login",
+   "actor": "jane@example.com",
+   "at": "<at>",
+   "id": 0
+  },
+  {
+   "action": "auth.mfa_enabled",
+   "actor": "boss@example.com",
+   "at": "<at>",
+   "id": 0
+  },
+  {
+   "action": "auth.login",
+   "actor": "boss@example.com",
+   "at": "<at>",
+   "id": 0
+  },
+  {
+   "action": "user.create",
+   "actor": "system",
+   "at": "<at>",
+   "id": 0
+  },
+  {
+   "action": "user.create",
+   "actor": "system",
+   "at": "<at>",
+   "id": 0
+  }
+ ],
+ "signins": {
+  "failures_24h": 0,
+  "successes_24h": 2
+ },
+ "tasks": {
+  "open": 1,
+  "overdue": 1
+ },
+ "tickets": {
+  "open": 1,
+  "unassigned": 1
+ },
+ "users": {
+  "by_role": {
+   "ADMIN": 1,
+   "TRADER": 1
+  },
+  "by_status": {
+   "ACTIVE": 2
+  }
+ }
+}

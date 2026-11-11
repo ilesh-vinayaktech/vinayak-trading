@@ -57,6 +57,6 @@ export function useAuth(): Auth {
 
 /** Only same-site paths are followed after sign-in; anything else (an absolute or protocol-relative URL) is ignored. */
 export function safeNext(next: string | null): string {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/dashboard";
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/overview";
 }
 

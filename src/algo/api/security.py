@@ -48,6 +48,8 @@ ROUTE_PERMISSIONS = {
     ("POST", "/api/auth/mfa/enrol"): SELF,
     ("POST", "/api/auth/mfa/confirm"): SELF,
     ("GET", "/api/auth/sessions"): SELF,
+    ("GET", "/api/dashboard/me"): SELF,
+    ("GET", "/api/dashboard/operations"): "ops:read",
     ("DELETE", "/api/auth/sessions/{session_id}"): SELF,
     ("GET", "/api/users/{user_id}/notes"): "crm:read",
     ("POST", "/api/users/{user_id}/notes"): "crm:write",

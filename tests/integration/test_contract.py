@@ -365,3 +365,45 @@ def test_the_crm_and_ticket_responses_match_the_fixtures_the_frontend_is_tested_
         "Check expiry" not in shots["ticket_requester_view"].text
         and "Check expiry" in shots["ticket_staff_view"].text
     )
+
+
+def test_the_dashboard_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    """Both dashboards, with ids and times scrubbed. Neither may carry a key, secret or token."""
+    from algo.core.clock import SimClock
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    clock = SimClock(datetime(2026, 11, 11, 10, 0, tzinfo=UTC))
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    boss_id = add_user(conn, clock, "ADMIN", "boss@example.com", name="The Boss")
+    add_user(conn, clock, "TRADER", "jane@example.com", name="Jane Roe")
+    c = sign_in(app, "boss@example.com")
+    enrol_second_factor(c, clock)
+    jane = sign_in(app, "jane@example.com")
+    jane.post("/api/tickets", json={"subject": "Help with Kite", "body": "x"})
+    c.post("/api/tasks", json={"title": "Call", "owner_id": str(boss_id), "due_date": "2026-11-01"})
+    shots = {
+        "dashboard_me": jane.get("/api/dashboard/me"),
+        "dashboard_operations": c.get("/api/dashboard/operations"),
+    }
+
+    def scrub(v, key=""):
+        if isinstance(v, dict):
+            return {k: scrub(x, k) for k, x in v.items()}
+        if isinstance(v, list):
+            return [scrub(x, key) for x in v]
+        if key in ("at", "updated_at", "last_login_at", "ticket_id") and isinstance(v, str):
+            return f"<{key}>"
+        if key == "id" and isinstance(v, int):
+            return 0
+        return v
+
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        text = json.dumps(scrub(resp.json()), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

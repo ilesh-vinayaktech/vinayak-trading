@@ -26,9 +26,10 @@ def record(
 ) -> int:
     row = conn.execute(
         "INSERT INTO portal_audit (at, actor_user_id, actor_label, action, target_type, target_id, detail, ip, user_agent, request_id)"
-        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING audit_id",
+        " VALUES (%s,%s,COALESCE((SELECT email FROM portal_user WHERE user_id=%s), %s),%s,%s,%s,%s,%s,%s,%s) RETURNING audit_id",  # a known actor is named by email, whatever generic label the caller passed
         (
             now,
+            actor_user_id,
             actor_user_id,
             actor_label,
             action,

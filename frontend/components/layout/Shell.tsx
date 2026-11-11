@@ -15,9 +15,16 @@ type Item = { href: string; label: string; icon: IconName; need?: string };
 // `need` hides what a role would be refused anyway; the server is what actually enforces it
 const GROUPS: { title: string; items: Item[] }[] = [
   {
+    title: "Home",
+    items: [
+      { href: "/overview", label: "Overview", icon: "dashboard" },
+      { href: "/operations", label: "Operations", icon: "activity", need: "ops:read" },
+    ],
+  },
+  {
     title: "Research",
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+      { href: "/dashboard", label: "Data health", icon: "benchmark", need: "research:read" },
       { href: "/data/instruments", label: "Data Explorer", icon: "chart" },
       { href: "/data/benchmarks", label: "Benchmarks", icon: "benchmark" },
       { href: "/research/backtests", label: "Backtests", icon: "flask" },

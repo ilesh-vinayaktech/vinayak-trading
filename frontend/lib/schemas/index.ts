@@ -517,3 +517,23 @@ export const tagSchema = z.object({ tag: z.string() });
 export type Task = z.infer<typeof taskSchema>;
 export type TicketRow = z.infer<typeof ticketRowSchema>;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
+
+
+// ---- portal dashboards ----------------------------------------------------------------------------------------------
+const countsSchema = z.record(z.string(), z.number());
+export const myDashboardSchema = z.object({
+  kite: kiteConnectionSchema,
+  tickets: z.object({ open: z.number(), latest: z.array(z.object({ ticket_id: z.string(), number: z.number(), subject: z.string(), status: z.string(), updated_at: z.string() })) }),
+  tasks: z.object({ open: z.number(), overdue: z.number() }),
+  security: z.object({ mfa_enabled: z.boolean(), last_login_at: z.string().nullable(), active_sessions: z.number() }),
+});
+export const opsDashboardSchema = z.object({
+  users: z.object({ by_status: countsSchema, by_role: countsSchema }),
+  signins: z.object({ successes_24h: z.number(), failures_24h: z.number() }),
+  tickets: z.object({ open: z.number(), unassigned: z.number() }),
+  tasks: z.object({ open: z.number(), overdue: z.number() }),
+  kite: z.object({ connected: z.number(), feed: kiteSystemSchema.shape.feed }),
+  recent: z.array(z.object({ id: z.number(), at: z.string(), actor: z.string(), action: z.string() })),
+});
+export type MyDashboard = z.infer<typeof myDashboardSchema>;
+export type OpsDashboard = z.infer<typeof opsDashboardSchema>;

@@ -2,7 +2,7 @@
  "events": [
   {
    "action": "user.reset_sent",
-   "actor": "admin",
+   "actor": "boss@example.com",
    "actor_user_id": "<actor_user_id>",
    "at": "<at>",
    "detail": {},
@@ -13,7 +13,7 @@
   },
   {
    "action": "user.invite_resent",
-   "actor": "admin",
+   "actor": "boss@example.com",
    "actor_user_id": "<actor_user_id>",
    "at": "<at>",
    "detail": {},
@@ -24,7 +24,7 @@
   },
   {
    "action": "user.invited",
-   "actor": "admin",
+   "actor": "boss@example.com",
    "actor_user_id": "<actor_user_id>",
    "at": "<at>",
    "detail": {

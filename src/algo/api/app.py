@@ -19,6 +19,7 @@ from algo.api import (
     artifacts,
     auth_routes,
     crm_routes,
+    dashboard_routes,
     freshness,
     kite_routes,
     queries,
@@ -98,6 +99,7 @@ def create_app(
     app.include_router(users_routes.router)
     app.include_router(kite_routes.router)
     app.include_router(crm_routes.router)
+    app.include_router(dashboard_routes.router)
     app.include_router(tickets_routes.router)
     app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn

@@ -65,7 +65,7 @@ describe("CSRF and the client", () => {
 
   it("only follows same-site paths after sign-in", () => {
     expect(safeNext("/data/instruments")).toBe("/data/instruments");
-    for (const bad of [null, "", "https://evil.example", "//evil.example", "/login", "/login?x=1", "javascript:alert(1)"]) expect(safeNext(bad)).toBe("/dashboard");
+    for (const bad of [null, "", "https://evil.example", "//evil.example", "/login", "/login?x=1", "javascript:alert(1)"]) expect(safeNext(bad)).toBe("/overview");
   });
 });
 

@@ -85,3 +85,12 @@ def test_the_audit_trail_records_and_filters_and_can_never_be_changed(db):
     ):
         with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
             db.execute(sql)
+
+
+def test_an_event_with_an_actor_id_names_that_person_not_a_generic_label(db):
+    uid = make(db)
+    audit.record(db, now=NOW, action="ticket.created", actor_user_id=uid, actor_label="staff")
+    audit.record(db, now=NOW, action="ticket.created", actor_user_id=uid)
+    audit.record(db, now=NOW, action="job.ran")
+    labels = [e["actor"] for e in audit.recent(db) if e["action"] != "user.create"]
+    assert labels == ["system", "jane@example.com", "jane@example.com"]

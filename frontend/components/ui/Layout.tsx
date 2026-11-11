@@ -111,3 +111,23 @@ export function RelativeTime({ iso, now }: { iso: string; now?: number }) {
     </time>
   );
 }
+
+/** One headline number with a label, an optional status line and an optional link; the whole card is the link when there is one. */
+export function StatCard({ label, value, hint, tone, href }: { label: string; value: ReactNode; hint?: ReactNode; tone?: "good" | "warn" | "bad"; href?: string }) {
+  const edge = tone === "bad" ? "border-l-red-500" : tone === "warn" ? "border-l-amber-500" : tone === "good" ? "border-l-emerald-500" : "border-l-transparent";
+  const body = (
+    <>
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">{label}</p>
+      <p className="mt-1.5 text-2xl font-semibold tracking-tight">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-ink-soft">{hint}</p> : null}
+    </>
+  );
+  const cls = `block rounded-xl border border-l-4 border-line ${edge} bg-panel p-5 shadow-card`;
+  return href ? (
+    <Link href={href} className={`${cls} transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+}

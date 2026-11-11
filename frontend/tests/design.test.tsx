@@ -89,12 +89,14 @@ describe("ui primitives", () => {
 
 describe("app shell", () => {
   it("groups navigation by purpose, marks the current page and shows only what the role may use", async () => {
+    nav.path = "/overview";
     backend({ "GET /api/auth/me": user(), ...HEALTH });
     mount(<Shell>page</Shell>);
     const main = within(await screen.findByRole("navigation", { name: "Main" }));
-    for (const heading of ["Research", "Operations", "Account"]) expect(main.getByText(heading)).toBeInTheDocument();
+    for (const heading of ["Home", "Research", "Operations", "Account"]) expect(main.getByText(heading)).toBeInTheDocument();
     expect(main.queryByText("Administration")).not.toBeInTheDocument(); // empty group is not shown
-    expect(main.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
+    expect(main.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+    expect(main.queryByRole("link", { name: "Operations" })).not.toBeInTheDocument(); // needs ops:read
     expect(main.getByRole("link", { name: "Support" })).toBeInTheDocument();
     expect(main.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
   });

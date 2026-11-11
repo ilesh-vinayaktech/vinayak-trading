@@ -1,0 +1,32 @@
+{
+ "kite": {
+  "api_key_hint": null,
+  "connected_at": null,
+  "is_system": false,
+  "kite_user_id": null,
+  "redirect_url": "http://localhost:3000/kite/callback",
+  "state": "not_configured",
+  "token_expires_at": null
+ },
+ "security": {
+  "active_sessions": 1,
+  "last_login_at": "<last_login_at>",
+  "mfa_enabled": false
+ },
+ "tasks": {
+  "open": 0,
+  "overdue": 0
+ },
+ "tickets": {
+  "latest": [
+   {
+    "number": 1,
+    "status": "OPEN",
+    "subject": "Help with Kite",
+    "ticket_id": "<ticket_id>",
+    "updated_at": "<updated_at>"
+   }
+  ],
+  "open": 1
+ }
+}
