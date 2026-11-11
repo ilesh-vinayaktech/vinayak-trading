@@ -1,0 +1,4 @@
+{
+ "id": "<id>",
+ "invite_url": "http://localhost:3000/accept-invite?token=<token>"
+}

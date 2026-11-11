@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
+import { isPublicPath } from "@/lib/publicPaths";
 
 // `need` hides what the role would be refused anyway; the server is what actually enforces it
 const NAV: { href: string; label: string; need?: string }[] = [
@@ -16,6 +17,8 @@ const NAV: { href: string; label: string; need?: string }[] = [
   { href: "/research/backtests", label: "Backtests" },
   { href: "/research/reviews", label: "Reviews", need: "ops:read" },
   { href: "/system", label: "System Activity", need: "ops:read" },
+  { href: "/users", label: "Users", need: "users:read" },
+  { href: "/audit", label: "Audit log", need: "audit:read" },
 ];
 
 function ApiLight() {
@@ -34,7 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const { user, loading, can, signOut } = useAuth();
-  const onLogin = path === "/login";
+  const onLogin = isPublicPath(path);
   const restricted = Boolean(user && (user.enrolment_required || user.must_change_password));
   useEffect(() => {
     if (loading || onLogin) return;

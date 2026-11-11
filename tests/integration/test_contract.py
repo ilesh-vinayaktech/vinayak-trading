@@ -177,3 +177,55 @@ def test_the_sign_in_responses_match_the_fixtures_the_frontend_is_tested_against
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_user_administration_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    """Directory, profile, invitation, reset link and audit shapes (random ids, times and tokens scrubbed)."""
+    import re
+
+    from algo.core.clock import SimClock
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    clock = SimClock(datetime(2026, 11, 11, 10, 0, tzinfo=UTC))
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    add_user(conn, clock, "ADMIN", "boss@example.com", name="The Boss")
+    jane = add_user(conn, clock, "TRADER", "jane@example.com", name="Jane Roe")
+    c = sign_in(app, "boss@example.com")
+    enrol_second_factor(c, clock)
+    invite = c.post(
+        "/api/users", json={"email": "new@example.com", "name": "New Hire", "role": "VIEWER"}
+    )
+    shots = {
+        "users_list": c.get("/api/users"),
+        "user_detail": c.get(f"/api/users/{jane}"),
+        "user_invite": invite,
+        "user_invite_link": c.post(f"/api/users/{invite.json()['id']}/resend-invite"),
+        "user_reset_link": c.post(f"/api/users/{jane}/reset-password"),
+        "audit": c.get("/api/audit", params={"limit": 3}),
+    }
+
+    def scrub(v, key=""):
+        if isinstance(v, dict):
+            return {k: scrub(x, k) for k, x in v.items()}
+        if isinstance(v, list):
+            return [scrub(x, key) for x in v]
+        if key == "id" and isinstance(v, int):
+            return 0  # an audit entry's sequence number
+        if key in ("id", "actor_user_id", "target_id") and isinstance(v, str):
+            return f"<{key}>"
+        if key in ("id", "at", "created_at", "last_login_at", "password_changed_at"):
+            return f"<{key}>" if v is not None else None
+        if isinstance(v, str):
+            return re.sub(r"token=[\w-]+", "token=<token>", v)
+        return v
+
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        text = json.dumps(scrub(resp.json()), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

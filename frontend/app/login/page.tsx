@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { ApiError, api } from "@/lib/api/client";
@@ -68,6 +69,7 @@ function SignIn() {
         <button type="submit" disabled={busy} className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
           {busy ? "Signing in..." : needCode ? "Verify" : "Sign in"}
         </button>
+        <Link href="/forgot-password" className="block text-center text-xs text-blue-700 hover:underline">Forgot your password?</Link>
       </form>
     </main>
   );

@@ -12,7 +12,7 @@ describe("page gate", () => {
   });
 
   it("lets through the sign-in page and any browser that holds a session cookie (plain or host-prefixed)", () => {
-    for (const r of [req("/login"), req("/dashboard", "session=abc"), req("/dashboard", "__Host-session=abc")]) {
+    for (const r of [req("/login"), req("/forgot-password"), req("/accept-invite?token=x"), req("/reset-password?token=x"), req("/dashboard", "session=abc"), req("/dashboard", "__Host-session=abc")]) {
       expect(middleware(r).headers.get("location")).toBeNull();
     }
   });

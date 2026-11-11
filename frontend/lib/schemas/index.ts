@@ -406,3 +406,50 @@ export const sessionListSchema = z.object({
 });
 export type User = z.infer<typeof userSchema>;
 export type SessionRow = z.infer<typeof sessionListSchema>["sessions"][number];
+
+
+// ---- portal: user administration and the audit trail ---------------------------------------------------------------
+export const ROLES = ["ADMIN", "OPERATOR", "TRADER", "VIEWER"] as const;
+export const STATUSES = ["INVITED", "ACTIVE", "SUSPENDED", "DISABLED"] as const;
+export const userRowSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  role: z.enum(ROLES),
+  status: z.enum(STATUSES),
+  mfa_enabled: z.boolean(),
+  last_login_at: z.string().nullable(),
+  created_at: z.string(),
+});
+export const userListSchema = z.object({ total: z.number(), items: z.array(userRowSchema) });
+export const userDetailSchema = userRowSchema.extend({
+  must_change_password: z.boolean(),
+  password_changed_at: z.string().nullable(),
+  created_by: z.string().nullable(),
+  recovery_codes_left: z.number(),
+  active_sessions: z.number(),
+});
+export const inviteResultSchema = z.object({ id: z.string(), invite_url: z.string() });
+export const inviteLinkSchema = z.object({ invite_url: z.string() });
+export const resetLinkSchema = z.object({ reset_url: z.string() });
+export const endedSchema = z.object({ ended: z.number() });
+export const auditSchema = z.object({
+  events: z.array(
+    z.object({
+      id: z.number(),
+      at: z.string(),
+      actor_user_id: z.string().nullable(),
+      actor: z.string(),
+      action: z.string(),
+      target_type: z.string().nullable(),
+      target_id: z.string().nullable(),
+      detail: z.record(z.unknown()),
+      ip: z.string().nullable(),
+    }),
+  ),
+});
+export type UserRow = z.infer<typeof userRowSchema>;
+export type UserDetail = z.infer<typeof userDetailSchema>;
+export type AuditEvent = z.infer<typeof auditSchema>["events"][number];
+export type Role = (typeof ROLES)[number];
+export type Status = (typeof STATUSES)[number];

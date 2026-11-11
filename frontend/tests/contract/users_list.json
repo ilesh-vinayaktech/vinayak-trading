@@ -1,0 +1,35 @@
+{
+ "items": [
+  {
+   "created_at": "<created_at>",
+   "email": "jane@example.com",
+   "id": "<id>",
+   "last_login_at": null,
+   "mfa_enabled": false,
+   "name": "Jane Roe",
+   "role": "TRADER",
+   "status": "ACTIVE"
+  },
+  {
+   "created_at": "<created_at>",
+   "email": "new@example.com",
+   "id": "<id>",
+   "last_login_at": null,
+   "mfa_enabled": false,
+   "name": "New Hire",
+   "role": "VIEWER",
+   "status": "INVITED"
+  },
+  {
+   "created_at": "<created_at>",
+   "email": "boss@example.com",
+   "id": "<id>",
+   "last_login_at": "<last_login_at>",
+   "mfa_enabled": true,
+   "name": "The Boss",
+   "role": "ADMIN",
+   "status": "ACTIVE"
+  }
+ ],
+ "total": 3
+}

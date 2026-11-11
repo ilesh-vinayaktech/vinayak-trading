@@ -1,0 +1,39 @@
+{
+ "events": [
+  {
+   "action": "user.reset_sent",
+   "actor": "admin",
+   "actor_user_id": "<actor_user_id>",
+   "at": "<at>",
+   "detail": {},
+   "id": 0,
+   "ip": null,
+   "target_id": "<target_id>",
+   "target_type": "user"
+  },
+  {
+   "action": "user.invite_resent",
+   "actor": "admin",
+   "actor_user_id": "<actor_user_id>",
+   "at": "<at>",
+   "detail": {},
+   "id": 0,
+   "ip": null,
+   "target_id": "<target_id>",
+   "target_type": "user"
+  },
+  {
+   "action": "user.invited",
+   "actor": "admin",
+   "actor_user_id": "<actor_user_id>",
+   "at": "<at>",
+   "detail": {
+    "role": "VIEWER"
+   },
+   "id": 0,
+   "ip": null,
+   "target_id": "<target_id>",
+   "target_type": "user"
+  }
+ ]
+}

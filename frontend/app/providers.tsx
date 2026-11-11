@@ -14,7 +14,14 @@ export function Providers({ children }: { children: ReactNode }) {
           if (error instanceof ApiError && error.status === 401 && query.queryKey[0] !== "me") void c.invalidateQueries({ queryKey: ["me"] });
         },
       }),
-      defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
+      defaultOptions: {
+        queries: {
+          staleTime: 30_000,
+          // a refusal (401, 403, 404, 422) will not change by asking again; only server and network trouble is retried once
+          retry: (count, error) => count < 1 && !(error instanceof ApiError && error.status < 500),
+          refetchOnWindowFocus: false,
+        },
+      },
     });
     return c;
   });

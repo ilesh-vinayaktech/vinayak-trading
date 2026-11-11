@@ -1,0 +1,3 @@
+{
+ "reset_url": "http://localhost:3000/reset-password?token=<token>"
+}
