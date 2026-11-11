@@ -13,6 +13,7 @@ import csv
 import hashlib
 import io
 import json
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -149,13 +150,17 @@ class KiteClient:
         self.min_interval, self.retries, self.backoff = min_interval, retries, backoff
         self._sleep, self._clock = sleep, clock
         self._last: float | None = None
+        self._lock = (
+            threading.Lock()
+        )  # spacing is global across threads; the requests themselves overlap
 
     def _throttle(self) -> None:
-        if self._last is not None:
-            wait = self.min_interval - (self._clock() - self._last)
-            if wait > 0:
-                self._sleep(wait)
-        self._last = self._clock()
+        with self._lock:
+            if self._last is not None:
+                wait = self.min_interval - (self._clock() - self._last)
+                if wait > 0:
+                    self._sleep(wait)
+            self._last = self._clock()
 
     def _headers(self) -> dict[str, str]:
         return {"X-Kite-Version": "3", "Authorization": f"token {self.api_key}:{self.access_token}"}
