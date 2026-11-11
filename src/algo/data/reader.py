@@ -12,8 +12,9 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -29,6 +30,7 @@ from algo.data.adjust.factors import (
 )
 from algo.data.corporate_actions import records_for
 from algo.data.issuer_series import Link, chain, stitch
+from algo.data.price_source import price_source
 
 IST = ZoneInfo("Asia/Kolkata")
 MODES = ("none", "split", "total_return")
@@ -88,8 +90,11 @@ class Loaded:
         visible_after: timedelta,
         strict: bool,
         owners: list[int] | None = None,
+        through: list[date] | None = None,
     ) -> None:
         self.rows, self.recs, self.visible_after, self.strict = rows, recs, visible_after, strict
+        # Kite only: the day each bar's vendor adjustment runs through (None = raw bhavcopy)
+        self.through = through
         self.owners = owners if owners is not None else [0] * len(rows)  # 0: owner not tracked
         self.days = [r[0].astimezone(IST).date() for r in rows]
         self._built: dict[str, Built] = {}
@@ -97,7 +102,7 @@ class Loaded:
     def lenient(self) -> Loaded:
         """The same bars and action records without strict refusal: unresolved actions are then
         reported in `History.unapplied` instead of raising. For audit and preflight reporting."""
-        return Loaded(self.rows, self.recs, self.visible_after, False, self.owners)
+        return Loaded(self.rows, self.recs, self.visible_after, False, self.owners, self.through)
 
     def _build(self, adjust: str) -> Built:
         if adjust not in self._built:
@@ -160,8 +165,11 @@ class Loaded:
         bars = []
         for i in idx:
             r, d = self.rows[i], self.days[i]
-            f = factor_on(built.adjustments, d, total_return=total, as_of=as_of)
-            fs = factor_on(built.adjustments, d, volume=True, as_of=as_of)
+            through = self.through[i] if self.through else None
+            f = factor_on(
+                built.adjustments, d, total_return=total, as_of=as_of, applied_through=through
+            )
+            fs = factor_on(built.adjustments, d, volume=True, as_of=as_of, applied_through=through)
             bars.append(
                 AdjBar(r[0], r[1] * f, r[2] * f, r[3] * f, r[4] * f, r[5] / fs, f, self.owners[i])
             )
@@ -180,6 +188,29 @@ class BarReader:
         self.conn, self.source = conn, source
         self.visible_after = session_length + publish_lag
 
+    @classmethod
+    def for_env(cls, conn: psycopg.Connection, **kw: Any) -> BarReader:
+        """The reader the `.env` setting ALGO_PRICE_SOURCE selects (see price_source)."""
+        if price_source() == "kite":
+            return cls(conn, source="kite", publish_lag=timedelta(0), **kw)
+        return cls(conn, **kw)
+
+    def _kite_days(
+        self, instrument_id: int
+    ) -> tuple[list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]], list[date]]:
+        """Kite minutes rolled to one bar per IST day, each with its vendor adjustment day."""
+        rows = self.conn.execute(
+            "SELECT d, (array_agg(open ORDER BY ts))[1], max(high), min(low), "
+            "(array_agg(close ORDER BY ts DESC))[1], sum(volume), max(adjusted_through) FROM ("
+            "SELECT DISTINCT ON (ts) ts, open, high, low, close, volume, adjusted_through, "
+            "(ts AT TIME ZONE 'Asia/Kolkata')::date AS d FROM bar_1m "
+            "WHERE instrument_id=%s AND source='kite' ORDER BY ts, dataset_version DESC"
+            ") m GROUP BY d ORDER BY d",
+            (instrument_id,),
+        ).fetchall()
+        bars = [(datetime.combine(r[0], time(9, 15), IST).astimezone(UTC), *r[1:6]) for r in rows]
+        return bars, [r[6] for r in rows]
+
     def _raw(
         self, instrument_id: int
     ) -> list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]]:
@@ -192,8 +223,13 @@ class BarReader:
     def load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
         """ONE instrument's own bars and actions (execution, audit). Another ISIN of the same issuer
         is never mixed in: same issuer is not same instrument."""
-        rows = self._raw(instrument_id)
         recs = records_for(self.conn, instrument_id, strict=strict)
+        if self.source == "kite":
+            rows, through = self._kite_days(instrument_id)
+            return Loaded(
+                rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through
+            )
+        rows = self._raw(instrument_id)
         return Loaded(rows, recs, self.visible_after, strict, [instrument_id] * len(rows))
 
     def isin_links(self) -> list[Link]:
@@ -217,6 +253,18 @@ class BarReader:
         match the identity is refused, never guessed."""
         segs = chain(self.isin_links(), instrument_id)
         ids = [g.instrument_id for g in segs]
+        if self.source == "kite":
+            # ponytail: Kite serves one continuous history per symbol, so the instrument's own
+            # bars are the issuer's; only the chain's actions are merged. Stitch bars if that fails.
+            rows, through = self._kite_days(instrument_id)
+            _, _, recs = stitch(
+                segs,
+                {i: [] for i in ids},
+                {i: records_for(self.conn, i, strict=strict) for i in ids},
+            )
+            return Loaded(
+                rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through
+            )
         rows, owners, recs = stitch(
             segs,
             {i: self._raw(i) for i in ids},

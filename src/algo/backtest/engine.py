@@ -187,7 +187,7 @@ def run_backtest(
     *,
     code_version: str = "unversioned",
 ) -> RunResult:
-    reader, strict = BarReader(conn), cfg.mode is Mode.STRICT
+    reader, strict = BarReader.for_env(conn), cfg.mode is Mode.STRICT
     req = strategy.requirements()
     clock = SimClock(datetime.combine(cfg.start, time(0), UTC))
     res = RunResult(strategy.id, strategy.version, strategy.params.model_dump_json(),

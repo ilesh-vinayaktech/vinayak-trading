@@ -1,11 +1,14 @@
 """NSE backfill, in stages (each resumable / idempotent):
   universe  security master + symbol changes + Nifty 200 snapshot
   actions   corporate actions for every Nifty 200 symbol (full history)
+  actions500  as actions, for the Nifty 500 list in the lake; skips symbols with raw actions stored
   reparse   rebuild corporate_action from raw JSON already in the lake (no network)
   bars      daily bars (sec_bhavdata_full, available from 2019-10) over --from/--to
 usage: backfill_nse.py --db URL --lake DIR --stage universe|actions|bars [--from D --to D]"""
 
 import argparse
+import csv
+import io
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -34,7 +37,9 @@ WARM = "https://www.nseindia.com/companies-listing/corporate-filings-actions"
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", required=True)
 ap.add_argument("--lake", required=True, type=Path)
-ap.add_argument("--stage", required=True, choices=["universe", "actions", "reparse", "bars"])
+ap.add_argument(
+    "--stage", required=True, choices=["universe", "actions", "actions500", "reparse", "bars"]
+)
 ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 10, 1))
 ap.add_argument("--to", dest="end", type=date.fromisoformat, default=datetime.now(UTC).date())
 a = ap.parse_args()
@@ -99,6 +104,43 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         q = "SELECT count(*) FROM corporate_action WHERE status='review'"
         n_review = conn.execute(q).fetchone()[0]
         log(f"actions done: inserted={tot_ins} unchanged={tot_unch} review={n_review}")
+
+    elif a.stage == "actions500":
+        latest = sorted((a.lake / "raw/niftyindices/nifty500_list").glob("dt=*/v*.bin"))[-1]
+        listed = [
+            r["Symbol"]
+            for r in csv.DictReader(io.StringIO(latest.read_bytes().decode("utf-8-sig")))
+        ]
+        syms = [
+            x
+            for x in listed
+            if not x.startswith("DUMMY")
+            and not (a.lake / f"raw/nse/corporate_actions_{x}").exists()
+        ]
+        log(f"nifty500 list {len(listed)}, still without raw actions: {len(syms)}")
+        client.warm(WARM)
+        tot_ins = failed = 0
+        for i, sym in enumerate(syms, 1):
+            try:
+                r = ingest_symbol(
+                    conn, lake, lambda u: client.get(u, accept="application/json"), sym, now
+                )
+            except (
+                Exception
+            ) as e:  # keep going; a re-run picks up the failures (nothing was stored for them)
+                failed += 1
+                log(f"[{i}/{len(syms)}] {sym} FAILED {type(e).__name__}: {e}")
+                continue
+            if r is None:
+                log(f"[{i}/{len(syms)}] {sym} not in instrument master")
+                continue
+            tot_ins += r.inserted
+            if i % 20 == 0:
+                log(f"[{i}/{len(syms)}] inserted={tot_ins} failed={failed}")
+        n_review = conn.execute(
+            "SELECT count(*) FROM corporate_action WHERE status='review'"
+        ).fetchone()[0]
+        log(f"actions500 done: inserted={tot_ins} failed={failed} review={n_review}")
 
     elif a.stage == "reparse":
         q = (
