@@ -116,3 +116,23 @@ def test_an_old_style_registration_still_works_without_study_settings(env):
         param_ranges={"a": [1, 2]}, holdout=(date(2025, 1, 1), date(2025, 12, 31)), now=NOW,
     )  # fmt: skip
     assert list_studies(conn) == [] and get_study(conn, eid) is None  # only studies are listed
+
+
+def test_a_study_registered_before_a_setting_existed_reads_back_with_that_setting_at_its_default(
+    env,
+):
+    conn, owner, fid = env
+    old = spec().model_dump(mode="json")
+    del old["slippage"]  # how a study registered before slippage was a setting was stored
+    eid = registry.register(
+        conn, name="older study", strategy_id="trend_pullback", hypothesis="registered before slippage was a setting",
+        style="long_only", param_ranges={"entry_rsi": [20, 20]}, holdout=(date(2024, 5, 1), date(2026, 11, 6)), now=NOW,
+        study={"spec": old, "combinations": [{"entry_rsi": 20}], "data_freeze": {"id": str(fid), "through": "2026-11-11"}, "cost_schedules": []},
+        owner_user_id=owner,
+    )  # fmt: skip
+    shown = get_study(conn, eid)
+    assert shown["spec"]["slippage"] == {
+        "base_bps": "5",
+        "participation_bps_per_pct": "5",
+        "volatility_fraction": "0",
+    }

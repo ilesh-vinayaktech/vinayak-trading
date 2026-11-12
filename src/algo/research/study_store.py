@@ -70,7 +70,7 @@ def _shown(conn: psycopg.Connection, row: tuple[Any, ...]) -> dict[str, Any]:
     eid, name, strategy_id, hypothesis, registered_at, opened, study, sha, owner = row
     return {
         "experiment_id": eid, "name": name, "strategy_id": strategy_id, "hypothesis": hypothesis,
-        "registered_at": registered_at, "holdout_opened_at": opened, "spec": study["spec"],
+        "registered_at": registered_at, "holdout_opened_at": opened, "spec": StudySpec.model_validate(study["spec"]).model_dump(mode="json"),
         "combinations": study["combinations"], "data_freeze": study["data_freeze"], "cost_schedules": study["cost_schedules"],
         "trials_planned": len(study["combinations"]), "trials_run": registry.trial_count(conn, eid),
         "sha256": sha, "owner_user_id": owner,
