@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from algo.data.providers.nse_results import XbrlError, parse_listing, parse_xbrl
+from algo.data.providers.nse_results import (
+    XbrlError,
+    parse_integrated_listing,
+    parse_listing,
+    parse_xbrl,
+)
 
 DATA = Path(__file__).parents[2] / "data/nse"
 
@@ -262,3 +267,74 @@ def test_the_period_start_is_derived_only_from_the_quarter_context_and_a_calenda
         parse_xbrl(
             _no_start("2024-03-31", ctx="TwoD")
         )  # not the current-quarter context by convention
+
+
+def test_the_integrated_filing_listing_gives_basis_time_and_a_seq_number_that_cannot_clash_with_the_old_feed():
+    fs = parse_integrated_listing(fx("integrated_listing_TCS.json"))
+    assert len(fs) == 3
+    cons = next(f for f in fs if f.symbol == "TCS" and f.basis == "CONSOLIDATED")
+    assert (cons.period_end, cons.period_start, cons.seq_number) == (
+        date(2026, 9, 30),
+        date(2026, 7, 1),
+        "IF200121",
+    )
+    assert cons.filed_at == datetime(2026, 10, 8, 16, 37, 33, tzinfo=UTC)  # 22:07:33 IST
+    assert (cons.audited, cons.cumulative, cons.isin, cons.bank) == (True, False, "", False)
+    assert cons.xbrl_url is not None and cons.xbrl_url.endswith("_WEB.xml")
+
+
+def test_a_revision_is_known_from_its_revision_time_when_it_has_no_broadcast_time():
+    rev = next(
+        f
+        for f in parse_integrated_listing(fx("integrated_listing_TCS.json"))
+        if f.symbol == "PAGEIND"
+    )
+    assert rev.filed_at == datetime(2026, 11, 12, 11, 39, 9, tzinfo=UTC)  # 17:09:09 IST
+
+
+def test_integrated_listing_refuses_anything_that_is_not_the_listing():
+    with pytest.raises(XbrlError):
+        parse_integrated_listing(b'{"nodata": 1}')
+
+
+def test_the_integrated_xbrl_reads_with_the_same_parser_and_reports_isin_and_rounding():
+    s = parse_xbrl(fx("integrated_xbrl_TCS_cons_2026q2.xml"))
+    assert (s.period_start, s.period_end, s.basis, s.audited) == (
+        date(2026, 7, 1),
+        date(2026, 9, 30),
+        "CONSOLIDATED",
+        True,
+    )
+    assert s.quarter["revenue"] == D("731880000000") and s.ytd["pat"] == D("273540000000")
+    assert (s.isin, s.rounding) == ("INE467B01029", "Crores")
+
+
+def test_every_company_level_number_in_the_filing_is_kept_by_the_scope_it_was_reported_in():
+    s = parse_xbrl(fx("integrated_xbrl_TCS_cons_2026q2.xml"))
+    assert s.extra["QUARTER"]["EmployeeBenefitExpense"] == D("418900000000")
+    assert s.extra["YTD"]["CashFlowsFromUsedInOperatingActivities"] == D("258010000000")
+    assert s.extra["INSTANT"]["Assets"] == D("1907820000000") and s.extra["INSTANT"]["Equity"] == D(
+        "1199940000000"
+    )
+
+
+def test_dimensional_text_and_identifier_facts_are_not_kept_as_numbers():
+    every = {
+        k
+        for scope in parse_xbrl(fx("integrated_xbrl_TCS_cons_2026q2.xml")).extra.values()
+        for k in scope
+    }
+    assert (
+        "ScripCode" not in every
+        and "Symbol" not in every
+        and "DateOfStartOfReportingPeriod" not in every
+    )
+    assert "SegmentAssets" in every  # company-level segment totals are not dimensional contexts
+    assert not any(
+        k.startswith("OtherExpenses") and k[-1].isdigit() for k in every
+    )  # per-member lines are dimensional
+
+
+def test_old_format_files_keep_their_quarter_and_year_to_date_numbers_too():
+    s = parse_xbrl(fx("results_xbrl_RELIANCE_cons.xml"))
+    assert s.extra["QUARTER"]["ProfitBeforeTax"] == s.quarter["pbt"] and s.extra["YTD"]

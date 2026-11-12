@@ -75,7 +75,11 @@ def load_actions(
 
 
 def records_for(
-    conn: psycopg.Connection, instrument_id: int, *, strict: bool = False
+    conn: psycopg.Connection,
+    instrument_id: int,
+    *,
+    strict: bool = False,
+    known_at: datetime | None = None,
 ) -> list[ActionRecord]:
     """Actions for the adjustment builder. A review-status action takes its latest human
     resolution into account (resolutions are keyed by (instrument, ex_date, kind), so rebuilding
@@ -86,6 +90,8 @@ def records_for(
                                                research: applied but flagged provisional
       no_adjustment_verified / ignored_with_reason / rejected -> a documented decision that no
                                                adjustment is needed: not an action
+    `known_at` pins the read to what the database held at that moment: actions ingested later,
+    and decisions taken later, are left out.
     ponytail: a resolved factor is known from the ex-date; a demerger's child price is only known
     after listing, so point-in-time reads are slightly optimistic until known_from exists."""
     rows = conn.execute(
@@ -93,9 +99,11 @@ def records_for(
         "r.status,r.treatment,r.factor FROM corporate_action c "
         "LEFT JOIN LATERAL (SELECT status,treatment,factor FROM action_resolution r "
         "  WHERE r.instrument_id=c.instrument_id AND r.ex_date=c.ex_date AND r.kind=c.kind "
+        "  AND (%s::timestamptz IS NULL OR r.resolved_at <= %s) "
         "  ORDER BY r.id DESC LIMIT 1) r ON c.status='review' "
-        "WHERE c.instrument_id=%s ORDER BY c.ex_date,c.id",
-        (instrument_id,),
+        "WHERE c.instrument_id=%s AND (%s::timestamptz IS NULL OR c.ingested_at <= %s) "
+        "ORDER BY c.ex_date,c.id",
+        (known_at, known_at, instrument_id, known_at, known_at),
     )
     out: list[ActionRecord] = []
     for ex, kind, status, num, den, amount, kt, res_status, treatment, factor in rows:

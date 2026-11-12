@@ -3,6 +3,7 @@
   {
    "accounting_complete": true,
    "created_at": "2026-11-07T00:00:00+00:00",
+   "label": null,
    "ledger_reconciled": true,
    "metrics": {
     "sharpe": 1.2
@@ -11,7 +12,8 @@
    "result_hash": "rh",
    "run_id": 1,
    "strategy_id": "s",
-   "strategy_version": "1"
+   "strategy_version": "1",
+   "study": null
   }
  ],
  "ingestion": {

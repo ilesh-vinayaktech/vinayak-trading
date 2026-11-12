@@ -15,10 +15,14 @@ from psycopg.types.json import Jsonb
 RUN_COLUMNS = [
     "run_id",
     "experiment_id",
+    "kind",
     "status",
     "total",
     "done",
     "current",
+    "step_done",
+    "step_total",
+    "cancel_requested",
     "error",
     "detail",
     "requested_by",
@@ -48,7 +52,9 @@ def _run(row: tuple[Any, ...] | None) -> dict[str, Any] | None:
     return None if row is None else dict(zip(RUN_COLUMNS, row, strict=True))
 
 
-def enqueue(conn: psycopg.Connection, experiment_id: int, user: UUID, now: datetime) -> int:
+def enqueue(
+    conn: psycopg.Connection, experiment_id: int, user: UUID, now: datetime, kind: str = "trials"
+) -> int:
     if (
         conn.execute(
             "SELECT 1 FROM experiment WHERE experiment_id=%s AND study IS NOT NULL",
@@ -60,8 +66,8 @@ def enqueue(conn: psycopg.Connection, experiment_id: int, user: UUID, now: datet
     try:
         with conn.transaction():
             row = conn.execute(
-                "INSERT INTO study_run (experiment_id, status, requested_by, created_at) VALUES (%s,'QUEUED',%s,%s) RETURNING run_id",
-                (experiment_id, user, now),
+                "INSERT INTO study_run (experiment_id, kind, status, requested_by, created_at) VALUES (%s,%s,'QUEUED',%s,%s) RETURNING run_id",
+                (experiment_id, kind, user, now),
             ).fetchone()
     except psycopg.errors.UniqueViolation as e:
         raise JobError("this study already has a run queued or running") from e
@@ -88,22 +94,38 @@ def get_run(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
     )
 
 
-def latest_run(conn: psycopg.Connection, experiment_id: int) -> dict[str, Any] | None:
+def latest_run(
+    conn: psycopg.Connection, experiment_id: int, kind: str = "trials"
+) -> dict[str, Any] | None:
     return _run(
         conn.execute(
-            f"SELECT {', '.join(RUN_COLUMNS)} FROM study_run WHERE experiment_id=%s ORDER BY run_id DESC LIMIT 1",
-            (experiment_id,),
+            f"SELECT {', '.join(RUN_COLUMNS)} FROM study_run WHERE experiment_id=%s AND kind=%s ORDER BY run_id DESC LIMIT 1",
+            (experiment_id, kind),
         ).fetchone()
     )
 
 
 def cancel(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
+    """Stop a job. One that is still waiting is cancelled at once; one that has started is asked to stop, and the worker ends it
+    at its next check (within a couple of seconds). Trials already finished are kept."""
     done = conn.execute(
         "UPDATE study_run SET status='CANCELLED', finished_at=%s WHERE run_id=%s AND status='QUEUED'",
         (now, run_id),
     )
     if done.rowcount == 0:
-        raise JobError("this run cannot be cancelled: it has started or finished")
+        asked = conn.execute(
+            "UPDATE study_run SET cancel_requested=true WHERE run_id=%s AND status='RUNNING'",
+            (run_id,),
+        )
+        if asked.rowcount == 0:
+            raise JobError("this run cannot be cancelled: it has already finished")
+
+
+def stop_requested(conn: psycopg.Connection, run_id: int) -> bool:
+    row = conn.execute(
+        "SELECT cancel_requested FROM study_run WHERE run_id=%s", (run_id,)
+    ).fetchone()
+    return bool(row and row[0])
 
 
 def start(
@@ -121,9 +143,36 @@ def start(
 
 
 def progress(conn: psycopg.Connection, run_id: int, done: int, current: str | None) -> None:
+    """One unit (a combination, a stress run) finished or started: the day counter inside it starts again."""
     conn.execute(
-        "UPDATE study_run SET done=%s, current=%s WHERE run_id=%s", (done, current, run_id)
+        "UPDATE study_run SET done=%s, current=%s, step_done=0, step_total=0 WHERE run_id=%s",
+        (done, current, run_id),
     )
+
+
+def day_progress(conn: psycopg.Connection, run_id: int, day: int, of: int) -> None:
+    """Days done of the backtest being run now (shown as a bar and used for the time left)."""
+    conn.execute(
+        "UPDATE study_run SET step_done=%s, step_total=%s WHERE run_id=%s", (day, of, run_id)
+    )
+
+
+def estimate(run: dict[str, Any], now: datetime) -> dict[str, Any] | None:
+    """How far a running job is and how long it has left, from its own pace so far. None while it is waiting or finished.
+    The time left is None until there is enough work done to judge the pace (about 2% of a unit)."""
+    if run["status"] != "RUNNING" or run["total"] <= 0 or run["started_at"] is None:
+        return None
+    frac = min(run["step_done"] / run["step_total"], 1.0) if run["step_total"] else 0.0
+    done = min(run["done"] + frac, float(run["total"]))
+    elapsed = max((now - run["started_at"]).total_seconds(), 0.0)
+    work = done - (run.get("detail") or {}).get(
+        "done_at_start", 0
+    )  # not the trials a resumed run skipped
+    eta = None if work < 0.02 or elapsed <= 0 else round(elapsed / work * (run["total"] - done))
+    return {
+        "fraction": done / run["total"], "elapsed_seconds": round(elapsed), "eta_seconds": eta,
+        "step_done": run["step_done"], "step_total": run["step_total"],
+    }  # fmt: skip
 
 
 def finish(
@@ -187,3 +236,48 @@ def trial_returns(conn: psycopg.Connection, experiment_id: int) -> dict[str, lis
             (experiment_id,),
         )
     }
+
+
+def latest_report(conn: psycopg.Connection, experiment_id: int) -> dict[str, Any] | None:
+    """The newest pass/fail verdict made for this study, with every gate and the evidence behind it."""
+    row = conn.execute(
+        "SELECT report_id, run_id, passed, thresholds_status, n_trials, evidence, gates, refs, created_at"
+        " FROM validation_report WHERE experiment_id=%s ORDER BY report_id DESC LIMIT 1",
+        (experiment_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    keys = (
+        "report_id",
+        "run_id",
+        "passed",
+        "thresholds_status",
+        "n_trials",
+        "evidence",
+        "gates",
+        "refs",
+        "created_at",
+    )
+    return dict(zip(keys, row, strict=True))
+
+
+def trials_finished(conn: psycopg.Connection, experiment_id: int) -> tuple[int, int]:
+    """(finished, planned) combinations of the study."""
+    row = conn.execute(
+        "SELECT (SELECT count(*) FROM study_trial WHERE experiment_id=%s AND status='DONE'),"
+        " jsonb_array_length(study->'combinations') FROM experiment WHERE experiment_id=%s",
+        (experiment_id, experiment_id),
+    ).fetchone()
+    if row is None:
+        raise JobError("no such study")
+    return int(row[0]), int(row[1])
+
+
+def holdout_result(conn: psycopg.Connection, experiment_id: int) -> dict[str, Any] | None:
+    """The one-time holdout test of this study, once it has been opened."""
+    row = conn.execute(
+        "SELECT run_id, passed, evidence, gates, refs, created_at FROM study_holdout WHERE experiment_id=%s",
+        (experiment_id,),
+    ).fetchone()
+    keys = ("run_id", "passed", "evidence", "gates", "refs", "created_at")
+    return None if row is None else dict(zip(keys, row, strict=True))

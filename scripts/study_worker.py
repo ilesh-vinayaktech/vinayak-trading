@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 import psycopg
 
 from algo.research import study_jobs
-from algo.research.study_runner import run_study
+from algo.research.study_runner import execute
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -49,7 +49,7 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             time.sleep(a.interval)
             continue
         print(f"{datetime.now(UTC):%H:%M:%S} run {run_id}: started", flush=True)
-        run_study(conn, run_id, datetime.now(UTC))
+        execute(conn, run_id, datetime.now(UTC))
         run = study_jobs.get_run(conn, run_id)
         print(
             f"{datetime.now(UTC):%H:%M:%S} run {run_id}: {run['status'] if run else '?'} {(run or {}).get('error') or ''}",

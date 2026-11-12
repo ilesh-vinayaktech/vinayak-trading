@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RunPanel } from "@/components/studies/RunPanel";
+import { VerdictPanel } from "@/components/studies/VerdictPanel";
 import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/DataTable";
 import { DefinitionList, Panel, RelativeTime, StatusPill } from "@/components/ui/Layout";
@@ -29,6 +30,7 @@ export default function StudyPage() {
             <StatusPill tone={s.holdout_opened_at ? "warn" : "good"}>{s.holdout_opened_at ? "Holdout opened" : "Holdout untouched"}</StatusPill>
           </div>
           <RunPanel id={id} />
+          <VerdictPanel id={id} />
           <Panel title="The idea"><div className="px-5 py-4 text-sm">{s.hypothesis}</div></Panel>
           <Panel title="Settings">
             <div className="px-5 py-4">
@@ -40,6 +42,8 @@ export default function StudyPage() {
                 { label: "Holdout", value: `from ${s.spec.holdout_start}` },
                 { label: "Capital", value: `₹${fmtMoney(s.spec.capital, 0)}, capacity tested at ${s.spec.capacity_multiple}x` },
                 { label: "Slippage", value: `${s.spec.slippage.base_bps} bps fixed, ${s.spec.slippage.participation_bps_per_pct} bps per 1% of volume, ${Number(s.spec.slippage.volatility_fraction) * 100}% of the day's range` },
+                { label: "Compared with", value: s.spec.benchmark },
+                { label: "Order size", value: `smallest ${Number(s.spec.min_order_value) > 0 ? `₹${fmtMoney(s.spec.min_order_value, 0)}` : "no minimum"}, largest ${s.spec.max_order_value ? `₹${fmtMoney(s.spec.max_order_value, 0)}` : "no maximum"}` },
                 { label: "Charges", value: `${s.spec.broker}, ${s.spec.product.toLowerCase()}: ${s.cost_schedules.map((c) => `${c.valid_from} (${c.status.replace(/_/g, " ")})`).join("; ")}` },
                 { label: "Price history", value: `frozen through ${s.data_freeze.through}` },
                 ...(s.spec.accept_survivorship_bias ? [{ label: "Survivorship", value: "bias accepted by the owner (starts before October 2019)" }] : []),

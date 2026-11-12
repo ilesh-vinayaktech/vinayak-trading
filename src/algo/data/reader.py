@@ -31,6 +31,7 @@ from algo.data.adjust.factors import (
 from algo.data.corporate_actions import records_for
 from algo.data.issuer_series import Link, chain, stitch
 from algo.data.price_source import price_source
+from algo.data.snapshot import snapshot_hash as _snapshot_hash
 
 IST = ZoneInfo("Asia/Kolkata")
 MODES = ("none", "split", "total_return")
@@ -184,8 +185,13 @@ class BarReader:
         source: str = "nse",
         session_length: timedelta = timedelta(hours=6, minutes=15),
         publish_lag: timedelta = timedelta(hours=3),  # bhavcopy appears ~18:30 IST
+        known_at: datetime | None = None,
     ) -> None:
+        """`known_at` pins every read to what the database held at that moment: bars, corporate
+        actions and decisions ingested later are invisible, so a later correction cannot change
+        a rerun."""
         self.conn, self.source = conn, source
+        self.known_at = require_utc(known_at) if known_at is not None else None
         self.visible_after = session_length + publish_lag
 
     @classmethod
@@ -202,8 +208,9 @@ class BarReader:
         rows = self.conn.execute(
             "SELECT DISTINCT ON (ts) ts, open, high, low, close, volume, adjusted_through "
             "FROM bar_1d WHERE instrument_id=%s AND source='kite' "
+            "AND (%s::timestamptz IS NULL OR ingested_at <= %s) "
             "ORDER BY ts, dataset_version DESC",
-            (instrument_id,),
+            (instrument_id, self.known_at, self.known_at),
         ).fetchall()
         return [tuple(r[:6]) for r in rows], [r[6] for r in rows]
 
@@ -212,14 +219,16 @@ class BarReader:
     ) -> list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]]:
         return self.conn.execute(
             "SELECT DISTINCT ON (ts) ts,open,high,low,close,volume FROM bar_1d "
-            "WHERE instrument_id=%s AND source=%s ORDER BY ts, dataset_version DESC",
-            (instrument_id, self.source),
+            "WHERE instrument_id=%s AND source=%s "
+            "AND (%s::timestamptz IS NULL OR ingested_at <= %s) "
+            "ORDER BY ts, dataset_version DESC",
+            (instrument_id, self.source, self.known_at, self.known_at),
         ).fetchall()
 
     def load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
         """ONE instrument's own bars and actions (execution, audit). Another ISIN of the same issuer
         is never mixed in: same issuer is not same instrument."""
-        recs = records_for(self.conn, instrument_id, strict=strict)
+        recs = records_for(self.conn, instrument_id, strict=strict, known_at=self.known_at)
         if self.source == "kite":
             rows, through = self._kite_days(instrument_id)
             return Loaded(
@@ -227,6 +236,12 @@ class BarReader:
             )
         rows = self._raw(instrument_id)
         return Loaded(rows, recs, self.visible_after, strict, [instrument_id] * len(rows))
+
+    def snapshot_hash(self, instrument_ids: list[int]) -> str | None:
+        """Fingerprint of what this pinned reader sees for these instruments (None if unpinned)."""
+        if self.known_at is None:
+            return None
+        return _snapshot_hash(self.conn, self.source, instrument_ids, self.known_at)
 
     def isin_links(self) -> list[Link]:
         """SAME_ISSUER_ISIN_CHANGE links between instruments (none before migration 024)."""
@@ -256,7 +271,7 @@ class BarReader:
             _, _, recs = stitch(
                 segs,
                 {i: [] for i in ids},
-                {i: records_for(self.conn, i, strict=strict) for i in ids},
+                {i: records_for(self.conn, i, strict=strict, known_at=self.known_at) for i in ids},
             )
             return Loaded(
                 rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through
@@ -264,7 +279,7 @@ class BarReader:
         rows, owners, recs = stitch(
             segs,
             {i: self._raw(i) for i in ids},
-            {i: records_for(self.conn, i, strict=strict) for i in ids},
+            {i: records_for(self.conn, i, strict=strict, known_at=self.known_at) for i in ids},
         )
         return Loaded(rows, recs, self.visible_after, strict, owners)
 

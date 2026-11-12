@@ -101,7 +101,7 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 - [ ] Tables `data_snapshot` (id, created_at, cutoff_time, status, snapshot_hash) and `snapshot_partition` (snapshot_id, dataset_id, partition_date, raw_manifest_id, checksum, record_count, source_version).
 - [ ] Snapshot also pins: instrument master version, corporate-action version, calendar version, feature definition versions, cost schedule version, strategy config, code commit.
 - [ ] Reader API: `DataAPI(snapshot_id)` serves only data referenced by the snapshot's immutable dataset versions (not "ingested_at <= x").
-- [ ] T: **provider-correction scenario**: backtest → provider corrects history → reingest → rerun with same snapshot = byte-identical result; new snapshot differs; snapshot_hash stable & changes when any pinned input changes.
+- [x] (2026-11-12) T: **provider-correction scenario** (`tests/integration/test_snapshot.py`, `BarReader(known_at=)`, `data/snapshot.py`): backtest → provider corrects history → reingest → rerun with same snapshot = byte-identical result; new snapshot differs; snapshot_hash stable & changes when any pinned input changes.
 
 ### 2.5 Data-quality checks (spec §6) + readiness service **(P1)**
 - [ ] Checks: completeness (375/day), validity (OHLC bounds, negative, circuit), continuity (unadjusted split flag), reconciliation (1m→daily vs bhavcopy), freshness SLA, cross-provider. Results → `dq_result`.
@@ -157,8 +157,8 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 
 ### 3.5 Validation protocol (spec §10)
 - [x] BUILT (2026-11-07): pre-registration + trial counter + holdout opened once (`validation/registry.py`, migration 010); walk-forward rolling/anchored with embargo (`walkforward.py`); ±20% grid, plateau, by-year, concentration (`robustness.py`); PSR/DSR/expected-max-SR/PBO(CSCV)/stationary-bootstrap CIs (`stats.py`); `ScaledCosts` for 2x costs; pass/fail gates, missing evidence fails (`gates.py`, `config/validation_thresholds.json`). See `docs/validation.md`.
-- [ ] Evidence assembler built (`validation/evidence.py`, reports store `refs`); still to build: the runner that executes a real strategy through the walk-forward and feeds it (needs the first strategy, Stage 4); regime labels beyond calendar year; benchmark series loader; capacity run at 3x capital; purged CV for ML.
-- [ ] **OWNER: confirm or change `config/validation_thresholds.json` (status `provisional`) BEFORE the first strategy is validated.** A pass against provisional thresholds does not lift the promotion blocker.
+- [x] (2026-11-12) The runner that feeds the evidence assembler: a study's verdict (`research/verdict.py`, `study_runner.run_verdict`): walk-forward over the stored trials, 2x-cost and 3x-capital engine runs, benchmark gates, every gate, report stored; API + study page. The holdout step is built too (2026-11-13, migration 049). Still to build: regime labels beyond calendar year, purged CV for ML.
+- [x] (2026-11-12) **OWNER confirmed `config/validation_thresholds.json`** ("keep it, we will improve over time"): status `confirmed`. **(was: confirm or change BEFORE the first strategy is validated.)** A pass against provisional thresholds does not lift the promotion blocker.
 - [x] T: statistics pinned to independently computed reference values; holdout second-open rejected; promotion blocked when any gate evidence is missing. Mutation 88-93% on the pure validation modules.
 
 ### 3.6 Financial ledger **(P0)** (used by backtest, paper, live)
@@ -185,8 +185,8 @@ Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review 
 - [x] (2026-11-09) Membership revision 3 adopted (see `docs/stage4/membership/README.md`, `DIFF_v2_to_v3.md`): all independent monthly checkpoints agree (N50 73/73, Next 50 49/49, Midcap 100 / N100 / N200 18/18); 13 exceptions (4 need instrument resolution: GSPL, JIOFIN pre-listing, PEL x2; 9 non-tradable placeholders). Point-in-time limit: listing-date handovers rest on later releases (known_at = announcement date).
 - [x] (2026-11-09) Membership revision 2 (`docs/stage4/membership/`, change list `DIFF_v1_to_v2.md`): 28 review items decided (append-only `review_decision`, none applied), parser v7, row-level revocations (migration 021), reviewed placeholder replacements (022, 023), one reviewed entity equivalence; exceptions 21 -> 12, Midcap 100 / Nifty 200 agree with 18/18 monthly checkpoints. Still open: the DUMMYABFRL/DUMMYSIEMS removal releases, Next 50 vs 4 checkpoints, the apply-decisions step (aliases, instruments for GSPL/PEL, coverage), 136 corporate actions, verified cost schedule, thresholds, older universe pipeline ignores revocations.
 - [ ] Pre-register hypothesis/universe/params; run validation protocol; store tear sheet; write pass/fail report.
-- [ ] Benchmarks: buy-and-hold Nifty, 12-1 momentum baseline; 2x cost result positive.
-- [ ] Lifecycle table + `stage_change` (approver, timestamp); promotion gates enforced in code. T: cannot enter Paper without Backtest-approved record; runner refuses non-live-stage strategy for live.
+- [ ] Benchmarks: buy-and-hold Nifty (done 2026-11-12: every run report compares with Nifty 200 TRI; the verdict gates use it), 12-1 momentum baseline (not built); 2x cost result positive (done: gate `survives_2x_costs`).
+- [x] (2026-11-12) Lifecycle table + stage changes (approver, timestamp, reason, run) and the LIVE gate in code (`strategy/stage.py`, migration 048; Strategies page). Paper entry is waived by the owner and recorded as such. Still to do when a live runner exists: it must refuse a strategy that is not in stage LIVE.
 - [ ] Platform-correctness / strategy-validity / operational-reliability reported as three separate scorecards.
 
 **Exit gate 4:** Written pass/fail on strategy; if fail, iterate or choose another; **platform proceeds regardless** (platform correctness is independent of edge).

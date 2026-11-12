@@ -641,3 +641,53 @@ def test_an_instruments_very_first_bar_has_no_history_so_volatility_and_liquidit
     assert t.slippage_bps == D(
         9
     )  # range unknown => 0 bps; liquidity unknown => treated as illiquid
+
+
+def scripted(a, *targets):
+    return Scripted(HoldParams(ids=(a,), weights=(D(1),)), [{a: D(w)} for w in targets])
+
+
+def test_a_maximum_order_value_splits_a_big_order_over_several_days(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, hold((a, 1)), cfg(max_order_value=D(2000)))
+    assert [(t.day.day, t.qty) for t in r.trades] == [(3, 20), (4, 20), (5, 20), (6, 20), (9, 20)]
+    assert r.final_positions == {a: D(100)}
+
+
+def test_orders_below_the_minimum_order_value_are_not_placed(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, scripted(a, 1, "0.95"), cfg(min_order_value=D(1000)))
+    assert [(t.side, t.qty) for t in r.trades] == [
+        ("BUY", D(100))
+    ]  # the 5-share trim (500) is skipped
+    r = run_backtest(conn, scripted(a, "0.05"), cfg(min_order_value=D(1000)))
+    assert r.trades == [] and r.final_cash == D(10000)  # a 500 opening buy is too small
+
+
+def test_a_sale_that_closes_the_whole_position_is_allowed_below_the_minimum(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    r = run_backtest(conn, scripted(a, 1, "0.05", 0), cfg(min_order_value=D(1000)))
+    assert [(t.side, t.qty) for t in r.trades] == [("BUY", D(100)), ("SELL", D(95)), ("SELL", D(5))]
+    assert r.final_positions == {}
+
+
+def test_order_size_limits_default_to_off_and_must_be_consistent():
+    assert cfg().min_order_value == 0 and cfg().max_order_value is None
+    with pytest.raises(ValueError, match="maximum"):
+        cfg(min_order_value=D(5000), max_order_value=D(1000))
+    with pytest.raises(ValueError, match="negative"):
+        cfg(min_order_value=D(-1))
+
+
+def test_progress_is_reported_for_every_day_with_the_total(env):
+    conn, a, _ = env
+    put_bars(conn, a, flat(100))
+    seen = []
+    r = run_backtest(conn, hold((a, 1)), cfg(), on_day=lambda i, n, d: seen.append((i, n, d)))
+    assert [(i, n) for i, n, _ in seen] == [(k, len(r.equity)) for k in range(1, len(r.equity) + 1)]
+    assert [d for _, _, d in seen] == [d for d, _ in r.equity]
+    quiet = run_backtest(conn, hold((a, 1)), cfg())
+    assert quiet.result_hash == r.result_hash  # watching progress changes nothing

@@ -117,13 +117,29 @@ describe("Benchmark detail", () => {
   });
 });
 
-describe("Backtest Explorer", () => {
-  it("keeps every run control disabled instead of faking a run", async () => {
+describe("Backtests", () => {
+  const run = (id: number, metrics: Record<string, unknown>) => ({ run_id: id, strategy_id: "trend_pullback", strategy_version: "1", reader_mode: "research", created_at: "2026-11-12T06:00:00+00:00", metrics, accounting_complete: true, ledger_reconciled: true, result_hash: "abc", label: null, study: null });
+  it("says so when there are no runs, and does not offer a run it cannot make", async () => {
     vi.stubGlobal("fetch", route({ "/api/backtests": { items: [], total: 0, limit: 50, offset: 0 } }));
     wrap(<BacktestsPage />);
-    expect(await screen.findByText("No backtests have been stored yet.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Run backtest" })).toBeDisabled();
-    for (const label of ["Strategy", "Cost schedule", "Initial capital"]) expect(screen.getByLabelText(label)).toBeDisabled();
+    expect(await screen.findByText("No runs yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /run backtest/i })).not.toBeInTheDocument();
+  });
+  it("names the study a run belongs to and labels the verdict's stress runs so they are not mistaken for trials", async () => {
+    vi.stubGlobal("fetch", route({ "/api/backtests": { items: [{ ...run(5, {}), label: "verdict: 2x costs", study: { experiment_id: 7, name: "My study" } }], total: 1, limit: 50, offset: 0 } }));
+    wrap(<BacktestsPage />);
+    expect(await screen.findByText("verdict: 2x costs")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "My study" })).toHaveAttribute("href", "/research/studies/7");
+  });
+  it("lists each run with its return and a link to the full report", async () => {
+    vi.stubGlobal("fetch", route({ "/api/backtests": { items: [run(2, { total_return: 1.1553, cagr: 0.14, max_drawdown: -0.27 }), run(3, { total_return: -0.05 })], total: 2, limit: 50, offset: 0 } }));
+    wrap(<BacktestsPage />);
+    const link = await screen.findByRole("link", { name: "#2 · view report" });
+    expect(link).toHaveAttribute("href", "/research/backtests/2");
+    const row = link.closest("tr") as HTMLElement;
+    expect(within(row).getByText("115.5%")).toBeInTheDocument();
+    expect(within(row).getByText("-27.0%")).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: "#3 · view report" }).closest("tr") as HTMLElement).getByText("-5.0%")).toBeInTheDocument();
   });
 });
 
@@ -177,7 +193,7 @@ describe("Data Explorer", () => {
   };
 
   it("labels the price basis, shows the adjustment version and surfaces data-quality warnings", async () => {
-    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars }));
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
@@ -214,7 +230,7 @@ describe("Data Explorer", () => {
   });
 
   it("closes the suggestion list once an instrument is chosen and reopens it when typing again", async () => {
-    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars }));
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     const box = screen.getByLabelText("Symbol, ISIN or name");
     fireEvent.change(box, { target: { value: "xy" } });
@@ -229,7 +245,7 @@ describe("Data Explorer", () => {
 
   it("offers intraday timeframes: asks the API for them, narrows the ranges and turns indicators off", async () => {
     const urls: string[] = [];
-    const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars });
+    const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } });
     vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
       urls.push(String(input));
       return respond(input);
@@ -420,7 +436,7 @@ describe("Data Explorer", () => {
 
   describe("strategy on the chart", () => {
     const params = { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 };
-    const saved = (id: string, name: string) => ({ config_id: id, name, strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params, in_use: false, created_at: "2026-11-11T10:00:00+00:00" });
+    const saved = (id: string, name: string) => ({ config_id: id, name, strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params, in_use: false, created_at: "2026-11-11T10:00:00+00:00", stage: "RESEARCH" });
     const me = { user: { id: "u1", email: "j@example.com", name: "Jane", role: "TRADER", permissions: ["strategy:own"], mfa_enabled: true, enrolment_required: false, must_change_password: false } };
     const day = (d: string, over: Record<string, unknown> = {}) => ({ day: d, close: "100", sma: "90", rsi: "20", ready: true, action: null, reason: null, holding_after: false, fill_day: null, fill_price: null, ...over });
     const signals = {

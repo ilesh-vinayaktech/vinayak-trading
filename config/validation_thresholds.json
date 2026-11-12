@@ -1,6 +1,6 @@
 {
-  "status": "provisional",
-  "note": "Initial proposed thresholds (v2, after owner review). The owner must explicitly confirm them BEFORE the first strategy is validated; changes after observing results invalidate the affected validation. Not industry or regulatory standards. Passing means the research-validation policy passed, not readiness for live capital. Definitions: docs/validation.md.",
+  "status": "confirmed",
+  "note": "Thresholds v2, confirmed by the owner on 2026-11-12 before any strategy was validated ('keep it, we will improve over time'). Changes after observing results invalidate the affected validation, so an improvement is a new version applied to later studies. Not industry or regulatory standards. Passing means the research-validation policy passed, not readiness for live capital. Definitions: docs/validation.md.",
   "long_only": {
     "min_oos_sharpe": 0.8,
     "min_dsr": 0.95,

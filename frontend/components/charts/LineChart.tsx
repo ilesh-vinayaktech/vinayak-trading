@@ -4,7 +4,10 @@ import { ColorType, createChart, LineSeries, PriceScaleMode, type MouseEventPara
 import { useEffect, useRef, useState } from "react";
 import { plotNumber } from "@/lib/formatting";
 
-export function LineChart({ points, color = "#0f172a" }: { points: { date: string; level: string }[]; color?: string }) {
+type Point = { date: string; level: string };
+
+/** `compare` draws a second, grey line (for example the index) on the same scale. */
+export function LineChart({ points, color = "#0f172a", compare }: { points: Point[]; color?: string; compare?: Point[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [log, setLog] = useState(true);
   const [hover, setHover] = useState<{ date: string; level: string } | null>(null);
@@ -19,6 +22,10 @@ export function LineChart({ points, color = "#0f172a" }: { points: { date: strin
       timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true },
     });
     const line = chart.addSeries(LineSeries, { color, lineWidth: 2, priceFormat: { type: "price", precision: 0, minMove: 1 } });
+    if (compare && compare.length > 0) {
+      const other = chart.addSeries(LineSeries, { color: "#94a3b8", lineWidth: 2, priceFormat: { type: "price", precision: 0, minMove: 1 } });
+      other.setData(compare.map((p) => ({ time: p.date as Time, value: plotNumber(p.level) })));
+    }
     line.setData(points.map((p) => ({ time: p.date as Time, value: plotNumber(p.level) })));
     const byDate = new Map(points.map((p) => [p.date, p]));
     const onMove = (m: MouseEventParams<Time>) => setHover(typeof m.time === "string" ? (byDate.get(m.time) ?? null) : null);
@@ -32,7 +39,7 @@ export function LineChart({ points, color = "#0f172a" }: { points: { date: strin
       chart.unsubscribeCrosshairMove(onMove);
       chart.remove();
     };
-  }, [points, color, log]);
+  }, [points, color, log, compare]);
   return (
     <div>
       <div className="mb-2 flex items-center gap-2 text-xs text-ink-soft">

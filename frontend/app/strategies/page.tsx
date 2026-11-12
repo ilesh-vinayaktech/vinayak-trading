@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { STAGE_LABEL, StageDialog } from "@/components/strategies/StageDialog";
 import { StrategyDialog } from "@/components/strategies/StrategyDialog";
 import { Alert } from "@/components/ui/Alert";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
@@ -21,6 +22,7 @@ export default function StrategiesPage() {
   const toast = useToast();
   const q = useQuery({ queryKey: ["strategies"], queryFn: api.strategies });
   const [editing, setEditing] = useState<StrategyConfig | "new" | null>(null);
+  const [staging, setStaging] = useState<StrategyConfig | null>(null);
   const done = (text: string) => {
     void qc.invalidateQueries({ queryKey: ["strategies"] });
     void qc.invalidateQueries({ queryKey: ["paper"] });
@@ -34,6 +36,7 @@ export default function StrategiesPage() {
     { key: "name", header: "Name", cell: (s) => <span className="font-medium">{s.name}</span> },
     { key: "on", header: "Trades", cell: (s) => `${options?.universes.find((u) => u.key === s.universe)?.label ?? s.universe}, ${s.max_instruments ? `top ${s.max_instruments} stocks` : "all stocks"}` },
     { key: "rules", header: "Rules", hideBelow: "md", cell: (s) => <span className="text-ink-soft">{rules(s.params)}</span> },
+    { key: "stage", header: "Stage", cell: (s) => <StatusPill tone={s.stage === "LIVE" ? "bad" : s.stage === "PAPER" ? "info" : "neutral"}>{STAGE_LABEL[s.stage]}</StatusPill> },
     { key: "used", header: "Paper account", cell: (s) => (s.in_use ? <StatusPill tone="good">In use</StatusPill> : <span className="text-ink-soft">Not used</span>) },
     {
       key: "actions",
@@ -42,6 +45,7 @@ export default function StrategiesPage() {
       cell: (s) => (
         <span className="inline-flex flex-wrap justify-end gap-2">
           <button type="button" onClick={() => setEditing(s)} className={buttonClass("secondary")}>Change</button>
+          <button type="button" onClick={() => setStaging(s)} className={buttonClass("secondary")}>Stage</button>
           {!s.in_use ? <button type="button" onClick={() => use.mutate(s.config_id)} disabled={use.isPending} className={buttonClass("secondary")}>Use for paper trading</button> : null}
           {!s.in_use ? <ConfirmButton tone="danger" question={`Delete ${s.name}?`} confirmLabel="Delete" onConfirm={() => remove.mutate(s.config_id)}>Delete</ConfirmButton> : null}
         </span>
@@ -70,6 +74,7 @@ export default function StrategiesPage() {
           empty={<EmptyState icon="flask" title="No strategies yet">Create one to choose the stocks and rules, then give it to your paper account.</EmptyState>}
         />
       </Panel>
+      {staging ? <StageDialog key={staging.config_id} strategy={staging} onClose={() => setStaging(null)} /> : null}
       {editing && options ? <StrategyDialog key={editing === "new" ? "new" : editing.config_id} open onClose={() => setEditing(null)} options={options} strategy={editing === "new" ? undefined : editing} /> : null}
     </div>
   );

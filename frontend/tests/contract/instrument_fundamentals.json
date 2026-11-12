@@ -1,0 +1,32 @@
+{
+ "bases": [
+  "CONSOLIDATED"
+ ],
+ "basis": "CONSOLIDATED",
+ "instrument_id": 1,
+ "periods": [
+  {
+   "audited": true,
+   "bank": false,
+   "filed_at": "2025-07-10T13:00:00+00:00",
+   "instant": {
+    "Assets": "1907820000000",
+    "Equity": "1199940000000"
+   },
+   "period_end": "2025-06-30",
+   "period_start": "2025-04-01",
+   "quarter": {
+    "BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations": "38.37",
+    "FaceValueOfEquityShareCapital": "1",
+    "Income": "745250000000",
+    "PaidUpValueOfEquityShareCapital": "3620000000",
+    "ProfitLossForPeriod": "139340000000"
+   },
+   "rounding": "Crores",
+   "ytd": {
+    "CashFlowsFromUsedInOperatingActivities": "258010000000"
+   }
+  }
+ ],
+ "symbol": "XYZ"
+}

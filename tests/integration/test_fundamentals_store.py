@@ -56,7 +56,9 @@ def test_a_filing_and_its_facts_are_stored_once_and_read_back_as_quarter_rows(en
         "ab" * 32,
     )
     assert (
-        conn.execute("SELECT count(*) FROM fundamental_fact WHERE scope='YTD'").fetchone()[0]
+        conn.execute(
+            "SELECT count(*) FROM fundamental_fact WHERE scope='YTD' AND metric !~ '^[A-Z]'"
+        ).fetchone()[0]
         == len(st.ytd)
         > 0
     )

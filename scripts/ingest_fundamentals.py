@@ -5,7 +5,7 @@ Resumable: re-run to continue; filings already stored are not downloaded again. 
 seconds through the repo's NseClient (cookies refreshed every 40 symbols), and a 401/403 stops the whole run.
 Raw listings and XBRL files are kept untouched in the lake. Nothing outside the fundamental_* tables is written.
 usage: ingest_fundamentals.py --db URL [--lake data/lake] [--since 2016-04-01] [--basis CONSOLIDATED|STANDALONE|BOTH]
-       [--symbols A,B] [--offset N] [--limit N] [--interval 1.0]"""
+       [--integrated] [--symbols A,B] [--offset N] [--limit N] [--interval 1.0]"""
 
 import argparse
 import csv
@@ -31,11 +31,20 @@ ap.add_argument("--basis", choices=("CONSOLIDATED", "STANDALONE", "BOTH"), defau
 ap.add_argument("--symbols", default="")
 ap.add_argument("--offset", type=int, default=0)
 ap.add_argument("--limit", type=int, default=0)
+ap.add_argument(
+    "--integrated",
+    action="store_true",
+    help="read the SEBI integrated-filing feed (results from 2025 on)",
+)
 ap.add_argument("--interval", type=float, default=1.0)
 a = ap.parse_args()
 if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
-WARM = "https://www.nseindia.com/companies-listing/corporate-filings-financial-results"
+WARM = (
+    "https://www.nseindia.com/companies-listing/corporate-integrated-filing?integratedType=integratedfilingfinancials"
+    if a.integrated
+    else "https://www.nseindia.com/companies-listing/corporate-filings-financial-results"
+)
 
 if a.symbols:
     universe = [s.strip() for s in a.symbols.split(",") if s.strip()]
@@ -59,7 +68,14 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             client.warm(WARM)
         try:
             r = ingest_symbol(
-                conn, lake, client.get, sym, datetime.now(UTC), since=a.since, bases=bases
+                conn,
+                lake,
+                client.get,
+                sym,
+                datetime.now(UTC),
+                since=a.since,
+                bases=bases,
+                integrated=a.integrated,
             )
         except Blocked as e:
             print(f"STOPPED at {sym}: {e}", flush=True)

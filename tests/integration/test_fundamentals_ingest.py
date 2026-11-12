@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from algo.data.fundamentals_ingest import Blocked, ingest_symbol
+from algo.data.fundamentals_ingest import Blocked, backfill_facts, ingest_symbol
 from algo.data.lake import LocalLake
 from algo.data.providers.nse_client import NotPublished, NseHttpError
 from algo.data.store.instruments import InstrumentRepo
@@ -15,6 +15,8 @@ DATA = Path(__file__).parents[1] / "data/nse"
 NOW = datetime(2026, 11, 10, tzinfo=UTC)
 LISTING = (DATA / "results_listing_RELIANCE.json").read_bytes()
 XBRL = (DATA / "results_xbrl_RELIANCE_cons.xml").read_bytes()
+INTEGRATED = (DATA / "integrated_listing_TCS.json").read_bytes()
+TCS_XBRL = (DATA / "integrated_xbrl_TCS_cons_2026q2.xml").read_bytes()
 
 
 class Fake:
@@ -30,8 +32,10 @@ class Fake:
                 raise exc
         if "corporates-financial-results" in url:
             return self.listing
+        if "integrated-filing-results" in url:
+            return INTEGRATED
         if (
-            "_1348254_" in url
+            "_1348254_" in url or "_1734606_" in url
         ):  # the standalone filing of the fixture gets a genuine standalone statement
             return self.xbrl.replace(b">Consolidated<", b">Standalone<")
         return self.xbrl
@@ -241,3 +245,49 @@ def test_a_symbol_alias_that_was_not_valid_on_the_filing_date_never_links(env):
     assert conn.execute("SELECT DISTINCT instrument_id FROM fundamental_filing").fetchall() == [
         (None,)
     ]
+
+
+def test_integrated_filings_are_loaded_with_isin_from_the_xbrl_and_matched_to_the_instrument(env):
+    conn, lake, _ = env
+    tcs = InstrumentRepo(conn).add_instrument(
+        conn.execute("SELECT min(exchange_id) FROM exchange").fetchone()[0],
+        "TCS",
+        isin="INE467B01029",
+    )
+    fake = Fake(xbrl=TCS_XBRL)
+    r = ingest_symbol(conn, lake, fake, "TCS", NOW, since=date(2025, 1, 1), integrated=True)
+    # the fixture also holds a PAGEIND revision, which the symbol filter drops
+    assert (r.listed, r.stored) == (2, 2)
+    assert conn.execute(
+        "SELECT DISTINCT instrument_id, isin, seq_number LIKE 'IF%%', rounding FROM fundamental_filing"
+    ).fetchall() == [(tcs, "INE467B01029", True, "Crores")]
+    assert lake.versions("nse", "integrated_filing_TCS", NOW.date())
+    again = ingest_symbol(
+        conn, lake, Fake(xbrl=TCS_XBRL), "TCS", NOW, since=date(2025, 1, 1), integrated=True
+    )
+    assert (again.stored, again.already) == (0, 2)
+
+
+def test_the_whole_filing_is_stored_and_a_backfill_restores_it_for_filings_stored_before(env):
+    conn, lake, _ = env
+    InstrumentRepo(conn).add_instrument(
+        conn.execute("SELECT min(exchange_id) FROM exchange").fetchone()[0],
+        "TCS",
+        isin="INE467B01029",
+    )
+    ingest_symbol(
+        conn, lake, Fake(xbrl=TCS_XBRL), "TCS", NOW, since=date(2025, 1, 1), integrated=True
+    )
+    q = "SELECT scope, count(*) FROM fundamental_fact WHERE metric ~ '^[A-Z]' GROUP BY 1 ORDER BY 1"
+    full = conn.execute(q).fetchall()
+    assert [s for s, _ in full] == ["INSTANT", "QUARTER", "YTD"] and all(n > 20 for _, n in full)
+    assert (
+        conn.execute(
+            "SELECT value FROM fundamental_fact WHERE metric='Assets' AND scope='INSTANT' LIMIT 1"
+        ).fetchone()[0]
+        == 1907820000000
+    )
+    conn.execute("DELETE FROM fundamental_fact WHERE metric ~ '^[A-Z]'")
+    assert backfill_facts(conn, lake) == 2  # two filings re-read from the lake, no network
+    assert conn.execute(q).fetchall() == full
+    assert backfill_facts(conn, lake) == 2 and conn.execute(q).fetchall() == full  # idempotent

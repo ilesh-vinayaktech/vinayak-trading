@@ -198,6 +198,29 @@ def create_app(
             raise HTTPException(404, f"no instrument {instrument_id}")
         return {**row, "actions": queries.instrument_actions(c, instrument_id)}
 
+    @app.get("/api/instruments/{instrument_id}/fundamentals")
+    def fundamentals(
+        c: Conn,
+        instrument_id: int,
+        basis: Literal["CONSOLIDATED", "STANDALONE"] | None = None,
+        quarters: int = Query(12, ge=1, le=40),
+    ) -> dict[str, Any]:
+        row = queries.instrument_fundamentals(c, instrument_id, basis, quarters)
+        if row is None:
+            raise HTTPException(404, f"no instrument {instrument_id}")
+        return row
+
+    @app.get("/api/instruments/{instrument_id}/ratios")
+    def ratios(
+        c: Conn,
+        instrument_id: int,
+        basis: Literal["CONSOLIDATED", "STANDALONE"] | None = None,
+    ) -> dict[str, Any]:
+        row = queries.instrument_ratios(c, instrument_id, basis)
+        if row is None:
+            raise HTTPException(404, f"no instrument {instrument_id}")
+        return row
+
     @app.get("/api/instruments/{instrument_id}/bars")
     def bars(
         c: Conn,
@@ -313,6 +336,13 @@ def create_app(
     @app.get("/api/backtests/{run_id}")
     def backtest(c: Conn, run_id: int) -> dict[str, Any]:
         row = queries.backtest(c, run_id)
+        if row is None:
+            raise HTTPException(404, f"no backtest {run_id}")
+        return row
+
+    @app.get("/api/backtests/{run_id}/report")
+    def backtest_report(c: Conn, run_id: int) -> dict[str, Any]:
+        row = queries.backtest_report(c, run_id)
         if row is None:
             raise HTTPException(404, f"no backtest {run_id}")
         return row

@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal as D
 
 import pytest
@@ -306,6 +306,80 @@ def test_a_stored_backtest_is_listed_and_returned_by_id(api, conn):
     assert full["result_hash"] == "rh" and full["reader_mode"] == "research"
 
 
+def test_a_backtest_report_pairs_the_stored_trades_into_round_trips(api, conn):
+    c, iid, _ = api
+    assert c.get("/api/backtests/1/report").status_code == 404
+    run_id = conn.execute(
+        "INSERT INTO backtest_run (strategy_id,strategy_version,params,params_hash,code_version,"
+        "reader_mode,config,cost_model,adjustment_versions,provisional_events,unapplied_events,"
+        "blocked_instruments,unmodelled_events,accounting_complete,dividends_received,metrics,"
+        "result_hash,created_at,ledger_reconciled,reconciliation,pnl) VALUES ('s','1','{}','ph','c',"
+        '\'research\',\'{"initial_cash": "10000", "start": "2024-01-01", "end": "2024-03-01"}\','
+        "'{}','{}','[]','[]','[]','[]',true,0,'{}','rh',%s,true,'{}','{}') RETURNING run_id",
+        (NOW,),  # fmt: skip
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO backtest_trade (run_id,seq,day,instrument_id,side,qty,price,cost) VALUES "
+        "(%s,1,'2024-01-01',%s,'BUY',10,100,2),(%s,2,'2024-02-01',%s,'SELL',10,130,3)",
+        (run_id, iid, run_id, iid),
+    )
+    conn.execute(
+        "INSERT INTO backtest_equity VALUES (%s,'2024-01-01',10000),(%s,'2024-03-01',10295)",
+        (run_id, run_id),
+    )
+    r = c.get(f"/api/backtests/{run_id}/report").json()
+    trip = r["round_trips"][0]
+    assert (trip["symbol"], trip["qty"], trip["gross"], trip["charges"], trip["net"]) == (
+        "XYZ",
+        "10",
+        "300",
+        "5",
+        "295",
+    )
+    assert (r["headline"]["final"], r["headline"]["change"]) == ("10295", "295")
+    assert r["by_stock"][0]["net"] == "295" and r["start"] == "2024-01-01"
+    assert "is not loaded" in r["benchmark"]["note"] and r["benchmark"]["curve"] == []
+    assert (
+        r["study"] is None and r["summary"]["cost_drag"] == "0.0167"
+    )  # 5 of the 300 made before charges
+
+    from algo.backtest.validation import registry
+    from algo.research import study_jobs
+
+    exp = registry.register(conn, name="S", strategy_id="s", hypothesis="h", style="long_only", param_ranges={},
+                            holdout=(date(2024, 6, 1), date(2024, 7, 1)), now=NOW, study={})  # fmt: skip
+    study_jobs.save_trial(conn, exp, {"a": 1}, "h", "DONE", NOW, backtest_run=run_id)
+    assert c.get(f"/api/backtests/{run_id}/report").json()["study"] == {
+        "experiment_id": exp,
+        "name": "S",
+    }
+
+    from algo.data.benchmark import DEFAULT_BENCHMARK
+
+    bid = register(conn, name=DEFAULT_BENCHMARK, provider="p", index_symbol="N200TRI",
+                   return_type="TOTAL_RETURN", methodology_version="m")  # fmt: skip
+    levels = [(date(2024, 1, 1), D(1000)), (date(2024, 3, 1), D(1100))]
+    ingest(conn, bid, levels, source="s", source_timestamp=NOW, raw_hash="h2", now=NOW)
+    assert (
+        "no passing validation"
+        in c.get(f"/api/backtests/{run_id}/report").json()["benchmark"]["note"]
+    )
+    store_validation(conn, bid, report={"report_version": "2", "technical_validation_passed": True,
+                                        "check_states": {}}, passed=True, normalized_sha256="n",
+                     factsheet_sha256=None, unresolved=[], now=NOW)  # fmt: skip
+    b = c.get(f"/api/backtests/{run_id}/report").json()["benchmark"]
+    assert (b["name"], b["note"], b["return"], b["final"]) == (
+        DEFAULT_BENCHMARK,
+        None,
+        "0.1000",
+        "11000",
+    )
+    assert b["strategy_return"] == "0.0295" and [p["level"] for p in b["curve"]] == [
+        "10000",
+        "11000",
+    ]
+
+
 def test_every_database_session_is_read_only_and_time_limited(pg_url, conn):
     import psycopg
 
@@ -516,3 +590,123 @@ def test_the_wider_minute_and_hour_timeframes_are_accepted_with_their_own_range_
     assert (
         c.get(url, params={**q, "timeframe": "10m", "end": "2026-02-15"}).status_code == 422
     )  # 251 days > 248
+
+
+def _filing(conn, iid, seq, end, basis, filed, facts):
+    fid = conn.execute(
+        "INSERT INTO fundamental_filing (symbol,isin,instrument_id,seq_number,period_start,period_end,basis,audited,bank,"
+        "filed_at,rounding,xbrl_url,raw_sha256,ingested_at) VALUES ('XYZ','INX',%s,%s,%s,%s,%s,true,false,%s,'Crores','u','h',%s)"
+        " RETURNING filing_id",
+        (iid, seq, end - timedelta(days=89), end, basis, filed, NOW),
+    ).fetchone()[0]
+    for scope, metric, value in facts:
+        conn.execute(
+            "INSERT INTO fundamental_fact VALUES (%s,%s,%s,%s)", (fid, metric, scope, value)
+        )
+
+
+def test_fundamentals_are_the_latest_filing_per_quarter_for_the_chosen_basis(api, conn):
+    c, iid, _ = api
+    empty = {"instrument_id": iid, "symbol": "XYZ", "bases": [], "basis": None, "periods": []}
+    assert c.get(f"/api/instruments/{iid}/fundamentals").json() == empty
+    assert c.get("/api/instruments/999/fundamentals").status_code == 404
+    d = datetime(2026, 1, 1, tzinfo=UTC)
+    q4, q3 = date(2025, 12, 31), date(2025, 9, 30)
+    _filing(
+        conn,
+        iid,
+        "1",
+        q4,
+        "CONSOLIDATED",
+        d,
+        [("QUARTER", "Income", D(10)), ("INSTANT", "Assets", D(500)), ("QUARTER", "pat", D(1))],
+    )
+    _filing(
+        conn, iid, "2", q4, "CONSOLIDATED", d + timedelta(days=30), [("QUARTER", "Income", D(12))]
+    )  # restated
+    _filing(conn, iid, "3", q3, "CONSOLIDATED", d - timedelta(days=90), [("YTD", "Income", D(7))])
+    _filing(conn, iid, "4", q4, "STANDALONE", d, [("QUARTER", "Income", D(3))])
+    r = c.get(f"/api/instruments/{iid}/fundamentals").json()
+    assert (r["bases"], r["basis"]) == (["CONSOLIDATED", "STANDALONE"], "CONSOLIDATED")
+    assert [p["period_end"] for p in r["periods"]] == ["2025-12-31", "2025-09-30"]  # newest first
+    assert (
+        r["periods"][0]["quarter"] == {"Income": "12"} and r["periods"][0]["instant"] == {}
+    )  # the restated filing wins
+    assert r["periods"][1]["ytd"] == {"Income": "7"} and r["periods"][0]["rounding"] == "Crores"
+    s = c.get(
+        f"/api/instruments/{iid}/fundamentals", params={"basis": "STANDALONE", "quarters": 1}
+    ).json()
+    assert s["basis"] == "STANDALONE" and s["periods"][0]["quarter"] == {"Income": "3"}
+    assert c.get(f"/api/instruments/{iid}/fundamentals", params={"basis": "X"}).status_code == 422
+
+
+def test_ratios_are_computed_from_filings_with_a_year_ago_and_a_history_and_withheld_after_a_split(
+    api, conn
+):
+    c, iid, _ = api
+    assert c.get("/api/instruments/999/ratios").status_code == 404
+    assert c.get(f"/api/instruments/{iid}/ratios").json()["ratios"] == []
+    assert c.get(f"/api/instruments/{iid}/ratios", params={"basis": "X"}).status_code == 422
+    ends = [
+        date(2025, 3, 31),
+        date(2025, 6, 30),
+        date(2025, 9, 30),
+        date(2025, 12, 31),
+        date(2026, 3, 31),
+        date(2026, 6, 30),
+    ]
+    for i, end in enumerate(ends):
+        facts = [
+            ("QUARTER", "RevenueFromOperations", D(1000 + 100 * i)),
+            ("QUARTER", "ProfitLossForPeriod", D(100 + 10 * i)),
+            (
+                "QUARTER",
+                "BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations",
+                D(10 + i),
+            ),
+            ("QUARTER", "PaidUpValueOfEquityShareCapital", D(1000)),
+            ("QUARTER", "FaceValueOfEquityShareCapital", D(10)),
+        ]
+        if i == len(ends) - 1:
+            facts += [("INSTANT", "Equity", D(2000)), ("INSTANT", "Assets", D(5000))]
+        _filing(
+            conn,
+            iid,
+            str(i),
+            end,
+            "CONSOLIDATED",
+            datetime(end.year, end.month, 28, tzinfo=UTC) + timedelta(days=45),
+            facts,
+        )
+    r = c.get(f"/api/instruments/{iid}/ratios").json()
+    by = {x["key"]: x for x in r["ratios"]}
+    assert (r["basis"], r["bank"], r["latest_period"]) == ("CONSOLIDATED", False, "2026-06-30")
+    assert by["revenue_growth"]["value"] == "36.3636"  # 1500 against 1100 a year earlier
+    assert (
+        by["roe"]["value"] is not None
+        and by["roe"]["as_of"] == "2026-06-30"
+        and by["roe"]["unit"] == "pct"
+    )
+    assert by["pe"]["value"] is not None and r["price"]["value"] == "2.0000"
+    assert (
+        by["market_cap"]["year_ago"] is not None
+    )  # valued at last year's results with that day's close
+    assert by["market_cap"]["history"][-1]["period_end"] == "2026-06-30"
+    assert by["roe"]["reading"] in {"good", "ok", "weak"} and "owners" in by["roe"]["meaning"]
+    assert (
+        by["revenue_growth"]["history"]
+        and by["revenue_growth"]["history"][-1]["period_end"] == "2026-06-30"
+    )
+    assert [x["key"] for x in r["ratios"] if x["group"] == "valuation"][0] == "market_cap"
+    conn.execute(  # a later close, so the split below went ex between the results and the price
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,dataset_version,ingested_at)"
+        " VALUES (%s,'2026-09-10 03:45+00',1,2,1,1,100,'nse',1,%s)",
+        (iid, NOW),
+    )
+    conn.execute(
+        "INSERT INTO corporate_action (instrument_id,ex_date,kind,status,num,den,subject,knowledge_time,"
+        "knowledge_time_source,source,raw_checksum,ingested_at) VALUES (%s,'2026-09-01','split','ok',2,1,'t',%s,'ex_date_proxy','nse','x',%s)",
+        (iid, NOW, NOW),
+    )
+    after = {x["key"]: x for x in c.get(f"/api/instruments/{iid}/ratios").json()["ratios"]}
+    assert after["pe"]["value"] is None and "split or bonus" in after["pe"]["note"]

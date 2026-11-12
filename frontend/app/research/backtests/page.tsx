@@ -1,69 +1,39 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge, Flag } from "@/components/status/Badge";
-import { Card, ErrorBox, Loading } from "@/components/status/LoadState";
-import { DataTable } from "@/components/tables/DataTable";
+import { Alert } from "@/components/ui/Alert";
+import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
+import { Panel, RelativeTime } from "@/components/ui/Layout";
 import { api } from "@/lib/api/client";
-import { fmtDateTime, shortHash } from "@/lib/formatting";
 import type { BacktestRow } from "@/lib/schemas";
 
-const COLUMNS: ColumnDef<BacktestRow, unknown>[] = [
-  { header: "Run", accessorKey: "run_id", cell: ({ getValue }) => `#${String(getValue())}` },
-  { header: "Strategy", cell: ({ row }) => `${row.original.strategy_id} v${row.original.strategy_version}` },
-  { header: "Reader mode", accessorKey: "reader_mode" },
-  { header: "Created", accessorKey: "created_at", cell: ({ getValue }) => fmtDateTime(String(getValue())) },
-  { header: "Accounting", cell: ({ row }) => <Flag value={row.original.accounting_complete} yes="complete" no="incomplete" /> },
-  { header: "Ledger", cell: ({ row }) => <Flag value={row.original.ledger_reconciled} yes="reconciled" no="not reconciled" /> },
-  { header: "Result hash", accessorKey: "result_hash", cell: ({ getValue }) => <code className="text-xs">{shortHash(String(getValue()), 12)}</code> },
+const pct = (v: unknown) => (typeof v === "number" ? `${(v * 100).toFixed(1)}%` : "-");
+const colour = (v: unknown) => (typeof v === "number" && v < 0 ? "text-red-600" : "text-emerald-700");
+
+const COLUMNS: Column<BacktestRow>[] = [
+  { key: "run", header: "Run", cell: (r) => <Link href={`/research/backtests/${r.run_id}`} className="font-medium text-brand hover:underline">#{r.run_id} · view report</Link> },
+  { key: "s", header: "Strategy", cell: (r) => <span>{r.strategy_id} v{r.strategy_version}{r.label ? <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-ink-soft">{r.label}</span> : null}</span> },
+  { key: "study", header: "Study", hideBelow: "md", cell: (r) => (r.study ? <Link href={`/research/studies/${r.study.experiment_id}`} className="text-brand hover:underline">{r.study.name}</Link> : <span className="text-ink-faint">-</span>) },
+  { key: "ret", header: "Total return", className: "text-right", cell: (r) => <span className={colour(r.metrics.total_return)}>{pct(r.metrics.total_return)}</span> },
+  { key: "cagr", header: "Yearly return", className: "text-right", hideBelow: "md", cell: (r) => pct(r.metrics.cagr) },
+  { key: "dd", header: "Worst drop", className: "text-right", hideBelow: "md", cell: (r) => pct(r.metrics.max_drawdown) },
+  { key: "tr", header: "Fills", className: "text-right", hideBelow: "lg", cell: (r) => (typeof r.metrics.trades === "number" ? r.metrics.trades : "-") },
+  { key: "at", header: "Run", hideBelow: "sm", cell: (r) => <RelativeTime iso={r.created_at} /> },
 ];
 
-const DISABLED_FIELDS = [
-  ["Strategy", "No strategies are registered yet"],
-  ["Instrument / universe", "Needs the strategy runner"],
-  ["Date range", "Needs the strategy runner"],
-  ["Dataset version", "Needs the strategy runner"],
-  ["Adjustment mode", "none, split or total_return"],
-  ["Cost schedule", "Needs verified cost schedules"],
-  ["Initial capital", "Needs the strategy runner"],
-];
-
-const RESULTS = ["Equity curve", "Drawdown", "Monthly returns", "Sharpe and deflated Sharpe", "PBO", "Benchmark comparison", "Trade history", "Ledger reconciliation"];
-
+/** Every stored run. Runs come from the backtest studies; open one to see what it bought, sold and made. */
 export default function BacktestsPage() {
-  const { data, error, isLoading } = useQuery({ queryKey: ["backtests"], queryFn: () => api.backtests() });
+  const q = useQuery({ queryKey: ["backtests"], queryFn: () => api.backtests() });
   return (
     <div className="space-y-6">
-      <PageHeader title="Backtest Explorer" subtitle="Skeleton. Running a backtest needs the orchestrator, which does not exist yet, so the controls below are disabled rather than faked." />
-
-      <Card title="New run (not available)" note="Every run will be reproducible from its saved configuration and evidence references.">
-        <div className="grid gap-3 md:grid-cols-2">
-          {DISABLED_FIELDS.map(([label, why]) => (
-            <div key={label}>
-              <label className="block text-xs text-ink-soft">{label}</label>
-              <input disabled aria-label={label} placeholder={why} className="mt-1 w-full cursor-not-allowed rounded-md border border-line bg-slate-50 px-3 py-2 text-sm" />
-            </div>
-          ))}
-        </div>
-        <button type="button" disabled className="mt-4 cursor-not-allowed rounded-md bg-slate-300 px-4 py-2 text-sm text-white">
-          Run backtest
-        </button>
-      </Card>
-
-      <Card title="Stored runs">
-        {isLoading ? <Loading what="runs" /> : error || !data ? <ErrorBox error={error} what="runs" /> : <DataTable data={data.items} columns={COLUMNS} empty="No backtests have been stored yet." />}
-      </Card>
-
-      <Card title="What a finished run will show">
-        <div className="flex flex-wrap gap-2">
-          {RESULTS.map((r) => (
-            <Badge key={r}>{r}</Badge>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-ink-faint">All figures will come from the backend; the browser will not compute P&L, Sharpe, fees or adjustments.</p>
-      </Card>
+      <PageHeader title="Backtests" subtitle="Every run the studies have produced. Open one to see the stocks it traded, each trade's profit or loss, and the final amount." />
+      {q.isError ? <Alert tone="error">Could not load the runs.</Alert> : null}
+      <Panel>
+        <DataTable caption="Stored backtest runs" columns={COLUMNS} rows={q.data?.items} rowKey={(r) => String(r.run_id)} loading={q.isLoading}
+          empty={<EmptyState icon="flask" title="No runs yet">Register a backtest study and run its trials; each combination appears here.</EmptyState>} />
+      </Panel>
     </div>
   );
 }

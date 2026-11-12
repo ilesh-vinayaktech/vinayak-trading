@@ -175,7 +175,7 @@ def audit_actions_like(conn, like):
     ]
 
 
-def test_only_the_person_who_may_run_strategies_starts_or_cancels_a_run_and_a_started_run_cannot_be_cancelled(
+def test_only_the_person_who_may_run_strategies_starts_or_cancels_a_run_and_a_started_run_is_asked_to_stop(
     env,
 ):
     from algo.research import study_jobs
@@ -193,9 +193,106 @@ def test_only_the_person_who_may_run_strategies_starts_or_cancels_a_run_and_a_st
     assert jane.post("/api/studies/9999/runs").status_code == 404
     rid2 = jane.post(f"/api/studies/{sid}/runs").json()["run_id"]
     study_jobs.claim(conn, NOW)
-    assert jane.post(f"/api/studies/runs/{rid2}/cancel").status_code == 400  # it has started
+    assert jane.post(f"/api/studies/runs/{rid2}/cancel").json() == {
+        "ok": True
+    }  # it has started: asked to stop
+    assert jane.get(f"/api/studies/{sid}/results").json()["run"]["cancel_requested"] is True
+    study_jobs.finish(conn, rid2, "CANCELLED", NOW)  # what the worker does at its next check
+    assert (
+        jane.post(f"/api/studies/runs/{rid2}/cancel").status_code == 400
+    )  # finished: nothing to stop
     assert audit_actions_like(conn, "study.run%") == [
         "study.run_requested",
         "study.run_cancelled",
         "study.run_requested",
+        "study.run_cancelled",
     ]
+
+
+def test_a_verdict_needs_every_trial_finished_and_is_a_separate_job_from_the_trials(env):
+    from algo.research import study_jobs
+
+    conn, app = env
+    jane, viewer = sign_in(app, "jane@example.com"), sign_in(app, "viewer@example.com")
+    sid = jane.post("/api/studies", json=body()).json()["experiment_id"]
+    planned = jane.get(f"/api/studies/{sid}").json()["trials_planned"]
+    nothing = jane.get(f"/api/studies/{sid}/verdict").json()
+    assert (
+        nothing["run"],
+        nothing["report"],
+        nothing["trials_done"],
+        nothing["trials_planned"],
+    ) == (None, None, 0, planned)
+    early = jane.post(f"/api/studies/{sid}/verdicts")
+    assert early.status_code == 400 and "run all trials first" in early.json()["detail"]
+    for k in range(planned):
+        study_jobs.save_trial(
+            conn,
+            sid,
+            {"entry_rsi": k},
+            f"h{k}",
+            "DONE",
+            NOW,
+            metrics={"sharpe": 1.0},
+            returns=[0.01],
+        )
+    assert viewer.post(f"/api/studies/{sid}/verdicts").status_code == 403
+    rid = jane.post(f"/api/studies/{sid}/verdicts").json()["run_id"]
+    assert jane.post(f"/api/studies/{sid}/verdicts").status_code == 400  # one active job per study
+    v = jane.get(f"/api/studies/{sid}/verdict").json()
+    assert (v["run"]["run_id"], v["run"]["kind"], v["run"]["status"], v["trials_done"]) == (
+        rid,
+        "verdict",
+        "QUEUED",
+        planned,
+    )
+    assert (
+        jane.get(f"/api/studies/{sid}/results").json()["run"] is None
+    )  # the trials panel does not show it
+    assert audit_actions_like(conn, "study.verdict%") == ["study.verdict_requested"]
+    assert jane.post("/api/studies/9999/verdicts").status_code == 404
+    assert jane.get("/api/studies/9999/verdict").status_code == 404
+
+
+def test_the_holdout_can_be_requested_only_after_a_passing_verdict_and_only_by_someone_who_may(env):
+    from algo.backtest.validation.gates import Evidence, Thresholds, evaluate
+    from algo.backtest.validation.registry import save_report
+
+    conn, app = env
+    jane, viewer = sign_in(app, "jane@example.com"), sign_in(app, "viewer@example.com")
+    sid = jane.post("/api/studies", json=body()).json()["experiment_id"]
+    assert viewer.post(f"/api/studies/{sid}/holdout").status_code == 403
+    assert jane.post("/api/studies/9999/holdout").status_code == 404
+    early = jane.post(f"/api/studies/{sid}/holdout")
+    assert early.status_code == 400 and "passed every check" in early.json()["detail"]
+    base = conn.execute(
+        "INSERT INTO backtest_run (strategy_id,strategy_version,params,params_hash,code_version,reader_mode,config,cost_model,"
+        "adjustment_versions,provisional_events,unapplied_events,blocked_instruments,unmodelled_events,accounting_complete,"
+        "dividends_received,metrics,result_hash,created_at,ledger_reconciled,reconciliation,pnl) VALUES ('s','1','{}','p','c',"
+        "'research','{}','{}','{}','[]','[]','[]','[]',true,0,'{}','rh',%s,true,'{}','{}') RETURNING run_id", (NOW,)).fetchone()[0]  # fmt: skip
+    ev = Evidence()
+    rid = save_report(
+        conn,
+        sid,
+        base,
+        evaluate(ev, Thresholds(*([0.0] * 12)), "confirmed"),
+        ev,
+        1,
+        NOW,
+        refs={"chosen": {}},
+    )
+    failing = jane.post(f"/api/studies/{sid}/holdout")
+    assert failing.status_code == 400  # the verdict failed (missing evidence)
+    conn.execute("UPDATE validation_report SET passed=true WHERE report_id=%s", (rid,))
+    queued = jane.post(f"/api/studies/{sid}/holdout").json()["run_id"]
+    v = jane.get(f"/api/studies/{sid}/verdict").json()
+    assert (v["holdout_run"]["run_id"], v["holdout_run"]["kind"], v["holdout"]) == (
+        queued,
+        "holdout",
+        None,
+    )
+    assert v["run"] is None  # the verdict panel's own job is separate
+    conn.execute("UPDATE experiment SET holdout_opened_at=%s WHERE experiment_id=%s", (NOW, sid))
+    conn.execute("UPDATE study_run SET status='DONE' WHERE run_id=%s", (queued,))
+    assert "already been opened" in jane.post(f"/api/studies/{sid}/holdout").json()["detail"]
+    assert audit_actions_like(conn, "study.holdout%") == ["study.holdout_requested"]

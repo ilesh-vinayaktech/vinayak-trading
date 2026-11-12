@@ -234,6 +234,7 @@ const STRATEGY = {
   timeframe: "1D",
   params: { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 },
   in_use: false,
+  stage: "RESEARCH",
   created_at: "2026-11-11T10:00:00+00:00",
 };
 const strategies = (list: Record<string, unknown>[]) => ({

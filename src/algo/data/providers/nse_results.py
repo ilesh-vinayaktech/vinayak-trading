@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import xml.etree.ElementTree as ET  # noqa: S405 - DOCTYPE/ENTITY are rejected before parsing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -49,6 +49,9 @@ METRICS: dict[str, tuple[str, ...]] = {
 }
 
 
+NOT_A_FIGURE = frozenset({"ScripCode"})  # numeric-looking identifiers
+
+
 class XbrlError(Exception):
     pass
 
@@ -81,6 +84,9 @@ class Statement:
     rounding: str
     quarter: dict[str, Decimal]
     ytd: dict[str, Decimal]
+    isin: str = ""  # the integrated-filing XBRL carries it; its listing does not
+    # every company-level numeric fact by its XBRL element name, per scope: QUARTER, YTD, INSTANT (balance sheet date)
+    extra: dict[str, dict[str, Decimal]] = field(default_factory=dict)
 
 
 def _stamp(text: str) -> datetime:
@@ -114,6 +120,37 @@ def parse_listing(raw: bytes) -> list[Filing]:
         )
         for r in rows
     ]  # fmt: skip
+
+
+def _stamp_any(text: str) -> datetime:  # the integrated feed writes months in capitals: 30-SEP-2026
+    return datetime.strptime(text, "%d-%b-%Y %H:%M:%S").replace(tzinfo=IST).astimezone(UTC)  # noqa: DTZ007
+
+
+def parse_integrated_listing(raw: bytes) -> list[Filing]:
+    """SEBI integrated-filing financials (from 2025), `/api/integrated-filing-results`. The listing has no ISIN, bank flag
+    or period start: the caller fills ISIN and bank from the XBRL, and the quarter start is derived from the quarter end
+    (the XBRL's own period is what gets stored). A revision with no broadcast time is known from its revision time."""
+    try:
+        rows = json.loads(raw)["data"]
+    except (ValueError, KeyError, TypeError) as e:
+        raise XbrlError("not an integrated-filing listing") from e
+    out = []
+    for r in rows:
+        end = datetime.strptime(r["qe_Date"], "%d-%b-%Y").date()  # noqa: DTZ007
+        y, m = divmod(
+            end.year * 12 + end.month - 3, 12
+        )  # first day of the month two before the quarter end's month
+        stamp = r.get("broadcast_Date") or r.get("revised_Date")
+        out.append(Filing(
+            symbol=r["symbol"], isin="", seq_number=f"IF{r['seq_Id']}",
+            period_start=date(y, m + 1, 1), period_end=end,
+            basis="CONSOLIDATED" if r["consolidated"] == "Consolidated" else "STANDALONE",
+            audited=r["audited"] == "Audited", bank=False, cumulative=False,
+            filed_at=_stamp_any(stamp) if stamp else None,
+            disseminated_at=_stamp_any(r["creation_Date"]) if r.get("creation_Date") else None,
+            xbrl_url=_link(r.get("xbrl")), detail_url=_link(r.get("ixbrl")),
+        ))  # fmt: skip
+    return out
 
 
 def _local(tag: str) -> str:
@@ -190,6 +227,18 @@ def parse_xbrl(raw: bytes) -> Statement:
     }
     y_ids = [min(longer, key=lambda i: longer[i][0])] if longer else []
 
+    def take_all(ids: list[str]) -> dict[str, Decimal]:
+        out: dict[str, Decimal] = {}
+        for (name, ref), v in facts.items():
+            if ref in ids and name not in out and name not in NOT_A_FIGURE:
+                try:
+                    d = Decimal(v)
+                except InvalidOperation:
+                    continue  # text, dates, flags
+                if d.is_finite():
+                    out[name] = d
+        return out
+
     def take(ids: list[str]) -> dict[str, Decimal]:
         out: dict[str, Decimal] = {}
         for metric, names in METRICS.items():
@@ -203,5 +252,19 @@ def parse_xbrl(raw: bytes) -> Statement:
                     break
         return out
 
-    rounding = first("LevelOfRoundingUsedInFinancialStatements") or ""
-    return Statement(start, end, basis, audited, rounding, take(q_ids), take(y_ids))
+    instants = {"OneI"} | {
+        c.get("id", "")
+        for c in root.iter(f"{XBRLI}context")
+        if c.get("id") not in dimensional
+        and (inst := c.find(f"{XBRLI}period/{XBRLI}instant")) is not None
+        and inst.text == end.isoformat()
+    }
+    extra = {
+        "QUARTER": take_all(q_ids),
+        "YTD": take_all(y_ids),
+        "INSTANT": take_all(sorted(instants)),
+    }
+    rounding = first("LevelOfRoundingUsedInFinancialStatements") or first("LevelOfRounding") or ""
+    return Statement(
+        start, end, basis, audited, rounding, take(q_ids), take(y_ids), first("ISIN") or "", extra
+    )

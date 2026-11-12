@@ -60,3 +60,15 @@ export function fmtMoney(s: string, places = 2): string {
   const grouped = rest ? `${rest},${last3}` : last3;
   return `${sign}${grouped}${places > 0 ? `.${digits}` : ""}`;
 }
+
+/** A length of time in the two most useful units: "40 s", "12 min", "2 h 10 min", "1 d 3 h". */
+export function fmtDuration(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s} s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return m % 60 === 0 ? `${h} h` : `${h} h ${m % 60} min`;
+  const d = Math.floor(h / 24);
+  return h % 24 === 0 ? `${d} d` : `${d} d ${h % 24} h`;
+}

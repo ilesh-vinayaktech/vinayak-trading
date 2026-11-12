@@ -78,10 +78,10 @@ def test_an_empty_evidence_record_fails_everything():
     assert len(evaluate(Evidence(), T).failures) == N
 
 
-def test_thresholds_load_from_the_config_and_are_provisional_until_confirmed():
+def test_thresholds_load_from_the_config_with_the_owners_confirmation():
     t, status = load_thresholds(CFG, "long_only")
     assert (t.min_oos_sharpe, t.max_pbo, t.owner_max_drawdown, t.min_oos_days, status) == (
-        0.8, 0.2, 0.25, 252, "provisional"
+        0.8, 0.2, 0.25, 252, "confirmed"
     )  # fmt: skip
     m = load_thresholds(CFG, "market_neutral")[0]
     assert (m.min_oos_sharpe, m.owner_max_drawdown) == (1.0, 0.15)

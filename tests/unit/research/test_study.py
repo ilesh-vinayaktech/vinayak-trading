@@ -144,3 +144,16 @@ def test_a_minimum_history_shorter_than_the_strategys_longest_lookback_is_refuse
         ),
         today=TODAY,
     )
+
+
+def test_order_size_limits_are_off_by_default_and_must_make_sense():
+    s = spec()
+    assert s.min_order_value == D(0) and s.max_order_value is None
+    custom = spec(min_order_value="5000", max_order_value="100000")
+    assert (custom.min_order_value, custom.max_order_value) == (D(5000), D(100000))
+    with pytest.raises(ValueError):
+        spec(min_order_value="-1")
+    with pytest.raises(ValueError):
+        spec(max_order_value="0")
+    with pytest.raises(ValueError, match="maximum"):
+        spec(min_order_value="5000", max_order_value="1000")

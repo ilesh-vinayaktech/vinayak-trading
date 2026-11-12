@@ -29,6 +29,7 @@ const S = {
   timeframe: "1D",
   params: { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 },
   in_use: false,
+  stage: "RESEARCH",
   created_at: "2026-11-11T10:00:00+00:00",
 };
 const list = (strategies: unknown[]) => ({ label: "UNVALIDATED", options: OPTIONS, strategies });
@@ -178,5 +179,42 @@ describe("using and deleting", () => {
     mount();
     fireEvent.click(await screen.findByRole("button", { name: "Use for paper trading" }));
     expect(await screen.findByText("no paper account yet")).toBeInTheDocument();
+  });
+});
+
+
+describe("the stage of a strategy", () => {
+  const HISTORY = { label: "UNVALIDATED", stage: "PAPER", history: [{ change_id: 1, from_stage: "RESEARCH", to_stage: "PAPER", approver: "Jane", at: "2026-11-12T06:00:00+00:00", run_id: null, reason: "prove the plumbing", waived: ["entered paper under the owner's waiver: the strategy is unvalidated research"] }] };
+  it("shows each strategy's stage, its history with the waiver, and moves it with a reason", async () => {
+    backend(ready([{ ...S, stage: "PAPER" }], { "GET /api/strategies/c1/stage": HISTORY, "POST /api/strategies/c1/stage": { stage: "RESEARCH" } }));
+    render(<Providers><StrategiesPage /></Providers>);
+    expect(await screen.findByText("Paper trading")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Stage" }));
+    expect(await screen.findByText(/prove the plumbing/)).toBeInTheDocument();
+    expect(screen.getByText(/entered paper under the owner's waiver/)).toBeInTheDocument();
+    const move = screen.getByRole("button", { name: "Move" });
+    expect(move).toBeDisabled(); // a reason is required
+    fireEvent.change(screen.getByLabelText("Reason"), { target: { value: "rethinking it" } });
+    fireEvent.click(move);
+    await waitFor(() => expect(posted().find((c) => c.path === "/api/strategies/c1/stage")?.body).toEqual({ to_stage: "RESEARCH", reason: "rethinking it", run_id: null }));
+  });
+  it("asks for the justifying run to go live and shows why the server refuses", async () => {
+    backend(ready([{ ...S, stage: "PAPER" }], { "GET /api/strategies/c1/stage": HISTORY, "POST /api/strategies/c1/stage": [400, { detail: "not eligible to go live: placeholder cost model" }] }));
+    render(<Providers><StrategiesPage /></Providers>);
+    fireEvent.click(await screen.findByRole("button", { name: "Stage" }));
+    fireEvent.change(await screen.findByLabelText("Move to"), { target: { value: "LIVE" } });
+    fireEvent.change(screen.getByLabelText("Backtest run that justifies it"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Reason"), { target: { value: "validated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+    expect(await screen.findByText(/not eligible to go live: placeholder cost model/)).toBeInTheDocument();
+    expect(posted().find((c) => c.path === "/api/strategies/c1/stage")?.body).toEqual({ to_stage: "LIVE", reason: "validated", run_id: 5 });
+  });
+  it("offers only the next step up and any step down", async () => {
+    backend(ready([S], { "GET /api/strategies/c1/stage": { ...HISTORY, stage: "RESEARCH", history: [] } }));
+    render(<Providers><StrategiesPage /></Providers>);
+    fireEvent.click(await screen.findByRole("button", { name: "Stage" }));
+    const to = await screen.findByLabelText("Move to");
+    expect(within(to).getAllByRole("option").map((o) => o.textContent)).toEqual(["Paper trading"]); // research cannot jump to live
+    expect(await screen.findByText(/No moves yet/)).toBeInTheDocument();
   });
 });

@@ -42,25 +42,28 @@ def _charges_json(t: Trade) -> Jsonb:
     )
 
 
-def save_run(conn: psycopg.Connection, r: RunResult, now: datetime) -> int:
+def save_run(
+    conn: psycopg.Connection, r: RunResult, now: datetime, label: str | None = None
+) -> int:
     cfg = r.config
     with conn.transaction():
         cols = (
             "strategy_id,strategy_version,params,params_hash,code_version,reader_mode,config,"
             "cost_model,adjustment_versions,provisional_events,unapplied_events,blocked_instruments,"
             "unmodelled_events,accounting_complete,dividends_received,metrics,result_hash,created_at,"
-            "ledger_reconciled,reconciliation,pnl"
+            "ledger_reconciled,reconciliation,pnl,label"
         )
         values = (
             r.strategy_id, r.strategy_version, Jsonb(json.loads(r.params_json)), r.params_hash,
-            r.code_version, cfg.mode.value, _j({**asdict(cfg), "cost": None}), _j(r.cost_info),
+            r.code_version, cfg.mode.value,
+            _j({**asdict(cfg), "cost": None, "data_snapshot": r.snapshot}), _j(r.cost_info),
             _j(r.adjustment_versions), _j(r.provisional), _j(r.unapplied), _j(r.blocked),
             _j(r.unmodelled), r.accounting_complete, r.dividends_received, _j(r.metrics),
             r.result_hash, require_utc(now),
-            r.ledger_reconciled, _j(r.reconciliation), _j(r.pnl),
+            r.ledger_reconciled, _j(r.reconciliation), _j(r.pnl), label,
         )  # fmt: skip
         row = conn.execute(
-            f"INSERT INTO backtest_run ({cols}) VALUES ({','.join(['%s'] * 21)}) RETURNING run_id",
+            f"INSERT INTO backtest_run ({cols}) VALUES ({','.join(['%s'] * 22)}) RETURNING run_id",
             values,
         ).fetchone()
         assert row is not None

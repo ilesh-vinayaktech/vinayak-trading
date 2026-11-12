@@ -18,6 +18,7 @@ from decimal import Decimal
 import psycopg
 
 from algo.data.providers.nse_results import Filing, Statement
+from algo.data.ratios import Market, Quarter
 
 
 @dataclass(frozen=True)
@@ -154,11 +155,21 @@ def store_filing(
         [(row[0], m, "QUARTER", v) for m, v in st.quarter.items()]
         + [(row[0], m, "YTD", v) for m, v in st.ytd.items()],
     )
+    store_extra(conn, row[0], st)
     conn.execute(
         "DELETE FROM fundamental_unloaded WHERE symbol=%s AND seq_number=%s",
         (filing.symbol, filing.seq_number),
     )
     return True
+
+
+def store_extra(conn: psycopg.Connection, filing_id: int, st: Statement) -> None:
+    """Every company-level figure of the filing, named like its XBRL element. Safe to repeat."""
+    conn.cursor().executemany(
+        "INSERT INTO fundamental_fact (filing_id, metric, scope, value) VALUES (%s,%s,%s,%s)"
+        " ON CONFLICT DO NOTHING",
+        [(filing_id, m, scope, v) for scope, facts in st.extra.items() for m, v in facts.items()],
+    )
 
 
 def note_unloaded(
@@ -195,3 +206,55 @@ def load_quarter_rows(conn: psycopg.Connection) -> list[QuarterRow]:
             "SELECT filing_id, symbol, basis, period_end, filed_at FROM fundamental_filing ORDER BY symbol, basis, period_end, filed_at"
         )
     ]
+
+
+def load_quarters(conn: psycopg.Connection, instrument_id: int, basis: str) -> list[Quarter]:
+    """Every stored filing for an instrument and basis as ratio inputs (a restated quarter appears once per filing)."""
+    facts: dict[int, dict[str, dict[str, Decimal]]] = {}
+    for fid, scope, metric, value in conn.execute(
+        "SELECT x.filing_id, x.scope, x.metric, x.value FROM fundamental_fact x"
+        " JOIN fundamental_filing f USING (filing_id)"
+        " WHERE f.instrument_id=%s AND f.basis=%s AND x.metric ~ '^[A-Z]'",
+        (instrument_id, basis),
+    ):
+        facts.setdefault(fid, {"QUARTER": {}, "YTD": {}, "INSTANT": {}})[scope][metric] = value
+    rows = conn.execute(
+        "SELECT filing_id, period_end, filed_at, bank FROM fundamental_filing WHERE instrument_id=%s AND basis=%s",
+        (instrument_id, basis),
+    ).fetchall()
+    return [
+        Quarter(
+            end,
+            filed,
+            bank,
+            *(facts.get(fid, {}).get(s, {}) for s in ("QUARTER", "YTD", "INSTANT")),
+        )
+        for fid, end, filed, bank in rows
+    ]
+
+
+def load_market(
+    conn: psycopg.Connection, instrument_id: int, results_filed: datetime, on: date | None = None
+) -> Market:
+    """Unadjusted close on or before `on` (latest if None), dividends declared in the 12 months to it, and whether a split
+    or bonus went ex between the results and that day (then price and results are on different bases)."""
+    bar = conn.execute(
+        "SELECT (ts AT TIME ZONE 'Asia/Kolkata')::date, close FROM bar_1d WHERE instrument_id=%s"
+        " AND (%s::date IS NULL OR (ts AT TIME ZONE 'Asia/Kolkata')::date <= %s::date)"
+        " ORDER BY ts DESC LIMIT 1",
+        (instrument_id, on, on),
+    ).fetchone()
+    if bar is None:
+        return Market(price=None)
+    day, price = bar
+    dividends = conn.execute(
+        "SELECT sum(amount) FROM corporate_action WHERE instrument_id=%s AND kind='dividend' AND status='ok'"
+        " AND amount IS NOT NULL AND ex_date > %s::date - 365 AND ex_date <= %s",
+        (instrument_id, day, day),
+    ).fetchone()
+    split = conn.execute(
+        "SELECT 1 FROM corporate_action WHERE instrument_id=%s AND kind IN ('split','bonus') AND status='ok'"
+        " AND ex_date > %s AND ex_date <= %s LIMIT 1",
+        (instrument_id, results_filed.date(), day),
+    ).fetchone()
+    return Market(price, day, dividends[0] if dividends else None, split is not None)

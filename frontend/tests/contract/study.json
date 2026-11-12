@@ -106,6 +106,7 @@
  "sha256": "<sha256>",
  "spec": {
   "accept_survivorship_bias": false,
+  "benchmark": "Nifty 200 Total Return Index (gross)",
   "broker": "zerodha",
   "capacity_multiple": "3",
   "capital": "1000000",
@@ -130,6 +131,8 @@
   },
   "holdout_start": "2024-05-01",
   "hypothesis": "Buying a 5-day RSI dip inside a 200-day uptrend beats buy-and-hold after costs.",
+  "max_order_value": null,
+  "min_order_value": "0",
   "name": "Pullback, large and mid caps",
   "product": "DELIVERY",
   "slippage": {

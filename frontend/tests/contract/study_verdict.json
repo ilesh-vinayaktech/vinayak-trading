@@ -1,0 +1,173 @@
+{
+ "holdout": {
+  "created_at": "2026-11-11T10:00:00Z",
+  "evidence": {
+   "benchmark_sharpe": null,
+   "days": 60,
+   "max_drawdown": -0.1,
+   "sharpe": 0.4,
+   "total_return": 0.03
+  },
+  "gates": [
+   {
+    "detail": "0.40 < required 0.8",
+    "name": "holdout_sharpe",
+    "passed": false
+   },
+   {
+    "detail": "ok",
+    "name": "holdout_drawdown",
+    "passed": true
+   },
+   {
+    "detail": "evidence missing",
+    "name": "holdout_beats_benchmark",
+    "passed": false
+   }
+  ],
+  "passed": false,
+  "refs": {
+   "benchmark": "Nifty 200 Total Return Index (gross)",
+   "benchmark_note": "not loaded",
+   "chosen": {
+    "entry_rsi": 20
+   },
+   "verdict_report": 1,
+   "window": [
+    "2024-05-01",
+    "2026-11-06"
+   ]
+  },
+  "run_id": 1
+ },
+ "holdout_run": null,
+ "report": {
+  "created_at": "2026-11-11T10:00:00Z",
+  "evidence": {
+   "benchmark_max_drawdown": -0.3,
+   "benchmark_sharpe": 0.7,
+   "dsr": 0.97,
+   "max_drawdown": -0.2,
+   "oos_days": 252.0,
+   "oos_sharpe": 1.1,
+   "pbo": 0.1,
+   "plateau_drop": 0.1,
+   "regimes": 2.0,
+   "sharpe_2x_costs": 0.6,
+   "sharpe_3x_capital": null,
+   "top3_instrument": 0.4,
+   "top3_month": 0.3,
+   "top3_trade": 0.2,
+   "window_share": 0.4
+  },
+  "gates": [
+   {
+    "detail": "252 OOS observations < required 252",
+    "name": "oos_days",
+    "passed": true
+   },
+   {
+    "detail": "2 regimes < required 2",
+    "name": "regimes",
+    "passed": true
+   },
+   {
+    "detail": "one window supplies 40% of gains (> 50%)",
+    "name": "window_share",
+    "passed": true
+   },
+   {
+    "detail": "1.10 < required 0.8",
+    "name": "oos_sharpe",
+    "passed": true
+   },
+   {
+    "detail": "0.970 < required 0.95",
+    "name": "deflated_sharpe",
+    "passed": true
+   },
+   {
+    "detail": "0.10 > allowed 0.2",
+    "name": "overfitting_probability",
+    "passed": true
+   },
+   {
+    "detail": "20.0% is 0.67x benchmark (limit 1.25)",
+    "name": "max_drawdown",
+    "passed": true
+   },
+   {
+    "detail": "Sharpe edge over benchmark 0.40 < required 0.2",
+    "name": "beats_benchmark",
+    "passed": true
+   },
+   {
+    "detail": "10% Sharpe lost at a neighbouring setting (> 30%)",
+    "name": "parameter_plateau",
+    "passed": true
+   },
+   {
+    "detail": "Sharpe 0.60 at 2x costs",
+    "name": "survives_2x_costs",
+    "passed": true
+   },
+   {
+    "detail": "evidence missing",
+    "name": "survives_3x_capital",
+    "passed": false
+   },
+   {
+    "detail": "40% of gains from 3 instruments (> 50%)",
+    "name": "concentration_instrument",
+    "passed": true
+   },
+   {
+    "detail": "30% of gains from 3 months (> 50%)",
+    "name": "concentration_month",
+    "passed": true
+   },
+   {
+    "detail": "20% of gains from 3 trades (> 50%)",
+    "name": "concentration_trade",
+    "passed": true
+   }
+  ],
+  "n_trials": 12,
+  "passed": false,
+  "refs": {
+   "benchmark": "Nifty 200 Total Return Index (gross)",
+   "benchmark_note": null,
+   "capital_multiple": "3",
+   "capital_run": 1,
+   "chosen": {
+    "entry_rsi": 20,
+    "trend_sma": 200
+   },
+   "cost_2x_run": 1,
+   "walk_forward": {
+    "embargo": 5,
+    "test": 126,
+    "train": 504
+   },
+   "windows": [
+    {
+     "chosen": {
+      "entry_rsi": 20
+     },
+     "return": 0.08,
+     "sharpe": 1.4,
+     "test_from": "2022-01-07",
+     "test_to": "2022-07-01",
+     "train_from": "2020-01-01",
+     "train_to": "2021-12-31"
+    }
+   ]
+  },
+  "report_id": 1,
+  "run_id": 1,
+  "thresholds_status": "confirmed"
+ },
+ "run": null,
+ "trials_done": 1,
+ "trials_planned": 12
+}

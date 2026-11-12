@@ -119,6 +119,55 @@ export const instrumentDetailSchema = instrumentSchema.extend({
   actions: z.array(actionSchema),
 });
 
+const figures = z.record(z.string(), z.string());
+export const fundamentalsSchema = z.object({
+  instrument_id: z.number(),
+  symbol: z.string(),
+  bases: z.array(z.string()),
+  basis: z.string().nullable(),
+  periods: z.array(
+    z.object({
+      period_start: z.string(),
+      period_end: z.string(),
+      filed_at: z.string(),
+      audited: z.boolean(),
+      bank: z.boolean(),
+      rounding: z.string(),
+      quarter: figures,
+      ytd: figures,
+      instant: figures,
+    }),
+  ),
+});
+
+export const ratiosSchema = z.object({
+  instrument_id: z.number(),
+  symbol: z.string(),
+  bases: z.array(z.string()),
+  basis: z.string().nullable(),
+  bank: z.boolean(),
+  latest_period: z.string().nullable(),
+  price: z.object({ value: z.string(), date: z.string().nullable() }).nullable(),
+  ratios: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      group: z.enum(["valuation", "profitability", "growth", "strength", "efficiency", "cash"]),
+      unit: z.enum(["pct", "x", "days", "inr", "crore"]),
+      meaning: z.string(),
+      formula: z.string(),
+      better: z.enum(["high", "low"]).nullable(),
+      value: z.string().nullable(),
+      note: z.string().nullable(),
+      as_of: z.string().nullable(),
+      reading: z.enum(["good", "ok", "weak"]).nullable(),
+      reading_basis: z.enum(["rule", "own_past"]).nullable(),
+      year_ago: z.string().nullable(),
+      history: z.array(z.object({ period_end: z.string(), value: z.string().nullable() })),
+    }),
+  ),
+});
+
 const eventRef = z.object({ kind: z.string(), ex_date: z.string() });
 
 export const TIMEFRAMES = ["1m", "3m", "5m", "10m", "15m", "30m", "45m", "1h", "2h", "3h", "4h", "1d", "1w", "1mo"] as const;
@@ -257,6 +306,8 @@ export const backtestRowSchema = z.object({
   accounting_complete: z.boolean(),
   ledger_reconciled: z.boolean(),
   result_hash: z.string(),
+  label: z.string().nullable(),
+  study: z.object({ experiment_id: z.number(), name: z.string() }).nullable(),
 });
 
 export const backtestPageSchema = page(backtestRowSchema);
@@ -322,6 +373,8 @@ export type IndicatorSeries = z.infer<typeof indicatorSeriesSchema>;
 
 export type Dashboard = z.infer<typeof dashboardSchema>;
 export type Instrument = z.infer<typeof instrumentSchema>;
+export type Fundamentals = z.infer<typeof fundamentalsSchema>;
+export type Ratios = z.infer<typeof ratiosSchema>;
 export type InstrumentDetail = z.infer<typeof instrumentDetailSchema>;
 export type Bars = z.infer<typeof barsSchema>;
 export type BenchmarkSummary = z.infer<typeof benchmarkSummarySchema>;
@@ -651,8 +704,18 @@ export const strategyConfigSchema = z.object({
   params: paperParamsSchema,
   in_use: z.boolean(),
   created_at: z.string(),
+  stage: z.enum(["RESEARCH", "PAPER", "LIVE"]),
 });
 export const strategiesSchema = z.object({ label: z.string(), options: paperAccountSchema.shape.options, strategies: z.array(strategyConfigSchema) });
+export const stageHistorySchema = z.object({
+  label: z.string(),
+  stage: z.enum(["RESEARCH", "PAPER", "LIVE"]),
+  history: z.array(z.object({
+    change_id: z.number(), from_stage: z.string(), to_stage: z.string(), approver: z.string(), at: z.string(),
+    run_id: z.number().nullable(), reason: z.string(), waived: z.array(z.string()),
+  })),
+});
+export type StageHistory = z.infer<typeof stageHistorySchema>;
 export const strategyCreatedSchema = z.object({ config_id: z.string() });
 export type StrategyConfig = z.infer<typeof strategyConfigSchema>;
 export type Strategies = z.infer<typeof strategiesSchema>;
@@ -701,6 +764,7 @@ export const studyOptionsSchema = z.object({
   segments: z.array(z.string()),
   timeframes: z.array(z.string()),
   brokers: z.array(z.object({ broker: z.string(), product: z.string() })),
+  benchmarks: z.array(z.object({ name: z.string(), usable: z.boolean(), default: z.boolean() })),
   frozen_through: z.string().nullable(),
   survivorship_safe_from: z.string(),
   segment_lists_from: z.string(),
@@ -723,6 +787,9 @@ export const studySpecSchema = z.object({
   broker: z.string(),
   product: z.string(),
   slippage: z.object({ base_bps: z.string(), participation_bps_per_pct: z.string(), volatility_fraction: z.string() }),
+  min_order_value: z.string(),
+  max_order_value: z.string().nullable(),
+  benchmark: z.string(),
   thresholds: z.record(z.string(), z.string()),
   accept_survivorship_bias: z.boolean(),
 });
@@ -751,10 +818,15 @@ export type Study = z.infer<typeof studySchema>;
 export const studyRunSchema = z.object({
   run_id: z.number(),
   experiment_id: z.number(),
+  kind: z.enum(["trials", "verdict", "holdout"]),
   status: z.enum(["QUEUED", "RUNNING", "DONE", "FAILED", "CANCELLED"]),
   total: z.number(),
   done: z.number(),
   current: z.string().nullable(),
+  step_done: z.number(),
+  step_total: z.number(),
+  cancel_requested: z.boolean(),
+  progress: z.object({ fraction: z.number(), elapsed_seconds: z.number(), eta_seconds: z.number().nullable(), step_done: z.number(), step_total: z.number() }).nullable(),
   error: z.string().nullable(),
   requested_by: z.string().nullable(),
   created_at: z.string(),
@@ -769,6 +841,7 @@ export const studyTrialSchema = z.object({
   error: z.string().nullable(),
   seconds: z.number().nullable(),
   finished_at: z.string(),
+  backtest_run: z.number().nullable(),
 });
 export const studyResultsSchema = z.object({
   run: studyRunSchema.nullable(),
@@ -779,3 +852,83 @@ export const studyRunCreatedSchema = z.object({ run_id: z.number() });
 export type StudyRun = z.infer<typeof studyRunSchema>;
 export type StudyTrial = z.infer<typeof studyTrialSchema>;
 export type StudyResults = z.infer<typeof studyResultsSchema>;
+
+const nstr = z.string().nullable();
+export const backtestReportSchema = z.object({
+  study: z.object({ experiment_id: z.number(), name: z.string() }).nullable(),
+  run_id: z.number(),
+  strategy_id: z.string(),
+  strategy_version: z.string(),
+  label: z.string().nullable(),
+  params: z.record(z.unknown()),
+  start: z.string().nullable(),
+  end: z.string().nullable(),
+  created_at: z.string(),
+  headline: z.object({ initial: z.string(), final: nstr, change: nstr, return: nstr, max_drawdown: z.string() }),
+  summary: z.object({
+    trades: z.number(), wins: z.number(), losses: z.number(), win_rate: nstr, net_pnl: z.string(),
+    gross_profit: z.string(), gross_loss: z.string(), profit_factor: nstr, avg_win: nstr, avg_loss: nstr,
+    charges: z.string(), avg_holding_days: nstr, pre_charge_pnl: z.string(), cost_drag: nstr,
+  }),
+  curve: z.array(z.object({ date: z.string(), equity: z.string(), drawdown: z.string() })),
+  round_trips: z.array(z.object({
+    instrument_id: z.number(), symbol: z.string(), qty: z.string(), entry_day: z.string(), entry_price: z.string(),
+    exit_day: z.string(), exit_price: z.string(), gross: z.string(), charges: z.string(), net: z.string(),
+    holding_days: z.number(), return: nstr,
+  })),
+  benchmark: z
+    .object({
+      name: z.string(), note: nstr, curve: z.array(z.object({ date: z.string(), level: z.string() })),
+      return: nstr, final: nstr, max_drawdown: nstr, sharpe: nstr,
+      strategy_return: nstr, strategy_max_drawdown: nstr, strategy_sharpe: nstr,
+    })
+    .nullable(),
+  monthly: z.array(z.object({ month: z.string(), net: z.string(), trades: z.number() })),
+  by_weekday: z.array(z.object({ weekday: z.string(), trades: z.number(), net: z.string(), win_rate: nstr })),
+  distribution: z.array(z.object({ label: z.string(), count: z.number() })),
+  open_positions: z.array(z.object({ symbol: z.string(), instrument_id: z.number(), qty: z.string(), lots: z.number(), entry_day: z.string(), entry_price: z.string() })),
+  by_stock: z.array(z.object({ symbol: z.string(), trades: z.number(), net: z.string(), win_rate: nstr, charges: z.string() })),
+});
+export type BacktestReport = z.infer<typeof backtestReportSchema>;
+
+export const studyHoldoutSchema = z.object({
+  run_id: z.number(),
+  passed: z.boolean(),
+  created_at: z.string(),
+  evidence: z.record(z.string(), z.number().nullable()),
+  gates: z.array(z.object({ name: z.string(), passed: z.boolean(), detail: z.string() })),
+  refs: z.object({ chosen: z.record(z.string(), z.number()), benchmark: z.string(), benchmark_note: z.string().nullable(), window: z.array(z.string()), verdict_report: z.number() }),
+});
+export const studyVerdictSchema = z.object({
+  holdout: studyHoldoutSchema.nullable(),
+  holdout_run: studyRunSchema.nullable(),
+  run: studyRunSchema.nullable(),
+  report: z
+    .object({
+      report_id: z.number(),
+      run_id: z.number(),
+      passed: z.boolean(),
+      thresholds_status: z.string(),
+      n_trials: z.number(),
+      created_at: z.string(),
+      evidence: z.record(z.string(), z.number().nullable()),
+      gates: z.array(z.object({ name: z.string(), passed: z.boolean(), detail: z.string() })),
+      refs: z.object({
+        chosen: z.record(z.string(), z.number()),
+        benchmark: z.string(),
+        benchmark_note: z.string().nullable(),
+        windows: z.array(z.object({
+          train_from: z.string(), train_to: z.string(), test_from: z.string(), test_to: z.string(),
+          chosen: z.record(z.string(), z.number()), sharpe: z.number().nullable(), return: z.number(),
+        })),
+        walk_forward: z.object({ train: z.number(), test: z.number(), embargo: z.number() }),
+        cost_2x_run: z.number(),
+        capital_run: z.number(),
+        capital_multiple: z.string(),
+      }),
+    })
+    .nullable(),
+  trials_done: z.number(),
+  trials_planned: z.number(),
+});
+export type StudyVerdict = z.infer<typeof studyVerdictSchema>;

@@ -10,3 +10,4 @@ mutants/
 *.sops.key
 /data/
 .hypothesis/
+.run/

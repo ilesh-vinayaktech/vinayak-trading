@@ -36,6 +36,8 @@ def test_only_people_who_may_trade_can_use_the_strategy_routes(env):  # noqa: F8
         ("POST", f"/api/strategies/{cid}"),
         ("POST", f"/api/strategies/{cid}/use"),
         ("POST", f"/api/strategies/{cid}/delete"),
+        ("GET", f"/api/strategies/{cid}/stage"),
+        ("POST", f"/api/strategies/{cid}/stage"),
     ]
     for method, path in routes:
         body = {} if method == "POST" else None
@@ -185,3 +187,51 @@ def test_the_signals_refuse_other_peoples_strategies_unknown_stocks_and_bad_rang
         c.get(f"/api/strategies/{cid}/signals", params={**ok, "start": "1970-01-01"}).status_code
         == 422
     )
+
+
+def test_a_strategy_moves_to_paper_with_a_reason_but_cannot_go_live_without_a_run_and_the_record_is_audited(
+    env,  # noqa: F811
+):
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    cid = c.post("/api/strategies", json=BODY).json()["config_id"]
+    assert c.get("/api/strategies").json()["strategies"][0]["stage"] == "RESEARCH"
+    assert (
+        c.post(
+            f"/api/strategies/{cid}/stage", json={"to_stage": "PAPER", "reason": " "}
+        ).status_code
+        == 400
+    )
+    assert c.post(
+        f"/api/strategies/{cid}/stage", json={"to_stage": "PAPER", "reason": "prove the plumbing"}
+    ).json() == {"stage": "PAPER"}
+    live = c.post(f"/api/strategies/{cid}/stage", json={"to_stage": "LIVE", "reason": "go"})
+    assert live.status_code == 400 and "needs a backtest run" in live.json()["detail"]
+    got = c.get(f"/api/strategies/{cid}/stage").json()
+    assert got["stage"] == "PAPER" and got["label"] == "UNVALIDATED"
+    (h,) = got["history"]
+    assert (h["from_stage"], h["to_stage"], h["reason"], h["at"][:10]) == (
+        "RESEARCH",
+        "PAPER",
+        "prove the plumbing",
+        "2026-11-11",
+    )
+    assert "unvalidated" in h["waived"][0]
+    assert c.get("/api/strategies").json()["strategies"][0]["stage"] == "PAPER"
+    assert audit_actions(conn, "strategy.stage%") == ["strategy.stage_changed"]
+
+
+def test_another_persons_strategy_has_no_stage_to_read_or_move(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, jane = trader(conn, app, clock)
+    cid = jane.post("/api/strategies", json=BODY).json()["config_id"]
+    add_user(conn, clock, "TRADER", "other@example.com")
+    other = sign_in(app, "other@example.com")
+    assert other.get(f"/api/strategies/{cid}/stage").status_code == 404
+    assert (
+        other.post(
+            f"/api/strategies/{cid}/stage", json={"to_stage": "PAPER", "reason": "r"}
+        ).status_code
+        == 404
+    )
+    assert jane.get(f"/api/strategies/{cid}/stage").json()["stage"] == "RESEARCH"

@@ -109,6 +109,40 @@ def test_with_more_candidates_than_slots_the_most_oversold_win_and_held_names_us
     assert set(t) == {1, 2, 3, 4, 5, 6, 7, 8, 15, 14}  # eight kept, two most oversold added
 
 
+def test_never_holds_more_than_the_limit_even_when_a_sale_has_not_finished_yet():
+    """A position being sold down in pieces (orders split by size or volume) is still held the next day; its slot may already
+    have been given to a new stock. The targets must still fit in 100%: the one closest to its exit goes."""
+    five = TrendPullbackParams(max_positions=5)
+    ids = list(range(1, 7))
+    closes = {
+        i: uptrend(dip_days=4, dip=str(-(0.010 + 0.001 * i))) for i in ids
+    }  # a higher id is more oversold
+    s, t = run(ids, closes, held=ids, params=five)
+    assert set(t) == {2, 3, 4, 5, 6} and sum(t.values()) <= 1
+    assert s.audit[-1]["exits"] == {1: "over_limit"}
+    stale = {d: c for d, c in uptrend(dip_days=6).items() if d != LAST}
+    filler = {
+        i: uptrend() for i in range(100, 130)
+    }  # steady and never oversold: lets one missing bar be tolerated
+    s, t = run(
+        ids + [99, *filler], {**closes, **filler, 99: stale}, held=ids + [99], params=five
+    )  # 99 has no bar today: it cannot be sold, so it keeps its slot
+    assert 99 in t and len(t) == 5 and sum(t.values()) <= 1
+    assert set(s.audit[-1]["exits"].values()) == {"over_limit"} and len(s.audit[-1]["exits"]) == 2
+
+
+def test_a_stock_held_exactly_at_the_limit_is_not_touched():
+    five = TrendPullbackParams(max_positions=5)
+    ids = list(range(1, 6))
+    s, t = run(
+        ids,
+        {i: uptrend(dip_days=4, dip=str(-(0.010 + 0.001 * i))) for i in ids},
+        held=ids,
+        params=five,
+    )
+    assert set(t) == set(ids) and s.audit[-1]["exits"] == {}
+
+
 def test_a_held_stock_with_no_bar_today_is_kept_and_one_not_held_cannot_be_bought():
     stale = {d: c for d, c in uptrend(dip_days=6).items() if d != LAST}
     ids = list(range(1, 25)) + [99]

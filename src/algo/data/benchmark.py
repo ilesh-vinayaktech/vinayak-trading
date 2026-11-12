@@ -18,6 +18,10 @@ from algo.core.clock import require_utc
 RETURN_TYPES = ("PRICE", "TOTAL_RETURN", "NET_TOTAL_RETURN")
 
 
+# what a run is compared with unless its study names another
+DEFAULT_BENCHMARK = "Nifty 200 Total Return Index (gross)"
+
+
 class BenchmarkError(Exception):
     pass
 

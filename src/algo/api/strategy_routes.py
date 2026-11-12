@@ -22,6 +22,7 @@ from algo.paper import configs
 from algo.portal import audit
 from algo.strategies.signals import replay
 from algo.strategies.trend_pullback import LOOKBACK_DAYS, TrendPullbackParams
+from algo.strategy import stage
 
 router = APIRouter(prefix="/api/strategies", tags=["strategies"])
 
@@ -34,8 +35,11 @@ class StrategyBody(BaseModel):
     params: dict[str, int] = Field(default_factory=dict)
 
 
-def _shown(c: dict[str, Any]) -> dict[str, Any]:
-    return {**c, "config_id": str(c["config_id"]), "created_at": c["created_at"].isoformat()}
+def _shown(c: dict[str, Any], current_stage: str = "RESEARCH") -> dict[str, Any]:
+    return {
+        **c, "config_id": str(c["config_id"]), "created_at": c["created_at"].isoformat(),
+        "stage": current_stage,
+    }  # fmt: skip
 
 
 def _fail(e: configs.ConfigError) -> HTTPException:
@@ -47,7 +51,10 @@ def list_strategies(who: CurrentUser, conn: WConn) -> dict[str, Any]:
     return {
         "label": "UNVALIDATED",
         "options": _options(),
-        "strategies": [_shown(c) for c in configs.list_for(conn, who.session.user_id)],
+        "strategies": [
+            _shown(c, stage.current(conn, c["config_id"]))
+            for c in configs.list_for(conn, who.session.user_id)
+        ],
     }
 
 
@@ -113,6 +120,45 @@ def change(
         {"name": body.name.strip(), "universe": body.universe, "params": params},
     )
     return {"ok": True}
+
+
+class StageBody(BaseModel):
+    to_stage: str = Field(max_length=10)
+    reason: str = Field(max_length=500)
+    run_id: int | None = Field(default=None, ge=1)
+
+
+def _own(conn: WConn, who: CurrentUser, config_id: UUID) -> None:
+    if configs.get(conn, who.session.user_id, config_id) is None:
+        raise HTTPException(404, "no such strategy")
+
+
+@router.get("/{config_id}/stage")
+def stage_history(config_id: UUID, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    _own(conn, who, config_id)
+    return {
+        "label": "UNVALIDATED",
+        "stage": stage.current(conn, config_id),
+        "history": [{**h, "at": h["at"].isoformat()} for h in stage.history(conn, config_id)],
+    }
+
+
+@router.post("/{config_id}/stage")
+def move_stage(
+    config_id: UUID, body: StageBody, request: Request, who: CurrentUser, conn: WConn
+) -> dict[str, str]:
+    _own(conn, who, config_id)
+    try:
+        stage.change(
+            conn, config_id, body.to_stage, who.session.user_id, _st(request).clock.now(),
+            reason=body.reason, run_id=body.run_id,
+        )  # fmt: skip
+    except stage.StageError as e:
+        raise HTTPException(400, str(e)) from e
+    _change(
+        request, who, conn, "stage_changed", config_id, {"to": body.to_stage, "run_id": body.run_id}
+    )
+    return {"stage": body.to_stage}
 
 
 @router.post("/{config_id}/use")

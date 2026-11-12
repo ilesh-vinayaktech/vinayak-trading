@@ -18,8 +18,9 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from algo.data.benchmark import DEFAULT_BENCHMARK
 from algo.strategies.registry import STRATEGIES
 
 MAX_TRIALS = 64
@@ -71,8 +72,20 @@ class StudySpec(BaseModel):
     broker: str = Field(min_length=1, max_length=40)
     product: Literal["DELIVERY"] = "DELIVERY"
     slippage: SlippageSpec = Field(default_factory=SlippageSpec)
+    # rupees per order; off by default, which is how studies registered before these existed ran
+    min_order_value: Decimal = Field(default=Decimal(0), ge=0, max_digits=12, decimal_places=2)
+    max_order_value: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
+    benchmark: str = Field(
+        default=DEFAULT_BENCHMARK, min_length=1, max_length=120
+    )  # a total-return index, by name
     thresholds: dict[str, Decimal]
     accept_survivorship_bias: bool = False
+
+    @model_validator(mode="after")
+    def _order_sizes_agree(self) -> StudySpec:
+        if self.max_order_value is not None and self.max_order_value < self.min_order_value:
+            raise ValueError("the maximum order value cannot be below the minimum")
+        return self
 
 
 def default_thresholds() -> dict[str, str]:

@@ -1,6 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Progress, StopButton } from "@/components/studies/Progress";
+import Link from "next/link";
 import { Alert } from "@/components/ui/Alert";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Panel, RelativeTime, StatusPill } from "@/components/ui/Layout";
@@ -25,8 +28,24 @@ const columns: Column<StudyTrial>[] = [
   { key: "dd", header: "Worst drop", className: "text-right", hideBelow: "sm", cell: (t) => pct(t.metrics?.max_drawdown) },
   { key: "tr", header: "Trades", className: "text-right", hideBelow: "md", cell: (t) => num(t.metrics?.trades, 0) },
   { key: "co", header: "Costs paid (₹)", className: "text-right", hideBelow: "lg", cell: (t) => num(t.metrics?.costs, 0) },
+  { key: "rep", header: "", className: "text-right", cell: (t) => (t.backtest_run === null ? null : <Link href={`/research/backtests/${t.backtest_run}`} className="text-brand hover:underline">Trades and P&L</Link>) },
   { key: "sec", header: "Took", className: "text-right", hideBelow: "lg", cell: (t) => (t.seconds === null ? "-" : `${Math.round(t.seconds)} s`) },
 ];
+
+const SORTS = {
+  settings: { label: "Settings", by: null },
+  sharpe: { label: "Sharpe, best first", by: (t: StudyTrial) => t.metrics?.sharpe },
+  cagr: { label: "Yearly return, best first", by: (t: StudyTrial) => t.metrics?.cagr },
+  drawdown: { label: "Worst drop, smallest first", by: (t: StudyTrial) => t.metrics?.max_drawdown },
+} as const;
+type SortKey = keyof typeof SORTS;
+
+/** Failed or undefined results sink to the bottom; ties keep the settings order. */
+function sorted(rows: StudyTrial[] | undefined, key: SortKey): StudyTrial[] | undefined {
+  const by = SORTS[key].by;
+  if (!rows || !by) return rows;
+  return [...rows].sort((a, b) => (by(b) ?? Number.NEGATIVE_INFINITY) - (by(a) ?? Number.NEGATIVE_INFINITY));
+}
 
 /** Start a study's trials, watch them run, and read what each combination did over the research window (never the holdout). */
 export function RunPanel({ id }: { id: number }) {
@@ -41,10 +60,10 @@ export function RunPanel({ id }: { id: number }) {
   const refresh = () => void qc.invalidateQueries({ queryKey: ["study-results", id] });
   const start = useMutation({ mutationFn: () => api.requestStudyRun(id), onSuccess: () => { toast.success("Run queued."); refresh(); } });
   const cancel = useMutation({ mutationFn: (runId: number) => api.cancelStudyRun(runId), onSuccess: () => { toast.success("Run cancelled."); refresh(); } });
+  const [sort, setSort] = useState<SortKey>("settings");
   const run = q.data?.run ?? null;
   const active = run !== null && ["QUEUED", "RUNNING"].includes(run.status);
   const err = start.error ?? cancel.error;
-  const share = run && run.total > 0 ? Math.round((run.done / run.total) * 100) : 0;
   return (
     <Panel
       title="Run the trials"
@@ -58,16 +77,25 @@ export function RunPanel({ id }: { id: number }) {
           <div className="space-y-2" aria-label="Run status">
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill tone={TONE[run.status]}>{LABEL[run.status]}</StatusPill>
-              <span className="text-sm">{run.done} of {run.total} combinations</span>
+              {run.status === "RUNNING" ? null : <span className="text-sm">{run.done} of {run.total} combinations</span>}
               {run.current ? <span className="text-xs text-ink-soft">now: {run.current}</span> : null}
               {run.status === "QUEUED" && can("strategy:own") ? <button type="button" onClick={() => cancel.mutate(run.run_id)} className={buttonClass("secondary")}>Cancel</button> : null}
+              {can("strategy:own") ? <StopButton run={run} queryKey={["study-results", id]} /> : null}
               {run.finished_at ? <span className="text-xs text-ink-soft"><RelativeTime iso={run.finished_at} /></span> : null}
             </div>
-            {run.status === "RUNNING" ? <div className="h-2 w-full overflow-hidden rounded bg-slate-200" role="progressbar" aria-valuenow={share} aria-valuemin={0} aria-valuemax={100} aria-label="Progress"><div className="h-full bg-brand" style={{ width: `${share}%` }} /></div> : null}
+            <Progress run={run} unit="combinations" stepUnit="day" />
             {run.error ? <Alert tone="error" title="The run stopped">{run.error}</Alert> : null}
           </div>
         ) : null}
-        <DataTable caption="Results by settings" columns={columns} rows={q.data?.trials} rowKey={(t) => String(t.trial_id)} loading={q.isLoading}
+        {(q.data?.trials.length ?? 0) > 1 ? (
+          <label className="flex items-center gap-2 text-xs text-ink-soft">
+            Order by
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="rounded border border-line bg-white px-2 py-1 text-sm text-ink">
+              {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </label>
+        ) : null}
+        <DataTable caption="Results by settings" columns={columns} rows={sorted(q.data?.trials, sort)} rowKey={(t) => String(t.trial_id)} loading={q.isLoading}
           empty={<EmptyState icon="flask" title="No trials run yet">Start a run to see how each combination did.</EmptyState>} />
         {q.data && q.data.universe_coverage.length > 0 ? (
           <div>

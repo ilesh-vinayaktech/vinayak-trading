@@ -1,19 +1,31 @@
 {
  "run": {
+  "cancel_requested": false,
   "created_at": "2026-11-11T10:00:00Z",
   "current": null,
   "done": 1,
   "error": null,
   "experiment_id": 1,
   "finished_at": null,
+  "kind": "trials",
+  "progress": {
+   "elapsed_seconds": 0,
+   "eta_seconds": null,
+   "fraction": 0.08333333333333333,
+   "step_done": 0,
+   "step_total": 0
+  },
   "requested_by": "<requested_by>",
   "run_id": 1,
   "started_at": "2026-11-11T10:00:00Z",
   "status": "RUNNING",
+  "step_done": 0,
+  "step_total": 0,
   "total": 12
  },
  "trials": [
   {
+   "backtest_run": null,
    "error": null,
    "finished_at": "2026-11-11T10:00:00Z",
    "metrics": {

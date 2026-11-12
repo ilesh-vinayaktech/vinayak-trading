@@ -10,22 +10,32 @@ It stops at the first failure and says why; nothing is retried silently."""
 
 from __future__ import annotations
 
+import json
 import time
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 from algo.backtest import store
 from algo.backtest.costs import schedule_store
 from algo.backtest.costs.policy import CostPolicy, ScheduleCosts
+from algo.backtest.costs.scaled import ScaledCosts
 from algo.backtest.costs.slippage import SlippageModel
 from algo.backtest.engine import BacktestConfig, RunResult, run_backtest
+from algo.backtest.report import round_trips
 from algo.backtest.validation import registry
+from algo.backtest.validation.evidence import assemble
+from algo.backtest.validation.gates import Thresholds, evaluate
 from algo.backtest.validation.stats import sharpe_per_period
+from algo.data import benchmark as benchmarks
 from algo.data.reader import BarReader
-from algo.research import study_jobs, study_universe
-from algo.research.study import StudySpec
+from algo.research import study_jobs, study_universe, verdict
+from algo.research.study import THRESHOLDS_FILE, StudySpec
 from algo.research.study_store import get_study
 from algo.strategies.registry import STRATEGIES
 from algo.strategies.trend_pullback import clear_indicator_cache
@@ -39,6 +49,10 @@ ALLOWED_COSTS = (
 
 class StudyRunError(ValueError):
     pass
+
+
+class JobCancelled(Exception):
+    """The owner asked this job to stop. It ends CANCELLED: not a failure, and nothing half-done is saved."""
 
 
 def cost_policy(conn: psycopg.Connection, spec: StudySpec) -> CostPolicy:
@@ -55,6 +69,21 @@ def cost_policy(conn: psycopg.Connection, spec: StudySpec) -> CostPolicy:
     )
 
 
+def _ticker(conn: psycopg.Connection, run_id: int) -> Callable[[int, int, date], None]:
+    """Reports the engine's day counter to the job row, at most every 2 seconds (and on the last day)."""
+    last = [0.0]
+
+    def tick(i: int, n: int, _day: date) -> None:
+        now = time.monotonic()
+        if i == n or now - last[0] >= 2.0:
+            last[0] = now
+            study_jobs.day_progress(conn, run_id, i, n)
+            if study_jobs.stop_requested(conn, run_id):
+                raise JobCancelled()
+
+    return tick
+
+
 def _returns(r: RunResult) -> list[float]:
     vals = [float(v) for _, v in r.equity]
     return [b / a - 1 for a, b in zip(vals, vals[1:], strict=False) if a > 0]
@@ -63,6 +92,42 @@ def _returns(r: RunResult) -> list[float]:
 def _metrics(r: RunResult, returns: list[float]) -> dict[str, Any]:
     return {**{k: v for k, v in r.metrics.items()}, "trades": len(r.trades), "costs": float(sum(t.cost for t in r.trades)), "days": len(r.equity),
             "sharpe_per_period": sharpe_per_period(returns)}  # fmt: skip
+
+
+@dataclass(frozen=True)
+class Setup:
+    """What every run of a study shares: the stocks held each day, the window, the costs and the price reader."""
+
+    membership: Any
+    coverage: list[dict[str, Any]]
+    begin: date
+    research_end: date
+    policy: CostPolicy
+    reader: BarReader
+
+
+def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: bool = False) -> Setup:
+    """The shared setup. `holdout=True` is for the one-time test only: its window is the holdout (`research_end` is then its last day)."""
+    start, research_end = spec.start, spec.holdout_start - timedelta(days=1)
+    if holdout:
+        start, research_end = spec.holdout_start, spec.end
+    else:
+        registry.assert_research_window(conn, exp, research_end)
+    membership, coverage = study_universe.build(conn, spec.universe, start, research_end)
+    if not membership.ever():
+        raise StudyRunError(
+            "no stocks to trade: the chosen segments hold none we have Kite history for in this period"
+        )
+    first = membership.first_day()
+    assert first is not None  # the universe is not empty
+    return Setup(
+        membership,
+        coverage,
+        max(start, first),  # nothing can be decided before anyone is a member
+        research_end,
+        cost_policy(conn, spec),
+        BarReader(conn, source="kite", publish_lag=timedelta(0)),
+    )
 
 
 def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
@@ -78,18 +143,14 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
     spec = StudySpec.model_validate(study["spec"])
     cls, params_cls = STRATEGIES[spec.strategy_id]
     try:
-        research_end = spec.holdout_start - timedelta(days=1)
-        registry.assert_research_window(conn, exp, research_end)
-        membership, coverage = study_universe.build(conn, spec.universe, spec.start, research_end)
-        if not membership.ever():
-            raise StudyRunError(
-                "no stocks to trade: the chosen segments hold none we have Kite history for in this period"
-            )
-        first = membership.first_day()
-        assert first is not None  # the universe is not empty
-        begin = max(spec.start, first)  # nothing can be decided before anyone is a member
-        policy = cost_policy(conn, spec)
-        reader = BarReader(conn, source="kite", publish_lag=timedelta(0))
+        setup = prepare(conn, spec, exp)
+        membership, coverage, begin, research_end = (
+            setup.membership,
+            setup.coverage,
+            setup.begin,
+            setup.research_end,
+        )
+        policy, reader = setup.policy, setup.reader
         combos = study["combinations"]
         already = study_jobs.done_hashes(conn, exp)
         todo = [c for c in combos if registry.params_hash(c) not in already]
@@ -101,6 +162,7 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
             {
                 "universe_coverage": coverage,
                 "research_window": [begin.isoformat(), research_end.isoformat()],
+                "done_at_start": len(combos) - len(todo),
             },
             now,
         )
@@ -116,11 +178,19 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
             t0 = time.monotonic()
             try:
                 cfg = BacktestConfig(
-                    start=begin, end=research_end, initial_cash=spec.capital, cost=policy
+                    start=begin,
+                    end=research_end,
+                    initial_cash=spec.capital,
+                    cost=policy,
+                    min_order_value=spec.min_order_value,
+                    max_order_value=spec.max_order_value,
                 )
                 result = run_backtest(
-                    conn, cls(params_cls(**combo), membership), cfg, reader=reader
-                )
+                    conn, cls(params_cls(**combo), membership), cfg, reader=reader,
+                    on_day=_ticker(conn, run_id),
+                )  # fmt: skip
+            except JobCancelled:
+                raise
             except Exception as e:  # recorded with its reason, never retried silently
                 study_jobs.save_trial(
                     conn,
@@ -152,5 +222,196 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
             )
         study_jobs.progress(conn, run_id, len(combos), None)
         study_jobs.finish(conn, run_id, "DONE", now)
+    except JobCancelled:
+        study_jobs.finish(conn, run_id, "CANCELLED", now)
     except StudyRunError as e:
         study_jobs.finish(conn, run_id, "FAILED", now, str(e))
+
+
+def _fills(conn: psycopg.Connection, run_id: int) -> list[Any]:
+    return [
+        tuple(r)
+        for r in conn.execute(
+            "SELECT seq, day, instrument_id, side, qty, price, cost FROM backtest_trade WHERE run_id=%s",
+            (run_id,),
+        )
+    ]
+
+
+def _thresholds(spec: StudySpec) -> tuple[Thresholds, str]:
+    """The owner's twelve numbers locked into the study, with the status of the thresholds file they came from."""
+    status = json.loads(THRESHOLDS_FILE.read_text()).get("status", "")
+    return Thresholds(**{k: float(v) for k, v in spec.thresholds.items()}), status
+
+
+def _benchmark(
+    conn: psycopg.Connection, spec: StudySpec, sessions: list[date]
+) -> tuple[list[float] | None, str | None]:
+    """The study's index returns on exactly these days, or (None, why not): the gates that need it then fail for missing evidence."""
+    try:
+        row = conn.execute(
+            "SELECT benchmark_id FROM benchmark WHERE name=%s", (spec.benchmark,)
+        ).fetchone()
+        if row is None:
+            raise benchmarks.BenchmarkError(f"there is no benchmark called {spec.benchmark!r}")
+        if not benchmarks.validated(conn, row[0]):
+            raise benchmarks.BenchmarkError(
+                f"{spec.benchmark} has no passing validation for its stored data"
+            )
+        return benchmarks.gate_returns(conn, row[0], sessions), None
+    except benchmarks.BenchmarkError as e:
+        return None, str(e)
+
+
+def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
+    """Judge a finished study: walk-forward over the stored trials, two more engine runs for the cost and capacity stress,
+    then every gate. The result is a validation report saved against the chosen setting's run. Never touches the holdout."""
+    run = study_jobs.get_run(conn, run_id)
+    if run is None:
+        raise StudyRunError(f"no such run {run_id}")
+    if run["status"] not in ("QUEUED", "RUNNING"):
+        return
+    exp = run["experiment_id"]
+    study = get_study(conn, exp)
+    assert study is not None
+    spec = StudySpec.model_validate(study["spec"])
+    cls, params_cls = STRATEGIES[spec.strategy_id]
+    try:
+        combos = study["combinations"]
+        done = conn.execute(
+            "SELECT params_hash, backtest_run FROM study_trial WHERE experiment_id=%s AND status='DONE'",
+            (exp,),
+        ).fetchall()
+        if len(done) < len(combos):
+            raise StudyRunError(
+                f"only {len(done)} of {len(combos)} trials are finished: run all trials first"
+            )
+        run_of: dict[str, int] = dict(done)
+        returns = study_jobs.trial_returns(conn, exp)
+        sessions = [
+            r[0]
+            for r in conn.execute(
+                "SELECT day FROM backtest_equity WHERE run_id=%s ORDER BY day",
+                (next(iter(run_of.values())),),
+            )
+        ]
+        bench, bench_note = _benchmark(conn, spec, sessions)
+        a = verdict.analyse(sessions, combos, returns, spec.grid, bench)
+        base_run = run_of[registry.params_hash(a.base)]
+        study_jobs.start(conn, run_id, 2, 0, {"chosen": a.base}, now)
+        setup = prepare(conn, spec, exp)
+
+        def strategy_of() -> Any:
+            return cls(params_cls(**a.base), setup.membership)
+
+        def stress(label: str, cost: CostPolicy, cash: Decimal) -> tuple[list[float], int]:
+            study_jobs.progress(conn, run_id, 0 if label == "2x costs" else 1, label)
+            cfg = BacktestConfig(
+                start=setup.begin, end=setup.research_end, initial_cash=cash, cost=cost,
+                min_order_value=spec.min_order_value, max_order_value=spec.max_order_value,
+            )  # fmt: skip
+            result = run_backtest(
+                conn, strategy_of(), cfg, reader=setup.reader, on_day=_ticker(conn, run_id)
+            )
+            return _returns(result), store.save_run(conn, result, now, f"verdict: {label}")
+
+        r2, run_2x = stress("2x costs", ScaledCosts(setup.policy, Decimal(2)), spec.capital)
+        r3, run_3x = stress("3x capital", setup.policy, spec.capital * spec.capacity_multiple)
+        thresholds, status = _thresholds(spec)
+        evidence = assemble(
+            verdict.inputs(
+                a,
+                n_trials=registry.trial_count(conn, exp),
+                trial_sharpes=registry.trial_sharpes(conn, exp),
+                trial_returns=[returns[registry.params_hash(c)] for c in combos],
+                plateau_tolerance=thresholds.plateau_tolerance,
+                returns_2x_costs=r2,
+                returns_3x_capital=r3,
+                trips=round_trips(_fills(conn, base_run)),
+            )
+        )
+        registry.save_report(
+            conn, exp, base_run, evaluate(evidence, thresholds, status), evidence,
+            registry.trial_count(conn, exp), now,
+            refs={
+                "chosen": a.base, "benchmark": spec.benchmark, "benchmark_note": bench_note,
+                "windows": a.windows, "walk_forward": {"train": verdict.TRAIN, "test": verdict.TEST, "embargo": verdict.EMBARGO},
+                "cost_2x_run": run_2x, "capital_run": run_3x, "capital_multiple": str(spec.capacity_multiple),
+            },
+        )  # fmt: skip
+        study_jobs.progress(conn, run_id, 2, None)
+        study_jobs.finish(conn, run_id, "DONE", now)
+    except JobCancelled:
+        study_jobs.finish(conn, run_id, "CANCELLED", now)
+    except (StudyRunError, verdict.VerdictError) as e:
+        study_jobs.finish(conn, run_id, "FAILED", now, str(e))
+
+
+def run_holdout(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
+    """The one-time final test: the settings the passed verdict chose, run over the holdout days the study never saw, judged against
+    the owner's thresholds for Sharpe, drawdown and the index. Opening the holdout is claimed in the same transaction as saving
+    the result, so a second attempt (or a crash after the claim) can never produce a second look."""
+    run = study_jobs.get_run(conn, run_id)
+    if run is None:
+        raise StudyRunError(f"no such run {run_id}")
+    if run["status"] not in ("QUEUED", "RUNNING"):
+        return
+    exp = run["experiment_id"]
+    study = get_study(conn, exp)
+    assert study is not None
+    spec = StudySpec.model_validate(study["spec"])
+    cls, params_cls = STRATEGIES[spec.strategy_id]
+    try:
+        report = study_jobs.latest_report(conn, exp)
+        if report is None or not report["passed"]:
+            raise StudyRunError(
+                "the holdout opens only after a research verdict that passed every check"
+            )
+        if study["holdout_opened_at"] is not None:
+            raise StudyRunError("the holdout of this study has already been opened")
+        chosen = report["refs"]["chosen"]
+        setup = prepare(conn, spec, exp, holdout=True)
+        study_jobs.start(conn, run_id, 1, 0, {"chosen": chosen}, now)
+        study_jobs.progress(conn, run_id, 0, "the holdout days")
+        cfg = BacktestConfig(
+            start=setup.begin, end=setup.research_end, initial_cash=spec.capital, cost=setup.policy,
+            min_order_value=spec.min_order_value, max_order_value=spec.max_order_value,
+        )  # fmt: skip
+        result = run_backtest(
+            conn, cls(params_cls(**chosen), setup.membership), cfg, reader=setup.reader,
+            on_day=_ticker(conn, run_id),
+        )  # fmt: skip
+        returns = _returns(result)
+        bench, note = _benchmark(conn, spec, [d for d, _ in result.equity])
+        thresholds, _ = _thresholds(spec)
+        gates, evidence = verdict.holdout_gates(returns, bench, thresholds)
+        saved = store.save_run(conn, result, now, "holdout")
+        refs = {"chosen": chosen, "benchmark": spec.benchmark, "benchmark_note": note,
+                "window": [setup.begin.isoformat(), setup.research_end.isoformat()], "verdict_report": report["report_id"]}  # fmt: skip
+        with conn.transaction():
+            registry.open_holdout(conn, exp, saved, now)
+            conn.execute(
+                "INSERT INTO study_holdout (experiment_id, run_id, passed, evidence, gates, refs, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    exp,
+                    saved,
+                    all(g["passed"] for g in gates),
+                    Jsonb(evidence),
+                    Jsonb(gates),
+                    Jsonb(refs),
+                    now,
+                ),
+            )
+        study_jobs.progress(conn, run_id, 1, None)
+        study_jobs.finish(conn, run_id, "DONE", now)
+    except JobCancelled:
+        study_jobs.finish(conn, run_id, "CANCELLED", now)
+    except (StudyRunError, verdict.VerdictError, registry.HoldoutAlreadyOpened) as e:
+        study_jobs.finish(conn, run_id, "FAILED", now, str(e))
+
+
+def execute(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
+    """Run whatever kind of job this is."""
+    run = study_jobs.get_run(conn, run_id)
+    kind = run["kind"] if run else "trials"
+    {"verdict": run_verdict, "holdout": run_holdout}.get(kind, run_study)(conn, run_id, now)

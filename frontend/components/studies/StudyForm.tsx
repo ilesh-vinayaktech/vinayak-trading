@@ -10,7 +10,7 @@ import { Panel, SettingsSection } from "@/components/ui/Layout";
 import { buttonClass, inputFull } from "@/components/ui/styles";
 import { ApiError, api } from "@/lib/api/client";
 import type { StudyOptions } from "@/lib/schemas";
-import { THRESHOLD_LABELS, holdoutFor, holdoutShare, trialCount } from "@/lib/studies";
+import { THRESHOLD_LABELS, holdoutFor, holdoutShare, orderSizeWarnings, trialCount } from "@/lib/studies";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not register the study. Try again.");
 const SEGMENT_LABELS: Record<string, string> = { large: "Large cap (ranks 1-100)", mid: "Mid cap (101-250)", small: "Small cap (251-500)", micro: "Micro cap (501 and beyond)" };
@@ -36,6 +36,9 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const [capacity, setCapacity] = useState("3");
   const [broker, setBroker] = useState(options.brokers[0] ? `${options.brokers[0].broker}|${options.brokers[0].product}` : "");
   const [slip, setSlip] = useState({ base_bps: "5", participation_bps_per_pct: "5", volatility_fraction: "0" });
+  const [benchmark, setBenchmark] = useState(options.benchmarks.find((b) => b.default)?.name ?? options.benchmarks[0]?.name ?? "");
+  const [minOrder, setMinOrder] = useState("");
+  const [maxOrder, setMaxOrder] = useState("");
   const [thresholds, setThresholds] = useState<Record<string, string>>(options.thresholds);
   const [acceptBias, setAcceptBias] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -53,15 +56,19 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     segments.length === 0 && "Pick at least one market-cap segment.",
     (share === null || share < lo || share > hi) && `Keep the holdout between ${lo * 100}% and ${hi * 100}% of the study (the spec suggests 20-30%).`,
     options.frozen_through && end > options.frozen_through && `The study must end by ${options.frozen_through}, the end of the frozen history.`,
+    Number(minOrder || 0) < 0 && "The minimum order cannot be negative.",
+    maxOrder.trim() !== "" && !(Number(maxOrder) > 0) && "The maximum order must be more than zero, or left empty.",
+    maxOrder.trim() !== "" && Number(maxOrder) > 0 && Number(maxOrder) < Number(minOrder || 0) && "The maximum order cannot be below the minimum.",
     early && !acceptBias && `Starting before ${options.survivorship_safe_from} needs the survivorship bias accepted below.`,
   ].filter((p): p is string => Boolean(p));
 
+  const sizeAdvice = orderSizeWarnings(capital, grid.max_positions ?? [], minOrder, maxOrder);
   const [b, product] = broker.split("|");
   const body = {
     name: name.trim(), hypothesis: hypothesis.trim(), strategy_id: strategy?.id ?? "", grid,
     universe: { segments, before_segment_lists: beforeLists, min_history_sessions: Number(minHistory) || 0 },
     timeframe: "1D", start, end, holdout_start: holdout, capital, capacity_multiple: capacity, broker: b ?? "", product: product ?? "DELIVERY",
-    slippage: slip, thresholds, accept_survivorship_bias: acceptBias,
+    slippage: slip, benchmark, min_order_value: minOrder.trim() || "0", max_order_value: maxOrder.trim() || null, thresholds, accept_survivorship_bias: acceptBias,
   };
   const register = useMutation({
     mutationFn: () => api.registerStudy(body),
@@ -185,6 +192,17 @@ export function StudyForm({ options }: { options: StudyOptions }) {
             <Field id="slip-part" label="Slippage: per 1% of volume (bps)" hint="Extra cost for taking a larger share of the day's volume."><input id="slip-part" inputMode="decimal" value={slip.participation_bps_per_pct} onChange={(e) => setSlip((s) => ({ ...s, participation_bps_per_pct: e.target.value }))} className={inputFull} /></Field>
             <Field id="slip-vol" label="Slippage: share of the day's range (0-1)" hint="Wider-moving stocks cost more to trade."><input id="slip-vol" inputMode="decimal" value={slip.volatility_fraction} onChange={(e) => setSlip((s) => ({ ...s, volatility_fraction: e.target.value }))} className={inputFull} /></Field>
           </div>
+          <div className="mt-4">
+            <Field id="study-benchmark" label="Compare with (index)" hint="The total-return index the results are measured against, on the same days. Only an index whose stored data has passed its validation can back the checks.">
+              <select id="study-benchmark" value={benchmark} onChange={(e) => setBenchmark(e.target.value)} className={inputFull}>
+                {options.benchmarks.map((b) => <option key={b.name} value={b.name}>{b.name}{b.usable ? "" : " (not validated yet)"}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field id="order-min" label="Smallest order (₹)" hint="Skip any order worth less than this, so the strategy does not pay charges on 1-share top-ups. Closing a whole position is always allowed. Empty means no minimum."><input id="order-min" inputMode="decimal" placeholder="no minimum" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className={inputFull} /></Field>
+            <Field id="order-max" label="Largest order (₹)" hint="A bigger order is split over several days. Empty means no maximum."><input id="order-max" inputMode="decimal" placeholder="no maximum" value={maxOrder} onChange={(e) => setMaxOrder(e.target.value)} className={inputFull} /></Field>
+          </div>
         </SettingsSection>
 
         <SettingsSection title="Pass or fail" description="Decided now, before any result. Each must hold for the study to pass.">
@@ -197,6 +215,11 @@ export function StudyForm({ options }: { options: StudyOptions }) {
           </div>
         </SettingsSection>
 
+        {sizeAdvice.length > 0 ? (
+          <div className="mb-4 space-y-2">
+            {sizeAdvice.map((w) => <Alert key={w} tone="warn" title="Check the order sizes">{w}</Alert>)}
+          </div>
+        ) : null}
         {problems.length > 0 ? (
           <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-amber-800" aria-label="Before you can register">
             {problems.map((p) => <li key={p}>{p}</li>)}

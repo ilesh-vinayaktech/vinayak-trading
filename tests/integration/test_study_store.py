@@ -124,6 +124,7 @@ def test_a_study_registered_before_a_setting_existed_reads_back_with_that_settin
     conn, owner, fid = env
     old = spec().model_dump(mode="json")
     del old["slippage"]  # how a study registered before slippage was a setting was stored
+    del old["min_order_value"], old["max_order_value"]  # and before order sizes were settings
     eid = registry.register(
         conn, name="older study", strategy_id="trend_pullback", hypothesis="registered before slippage was a setting",
         style="long_only", param_ranges={"entry_rsi": [20, 20]}, holdout=(date(2024, 5, 1), date(2026, 11, 6)), now=NOW,
@@ -131,8 +132,39 @@ def test_a_study_registered_before_a_setting_existed_reads_back_with_that_settin
         owner_user_id=owner,
     )  # fmt: skip
     shown = get_study(conn, eid)
+    assert (shown["spec"]["min_order_value"], shown["spec"]["max_order_value"]) == ("0", None)
     assert shown["spec"]["slippage"] == {
         "base_bps": "5",
         "participation_bps_per_pct": "5",
         "volatility_fraction": "0",
     }
+
+
+def test_a_study_may_name_another_total_return_index_but_not_one_that_does_not_exist(env):
+    from algo.data.benchmark import register
+
+    conn, owner, _ = env
+    with pytest.raises(StudyError, match="no total-return index called"):
+        register_study(conn, owner, spec(name="a", benchmark="Made up index"), NOW)
+    register(
+        conn,
+        name="Nifty 50 TRI",
+        provider="p",
+        index_symbol="N50",
+        return_type="PRICE",
+        methodology_version="m",
+    )
+    with pytest.raises(StudyError, match="no total-return index called"):
+        register_study(
+            conn, owner, spec(name="b", benchmark="Nifty 50 TRI"), NOW
+        )  # a price index cannot back a gate
+    register(
+        conn,
+        name="Nifty 500 TRI",
+        provider="p",
+        index_symbol="N500",
+        return_type="TOTAL_RETURN",
+        methodology_version="m",
+    )
+    sid = register_study(conn, owner, spec(name="c", benchmark="Nifty 500 TRI"), NOW)
+    assert get_study(conn, sid)["spec"]["benchmark"] == "Nifty 500 TRI"

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { ChartWorkspace, BASES, presetStart } from "@/components/charts/ChartWorkspace";
+import { FundamentalsPanel } from "@/components/fundamentals/FundamentalsPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import type { LiveView, Mark } from "@/components/charts/PriceChart";
 import { useAuth } from "@/lib/auth";
@@ -139,6 +140,8 @@ export default function InstrumentsPage() {
           Provisional (unverified) adjustments applied: {bars.data.provisional.map((a) => `${a.kind} ${a.ex_date}`).join(", ")}.
         </p>
       ) : null}
+
+      {detail.data ? <FundamentalsPanel key={detail.data.id} instrumentId={detail.data.id} symbol={detail.data.symbol} /> : null}
 
       {detail.data ? (
         <>

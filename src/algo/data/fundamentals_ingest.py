@@ -8,17 +8,25 @@ The caller injects `get(url) -> bytes` (the throttled NseClient in production)."
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 
 import psycopg
 
-from algo.data.fundamentals import FilingMismatch, note_unloaded, store_filing
+from algo.data.fundamentals import FilingMismatch, note_unloaded, store_extra, store_filing
 from algo.data.lake import LocalLake
 from algo.data.providers.nse_client import NseHttpError
-from algo.data.providers.nse_results import Filing, XbrlError, parse_listing, parse_xbrl
+from algo.data.providers.nse_results import (
+    Filing,
+    XbrlError,
+    parse_integrated_listing,
+    parse_listing,
+    parse_xbrl,
+)
 
 LISTING_URL = "https://www.nseindia.com/api/corporates-financial-results?index=equities&symbol={symbol}&period=Quarterly"
+
+INTEGRATED_URL = "https://www.nseindia.com/api/integrated-filing-results?index=equities&type=Integrated%20Filing-%20Financials&symbol={symbol}"
 
 
 class Blocked(Exception):
@@ -55,12 +63,25 @@ def ingest_symbol(
     *,
     since: date = date(2016, 4, 1),
     bases: Sequence[str] = ("CONSOLIDATED", "STANDALONE"),
+    integrated: bool = False,
 ) -> IngestResult:
+    """`integrated=True` reads the SEBI integrated-filing feed (results from 2025 on); the default is the older feed."""
     res = IngestResult(symbol)
-    url = LISTING_URL.format(symbol=symbol)
+    url = (INTEGRATED_URL if integrated else LISTING_URL).format(symbol=symbol)
     raw = _fetch(get, url)
-    lake.put("nse", f"financial_results_{symbol}", now.date(), raw, url=url, fetched_at=now)
-    filings = parse_listing(raw)
+    lake.put(
+        "nse",
+        f"{'integrated_filing' if integrated else 'financial_results'}_{symbol}",
+        now.date(),
+        raw,
+        url=url,
+        fetched_at=now,
+    )
+    filings = (
+        [f for f in parse_integrated_listing(raw) if f.symbol == symbol]
+        if integrated
+        else parse_listing(raw)
+    )
     res.listed = len(filings)
     for f in sorted(filings, key=lambda x: (x.period_end, x.basis)):
         if f.period_end < since or f.basis not in bases:
@@ -123,6 +144,8 @@ def _load(
         manifest = lake.put("nse", dataset, day, raw, url=f.xbrl_url, fetched_at=now)
     try:
         st = parse_xbrl(raw)
+        if not f.isin:  # integrated listing: ISIN and bank flag come from the XBRL
+            f = replace(f, isin=st.isin, bank="interest_earned" in st.quarter)
         iid = _instrument(conn, f)
         with conn.transaction():
             store_filing(conn, f, st, manifest.checksum, iid, now)
@@ -131,3 +154,24 @@ def _load(
         res.note("UNPARSEABLE")
         return
     res.stored += 1
+
+
+def backfill_facts(conn: psycopg.Connection, lake: LocalLake) -> int:
+    """Re-read every stored filing's XBRL from the lake (no network) and add the full set of figures. Returns filings read."""
+    done = 0
+    for fid, symbol, url, filed in conn.execute(
+        "SELECT filing_id, symbol, xbrl_url, filed_at FROM fundamental_filing ORDER BY filing_id"
+    ).fetchall():
+        kept = [
+            m for m in lake.versions("nse", f"results_xbrl_{symbol}", filed.date()) if m.url == url
+        ]
+        if not kept:
+            continue
+        try:
+            st = parse_xbrl(lake.get(kept[-1]))
+        except XbrlError:
+            continue
+        with conn.transaction():
+            store_extra(conn, fid, st)
+        done += 1
+    return done

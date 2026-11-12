@@ -81,7 +81,27 @@ def seeded(conn, pg_url, docs):  # noqa: F811
         "INSERT INTO backtest_run (strategy_id,strategy_version,params,params_hash,code_version,reader_mode,config,"
         "cost_model,adjustment_versions,provisional_events,unapplied_events,blocked_instruments,unmodelled_events,"
         "accounting_complete,dividends_received,metrics,result_hash,created_at,ledger_reconciled,reconciliation,pnl)"
-        " VALUES ('s','1','{}','ph','c','research','{}','{}','{}','[]','[]','[]','[]',true,0,'{\"sharpe\": 1.2}','rh',%s,true,'{}','{}')", (NOW,))  # fmt: skip
+        " VALUES ('s','1','{}','ph','c','research','{\"initial_cash\": \"10000\", \"start\": \"2025-06-09\", \"end\": \"2025-06-12\"}','{}','{}','[]','[]','[]','[]',true,0,'{\"sharpe\": 1.2}','rh',%s,true,'{}','{}')", (NOW,))  # fmt: skip
+    conn.execute(
+        "INSERT INTO backtest_trade (run_id,seq,day,instrument_id,side,qty,price,cost) VALUES "
+        "(1,1,'2025-06-09',%s,'BUY',10,100,2),(1,2,'2025-06-12',%s,'SELL',10,104,2),(1,3,'2025-06-12',%s,'BUY',5,104,1)",
+        (iid, iid, iid),
+    )
+    conn.execute("INSERT INTO backtest_equity VALUES (1,'2025-06-09',10000),(1,'2025-06-12',10035)")
+    fid = conn.execute(
+        "INSERT INTO fundamental_filing (symbol,isin,instrument_id,seq_number,period_start,period_end,basis,audited,"
+        "bank,filed_at,rounding,xbrl_url,raw_sha256,ingested_at) VALUES ('XYZ','INE000X01010',%s,'IF1','2025-04-01',"
+        "'2025-06-30','CONSOLIDATED',true,false,%s,'Crores','u','h',%s) RETURNING filing_id",
+        (iid, datetime(2025, 7, 10, 13, tzinfo=UTC), NOW),
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO fundamental_fact VALUES (%s,'Income','QUARTER',745250000000),(%s,'ProfitLossForPeriod','QUARTER',139340000000),"
+        "(%s,'BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations','QUARTER',38.37),"
+        "(%s,'Assets','INSTANT',1907820000000),(%s,'CashFlowsFromUsedInOperatingActivities','YTD',258010000000),"
+        "(%s,'Equity','INSTANT',1199940000000),(%s,'PaidUpValueOfEquityShareCapital','QUARTER',3620000000),"
+        "(%s,'FaceValueOfEquityShareCapital','QUARTER',1)",
+        (fid,) * 8,
+    )
     clock = SimClock(datetime(2026, 11, 8, 4, 51, tzinfo=UTC))
     return TestClient(open_app(pg_url, docs, clock=clock)), iid, bid
 
@@ -93,6 +113,8 @@ def snapshots(c, iid, bid):
         "dashboard": c.get("/api/dashboard"),
         "instrument_search": c.get("/api/instruments", params={"q": "xy"}),
         "instrument_detail": c.get(f"/api/instruments/{iid}"),
+        "instrument_fundamentals": c.get(f"/api/instruments/{iid}/fundamentals"),
+        "instrument_ratios": c.get(f"/api/instruments/{iid}/ratios"),
         "bars_none": c.get(f"/api/instruments/{iid}/bars", params={**rng, "adjust": "none"}),
         "bars_split": c.get(f"/api/instruments/{iid}/bars", params={**rng, "adjust": "split"}),
         "bars_5m": c.get(f"/api/instruments/{iid}/bars", params={**rng, "timeframe": "5m"}),
@@ -105,6 +127,7 @@ def snapshots(c, iid, bid):
         "benchmark_detail": c.get(f"/api/benchmarks/{bid}"),
         "benchmark_levels": c.get(f"/api/benchmarks/{bid}/levels"),
         "backtests": c.get("/api/backtests"),
+        "backtest_report": c.get("/api/backtests/1/report"),
         "activity": c.get("/api/system/activity"),
     }
 
@@ -498,7 +521,11 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         },
     ).json()["config_id"]
     c.post(f"/api/strategies/{made}/use", json={})
+    c.post(
+        f"/api/strategies/{made}/stage", json={"to_stage": "PAPER", "reason": "prove the plumbing"}
+    )
     shots["strategies"] = c.get("/api/strategies")
+    shots["strategy_stage"] = c.get(f"/api/strategies/{made}/stage")
     from tests.integration.portal.test_strategy_routes import _series
 
     infy = repo.add_instrument(x, "INFY")
@@ -584,6 +611,37 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         seconds=12.5,
     )
     shots["study_results"] = c.get(f"/api/studies/{made_study}/results")
+    shots["study_verdict_none"] = c.get(f"/api/studies/{made_study}/verdict")
+    from algo.backtest.validation.gates import Evidence, Thresholds, evaluate
+    from algo.backtest.validation.registry import save_report
+    from algo.research.study import default_thresholds
+
+    run_id = conn.execute(
+        "INSERT INTO backtest_run (strategy_id,strategy_version,params,params_hash,code_version,reader_mode,config,"
+        "cost_model,adjustment_versions,provisional_events,unapplied_events,blocked_instruments,unmodelled_events,"
+        "accounting_complete,dividends_received,metrics,result_hash,created_at,ledger_reconciled,reconciliation,pnl)"
+        " VALUES ('s','1','{}','ph','c','research','{}','{}','{}','[]','[]','[]','[]',true,0,'{}','rh',%s,true,'{}','{}')"
+        " RETURNING run_id", (start,)).fetchone()[0]  # fmt: skip
+    th = Thresholds(**{k: float(v) for k, v in default_thresholds().items()})
+    ev = Evidence(oos_sharpe=1.1, dsr=0.97, pbo=0.1, max_drawdown=-0.2, benchmark_max_drawdown=-0.3, benchmark_sharpe=0.7,
+                  plateau_drop=0.1, sharpe_2x_costs=0.6, top3_instrument=0.4, top3_month=0.3, top3_trade=0.2,
+                  oos_days=252.0, regimes=2.0, window_share=0.4)  # fmt: skip
+    save_report(conn, made_study, run_id, evaluate(ev, th, "confirmed"), ev, 12, start, refs={
+        "chosen": {"entry_rsi": 20, "trend_sma": 200}, "benchmark": "Nifty 200 Total Return Index (gross)", "benchmark_note": None,
+        "windows": [{"train_from": "2020-01-01", "train_to": "2021-12-31", "test_from": "2022-01-07", "test_to": "2022-07-01",
+                     "chosen": {"entry_rsi": 20}, "sharpe": 1.4, "return": 0.08}],
+        "walk_forward": {"train": 504, "test": 126, "embargo": 5}, "cost_2x_run": run_id, "capital_run": run_id, "capital_multiple": "3",
+    })  # fmt: skip
+    shots["study_verdict_before_holdout"] = c.get(f"/api/studies/{made_study}/verdict")
+    conn.execute(
+        "INSERT INTO study_holdout (experiment_id, run_id, passed, evidence, gates, refs, created_at) VALUES (%s,%s,false,%s,%s,%s,%s)",
+        (made_study, run_id,
+         '{"days": 60, "sharpe": 0.4, "max_drawdown": -0.1, "benchmark_sharpe": null, "total_return": 0.03}',
+         '[{"name": "holdout_sharpe", "passed": false, "detail": "0.40 < required 0.8"}, {"name": "holdout_drawdown", "passed": true, "detail": "ok"}, {"name": "holdout_beats_benchmark", "passed": false, "detail": "evidence missing"}]',
+         '{"chosen": {"entry_rsi": 20}, "benchmark": "Nifty 200 Total Return Index (gross)", "benchmark_note": "not loaded", "window": ["2024-05-01", "2026-11-06"], "verdict_report": 1}',
+         start),
+    )  # fmt: skip
+    shots["study_verdict"] = c.get(f"/api/studies/{made_study}/verdict")
     book.record_fill(
         conn,
         uid,

@@ -1,0 +1,182 @@
+{
+ "benchmark": {
+  "curve": [],
+  "final": null,
+  "max_drawdown": null,
+  "name": "Nifty 200 Total Return Index (gross)",
+  "note": "Nifty 200 Total Return Index (gross) is not loaded",
+  "return": null,
+  "sharpe": null,
+  "strategy_max_drawdown": null,
+  "strategy_return": null,
+  "strategy_sharpe": null
+ },
+ "by_stock": [
+  {
+   "charges": "4",
+   "net": "36",
+   "symbol": "XYZ",
+   "trades": 1,
+   "win_rate": "1.0000"
+  }
+ ],
+ "by_weekday": [
+  {
+   "net": "0",
+   "trades": 0,
+   "weekday": "Mon",
+   "win_rate": null
+  },
+  {
+   "net": "0",
+   "trades": 0,
+   "weekday": "Tue",
+   "win_rate": null
+  },
+  {
+   "net": "0",
+   "trades": 0,
+   "weekday": "Wed",
+   "win_rate": null
+  },
+  {
+   "net": "36",
+   "trades": 1,
+   "weekday": "Thu",
+   "win_rate": "1.0000"
+  },
+  {
+   "net": "0",
+   "trades": 0,
+   "weekday": "Fri",
+   "win_rate": null
+  }
+ ],
+ "created_at": "2026-11-07T00:00:00+00:00",
+ "curve": [
+  {
+   "date": "2025-06-09",
+   "drawdown": "0.0000",
+   "equity": "10000"
+  },
+  {
+   "date": "2025-06-12",
+   "drawdown": "0.0000",
+   "equity": "10035"
+  }
+ ],
+ "distribution": [
+  {
+   "count": 0,
+   "label": "below -10%"
+  },
+  {
+   "count": 0,
+   "label": "-10% to -8%"
+  },
+  {
+   "count": 0,
+   "label": "-8% to -6%"
+  },
+  {
+   "count": 0,
+   "label": "-6% to -4%"
+  },
+  {
+   "count": 0,
+   "label": "-4% to -2%"
+  },
+  {
+   "count": 0,
+   "label": "-2% to 0%"
+  },
+  {
+   "count": 0,
+   "label": "0% to 2%"
+  },
+  {
+   "count": 1,
+   "label": "2% to 4%"
+  },
+  {
+   "count": 0,
+   "label": "4% to 6%"
+  },
+  {
+   "count": 0,
+   "label": "6% to 8%"
+  },
+  {
+   "count": 0,
+   "label": "8% to 10%"
+  },
+  {
+   "count": 0,
+   "label": "10% and above"
+  }
+ ],
+ "end": "2025-06-12",
+ "headline": {
+  "change": "35",
+  "final": "10035",
+  "initial": "10000",
+  "max_drawdown": "0.0000",
+  "return": "0.0035"
+ },
+ "label": null,
+ "monthly": [
+  {
+   "month": "2025-06",
+   "net": "36",
+   "trades": 1
+  }
+ ],
+ "open_positions": [
+  {
+   "entry_day": "2025-06-12",
+   "entry_price": "104",
+   "instrument_id": 1,
+   "lots": 1,
+   "qty": "5",
+   "symbol": "XYZ"
+  }
+ ],
+ "params": {},
+ "round_trips": [
+  {
+   "charges": "4",
+   "entry_day": "2025-06-09",
+   "entry_price": "100",
+   "exit_day": "2025-06-12",
+   "exit_price": "104",
+   "gross": "40",
+   "holding_days": 3,
+   "instrument_id": 1,
+   "net": "36",
+   "qty": "10",
+   "return": "0.0360",
+   "symbol": "XYZ"
+  }
+ ],
+ "run_id": 1,
+ "start": "2025-06-09",
+ "strategy_id": "s",
+ "strategy_version": "1",
+ "study": null,
+ "summary": {
+  "avg_holding_days": "3.0000",
+  "avg_loss": null,
+  "avg_win": "36",
+  "charges": "4",
+  "cost_drag": "0.1000",
+  "gross_loss": "0",
+  "gross_profit": "36",
+  "losses": 0,
+  "net_pnl": "36",
+  "pre_charge_pnl": "40",
+  "profit_factor": null,
+  "trades": 1,
+  "win_rate": "1.0000",
+  "wins": 1
+ }
+}

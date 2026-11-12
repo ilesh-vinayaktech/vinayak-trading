@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { ApiError, get } from "@/lib/api/client";
-import { fmtDateTime, fmtInt, humanize, plotNumber, shortHash } from "@/lib/formatting";
+import { fmtDateTime, fmtDuration, fmtInt, humanize, plotNumber, shortHash } from "@/lib/formatting";
 
 const schema = z.object({ n: z.string() });
 const reply = (body: unknown, status = 200) => async () => new Response(JSON.stringify(body), { status });
@@ -44,5 +44,16 @@ describe("formatting", () => {
     expect(shortHash("abc")).toBe("abc");
     expect(humanize("INTRADAY_RESEARCH")).toBe("intraday research");
     expect(plotNumber("1339.800")).toBe(1339.8);
+  });
+});
+
+describe("durations", () => {
+  it("shows the two most useful units", () => {
+    expect([0, 40, 59.6, 60, 750, 3600, 7800, 86400, 98000, 190000].map(fmtDuration)).toEqual([
+      "0 s", "40 s", "1 min", "1 min", "13 min", "1 h", "2 h 10 min", "1 d", "1 d 3 h", "2 d 4 h",
+    ]);
+  });
+  it("never goes negative", () => {
+    expect(fmtDuration(-5)).toBe("0 s");
   });
 });

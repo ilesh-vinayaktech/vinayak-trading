@@ -112,6 +112,14 @@ def decide(
                 exits[iid] = "rsi_above_exit"
             else:
                 keep.append(iid)
+    if len(keep) > p.max_positions:
+        # A position still being sold down (orders are split by size or volume) is still held while its slot may already be
+        # in use, so more than max_positions can be held. Keep the most oversold; names with no bar today are kept first,
+        # since they cannot be sold. Without this the targets add up to more than 100% and the run stops.
+        ranked = sorted(keep, key=lambda i: (ready[i][2] if i in ready else Decimal(-1), i))
+        dropped = set(ranked[p.max_positions :])
+        exits.update({i: "over_limit" for i in dropped})
+        keep = [i for i in keep if i not in dropped]
     candidates = sorted(
         ((rsi, iid) for iid, (close, sma, rsi) in ready.items() if iid not in held and close > sma and rsi < p.entry_rsi),
         key=lambda r: (r[0], r[1]),

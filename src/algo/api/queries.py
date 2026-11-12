@@ -10,8 +10,11 @@ from typing import Any
 
 import psycopg
 
+from algo.backtest.report import build_report, no_comparison
+from algo.data import ratios as fr
 from algo.data.bars import Bar
-from algo.data.benchmark import dataset_hash, levels
+from algo.data.benchmark import DEFAULT_BENCHMARK, dataset_hash, levels, validated
+from algo.data.fundamentals import load_market, load_quarters
 from algo.data.minute_reader import minute_history
 from algo.data.reader import IST, AdjBar, BarReader
 from algo.data.resample import resample, resample_calendar
@@ -408,15 +411,21 @@ def backtests(conn: psycopg.Connection, limit: int = 50, offset: int = 0) -> dic
     total = _one(conn, "SELECT count(*) FROM backtest_run")[0]
     rows = _rows(
         conn,
-        "SELECT run_id, strategy_id, strategy_version, reader_mode, created_at, metrics,"
-        " accounting_complete, ledger_reconciled, result_hash FROM backtest_run"
-        " ORDER BY run_id DESC LIMIT %s OFFSET %s",
+        "SELECT r.run_id, r.strategy_id, r.strategy_version, r.reader_mode, r.created_at,"
+        " r.metrics, r.accounting_complete, r.ledger_reconciled, r.result_hash, r.label,"
+        " s.experiment_id, s.name"
+        " FROM backtest_run r LEFT JOIN LATERAL ("
+        " SELECT e.experiment_id, e.name FROM study_trial t"
+        " JOIN experiment e USING (experiment_id)"
+        " WHERE t.backtest_run = r.run_id LIMIT 1) s ON true"
+        " ORDER BY r.run_id DESC LIMIT %s OFFSET %s",
         (limit, offset),
     )
     items = [
         {"run_id": r[0], "strategy_id": r[1], "strategy_version": r[2], "reader_mode": r[3],
          "created_at": _iso(r[4]), "metrics": r[5], "accounting_complete": r[6],
-         "ledger_reconciled": r[7], "result_hash": r[8]} for r in rows
+         "ledger_reconciled": r[7], "result_hash": r[8], "label": r[9],
+         "study": None if r[10] is None else {"experiment_id": r[10], "name": r[11]}} for r in rows
     ]  # fmt: skip
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
@@ -443,6 +452,63 @@ def backtest(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
         k: (_s(v) if k == "dividends_received" else _iso(v))
         for k, v in zip(keys, rows[0], strict=True)
     }
+
+
+def backtest_report(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
+    """The run explained: buys paired with sells, the equity curve, results per stock."""
+    run = _rows(
+        conn,
+        "SELECT strategy_id, strategy_version, params, config, created_at, label"
+        " FROM backtest_run WHERE run_id=%s",
+        (run_id,),
+    )
+    if not run:
+        return None
+    fills = [
+        (r[0], r[1], r[2], r[3], r[4], r[5], r[6])
+        for r in _rows(
+            conn,
+            "SELECT seq, day, instrument_id, side, qty, price, cost"
+            " FROM backtest_trade WHERE run_id=%s",
+            (run_id,),
+        )
+    ]
+    equity = [
+        (r[0], r[1])
+        for r in _rows(
+            conn, "SELECT day, equity FROM backtest_equity WHERE run_id=%s ORDER BY day", (run_id,)
+        )
+    ]
+    names = {
+        r[0]: r[1]
+        for r in _rows(
+            conn,
+            "SELECT instrument_id, symbol FROM instrument WHERE instrument_id = ANY(%s)",
+            (sorted({f[2] for f in fills}),),
+        )
+    }
+    sid, ver, params, cfg, created, label = run[0]
+    bench: tuple[str, Any] | None = None
+    row = conn.execute(
+        "SELECT benchmark_id FROM benchmark WHERE name=%s", (DEFAULT_BENCHMARK,)
+    ).fetchone()
+    if row is not None and validated(conn, row[0]) and equity:
+        bench = (DEFAULT_BENCHMARK, levels(conn, row[0], equity[0][0], equity[-1][0]))
+    report = build_report(fills, equity, Decimal(str(cfg["initial_cash"])), names, bench)
+    if bench is None:
+        why = "is not loaded" if row is None else "has no passing validation for its stored data"
+        report["benchmark"] = no_comparison(DEFAULT_BENCHMARK, f"{DEFAULT_BENCHMARK} {why}")
+    study = conn.execute(
+        "SELECT e.experiment_id, e.name FROM study_trial t JOIN experiment e USING (experiment_id)"
+        " WHERE t.backtest_run=%s LIMIT 1",
+        (run_id,),
+    ).fetchone()
+    return {
+        "study": None if study is None else {"experiment_id": study[0], "name": study[1]},
+        "label": label,
+        "run_id": run_id, "strategy_id": sid, "strategy_version": ver, "params": params,
+        "start": cfg.get("start"), "end": cfg.get("end"), "created_at": _iso(created), **report,
+    }  # fmt: skip
 
 
 _Q = Decimal("0.0001")
@@ -516,3 +582,145 @@ def _indicator_json(
         "outputs": [{"key": o.key, "label": o.label, "kind": o.kind, "color": o.color,
                      "values": [_text(v) for v in series[o.key]]} for o in ind.outputs],
     }  # fmt: skip
+
+
+def instrument_fundamentals(
+    conn: psycopg.Connection, instrument_id: int, basis: str | None, quarters: int
+) -> dict[str, Any] | None:
+    """Latest filing per quarter (a restatement replaces the earlier), every figure it carries."""
+    inst = conn.execute(
+        "SELECT symbol FROM instrument WHERE instrument_id=%s", (instrument_id,)
+    ).fetchone()
+    if inst is None:
+        return None
+    bases = [
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT basis FROM fundamental_filing WHERE instrument_id=%s ORDER BY basis",
+            (instrument_id,),
+        )
+    ]
+    first = "CONSOLIDATED" if "CONSOLIDATED" in bases else (bases[0] if bases else None)
+    chosen = basis if basis in bases else first
+    periods: list[dict[str, Any]] = []
+    if chosen is not None:
+        filings = conn.execute(
+            "SELECT * FROM (SELECT DISTINCT ON (period_end) filing_id, period_start, period_end,"
+            " filed_at, audited, bank, rounding FROM fundamental_filing"
+            " WHERE instrument_id=%s AND basis=%s ORDER BY period_end, filed_at DESC) f"
+            " ORDER BY period_end DESC LIMIT %s",
+            (instrument_id, chosen, quarters),
+        ).fetchall()
+        scopes = ("QUARTER", "YTD", "INSTANT")
+        facts: dict[int, dict[str, dict[str, str]]] = {
+            f[0]: {s: {} for s in scopes} for f in filings
+        }
+        for fid, scope, metric, value in conn.execute(
+            "SELECT filing_id, scope, metric, value FROM fundamental_fact"
+            " WHERE filing_id = ANY(%s) AND metric ~ '^[A-Z]'",
+            ([f[0] for f in filings],),
+        ):
+            facts[fid][scope][metric] = str(value)
+        periods = [
+            {
+                "period_start": _iso(f[1]), "period_end": _iso(f[2]), "filed_at": f[3].isoformat(),
+                "audited": f[4], "bank": f[5], "rounding": f[6],
+                "quarter": facts[f[0]]["QUARTER"], "ytd": facts[f[0]]["YTD"],
+                "instant": facts[f[0]]["INSTANT"],
+            }
+            for f in filings
+        ]  # fmt: skip
+    return {
+        "instrument_id": instrument_id,
+        "symbol": inst[0],
+        "bases": bases,
+        "basis": chosen,
+        "periods": periods,
+    }
+
+
+def instrument_ratios(
+    conn: psycopg.Connection, instrument_id: int, basis: str | None
+) -> dict[str, Any] | None:
+    """Ratios now, a year ago and for the last eight quarters, each as filed by then."""
+    inst = conn.execute(
+        "SELECT symbol FROM instrument WHERE instrument_id=%s", (instrument_id,)
+    ).fetchone()
+    if inst is None:
+        return None
+    bases = [
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT basis FROM fundamental_filing WHERE instrument_id=%s ORDER BY basis",
+            (instrument_id,),
+        )
+    ]
+    chosen = basis if basis in bases else ("CONSOLIDATED" if "CONSOLIDATED" in bases else None)
+    chosen = chosen or (bases[0] if bases else None)
+    out: dict[str, Any] = {
+        "instrument_id": instrument_id, "symbol": inst[0], "bases": bases, "basis": chosen,
+        "bank": False, "price": None, "latest_period": None, "ratios": [],
+    }  # fmt: skip
+    if chosen is None:
+        return out
+    filings = load_quarters(conn, instrument_id, chosen)
+    known = fr.known_quarters(filings)
+    if not known:
+        return out
+    market = load_market(conn, instrument_id, max(q.filed_at for q in known[:1]))
+    now = fr.compute(known, market)
+    # each past quarter as it stood when it was filed: the results known then and the close that day
+    history = {
+        q.period_end: fr.compute(
+            fr.known_quarters(filings, q.filed_at),
+            load_market(conn, instrument_id, q.filed_at, q.filed_at.astimezone(IST).date()),
+        )
+        for q in known[:8]
+    }
+
+    def text(v: Decimal | None) -> str | None:
+        return None if v is None else str(v.quantize(Decimal("0.0001")))
+
+    ratios = []
+    for d in fr.RATIOS:
+        if d.key not in now:
+            continue
+        r, bank = now[d.key], known[0].bank
+        rd, basis = fr.reading(d, r.value, bank), "rule"
+        if (
+            rd is None and d.better is not None
+        ):  # no fixed yardstick: judge it against the company's own past quarters
+            past = [
+                h[d.key].value
+                for e, h in history.items()
+                if e != known[0].period_end and d.key in h and h[d.key].value is not None
+            ]
+            rd, basis = (
+                fr.reading_vs_own_past(d, r.value, [v for v in past if v is not None]),
+                "own_past",
+            )
+        basis = basis if rd else None
+        ago = next(
+            (
+                history[e].get(d.key)
+                for e in history
+                if 360 <= (known[0].period_end - e).days <= 370
+            ),
+            None,
+        )
+        ratios.append({
+            "key": d.key, "label": d.label, "group": d.group, "unit": d.unit, "meaning": d.meaning,
+            "formula": d.formula, "better": d.better, "value": text(r.value), "note": r.note,
+            "as_of": _iso(r.as_of), "reading": rd, "reading_basis": basis,
+            "year_ago": text(ago.value) if ago else None,
+            "history": [
+                {"period_end": _iso(e), "value": text(h[d.key].value)}
+                for e, h in sorted(history.items())
+                if d.key in h and h[d.key].value is not None
+            ],
+        })  # fmt: skip
+    out.update(
+        bank=known[0].bank, latest_period=_iso(known[0].period_end), ratios=ratios,
+        price=None if market.price is None else {"value": text(market.price), "date": _iso(market.price_date)},  # noqa: E501
+    )  # fmt: skip
+    return out

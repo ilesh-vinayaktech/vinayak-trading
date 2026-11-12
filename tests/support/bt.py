@@ -45,12 +45,23 @@ def flat(price, days=DAYS):
     return {d: D(price) for d in days}
 
 
-def add_action(conn, iid, ex, kind, status="ok", num=None, den=None, amount=None, subject="t"):
+def add_action(
+    conn,
+    iid,
+    ex,
+    kind,
+    status="ok",
+    num=None,
+    den=None,
+    amount=None,
+    subject="t",
+    ingested=INGESTED,
+):
     conn.execute(
         "INSERT INTO corporate_action (instrument_id,ex_date,kind,status,num,den,amount,reason,subject,"
         "knowledge_time,knowledge_time_source,source,raw_checksum,ingested_at) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,'r',%s,%s,'ex_date_proxy','nse','x',%s)",
-        (iid, ex, kind, status, num, den, amount, subject, knowledge_time_for(ex), INGESTED),
+        (iid, ex, kind, status, num, den, amount, subject, knowledge_time_for(ex), ingested),
     )
 
 

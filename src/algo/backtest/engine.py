@@ -53,6 +53,18 @@ class BacktestConfig:
     cost: CostPolicy = PLACEHOLDER_COSTS
     max_participation: Decimal = Decimal("0.05")  # share of the bar's volume one order may take
     max_weight: Decimal = Decimal(1)
+    min_order_value: Decimal = Decimal(
+        0
+    )  # rupees; smaller orders are not placed (a full exit always is)
+    max_order_value: Decimal | None = None  # rupees; a bigger order is split over several days
+
+    def __post_init__(self) -> None:
+        if self.min_order_value < 0:
+            raise ValueError("the minimum order value cannot be negative")
+        if self.max_order_value is not None and self.max_order_value < max(
+            self.min_order_value, Decimal(1)
+        ):
+            raise ValueError("the maximum order value cannot be below the minimum (or below ₹1)")
 
 
 @dataclass(frozen=True)
@@ -105,6 +117,9 @@ class RunResult:
     signal_sources: dict[int, list[int]] = field(
         default_factory=dict
     )  # instruments whose bars fed each name's SIGNAL (more than one across an ISIN change)
+    snapshot: dict[str, str] | None = (
+        None  # the pinned moment and the fingerprint of the data read then
+    )
     reconciliation: list[str] = field(default_factory=list)  # empty = the ledger agrees with itself
     pnl: dict[str, str] = field(
         default_factory=dict
@@ -187,6 +202,7 @@ def run_backtest(
     *,
     code_version: str = "unversioned",
     reader: BarReader | None = None,
+    on_day: Callable[[int, int, date], None] | None = None,
 ) -> RunResult:
     """`reader` pins the price source (a study uses frozen Kite data); default: the environment."""
     reader, strict = reader or BarReader.for_env(conn), cfg.mode is Mode.STRICT
@@ -228,6 +244,12 @@ def run_backtest(
         res.signal_sources[iid] = list(dict.fromkeys(sg.owners))
         res.provisional += [_event(iid, p) for p in hs.provisional]
         res.unapplied += [_event(iid, u) for u in hs.unapplied]
+    if reader.known_at is not None:  # a pinned run records exactly what it read
+        read = sorted({*loaded, *(o for owners in res.signal_sources.values() for o in owners)})
+        res.snapshot = {
+            "known_at": reader.known_at.isoformat(),
+            "hash": reader.snapshot_hash(read) or "",
+        }
 
     repo, step = InstrumentRepo(conn), {}
     for iid in loaded:
@@ -350,6 +372,8 @@ def run_backtest(
                     if (side == "SELL") != (delta < 0) or delta == 0:
                         continue
                     upper = min(abs(delta), cap[iid])
+                    if cfg.max_order_value is not None:
+                        upper = min(upper, snap_down(cfg.max_order_value / open_[iid], step[iid]))
                     liq = _liquidity(loaded[iid].rows, dayidx[iid][day], px[iid][day][2])
 
                     qty = (
@@ -363,6 +387,9 @@ def run_backtest(
                         else upper
                     )
                     if qty <= 0:
+                        continue
+                    closes_out = side == "SELL" and qty == ledger.qty(iid)
+                    if qty * open_[iid] < cfg.min_order_value and not closes_out:
                         continue
                     price, bps = cfg.cost.fill(side, open_[iid], qty, liq)
                     ch = cfg.cost.charges(day, side, qty, price)
@@ -391,6 +418,8 @@ def run_backtest(
                 last_close[iid] = px[iid][day][1]
         equity = ledger.equity(last_close)
         res.equity.append((day, equity))
+        if on_day is not None:  # progress only: it must never influence the run
+            on_day(i + 1, len(days), day)
         # 4. decide on this close; the order goes in at the next open
         if i < len(days) - 1:
             clock.advance_to(datetime.combine(day, SESSION_OPEN_UTC, UTC) + reader.visible_after)

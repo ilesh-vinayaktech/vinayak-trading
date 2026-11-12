@@ -17,12 +17,51 @@ A backtest number is only evidence after it survives the checks below. Code: `sr
 | Decide | `gates.evaluate` | Fourteen gates (definitions below). **Missing evidence fails its gate.** |
 | Record | `registry.save_report` | Evidence, per-gate result, N and the thresholds' status are stored. |
 
-Thresholds are data (`config/validation_thresholds.json`). They ship as `provisional`; `validation_passed()` only
-counts a passing report made against `confirmed` thresholds, so nothing can be promoted until the owner has
-confirmed them. Do not change them after seeing a result.
+Thresholds are data (`config/validation_thresholds.json`). `validation_passed()` only counts a passing report made
+against `confirmed` thresholds. The owner confirmed the current set on 2026-11-12, before any strategy was validated
+("keep it, we will improve over time"). Do not change them after seeing a result: an improvement is a new version used by
+later studies.
 
-Not built yet: the orchestrator that feeds a real strategy through all steps and assembles `Evidence`
-(arrives with the first strategy), benchmark loader, 3x-capital run, purged CV for ML.
+## The study verdict (`algo.research.verdict`, `study_runner.run_verdict`)
+
+A backtest study's "Judge the results" runs this over the finished trials. It never reads the holdout.
+
+| Evidence | How it is made |
+|---|---|
+| Out-of-sample returns | Walk-forward over the research window using the stored daily returns of every combination: train 504 sessions, embargo 5, test 126, stepping by 126. The best train-Sharpe combination in each window is judged only on its test days. Nothing is re-run. |
+| Deflated Sharpe | The out-of-sample returns, N = the registry's trial count, variance across the trials' Sharpes. |
+| Overfitting probability | CSCV over every combination's return series. |
+| Plateau | The best combination over the whole research window against its neighbours one step away in the grid, one setting at a time (the grid is discrete, so this replaces "+/-20%"). A grid with one value per setting has no neighbours, so this gate fails for missing evidence. |
+| Benchmark | The study's chosen total-return index (default Nifty 200 TRI gross), only if its stored data has a passing validation; otherwise its gates fail and the report says why. |
+| 2x costs / 3x capital | The chosen combination re-run through the engine with every charge and slippage doubled, and with capital times the study's capacity multiple. These runs are saved, are not trials, and are linked from the report. |
+| Concentration | Net profit by stock, by month of sale and by trade, from the chosen combination's closed trades (first in, first out). |
+| Regimes | The calendar year of each out-of-sample day (a stand-in until real regime labels exist). |
+
+The report (gates, evidence, chosen settings, every window, the stress runs) is stored in `validation_report`.
+
+## Promotion (`algo.strategy.stage`, migration 048)
+
+A saved strategy is in RESEARCH, PAPER or LIVE; every move is an append-only row with the approver, time, reason and (for
+LIVE) the backtest run. RESEARCH to PAPER needs only a reason (the owner's waiver for unvalidated paper trading, recorded on
+the row). PAPER to LIVE needs a run of this strategy with these settings and no `promotion_blockers`, which includes a
+passing validation report against confirmed thresholds. RESEARCH cannot jump to LIVE; moving down is always allowed.
+There is no live trading runner yet, so LIVE is a recorded stage that gates the future runner.
+
+## Pinned data (`algo.data.snapshot`, `BarReader(known_at=...)`)
+
+A reader pinned to a moment ignores bars, corporate actions and decisions ingested after it, so a provider's later
+correction cannot change a rerun. `snapshot_hash` fingerprints exactly what was read; a pinned run stores
+`{known_at, hash}` in its config.
+
+## The holdout (`study_runner.run_holdout`, migration 049)
+
+After a research verdict that passed every check, "Open the holdout" runs the chosen settings once over the holdout days
+(`holdout_start` to the study's end). Three gates use the study's own thresholds: Sharpe >= `min_oos_sharpe`, drawdown <=
+`owner_max_drawdown`, and Sharpe over the index >= `min_sharpe_over_benchmark` (missing evidence fails). It cannot be opened
+before a passing verdict, and only once: `experiment.holdout_opened_at` is claimed in the same transaction that stores the
+result in `study_holdout`. The holdout run is saved but is not a trial.
+
+Not built yet: real regime labels, a 12-1 momentum baseline, purged CV for ML.
 
 ## Gate definitions (thresholds v2, provisional)
 

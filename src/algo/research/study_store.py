@@ -12,6 +12,7 @@ from uuid import UUID
 import psycopg
 
 from algo.backtest.validation import registry
+from algo.data.benchmark import DEFAULT_BENCHMARK
 from algo.live.market_calendar import IST
 from algo.research.study import StudyError, StudySpec, check, combinations
 
@@ -48,6 +49,15 @@ def register_study(conn: psycopg.Connection, owner: UUID, spec: StudySpec, now: 
     ]  # fmt: skip
     if not costs:
         raise StudyError(f"there is no cost schedule for {spec.broker} {spec.product}")
+    if (
+        spec.benchmark != DEFAULT_BENCHMARK
+        and conn.execute(
+            "SELECT 1 FROM benchmark WHERE name=%s AND return_type='TOTAL_RETURN'",
+            (spec.benchmark,),
+        ).fetchone()
+        is None
+    ):
+        raise StudyError(f"there is no total-return index called {spec.benchmark!r}")
     combos = combinations(spec)
     study = {
         "spec": spec.model_dump(mode="json"),
