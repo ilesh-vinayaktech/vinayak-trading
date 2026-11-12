@@ -25,6 +25,11 @@ SOURCES = {
     "nse_FATAX43604": f"{ARCH}/FATAX43604.pdf",  # STT, 19 Feb 2020
     "nse_FATAX41263": f"{ARCH}/FATAX41263.pdf",  # STT, 7 Jun 2019
     "nse_FATAX32385": f"{ARCH}/FATAX32385.pdf",  # STT, 16 May 2016
+    "zerodha_bulletin_2023_04": "https://zerodha.com/marketintel/bulletin/347967/revision-in-transaction-charges-and-stt-from-1st-april-2023",
+    "zerodha_bulletin_2024_04": "https://zerodha.com/marketintel/bulletin/373933/revision-in-nse-transaction-charges-from-april-1-2024",
+    "zerodha_bulletin_2024_10": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+    "zerodha_zero_brokerage_2015": "https://zerodha.com/z-connect/trending/brokerage-edge",
+    "cdsl_dp_tariff_2024_10": "https://www.cdslindia.com/eservices/Downloads/CDSL-DP-Tariff-structure_Oct-2024.pdf",
 }
 
 ap = argparse.ArgumentParser()

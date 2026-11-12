@@ -32,9 +32,14 @@ def err(d, match):
 # ---- the committed data --------------------------------------------------------------------
 def test_committed_files_load_and_every_component_cites_a_real_source():
     schedules = load_schedules(CFG)
-    assert len(schedules) == 4
+    assert (
+        len(schedules) == 10
+    )  # delivery: 7 dated history periods + current; intraday: assumed + current
     for s in schedules:
-        assert s.product in ("DELIVERY", "INTRADAY") and s.components[-1].type == "GST"
+        pre_gst = s.valid_until is not None and s.valid_until < date(
+            2017, 7, 1
+        )  # no GST existed yet
+        assert s.product in ("DELIVERY", "INTRADAY") and (s.components[-1].type == "GST") != pre_gst
         for c in s.components:
             src = s.sources[c.source]
             assert len(src.sha256) == 64 and src.url.startswith("https://") and src.quote
@@ -50,9 +55,11 @@ def test_current_rates_are_unverified_and_the_backfill_is_flagged_as_assumed():
         None,
     )
     assert cur.verified_by is None and cur.verified_at is None
-    old = by_id["nse-cash-delivery-zerodha-assumed-2020-07-01"]
+    old = by_id["nse-cash-intraday-zerodha-assumed-2020-07-01"]
     assert old.status == "assumed_backfill" and old.valid_until == date(2026, 2, 28)
     assert "NOT evidenced" in old.notes and cur.contract_note_min_brokerage == D("0.01")
+    early = by_id["nse-cash-delivery-zerodha-2017-07-01"]
+    assert early.status == "assumed_backfill" and "NOT from a stored document" in early.notes
 
 
 def test_a_pattern_selects_files_and_a_single_document_file_is_accepted(tmp_path):
@@ -171,18 +178,25 @@ def test_research_use_accepts_extracted_rates_and_the_dates_are_inclusive():
     assert book.for_date(date(2026, 3, 1)).id == "nse-cash-delivery-zerodha-2026-03-01"
     assert book.for_date(date(2030, 1, 1), "INTRADAY").product == "INTRADAY"  # open-ended
     with pytest.raises(NoScheduleForDate):
-        book.for_date(date(2026, 2, 28))  # the day before it starts: no guessing
+        book.for_date(date(2026, 2, 28), "INTRADAY")  # the day before it starts: no guessing
+    with pytest.raises(NoScheduleForDate):
+        book.for_date(date(2022, 7, 17))  # delivery: the day before the first evidenced period
 
 
 def test_the_assumed_backfill_is_opt_in_and_its_boundaries_are_exact():
     everything = ("extracted_unverified", "assumed_backfill")
     book = ScheduleBook(load_schedules(CFG), allowed_statuses=everything)
-    assert book.for_date(date(2020, 7, 1)).status == "assumed_backfill"
-    assert book.for_date(date(2026, 2, 28)).status == "assumed_backfill"
-    assert book.for_date(date(2026, 3, 1)).status == "extracted_unverified"
+    assert book.for_date(date(2020, 7, 1), "INTRADAY").status == "assumed_backfill"
+    assert book.for_date(date(2026, 2, 28), "INTRADAY").status == "assumed_backfill"
+    assert book.for_date(date(2026, 3, 1), "INTRADAY").status == "extracted_unverified"
     with pytest.raises(NoScheduleForDate):
-        book.for_date(date(2020, 6, 30))  # stamp-duty regime differs before 1 July 2020
-    assert book.coverage() == [(date(2020, 7, 1), date(2026, 2, 28)), (date(2026, 3, 1), None)]
+        book.for_date(
+            date(2020, 6, 30), "INTRADAY"
+        )  # intraday stamp duty regime differs before 1 July 2020
+    assert book.coverage("INTRADAY") == [
+        (date(2020, 7, 1), date(2026, 2, 28)),
+        (date(2026, 3, 1), None),
+    ]
 
 
 def test_overlapping_schedules_for_the_same_product_are_refused():

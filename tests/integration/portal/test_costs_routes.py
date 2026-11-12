@@ -12,7 +12,9 @@ from tests.support.portal import add_user, enrol_second_factor, make_app, settin
 
 pytestmark = pytest.mark.integration
 START = datetime(2026, 11, 12, 4, 0, tzinfo=UTC)
-CONFIG = Path(__file__).resolve().parents[3] / "config/cost_schedules"
+CONFIG = (
+    Path(__file__).resolve().parents[2] / "fixtures/cost_schedules"
+)  # a frozen copy: these tests exercise mechanics, not today's rates
 CUR = "nse-cash-delivery-zerodha-2026-03-01"
 OLD = "nse-cash-delivery-zerodha-assumed-2020-07-01"
 VERSION = "2026-11-07.1"

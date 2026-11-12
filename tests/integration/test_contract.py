@@ -534,7 +534,9 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         ),
     )
     data_freeze.take(conn, "kite", today - timedelta(days=1), start, "contract")
-    schedule_store.import_files(conn, Path("config/cost_schedules"), now=start)
+    schedule_store.import_files(
+        conn, Path(__file__).resolve().parents[1] / "fixtures/cost_schedules", now=start
+    )
     shots["study_options"] = c.get("/api/studies/options")
     made_study = c.post(
         "/api/studies",
@@ -655,7 +657,7 @@ def test_the_cost_responses_match_the_fixtures_the_frontend_is_tested_against(
 
     migrate(conn)
     start = datetime(2026, 11, 12, 4, 0, tzinfo=UTC)
-    import_files(conn, Path(__file__).resolve().parents[2] / "config/cost_schedules", now=start)
+    import_files(conn, Path(__file__).resolve().parents[1] / "fixtures/cost_schedules", now=start)
     clock = SimClock(start)
     app = make_app(pg_url, tmp_path, portal=settings(clock))
     add_user(conn, clock, "ADMIN", "boss@example.com", name="The Boss")

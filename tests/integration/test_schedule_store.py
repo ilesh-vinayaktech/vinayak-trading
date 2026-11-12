@@ -22,7 +22,9 @@ from algo.backtest.costs.schedule_store import (
 from algo.data.store.migrate import migrate
 
 pytestmark = pytest.mark.integration
-CONFIG = Path(__file__).resolve().parents[2] / "config/cost_schedules"
+CONFIG = (
+    Path(__file__).resolve().parents[1] / "fixtures/cost_schedules"
+)  # a frozen copy: these tests exercise mechanics, not today's rates
 NOW = datetime(2026, 11, 12, 4, 0, tzinfo=UTC)
 ALL = ("verified", "extracted_unverified", "assumed_backfill")
 CUR, OLD = "nse-cash-delivery-zerodha-2026-03-01", "nse-cash-delivery-zerodha-assumed-2020-07-01"

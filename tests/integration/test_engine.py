@@ -503,7 +503,9 @@ from algo.backtest.costs.policy import ScheduleCosts  # noqa: E402
 from algo.backtest.costs.schedule import NoScheduleForDate, ScheduleBook, load_schedules  # noqa: E402
 from algo.backtest.costs.slippage import SlippageModel  # noqa: E402
 
-CFG_DIR = Path(__file__).parents[2] / "config/cost_schedules"
+CFG_DIR = (
+    Path(__file__).parents[1] / "fixtures/cost_schedules"
+)  # a frozen copy: these tests exercise mechanics, not today's rates
 
 
 def sched(slippage=None, statuses=("assumed_backfill",)):

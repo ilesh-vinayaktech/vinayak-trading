@@ -10,7 +10,10 @@ from algo.backtest.costs.slippage import SlippageModel
 
 CFG = Path(__file__).parents[4] / "config/cost_schedules"
 LIQ = Liquidity(volume=D(10_000), range_bps=D(200), adv_value=D(50_000_000))
-DAY_OLD, DAY_NEW = date(2025, 6, 9), date(2026, 6, 1)
+DAY_OLD, DAY_NEW = (
+    date(2021, 3, 9),
+    date(2026, 6, 1),
+)  # a date still in an assumed period; one in the current schedule
 
 
 def costs(statuses=("assumed_backfill", "extracted_unverified"), slippage=None, product="DELIVERY"):
@@ -55,7 +58,7 @@ def test_a_date_with_no_usable_schedule_stops_the_run_instead_of_guessing():
     with pytest.raises(NoScheduleForDate):
         costs(statuses=("extracted_unverified",)).charges(DAY_OLD, "BUY", D(1), D(100))
     with pytest.raises(NoScheduleForDate):
-        costs().charges(date(2020, 6, 30), "BUY", D(1), D(100))  # before the stamp-duty regime
+        costs().charges(date(2015, 12, 31), "BUY", D(1), D(100))  # before the history starts
 
 
 def test_slippage_uses_the_orders_share_of_the_bars_volume():
@@ -80,7 +83,16 @@ def test_describe_records_the_model_so_a_run_can_be_judged_later():
     d = costs(slippage=SlippageModel(base_bps=D(5), max_bps=D(50))).describe()
     assert d["kind"] == "schedule" and d["placeholder"] is False and d["product"] == "DELIVERY"
     assert d["allowed_statuses"] == ["assumed_backfill", "extracted_unverified"]
-    assert d["coverage"] == [["2020-07-01", "2026-02-28"], ["2026-03-01", None]]
+    assert d["coverage"] == [
+        ["2016-01-01", "2017-06-30"],
+        ["2017-07-01", "2020-06-30"],
+        ["2020-07-01", "2022-07-17"],
+        ["2022-07-18", "2023-03-31"],
+        ["2023-04-01", "2024-03-31"],
+        ["2024-04-01", "2024-09-30"],
+        ["2024-10-01", "2026-02-28"],
+        ["2026-03-01", None],
+    ]
     assert d["slippage"]["base_bps"] == "5" and d["slippage"]["max_bps"] == "50"
     assert d["zero_slippage"] is False and costs().describe()["zero_slippage"] is True
     assert costs().zero_slippage and not costs(slippage=SlippageModel(base_bps=D(1))).zero_slippage
@@ -124,7 +136,8 @@ def test_describe_lists_exactly_what_was_configured():
     d = costs(slippage=m, statuses=("assumed_backfill",)).describe()
     assert d == {
         "kind": "schedule", "name": "schedule-costs", "placeholder": False, "product": "DELIVERY",
-        "allowed_statuses": ["assumed_backfill"], "coverage": [["2020-07-01", "2026-02-28"]],
+        "allowed_statuses": ["assumed_backfill"],
+        "coverage": [["2016-01-01", "2017-06-30"], ["2017-07-01", "2020-06-30"], ["2020-07-01", "2022-07-17"]],
         "slippage": {
             "base_bps": "5", "participation_bps_per_pct": "0", "volatility_fraction": "0",
             "illiquid_adv_threshold": "None", "illiquid_extra_bps": "0", "max_bps": "1000",
