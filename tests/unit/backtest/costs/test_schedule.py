@@ -59,7 +59,11 @@ def test_current_rates_are_unverified_and_the_backfill_is_flagged_as_assumed():
     assert old.status == "assumed_backfill" and old.valid_until == date(2026, 2, 28)
     assert "NOT evidenced" in old.notes and cur.contract_note_min_brokerage == D("0.01")
     early = by_id["nse-cash-delivery-zerodha-2017-07-01"]
-    assert early.status == "assumed_backfill" and "NOT from a stored document" in early.notes
+    assert (
+        early.status == "extracted_unverified"
+        and "NOT from a stored document" in early.notes
+        and early.assumptions
+    )
 
 
 def test_a_pattern_selects_files_and_a_single_document_file_is_accepted(tmp_path):
@@ -180,7 +184,7 @@ def test_research_use_accepts_extracted_rates_and_the_dates_are_inclusive():
     with pytest.raises(NoScheduleForDate):
         book.for_date(date(2026, 2, 28), "INTRADAY")  # the day before it starts: no guessing
     with pytest.raises(NoScheduleForDate):
-        book.for_date(date(2022, 7, 17))  # delivery: the day before the first evidenced period
+        book.for_date(date(2015, 12, 31))  # delivery: before the history starts
 
 
 def test_the_assumed_backfill_is_opt_in_and_its_boundaries_are_exact():
@@ -279,3 +283,18 @@ def test_the_contract_note_minimum_may_be_absent():
     d = doc()
     del d["contract_note_min_brokerage"]
     assert schedule_from_dict(d).contract_note_min_brokerage is None
+
+
+# ---- assumptions: what a schedule takes on trust, listed so they can be accepted by name ------
+def test_assumptions_are_a_list_of_plain_statements_and_default_to_none():
+    assert schedule_from_dict(RAW).assumptions == ()
+    s = schedule_from_dict(
+        doc(assumptions=["stamp duty before 2020 was set by each state: 0.015% assumed"])
+    )
+    assert s.assumptions == ("stamp duty before 2020 was set by each state: 0.015% assumed",)
+    for bad in ("one long string", [""], ["fine", "   "], [3], {"a": "b"}):
+        err(doc(assumptions=bad), "assumptions")
+
+
+def test_assumptions_change_the_content_hash_like_any_other_field():
+    assert schedule_from_dict(doc()).doc_hash != schedule_from_dict(doc(assumptions=["x"])).doc_hash

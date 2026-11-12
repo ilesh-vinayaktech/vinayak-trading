@@ -98,6 +98,67 @@ describe("the schedules", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a whole dated history, one row per period, newest first, with assumed and extracted periods told apart", async () => {
+    const base = schedules.schedules.find((x) => x.product === "DELIVERY" && x.status === "extracted_unverified")!;
+    const period = (from: string, until: string | null, status: string) => ({ ...base, schedule_id: `nse-cash-delivery-zerodha-${from}`, valid_from: from, valid_until: until, status });
+    const history = [
+      period("2016-01-01", "2017-06-30", "assumed_backfill"),
+      period("2017-07-01", "2020-06-30", "assumed_backfill"),
+      period("2020-07-01", "2022-07-17", "assumed_backfill"),
+      period("2022-07-18", "2023-03-31", "extracted_unverified"),
+      period("2023-04-01", "2024-03-31", "extracted_unverified"),
+      period("2024-04-01", "2024-09-30", "extracted_unverified"),
+      period("2024-10-01", "2026-02-28", "extracted_unverified"),
+      period("2026-03-01", null, "extracted_unverified"),
+    ];
+    backend(ready(ADMIN, { "GET /api/costs/schedules": { schedules: [...history.slice().reverse(), ...schedules.schedules.filter((x) => x.product === "INTRADAY")] } }));
+    mount();
+    const table = within(await screen.findByRole("table", { name: "Schedules over time" }));
+    const rows = table.getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(8);
+    expect(rows.map((r) => r.textContent?.match(/\d{4}-\d{2}-\d{2}/)?.[0])).toEqual(["2026-03-01", "2024-10-01", "2024-04-01", "2023-04-01", "2022-07-18", "2020-07-01", "2017-07-01", "2016-01-01"]);
+    expect(rows[0]).toHaveTextContent("now");
+    expect(rows[3]).toHaveTextContent("Needs checking");
+    expect(rows[4]).toHaveTextContent("Needs checking");
+    expect(rows[5]).toHaveTextContent("Assumed");
+    expect(rows[7]).toHaveTextContent("Assumed");
+    expect(screen.getByText("8 of 8 schedules not verified")).toBeInTheDocument();
+  });
+
+  describe("a schedule that takes things on trust", () => {
+    const ASSUMPTIONS = ["Stamp duty before 1 July 2020 was set by each state: 0.015% is applied as a conservative assumption.", "The depository fee before October 2024 is assumed to be Rs 13."];
+    const early = () => {
+      const base = schedules.schedules.find((x) => x.product === "DELIVERY" && x.status === "extracted_unverified")!;
+      return { ...base, schedule_id: "nse-cash-delivery-zerodha-2016-01-01", version: "2026-11-12.2", valid_from: "2016-01-01", valid_until: "2017-06-30", assumptions: ASSUMPTIONS };
+    };
+    const open = async (extra: Record<string, unknown> = {}) => {
+      const rows = [...schedules.schedules.filter((x) => x.schedule_id !== CUR), early(), schedules.schedules.find((x) => x.schedule_id === CUR)!];
+      backend(ready(ADMIN, { "GET /api/costs/schedules": { schedules: rows }, ...extra }));
+      mount();
+      fireEvent.click(await screen.findByRole("button", { name: /2016-01-01/ }));
+    };
+
+    it("lists the assumptions in plain words and will not let the schedule be verified until they are accepted", async () => {
+      await open({ "POST /api/costs/schedules/nse-cash-delivery-zerodha-2016-01-01/2026-11-12.2/verify": { ok: true } });
+      const list = within(await screen.findByRole("list", { name: "Assumptions" }));
+      expect(list.getAllByRole("listitem")).toHaveLength(2);
+      expect(list.getByText(/Stamp duty before 1 July 2020/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+      expect(screen.getByRole("button", { name: "Verify" })).toBeDisabled();
+      fireEvent.click(screen.getByLabelText("I accept these 2 assumptions"));
+      fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Verify" })); // the confirmation's own button
+      await waitFor(() => expect(calls.filter((c) => c.method === "POST")[0]?.body).toEqual({ accept_assumptions: true }));
+    });
+
+    it("shows nothing about assumptions for a schedule that makes none", async () => {
+      backend(ready());
+      mount();
+      await screen.findByRole("table", { name: "Schedules over time" });
+      expect(screen.queryByRole("list", { name: "Assumptions" })).not.toBeInTheDocument();
+    });
+  });
+
   it("shows the charges of the chosen schedule and where each rate comes from", async () => {
     backend(ready());
     mount();

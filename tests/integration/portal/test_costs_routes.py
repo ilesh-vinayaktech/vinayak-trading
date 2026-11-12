@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from decimal import Decimal as D
 from pathlib import Path
@@ -239,3 +240,27 @@ def test_a_provider_is_added_as_an_unverified_copy_and_appears_with_its_own_sche
     )
     assert c.post("/api/costs/providers", json={**body, "valid_from": "x"}).status_code == 422
     assert audit_actions(conn) == ["costs.provider_added"]
+
+
+def test_a_schedule_with_assumptions_shows_them_and_is_verified_only_with_them_accepted_and_audited(
+    env,
+):
+    from algo.backtest.costs import schedule_store
+
+    conn, app, clock = env
+    doc = {**json.loads((CONFIG / "nse_cash_zerodha.json").read_text())["schedules"][0], "id": "early-with-assumptions",
+           "valid_from": "2010-01-01", "valid_until": "2020-06-30", "assumptions": ["stamp duty was state-specific: 0.015% assumed"]}  # fmt: skip
+    schedule_store.add(conn, doc, actor=None, now=clock.now())
+    c = admin(conn, app, clock)
+    row = next(
+        r
+        for r in c.get("/api/costs/schedules").json()["schedules"]
+        if r["schedule_id"] == "early-with-assumptions"
+    )
+    assert row["assumptions"] == ["stamp duty was state-specific: 0.015% assumed"]
+    url = f"/api/costs/schedules/early-with-assumptions/{VERSION}/verify"
+    refused = c.post(url)
+    assert refused.status_code == 400 and "accept the 1 assumption" in refused.json()["detail"]
+    assert c.post(url, json={"accept_assumptions": False}).status_code == 400
+    assert c.post(url, json={"accept_assumptions": True}).json() == {"ok": True}
+    assert audit_actions(conn)[-1] == "costs.verified"

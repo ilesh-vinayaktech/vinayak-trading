@@ -2,7 +2,7 @@
   "schedules": [
     {
       "id": "nse-cash-delivery-zerodha-2016-01-01",
-      "version": "2026-11-12.1",
+      "version": "2026-11-12.2",
       "name": "NSE cash equity delivery via Zerodha",
       "broker": "zerodha",
       "exchange": "NSE",
@@ -12,7 +12,7 @@
       "valid_from": "2016-01-01",
       "valid_until": "2017-06-30",
       "currency": "INR",
-      "status": "assumed_backfill",
+      "status": "extracted_unverified",
       "verified_by": null,
       "verified_at": null,
       "notes": "HISTORICAL delivery rates for 2016-01-01 to 2017-06-30. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circular Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit before and after 1 Oct 2024 (Zerodha bulletin). Before GST (1 Jul 2017) service tax applied to the exchange fee; it is NOT modelled here (about 0.0005 bp of turnover). Stamp duty before 1 Jul 2020 was set by each state: the uniform 0.015% is applied as a CONSERVATIVE assumption. The 0.00345% is the 'old' rate before Apr 2023; when it began is not stated. The DP fee for these years is not evidenced: Rs 13 assumed.",
@@ -255,11 +255,17 @@
           "quote": "Starting 1st December 2015, all investments at Zerodha will be absolutely free.",
           "locator": "Zerodha blog: Brokerage Edge (equity delivery: zero brokerage from 1 Dec 2015; no later change recorded)"
         }
-      }
+      },
+      "assumptions": [
+        "Stamp duty before 1 July 2020 was set by each state. The uniform 0.015% is applied instead, as a conservative assumption: it may overstate the cost.",
+        "Service tax (about 15%) on the exchange fee before GST began on 1 July 2017 is not modelled (about 0.0005 basis points of turnover).",
+        "The 0.00345% exchange fee is what Zerodha calls the 'old' rate before April 2023. When it began is not stated, so it is taken to apply from the start of this period.",
+        "The depository fee is evidenced only as the Rs 13 per debit that applied just before October 2024. The same fee is assumed for the earlier years of this period."
+      ]
     },
     {
       "id": "nse-cash-delivery-zerodha-2017-07-01",
-      "version": "2026-11-12.1",
+      "version": "2026-11-12.2",
       "name": "NSE cash equity delivery via Zerodha",
       "broker": "zerodha",
       "exchange": "NSE",
@@ -269,7 +275,7 @@
       "valid_from": "2017-07-01",
       "valid_until": "2020-06-30",
       "currency": "INR",
-      "status": "assumed_backfill",
+      "status": "extracted_unverified",
       "verified_by": null,
       "verified_at": null,
       "notes": "HISTORICAL delivery rates for 2017-07-01 to 2020-06-30. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circular Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit before and after 1 Oct 2024 (Zerodha bulletin). GST 18% on brokerage and the exchange fee from 1 Jul 2017; the SEBI fee is treated as outside GST until 18 Jul 2022 (taken from the owner's cost note, NOT from a stored document). Stamp duty before 1 Jul 2020 was state-specific: 0.015% applied as a conservative assumption. The 0.00345% start date and the DP fee for these years are not evidenced.",
@@ -529,11 +535,17 @@
           "quote": "Starting 1st December 2015, all investments at Zerodha will be absolutely free.",
           "locator": "Zerodha blog: Brokerage Edge (equity delivery: zero brokerage from 1 Dec 2015; no later change recorded)"
         }
-      }
+      },
+      "assumptions": [
+        "Stamp duty before 1 July 2020 was set by each state. The uniform 0.015% is applied instead, as a conservative assumption: it may overstate the cost.",
+        "The 0.00345% exchange fee is what Zerodha calls the 'old' rate before April 2023. When it began is not stated, so it is taken to apply from the start of this period.",
+        "The depository fee is evidenced only as the Rs 13 per debit that applied just before October 2024. The same fee is assumed for the earlier years of this period.",
+        "The SEBI fee is treated as outside GST until 18 July 2022. This comes from the owner's cost note, not from a stored document."
+      ]
     },
     {
       "id": "nse-cash-delivery-zerodha-2020-07-01",
-      "version": "2026-11-12.1",
+      "version": "2026-11-12.2",
       "name": "NSE cash equity delivery via Zerodha",
       "broker": "zerodha",
       "exchange": "NSE",
@@ -543,7 +555,7 @@
       "valid_from": "2020-07-01",
       "valid_until": "2022-07-17",
       "currency": "INR",
-      "status": "assumed_backfill",
+      "status": "extracted_unverified",
       "verified_by": null,
       "verified_at": null,
       "notes": "HISTORICAL delivery rates for 2020-07-01 to 2022-07-17. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circular Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit before and after 1 Oct 2024 (Zerodha bulletin). The SEBI fee is treated as outside GST until 18 Jul 2022 (taken from the owner's cost note, NOT from a stored document). The 0.00345% start date and the DP fee for these years are not evidenced.",
@@ -803,7 +815,12 @@
           "quote": "Starting 1st December 2015, all investments at Zerodha will be absolutely free.",
           "locator": "Zerodha blog: Brokerage Edge (equity delivery: zero brokerage from 1 Dec 2015; no later change recorded)"
         }
-      }
+      },
+      "assumptions": [
+        "The 0.00345% exchange fee is what Zerodha calls the 'old' rate before April 2023. When it began is not stated, so it is taken to apply from the start of this period.",
+        "The depository fee is evidenced only as the Rs 13 per debit that applied just before October 2024. The same fee is assumed for the earlier years of this period.",
+        "The SEBI fee is treated as outside GST until 18 July 2022. This comes from the owner's cost note, not from a stored document."
+      ]
     },
     {
       "id": "nse-cash-delivery-zerodha-2022-07-18",

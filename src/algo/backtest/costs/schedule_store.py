@@ -116,6 +116,7 @@ def list_schedules(conn: psycopg.Connection) -> list[dict[str, Any]]:
                 "verified_by": s.verified_by,
                 "verified_at": s.verified_at,
                 "notes": s.notes,
+                "assumptions": list(s.assumptions),
                 "contract_note_min_brokerage": s.contract_note_min_brokerage,
                 "components": [
                     {
@@ -146,9 +147,18 @@ def list_schedules(conn: psycopg.Connection) -> list[dict[str, Any]]:
 
 
 def verify(
-    conn: psycopg.Connection, schedule_id: str, version: str, *, by: str, now: datetime
+    conn: psycopg.Connection,
+    schedule_id: str,
+    version: str,
+    *,
+    by: str,
+    now: datetime,
+    accept_assumptions: bool = False,
 ) -> Schedule:
-    """A named person confirms the schedule against the sources it cites."""
+    """A named person confirms the schedule against the sources it cites.
+
+    A schedule that lists assumptions (what it takes on trust, such as a rate carried over a period no source covers) is
+    verified only when the person also accepts them: the acceptance is recorded in the document, and the list stays with it."""
     row = conn.execute(
         "SELECT status, doc FROM cost_schedule WHERE schedule_id=%s AND version=%s FOR UPDATE",
         (schedule_id, version),
@@ -161,7 +171,14 @@ def verify(
         raise ScheduleError(
             "an assumed schedule is an assumption, so there is nothing to verify: verify the schedule it was copied from"
         )
+    listed = schedule_from_dict(row[1]).assumptions
+    if listed and not accept_assumptions:
+        raise ScheduleError(
+            f"accept the {len(listed)} assumption{'s' if len(listed) > 1 else ''} this schedule makes before verifying it"
+        )
     doc = {**row[1], "status": "verified", "verified_by": by, "verified_at": now.isoformat()}
+    if listed:
+        doc["assumptions_accepted_by"] = by
     sch = schedule_from_dict(doc)
     conn.execute(
         "UPDATE cost_schedule SET status='verified', verified_by=%s, verified_at=%s, doc=%s, doc_hash=%s WHERE schedule_id=%s AND version=%s",

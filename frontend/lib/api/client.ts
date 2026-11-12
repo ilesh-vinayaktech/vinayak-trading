@@ -175,7 +175,7 @@ export const api = {
   removeMarketSession: (id: number) => send("POST", `/api/market/sessions/${id}/remove`, undefined, okSchema),
   costSchedules: () => get("/api/costs/schedules", costSchedulesSchema),
   costPreview: (p: { broker: string; product: string; side: string; qty: string; price: string; day: string }) => get("/api/costs/preview", costPreviewSchema, p),
-  verifyCostSchedule: (id: string, version: string) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/verify`, undefined, okSchema),
+  verifyCostSchedule: (id: string, version: string, acceptAssumptions = false) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/verify`, { accept_assumptions: acceptAssumptions }, okSchema),
   backfillCostSchedule: (id: string, version: string, valid_from: string) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/backfill`, { valid_from }, okSchema),
   newCostVersion: (id: string, version: string, b: { valid_from: string; valid_until: string | null; note: string; changes: { type: string; side: string; rate_pct?: string | null; amount?: string | null }[] }) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/new-version`, b, okSchema),
   removeCostSchedule: (id: string, version: string) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/remove`, undefined, okSchema),

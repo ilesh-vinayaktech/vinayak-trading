@@ -479,6 +479,16 @@ HISTORY = [  # id suffix, from, until, txn %, txn source, GST on charges, GST on
 HISTORY_SOURCES = ["zerodha_zero_brokerage_since_2015", "zerodha_bulletin_2023_04_txn", "zerodha_bulletin_2023_04_effective",
                    "zerodha_bulletin_2024_04_txn", "zerodha_bulletin_2024_04_effective", "zerodha_bulletin_2024_10_txn",
                    "zerodha_bulletin_2024_10_effective", "zerodha_bulletin_2024_10_dp_fee"]  # fmt: skip
+A_STAMP = "Stamp duty before 1 July 2020 was set by each state. The uniform 0.015% is applied instead, as a conservative assumption: it may overstate the cost."
+A_SERVICE_TAX = "Service tax (about 15%) on the exchange fee before GST began on 1 July 2017 is not modelled (about 0.0005 basis points of turnover)."
+A_TXN_START = "The 0.00345% exchange fee is what Zerodha calls the 'old' rate before April 2023. When it began is not stated, so it is taken to apply from the start of this period."
+A_DP = "The depository fee is evidenced only as the Rs 13 per debit that applied just before October 2024. The same fee is assumed for the earlier years of this period."
+A_SEBI_GST = "The SEBI fee is treated as outside GST until 18 July 2022. This comes from the owner's cost note, not from a stored document."
+ASSUMPTIONS = {
+    "2016-01-01": [A_STAMP, A_SERVICE_TAX, A_TXN_START, A_DP],
+    "2017-07-01": [A_STAMP, A_TXN_START, A_DP, A_SEBI_GST],
+    "2020-07-01": [A_TXN_START, A_DP, A_SEBI_GST],
+}  # periods not listed make no assumption beyond the current schedule's own caveats
 history = []
 for suffix, frm, until, txn, txn_src, gst, sebi_gst, (
     dp,
@@ -496,7 +506,14 @@ for suffix, frm, until, txn, txn_src, gst, sebi_gst, (
     entry = schedule("DELIVERY", id_=f"nse-cash-delivery-zerodha-{suffix}", valid_from=frm, valid_until=until, status=status,
                    notes=("HISTORICAL delivery rates for " + f"{frm} to {until}. " + EVIDENCE + (caveat or "Every rate in this period is evidenced as above.")),
                    keys=sorted({c["source"] for c in comps} | set(extra) | set(HISTORY_SOURCES)))  # fmt: skip
-    entry["version"] = "2026-11-12.1"
+    entry["version"] = (
+        "2026-11-12.2" if suffix in ASSUMPTIONS else "2026-11-12.1"
+    )  # .2: the owner accepts its assumptions to verify it
+    entry["status"] = (
+        "extracted_unverified"  # every period can be verified; those with assumptions list them for the verifier
+    )
+    if suffix in ASSUMPTIONS:
+        entry["assumptions"] = ASSUMPTIONS[suffix]
     entry["components"] = comps
     history.append(entry)
 

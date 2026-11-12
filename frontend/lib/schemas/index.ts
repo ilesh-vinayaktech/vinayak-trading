@@ -625,6 +625,7 @@ export const costScheduleSchema = z.object({
   verified_by: z.string().nullable(),
   verified_at: z.string().nullable(),
   notes: z.string(),
+  assumptions: z.array(z.string()),
   contract_note_min_brokerage: z.string().nullable(),
   components: z.array(z.object({ type: z.string(), side: z.enum(["BUY", "SELL", "BOTH"]), basis: z.string(), rate_pct: z.string().nullable(), amount: z.string().nullable(), minimum: z.string().nullable(), maximum: z.string().nullable(), source: z.string() })),
   sources: z.array(z.object({ key: z.string(), url: z.string(), retrieved_at: z.string(), quote: z.string(), locator: z.string() })),

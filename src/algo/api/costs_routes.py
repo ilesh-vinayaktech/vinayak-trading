@@ -22,6 +22,10 @@ router = APIRouter(prefix="/api/costs", tags=["costs"])
 ANY_STATUS = ("verified", "extracted_unverified", "assumed_backfill")
 
 
+class VerifyBody(BaseModel):
+    accept_assumptions: bool = False
+
+
 class BackfillBody(BaseModel):
     valid_from: date
 
@@ -67,7 +71,7 @@ def _row(r: dict[str, Any]) -> dict[str, Any]:
         "schedule_id": r["schedule_id"], "version": r["version"], "name": r["name"], "broker": r["broker"], "product": r["product"],
         "valid_from": r["valid_from"].isoformat(), "valid_until": None if r["valid_until"] is None else r["valid_until"].isoformat(),
         "status": r["status"], "verified_by": r["verified_by"], "verified_at": None if r["verified_at"] is None else r["verified_at"].isoformat(),
-        "notes": r["notes"], "contract_note_min_brokerage": _s(r["contract_note_min_brokerage"]),
+        "notes": r["notes"], "assumptions": r["assumptions"], "contract_note_min_brokerage": _s(r["contract_note_min_brokerage"]),
         "components": [{**c, "rate_pct": _s(c["rate_pct"]), "amount": _s(c["amount"]), "minimum": _s(c["minimum"]), "maximum": _s(c["maximum"])} for c in r["components"]],
         "sources": r["sources"],
     }  # fmt: skip
@@ -151,15 +155,22 @@ def add_provider(
 
 @router.post("/schedules/{schedule_id}/{version}/verify")
 def verify(
-    schedule_id: str, version: str, request: Request, who: CurrentUser, conn: WConn
+    schedule_id: str,
+    version: str,
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    body: VerifyBody | None = None,
 ) -> dict[str, bool]:
+    accept = body.accept_assumptions if body else False
     try:
         schedule_store.verify(
-            conn, schedule_id, version, by=who.session.display_name, now=_st(request).clock.now()
-        )
+            conn, schedule_id, version, by=who.session.display_name, now=_st(request).clock.now(),
+            accept_assumptions=accept,
+        )  # fmt: skip
     except ScheduleError as e:
         raise _fail(e) from e
-    _log(conn, request, who, "verified", schedule_id, version)
+    _log(conn, request, who, "verified", schedule_id, version, accepted_assumptions=accept)
     return {"ok": True}
 
 

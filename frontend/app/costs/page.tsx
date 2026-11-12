@@ -77,6 +77,7 @@ export default function CostsPage() {
   const [chosen, setChosen] = useState<string | null>(null);
   const [product, setProduct] = useState<"DELIVERY" | "INTRADAY">("DELIVERY");
   const [selected, setSelected] = useState<CostSchedule | undefined>();
+  const [accepted, setAccepted] = useState<string | null>(null); // the schedule whose assumptions were ticked
   const [dialog, setDialog] = useState<"version" | "backfill" | "provider" | null>(null);
   const all = q.data?.schedules ?? [];
   const brokers = [...new Set(all.map((s) => s.broker))];
@@ -84,7 +85,7 @@ export default function CostsPage() {
   const rows = all.filter((s) => s.broker === broker && s.product === product).sort((a, b) => b.valid_from.localeCompare(a.valid_from));
   const current = rows.find((s) => same(s, selected)) ?? rows[0];
   const done = (text: string) => { void qc.invalidateQueries({ queryKey: ["costs"] }); toast.success(text); };
-  const verify = useMutation({ mutationFn: (s: CostSchedule) => api.verifyCostSchedule(s.schedule_id, s.version), onSuccess: () => done("Verified. Your name and the time are recorded.") });
+  const verify = useMutation({ mutationFn: (s: CostSchedule) => api.verifyCostSchedule(s.schedule_id, s.version, s.assumptions.length > 0), onSuccess: () => done("Verified. Your name and the time are recorded.") });
   const remove = useMutation({ mutationFn: (s: CostSchedule) => api.removeCostSchedule(s.schedule_id, s.version), onSuccess: () => done("Removed.") });
   const flagged = rows.filter((s) => s.status !== "verified");
   const tabs: Tab<string>[] = brokers.map((b) => ({ key: b, label: b }));
@@ -121,6 +122,20 @@ export default function CostsPage() {
           {current ? (
             <Panel title={`${current.valid_from} to ${current.valid_until ?? "now"}`} actions={<StatusPill tone={STATUS[current.status].tone}>{STATUS[current.status].text}</StatusPill>}>
               {current.notes ? <p className="border-b border-line px-5 py-3 text-sm text-ink-soft">{current.notes}</p> : null}
+              {current.assumptions.length > 0 && current.status !== "verified" ? (
+                <div className="border-b border-line bg-amber-50 px-5 py-3">
+                  <h3 className="text-sm font-semibold text-amber-900">What this schedule takes on trust</h3>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-900" aria-label="Assumptions">
+                    {current.assumptions.map((a) => <li key={a}>{a}</li>)}
+                  </ul>
+                  {manage ? (
+                    <label className="mt-2 flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={accepted === current.schedule_id} onChange={(e) => setAccepted(e.target.checked ? current.schedule_id : null)} />
+                      I accept these {current.assumptions.length} assumption{current.assumptions.length === 1 ? "" : "s"}
+                    </label>
+                  ) : null}
+                </div>
+              ) : null}
               <DataTable caption="Charges in this schedule" columns={componentColumns} rows={current.components} rowKey={(c) => `${c.type}|${c.side}`} empty="No components." />
               <div className="border-t border-line px-5 py-4">
                 <h3 className="text-sm font-semibold">Where the rates come from</h3>
@@ -135,7 +150,7 @@ export default function CostsPage() {
               </div>
               {manage ? (
                 <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-4">
-                  {current.status === "extracted_unverified" ? <ConfirmButton question="I checked every rate against its source" confirmLabel="Verify" onConfirm={() => verify.mutate(current)}>Verify</ConfirmButton> : null}
+                  {current.status === "extracted_unverified" ? <ConfirmButton disabled={current.assumptions.length > 0 && accepted !== current.schedule_id} question="I checked every rate against its source" confirmLabel="Verify" onConfirm={() => verify.mutate(current)}>Verify</ConfirmButton> : null}
                   <button type="button" onClick={() => setDialog("version")} className={buttonClass("secondary")}>Enter a price change</button>
                   {current.status !== "assumed_backfill" ? <button type="button" onClick={() => setDialog("backfill")} className={buttonClass("secondary")}>Use for earlier history</button> : null}
                   {current.status !== "verified" ? <ConfirmButton tone="danger" question="Remove this schedule?" confirmLabel="Remove" onConfirm={() => remove.mutate(current)}>Remove</ConfirmButton> : null}

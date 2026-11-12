@@ -85,32 +85,37 @@ def test_the_depository_fee_is_13_before_gst_existed_and_15_34_with_gst_after():
     assert comp(date(2026, 3, 1), "DP_CHARGE").side.value == "SELL"  # charged when shares are sold
 
 
-def test_only_evidenced_periods_count_as_extracted_and_the_rest_is_flagged_as_assumed():
-    status = {
-        d: BOOK.for_date(d).status
-        for d in (
-            date(2016, 6, 1),
-            date(2018, 1, 1),
-            date(2021, 1, 1),
-            date(2022, 7, 17),
-            date(2022, 7, 18),
-            date(2025, 1, 1),
-            date(2026, 3, 1),
-        )
-    }
-    assert list(status.values()) == ["assumed_backfill"] * 4 + ["extracted_unverified"] * 3
-    strict = ScheduleBook(load_schedules(CFG), allowed_statuses=("extracted_unverified",))
-    assert strict.coverage("DELIVERY")[0][0] == date(
-        2022, 7, 18
-    )  # without the assumptions, history starts here
-    with pytest.raises(NoScheduleForDate):
-        strict.for_date(date(2022, 7, 17))
+def test_every_period_can_be_verified_and_the_early_ones_name_what_they_take_on_trust():
+    early = [
+        date(2016, 6, 1),
+        date(2018, 1, 1),
+        date(2021, 1, 1),
+        date(2022, 7, 17),
+    ]  # before 18 Jul 2022
+    later = [date(2022, 7, 18), date(2023, 5, 1), date(2025, 1, 1), date(2026, 3, 1)]
     for schedule in BOOK.schedules:
-        assert schedule.verified_by is None  # nobody has verified any of it yet
+        if schedule.product != "DELIVERY":
+            continue
+        assert (
+            schedule.status == "extracted_unverified" and schedule.verified_by is None
+        )  # nobody has verified any of it yet
         assert all(
-            s.url.startswith("https://") and len(s.sha256) == 64 and s.quote
-            for s in schedule.sources.values()
+            x.url.startswith("https://") and len(x.sha256) == 64 and x.quote
+            for x in schedule.sources.values()
         )
+    listed = {d: BOOK.for_date(d).assumptions for d in early + later}
+    assert [len(listed[d]) for d in early] == [4, 4, 3, 3] and all(not listed[d] for d in later)
+    joined = " ".join(" ".join(listed[d]) for d in early)
+    for topic in (
+        "Stamp duty before 1 July 2020",
+        "Service tax",
+        "'old' rate",
+        "depository fee",
+        "owner's cost note",
+    ):
+        assert topic in joined, (
+            topic
+        )  # each thing taken on trust is stated, in words a verifier can accept
 
 
 @pytest.mark.parametrize(

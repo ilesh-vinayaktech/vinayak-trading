@@ -47,8 +47,18 @@ def test_flat_fill_applies_a_constant_slippage_each_way_and_never_tops_up():
 # ---- schedule-based costs -------------------------------------------------------------------
 def test_schedule_costs_pick_the_schedule_in_force_on_the_trade_date():
     c = costs()
-    assert c.charges(DAY_OLD, "BUY", D(100), D(1000)).schedule_status == "assumed_backfill"
-    assert c.charges(DAY_NEW, "BUY", D(100), D(1000)).schedule_status == "extracted_unverified"
+    old, new = (
+        c.charges(DAY_OLD, "BUY", D(100), D(1000)),
+        c.charges(DAY_NEW, "BUY", D(100), D(1000)),
+    )
+    assert (old.schedule_status, new.schedule_status) == (
+        "extracted_unverified",
+        "extracted_unverified",
+    )
+    assert (
+        old.schedule_id == "nse-cash-delivery-zerodha-2020-07-01"
+        and new.schedule_id == "nse-cash-delivery-zerodha-2026-03-01"
+    )
     assert c.charges(DAY_NEW, "BUY", D(100), D(1000)).total == D("118.74")
 
 
@@ -56,7 +66,9 @@ def test_a_date_with_no_usable_schedule_stops_the_run_instead_of_guessing():
     with pytest.raises(NoScheduleForDate):
         costs(statuses=("verified",)).charges(DAY_NEW, "BUY", D(1), D(100))
     with pytest.raises(NoScheduleForDate):
-        costs(statuses=("extracted_unverified",)).charges(DAY_OLD, "BUY", D(1), D(100))
+        costs(statuses=("assumed_backfill",)).charges(
+            DAY_OLD, "BUY", D(1), D(100)
+        )  # no delivery period is merely assumed now
     with pytest.raises(NoScheduleForDate):
         costs().charges(date(2015, 12, 31), "BUY", D(1), D(100))  # before the history starts
 
@@ -136,8 +148,7 @@ def test_describe_lists_exactly_what_was_configured():
     d = costs(slippage=m, statuses=("assumed_backfill",)).describe()
     assert d == {
         "kind": "schedule", "name": "schedule-costs", "placeholder": False, "product": "DELIVERY",
-        "allowed_statuses": ["assumed_backfill"],
-        "coverage": [["2016-01-01", "2017-06-30"], ["2017-07-01", "2020-06-30"], ["2020-07-01", "2022-07-17"]],
+        "allowed_statuses": ["assumed_backfill"], "coverage": [],
         "slippage": {
             "base_bps": "5", "participation_bps_per_pct": "0", "volatility_fraction": "0",
             "illiquid_adv_threshold": "None", "illiquid_extra_bps": "0", "max_bps": "1000",

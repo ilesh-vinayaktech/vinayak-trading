@@ -326,3 +326,52 @@ def test_a_provider_cannot_be_added_twice_or_from_a_template_that_does_not_exist
     with pytest.raises(ScheduleError, match="name"):
         add_provider(seeded, "  !!  ", template_broker="zerodha", **kw)
     assert {r["broker"] for r in list_schedules(seeded)} == {"zerodha"}  # nothing half-made
+
+
+def with_assumptions(**over):
+    return {**json.loads((CONFIG / "nse_cash_zerodha.json").read_text())["schedules"][0], "id": "early-with-assumptions",
+            "valid_from": "2010-01-01", "valid_until": "2020-06-30", "assumptions": ["stamp duty was state-specific: 0.015% assumed", "DP fee not evidenced"], **over}  # fmt: skip
+
+
+def test_a_schedule_with_assumptions_is_verified_only_when_they_are_accepted_and_the_acceptance_is_recorded(
+    seeded,
+):
+    add(seeded, with_assumptions(), actor=None, now=NOW)
+    assert get(seeded, "early-with-assumptions", VERSION).assumptions == (
+        "stamp duty was state-specific: 0.015% assumed",
+        "DP fee not evidenced",
+    )
+    with pytest.raises(ScheduleError, match="accept the 2 assumptions"):
+        verify(seeded, "early-with-assumptions", VERSION, by="Ilesh Patel", now=NOW)
+    assert (
+        get(seeded, "early-with-assumptions", VERSION).status == "extracted_unverified"
+    )  # a refused attempt changes nothing
+    sch = verify(
+        seeded,
+        "early-with-assumptions",
+        VERSION,
+        by="Ilesh Patel",
+        now=NOW,
+        accept_assumptions=True,
+    )
+    assert (sch.status, sch.verified_by) == ("verified", "Ilesh Patel")
+    stored = seeded.execute(
+        "SELECT doc FROM cost_schedule WHERE schedule_id='early-with-assumptions'"
+    ).fetchone()[0]
+    assert (
+        stored["assumptions_accepted_by"] == "Ilesh Patel" and len(stored["assumptions"]) == 2
+    )  # the list stays with the schedule forever
+    row = next(r for r in list_schedules(seeded) if r["schedule_id"] == "early-with-assumptions")
+    assert row["assumptions"] == [
+        "stamp duty was state-specific: 0.015% assumed",
+        "DP fee not evidenced",
+    ]
+
+
+def test_accepting_assumptions_is_not_needed_when_there_are_none_and_is_harmless(seeded):
+    sch = verify(seeded, CUR, VERSION, by="Ilesh Patel", now=NOW, accept_assumptions=True)
+    assert sch.status == "verified"
+    stored = seeded.execute(
+        "SELECT doc FROM cost_schedule WHERE schedule_id=%s", (CUR,)
+    ).fetchone()[0]
+    assert "assumptions_accepted_by" not in stored  # nothing was accepted, so nothing is claimed

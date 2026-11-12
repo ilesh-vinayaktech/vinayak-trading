@@ -94,6 +94,9 @@ class Schedule:
     components: tuple[Component, ...]
     sources: Mapping[str, Source]
     doc_hash: str  # sha256 of the canonical JSON this schedule was loaded from
+    assumptions: tuple[
+        str, ...
+    ] = ()  # what this schedule takes on trust; a verifier must accept each by name
 
     def covers(self, day: date) -> bool:
         return self.valid_from <= day and (self.valid_until is None or day <= self.valid_until)
@@ -205,6 +208,11 @@ def schedule_from_dict(d: Mapping[str, Any]) -> Schedule:
             raise ScheduleError(f"{where}: missing {f}")
     if d["product"] not in ("DELIVERY", "INTRADAY"):
         raise ScheduleError(f"{where}: unknown product {d['product']!r}")
+    assumptions = d.get("assumptions", [])
+    if not isinstance(assumptions, list) or not all(
+        isinstance(a, str) and a.strip() for a in assumptions
+    ):
+        raise ScheduleError(f"{where}: assumptions must be a list of non-empty statements")
     canonical = json.dumps(d, sort_keys=True, separators=(",", ":"), default=str)
     return Schedule(
         id=d["id"],
@@ -226,6 +234,7 @@ def schedule_from_dict(d: Mapping[str, Any]) -> Schedule:
         components=comps,
         sources=sources,
         doc_hash=hashlib.sha256(canonical.encode()).hexdigest(),
+        assumptions=tuple(assumptions),
     )
 
 
