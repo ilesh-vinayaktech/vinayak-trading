@@ -1,0 +1,16 @@
+# Algo platform schedule for a server without systemd user timers. Install with:  crontab infra/cron/algo.crontab
+# Edit APP and UV below to the server's paths first. Times are Indian time (CRON_TZ needs cronie or Vixie cron 4.1+).
+#
+# What cron can NOT do: log in to Zerodha. Kite's login needs a person (password + 2FA), by design, and the token it gives
+# dies at 06:00 IST the next day. So each trading morning someone opens the portal's Kite page and clicks Connect, then
+# "Use my connection as the data feed". The feed below starts at 08:00 and WAITS for that (it checks every 30 seconds),
+# then streams until 5 minutes after the close. Closed days and special sessions come from the trading calendar.
+CRON_TZ=Asia/Kolkata
+SHELL=/bin/bash
+APP=/home/ilesh/Work/trading
+UV=/home/ilesh/.local/bin/uv
+
+# Live market feed: Kite WebSocket -> 1-minute bars. Weekdays only; the service itself idles on a market holiday.
+0 8 * * 1-5  cd $APP && set -a && . ./.env && set +a && exec $UV run python scripts/feed_service.py --wait >> data/logs/feed_$(date +\%Y\%m\%d).log 2>&1
+
+# Daily data job (bhavcopy, corporate actions, Kite trailing-window check, report): added when scripts/daily_data.py exists.

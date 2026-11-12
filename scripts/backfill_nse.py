@@ -2,6 +2,7 @@
   universe  security master + symbol changes + Nifty 200 snapshot
   actions   corporate actions for every Nifty 200 symbol (full history)
   actions500  as actions, for the Nifty 500 list in the lake; skips symbols with raw actions stored
+  actionsall  as actions500, for every active equity in our instrument master (the whole market)
   reparse   rebuild corporate_action from raw JSON already in the lake (no network)
   bars      daily bars (sec_bhavdata_full, available from 2019-10) over --from/--to
 usage: backfill_nse.py --db URL --lake DIR --stage universe|actions|bars [--from D --to D]"""
@@ -38,7 +39,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--db", required=True)
 ap.add_argument("--lake", required=True, type=Path)
 ap.add_argument(
-    "--stage", required=True, choices=["universe", "actions", "actions500", "reparse", "bars"]
+    "--stage",
+    required=True,
+    choices=["universe", "actions", "actions500", "actionsall", "reparse", "bars"],
 )
 ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 10, 1))
 ap.add_argument("--to", dest="end", type=date.fromisoformat, default=datetime.now(UTC).date())
@@ -105,19 +108,24 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         n_review = conn.execute(q).fetchone()[0]
         log(f"actions done: inserted={tot_ins} unchanged={tot_unch} review={n_review}")
 
-    elif a.stage == "actions500":
-        latest = sorted((a.lake / "raw/niftyindices/nifty500_list").glob("dt=*/v*.bin"))[-1]
-        listed = [
-            r["Symbol"]
-            for r in csv.DictReader(io.StringIO(latest.read_bytes().decode("utf-8-sig")))
-        ]
+    elif a.stage in ("actions500", "actionsall"):
+        if a.stage == "actionsall":  # the whole market: every active equity in our own master
+            from algo.data.kite_ingest import master_universe
+
+            listed = [s for s, _, _ in master_universe(conn)]
+        else:
+            latest = sorted((a.lake / "raw/niftyindices/nifty500_list").glob("dt=*/v*.bin"))[-1]
+            listed = [
+                r["Symbol"]
+                for r in csv.DictReader(io.StringIO(latest.read_bytes().decode("utf-8-sig")))
+            ]
         syms = [
             x
             for x in listed
             if not x.startswith("DUMMY")
             and not (a.lake / f"raw/nse/corporate_actions_{x}").exists()
         ]
-        log(f"nifty500 list {len(listed)}, still without raw actions: {len(syms)}")
+        log(f"{a.stage}: {len(listed)} symbols, still without raw actions: {len(syms)}")
         client.warm(WARM)
         tot_ins = failed = 0
         for i, sym in enumerate(syms, 1):

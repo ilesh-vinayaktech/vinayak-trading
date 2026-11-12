@@ -4,7 +4,7 @@
 For each stock whose Kite token is active: Kite's adjusted daily closes against bhavcopy closes adjusted by OUR corporate-action
 records, matched by date (see algo.data.kite_compare). Prints a summary by status and the stocks that disagree, and writes one
 CSV row per stock. Where the sources agree, the adjustments are corroborated by two independent sources; only the others need a person.
-usage: reconcile_kite_prices.py [--db URL] [--symbols A,B] [--limit N] [--tolerance 0.01] [--out FILE.csv]"""
+usage: reconcile_kite_prices.py [--db URL] [--all] [--symbols A,B] [--limit N] [--tolerance 0.01] [--out FILE.csv]"""
 
 import argparse
 import csv
@@ -22,6 +22,9 @@ from algo.data.reader import BarReader
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
+ap.add_argument(
+    "--all", action="store_true", help="every mapped stock, not only those the live feed follows"
+)
 ap.add_argument("--symbols", default="")
 ap.add_argument("--limit", type=int, default=0)
 ap.add_argument("--tolerance", type=Decimal, default=Decimal("0.01"))
@@ -34,7 +37,7 @@ if not a.db:
 
 with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as conn:
     rows = conn.execute(
-        "SELECT instrument_id, tradingsymbol FROM kite_instrument WHERE active AND instrument_id IS NOT NULL ORDER BY tradingsymbol"
+        f"SELECT instrument_id, tradingsymbol FROM kite_instrument WHERE {'TRUE' if a.all else 'active'} AND instrument_id IS NOT NULL ORDER BY tradingsymbol"
     ).fetchall()
     if a.symbols:
         rows = [r for r in rows if r[1] in set(a.symbols.split(","))]

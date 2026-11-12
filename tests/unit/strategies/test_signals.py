@@ -131,3 +131,10 @@ def test_a_shorter_trend_average_is_ready_sooner():
     p100 = TrendPullbackParams(trend_sma=100)
     assert any(r.ready for r in replay(b, p100, ds[0], ds[-1]))
     assert not any(r.ready for r in replay(b, P, ds[0], ds[-1]))
+
+
+def test_a_replay_that_ends_before_the_last_bar_stops_there():
+    closes = dipped_then_recovered()
+    ds, b = bars(closes)
+    rows = replay(b, P, ds[300], ds[305])  # "To" a day in the middle of the history
+    assert [r.day for r in rows] == ds[300:306]
