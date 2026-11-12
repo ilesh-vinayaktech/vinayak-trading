@@ -178,7 +178,8 @@ def instrument(conn: psycopg.Connection, instrument_id: int) -> dict[str, Any] |
         return None
     first, last, n = _one(
         conn,
-        f"SELECT min({IST_DAY}), max({IST_DAY}), count(*) FROM bar_1d WHERE instrument_id=%s",
+        f"SELECT min({IST_DAY}), max({IST_DAY}), count(DISTINCT ts) FROM bar_1d"
+        " WHERE instrument_id=%s",
         (instrument_id,),
     )
     out = _instrument(rows[0])

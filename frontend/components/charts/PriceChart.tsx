@@ -26,6 +26,8 @@ import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
 export type Mark = { day: string; action: "BUY" | "SELL" };
+/** Today's candle as the feed last reported it: the exchange's day open/high/low, the last price and the volume so far. */
+export type LiveView = { day: string; open: string | null; high: string | null; low: string | null; price: string; volume: string | null; prevClose: string | null; live: boolean };
 const NO_SIGNALS: Mark[] = []; // a stable default: a fresh array each render would rebuild the chart each render
 type Bar = Bars["bars"][number];
 export type ChartType = "candles" | "line" | "area";
@@ -47,7 +49,7 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend }: { onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null }: { live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -104,7 +106,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     };
     const ro = new ResizeObserver(fit);
     ro.observe(el);
-    handles.current = { chart, series };
+    handles.current = { chart, series, volume };
     setReady((n) => n + 1);
     // the library lays the chart out on the next frames: project the overlays again once it has
     const frame = requestAnimationFrame(() => requestAnimationFrame(() => setTick((n) => n + 1)));
@@ -170,6 +172,20 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     };
   }, [active, data, ready, colorsFor]);
 
+  // the current candle follows the feed: update it in place, so zoom and position are kept (no rebuild of the chart)
+  useEffect(() => {
+    const h = handles.current;
+    if (!h || !live || timeframe !== "1d") return;
+    const time = live.day as Time;
+    const close = plotNumber(live.price);
+    const open = plotNumber(live.open ?? live.price);
+    const high = Math.max(plotNumber(live.high ?? live.price), close, open);
+    const low = Math.min(plotNumber(live.low ?? live.price), close, open);
+    if (chartType === "candles") (h.series as ISeriesApi<"Candlestick">).update({ time, open, high, low, close });
+    else (h.series as ISeriesApi<"Line">).update({ time, value: close });
+    if (live.volume !== null) (h.volume as ISeriesApi<"Histogram"> | undefined)?.update({ time, value: plotNumber(live.volume), color: close >= plotNumber(live.prevClose ?? live.open ?? live.price) ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" });
+  }, [live, ready, chartType, timeframe]);
+
   const screenshot = () => {
     const h = handles.current;
     if (!h) return;
@@ -180,7 +196,8 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     a.click();
   };
 
-  const shown = hover ?? bars[bars.length - 1];
+  const liveBar: Bar | null = live ? { date: live.day, open: live.open ?? live.price, high: live.high ?? live.price, low: live.low ?? live.price, close: live.price, volume: live.volume ?? "0", factor: "1" } : null;
+  const shown = hover ?? liveBar ?? bars[bars.length - 1];
   const hoverIndex = hover && data ? data.dates.indexOf(hover.date) : -1;
   const index = hoverIndex >= 0 ? hoverIndex : null;
   const rowsOf = (pane: "overlay" | "pane") =>
@@ -203,6 +220,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
           <span>L <b className="font-medium text-slate-900">{shown.low}</b></span>
           <span>C <b className="font-medium text-slate-900">{shown.close}</b></span>
           <span className="text-slate-500">{barLabel(shown)}</span>
+          {live && shown === liveBar ? <span data-testid="live-badge" className={`rounded px-1.5 font-sans text-[11px] font-semibold ${live.live ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>{live.live ? "● LIVE" : "last price"}</span> : null}
           <span className="text-slate-500">factor {shown.factor}</span>
         </div>
         <div className="mt-0.5 font-mono text-slate-500">

@@ -11,7 +11,7 @@ from algo.core.clock import SimClock
 from algo.data.providers.kite import KiteTokenExpired
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
-from algo.live.bar_store import read_status, token_map
+from algo.live.bar_store import read_quote, read_status, token_map
 from algo.live.feed import Feed
 from tests.unit.live.test_ticks import frame, full
 
@@ -237,3 +237,34 @@ def test_the_status_is_refreshed_while_running_and_connections_are_not_confused_
     asyncio.run(feed.run())
     assert read_status(rig.conn)["updated_at"] == OPEN + timedelta(seconds=12)
     assert token_map(rig.conn) == rig.ids
+
+
+def test_the_latest_price_of_each_stock_is_published_every_couple_of_seconds_for_the_charts(rig):
+    sock = rig.script(
+        Advance(at(0, 5)), ticks(0, 5, 100, 1000),
+        Advance(at(0, 6)), ticks(0, 6, 101, 1100),
+        Advance(at(0, 9)), ticks(0, 9, 102, 1300),
+        Do(lambda: feed.stop()),
+    )  # fmt: skip
+    feed = rig.feed(sock, dead_after=600, quote_every=2.0)
+    asyncio.run(feed.run())
+    q = read_quote(rig.conn, rig.ids[RELIANCE])
+    assert (q["ltp"], q["volume"], q["updated_at"]) == (D(102), 1300, at(0, 9))
+    assert (q["day_open"], q["day_high"], q["day_low"], q["prev_close"]) == (
+        D("2860"),
+        D("2880"),
+        D("2855"),
+        D("2865"),
+    )
+    assert read_quote(rig.conn, rig.ids[TCS]) is None  # no tick, no quote
+
+
+def test_a_price_that_arrived_inside_the_quiet_gap_is_still_published_when_the_feed_stops(rig):
+    sock = rig.script(
+        Advance(at(0, 5)), ticks(0, 5, 100, 1000),
+        Advance(at(0, 6)), ticks(0, 6, 101, 1100),  # one second after the last publish: not due yet
+        Do(lambda: feed.stop()),
+    )  # fmt: skip
+    feed = rig.feed(sock, dead_after=600, quote_every=2.0)
+    asyncio.run(feed.run())
+    assert read_quote(rig.conn, rig.ids[RELIANCE])["ltp"] == D(101)

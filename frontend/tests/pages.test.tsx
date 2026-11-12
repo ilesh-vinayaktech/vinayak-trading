@@ -14,9 +14,9 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
   usePathname: () => "/dashboard",
 }));
-const scale = vi.hoisted(() => ({ range: { from: 0, to: 100 } as { from: number; to: number } | null, set: vi.fn(), fit: vi.fn() }));
+const scale = vi.hoisted(() => ({ range: { from: 0, to: 100 } as { from: number; to: number } | null, set: vi.fn(), fit: vi.fn(), update: vi.fn() }));
 vi.mock("lightweight-charts", () => {
-  const series = () => ({ setData: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) });
+  const series = () => ({ setData: vi.fn(), update: scale.update, createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) });
   return {
     ColorType: { Solid: "solid" },
     CrosshairMode: { Normal: 0 },
@@ -331,6 +331,66 @@ describe("Data Explorer", () => {
       expect(scale.set).not.toHaveBeenCalled();
       scale.range = { from: 0, to: 100 };
     });
+  });
+
+  describe("live price", () => {
+    const quote = { ltp: "2875.5", open: "2860", high: "2880", low: "2855", prev_close: "2865", volume: "1234567", updated_at: "2026-11-12T04:30:00+00:00" };
+    const live = (over: Record<string, unknown> = {}) => ({ live: true, feed: { state: "CONNECTED", last_tick_at: "2026-11-12T04:30:00+00:00" }, session_date: "2026-11-12", quote, ...over });
+    const open = async (liveBody: unknown, urls: string[] = []) => {
+      const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/live/7": liveBody });
+      vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+        urls.push(String(input));
+        return respond(input);
+      });
+      wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+      fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+      fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+      await screen.findByText("basis: Raw (as traded)");
+      scale.update.mockClear();
+    };
+
+    it("moves today's candle with the feed's price and the exchange's day figures, and says it is live", async () => {
+      await open(live());
+      await waitFor(() => expect(scale.update).toHaveBeenCalledWith({ time: "2026-11-12", open: 2860, high: 2880, low: 2855, close: 2875.5 }));
+      expect(scale.update).toHaveBeenCalledWith(expect.objectContaining({ time: "2026-11-12", value: 1234567 })); // the volume bar
+      expect(screen.getByTestId("live-badge")).toHaveTextContent("LIVE");
+      expect(screen.getByTestId("ohlc-legend")).toHaveTextContent("C 2875.5");
+    });
+
+    it("widens the candle when the price is outside the day's high and low it was last given", async () => {
+      await open(live({ quote: { ...quote, ltp: "2890", high: "2880" } }));
+      await waitFor(() => expect(scale.update).toHaveBeenCalledWith({ time: "2026-11-12", open: 2860, high: 2890, low: 2855, close: 2890 }));
+    });
+
+    it("still shows the last price after the market closes but does not call it live", async () => {
+      await open(live({ live: false, feed: { state: "STOPPED", last_tick_at: "2026-11-12T10:05:00+00:00" } }));
+      expect(await screen.findByTestId("live-badge")).toHaveTextContent("last price");
+    });
+
+    it("draws nothing when the quote is older than the stored bars", async () => {
+      await open(live({ session_date: "2024-06-01" }));
+      await new Promise((r) => setTimeout(r, 100));
+      expect(scale.update).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("live-badge")).not.toBeInTheDocument();
+    });
+
+    it("does not ask for a live price when there is no quote yet", async () => {
+      await open({ live: false, feed: { state: null, last_tick_at: null }, session_date: null, quote: null });
+      await new Promise((r) => setTimeout(r, 100));
+      expect(scale.update).not.toHaveBeenCalled();
+    });
+
+    it("keeps asking every couple of seconds, and stops on the 5-minute timeframe", async () => {
+      const urls: string[] = [];
+      await open(live(), urls);
+      await waitFor(() => expect(urls.filter((u) => u.includes("/api/live/7")).length).toBeGreaterThanOrEqual(2), { timeout: 4500 });
+      fireEvent.click(screen.getByRole("button", { name: "Timeframe: 1D" }));
+      fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name: "5 minutes" }));
+      await screen.findByRole("button", { name: "Timeframe: 5m" });
+      const before = urls.filter((u) => u.includes("/api/live/7")).length;
+      await new Promise((r) => setTimeout(r, 2600));
+      expect(urls.filter((u) => u.includes("/api/live/7")).length).toBe(before);
+    }, 15000);
   });
 
   describe("strategy on the chart", () => {

@@ -8,7 +8,7 @@ import { COLORS, DASHES, DEFAULT_STYLE, GROUPS, load, makeDrawing, save, TOOLS, 
 import { Icon } from "./icons";
 
 
-export type ChartHandles = { chart: IChartApi; series: ISeriesApi<SeriesType> };
+export type ChartHandles = { chart: IChartApi; series: ISeriesApi<SeriesType>; volume?: ISeriesApi<SeriesType> };
 
 /** What the page toolbar needs from the drawing layer. */
 export type DrawingApi = { undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; count: number; listOpen: boolean; toggleList: () => void };

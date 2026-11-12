@@ -10,7 +10,7 @@ import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, isIntraday, shiftDays } from "@/li
 import { TimeframeMenu } from "./TimeframeMenu";
 import { Icon, type IconName } from "./icons";
 import { IndicatorDialog } from "./IndicatorDialog";
-import { PriceChart, type ChartType, type IndicatorControls, type Mark } from "./PriceChart";
+import { PriceChart, type ChartType, type IndicatorControls, type LiveView, type Mark } from "./PriceChart";
 import { SymbolSearch } from "./SymbolSearch";
 
 export const BASES: { value: Adjust; label: string; blurb: string }[] = [
@@ -50,7 +50,7 @@ const NO_STRATEGY: StrategyPick = { options: [], value: "", onChange: () => {}, 
 const tbBtn = (active = false) => `flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[13px] transition-colors ${active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"} disabled:opacity-35 disabled:hover:bg-transparent`;
 const Sep = () => <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />;
 
-export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY }: { signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
+export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY, live = null }: { live?: LiveView | null; signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
   const box = useRef<HTMLDivElement>(null);
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [full, setFull] = useState(false);
@@ -223,7 +223,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   return (
     <div ref={box} className={`flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm ${full ? "h-screen" : "h-[calc(100vh-15rem)] min-h-[560px]"}`} data-testid="chart-workspace">
       {bars && bars.bars.length > 0 && picked ? (
-        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} />
+        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} live={live} />
       ) : (
         <>
           {topbar({ undo: () => {}, redo: () => {}, canUndo: false, canRedo: false, count: 0, listOpen: false, toggleList: () => {}, screenshot: () => {} })}

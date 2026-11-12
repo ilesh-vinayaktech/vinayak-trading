@@ -22,9 +22,9 @@ import psycopg
 
 from algo.core.clock import Clock
 from algo.data.providers.kite import KiteTokenExpired
-from algo.live.bar_store import save_bars, save_status
+from algo.live.bar_store import save_bars, save_quotes, save_status
 from algo.live.bars import BarBuilder, LiveBar
-from algo.live.ticks import TickFormatError, parse
+from algo.live.ticks import Tick, TickFormatError, parse
 
 BACKOFF_CAP = 60
 
@@ -50,6 +50,7 @@ class Feed:
         dead_after: float = 30.0,
         flush_every: float = 1.0,
         status_every: float = 5.0,
+        quote_every: float = 2.0,
         until: datetime | None = None,
         frame_sink: Callable[[bytes, datetime], None] | None = None,
     ) -> None:
@@ -67,6 +68,10 @@ class Feed:
             recv_timeout,
             dead_after,
         )
+        self.quote_every = quote_every
+        self._quotes: dict[
+            int, Tick
+        ] = {}  # the latest tick of each followed stock since the last publish
         self.flush_every, self.status_every, self.until, self.frame_sink = (
             flush_every,
             status_every,
@@ -81,7 +86,7 @@ class Feed:
         self._stopping, self._reason = False, "stopped"
         self._got_frame = False
         now = clock.now()
-        self._last_flush = self._last_status = now
+        self._last_flush = self._last_status = self._last_quote = now
 
     def stop(self, reason: str = "stopped") -> None:
         self._stopping, self._reason = True, reason
@@ -115,6 +120,7 @@ class Feed:
                 failures += 1
                 self._save("RECONNECTING", f"{type(e).__name__}: {e}; retrying in {delay} s")
                 await self._sleep(delay)
+        self._publish_quotes(self.clock.now())
         self._save("STOPPED", self._reason)
         return "STOPPED"
 
@@ -158,6 +164,7 @@ class Feed:
                 continue
             self.ticks += 1
             self.last_tick_at = now
+            self._quotes[t.token] = t
             self._emit(self.builder.on_tick(t, now))
 
     def _text(self, message: str) -> None:
@@ -184,8 +191,17 @@ class Feed:
         if now - self._last_flush >= timedelta(seconds=self.flush_every):
             self._emit(self.builder.flush(now))
             self._last_flush = now
+        if now - self._last_quote >= timedelta(seconds=self.quote_every):
+            self._publish_quotes(now)
         if now - self._last_status >= timedelta(seconds=self.status_every):
             self._save(self._state, self._detail)
+
+    def _publish_quotes(self, now: datetime) -> None:
+        """Write the latest tick of each stock seen since the last publish, for the charts."""
+        self._last_quote = now
+        if self._quotes:
+            save_quotes(self._conn, self._quotes, self.ids, now)
+            self._quotes = {}
 
     def _save(self, state: str, detail: str) -> None:
         self._state, self._detail = state, detail

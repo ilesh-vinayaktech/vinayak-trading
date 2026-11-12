@@ -511,6 +511,12 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             "end": sig_days[-1].isoformat(),
         },
     )
+    from algo.live.bar_store import save_quotes, save_status
+    from algo.live.ticks import Tick
+
+    save_status(conn, "CONNECTED", "497 instruments", subscribed=497, last_tick_at=start, last_bar_at=None, ticks=1, bars=0, bad_frames=0, late_ticks=0, now=start)  # fmt: skip
+    save_quotes(conn, {738561: Tick(738561, D("2900"), 1000, start, D("2850"), D("2905"), D("2845"), D("2850"))}, {738561: a}, start)  # fmt: skip
+    shots["live"] = c.get(f"/api/live/{a}")
     book.record_fill(
         conn,
         uid,

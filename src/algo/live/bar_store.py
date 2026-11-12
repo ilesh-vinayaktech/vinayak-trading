@@ -11,6 +11,7 @@ from typing import Any
 import psycopg
 
 from algo.live.bars import LiveBar
+from algo.live.ticks import Tick
 
 CHANNEL = "live_bar"
 
@@ -97,3 +98,56 @@ def read_status(conn: psycopg.Connection) -> dict[str, Any] | None:
         "updated_at",
     )
     return dict(zip(keys, row, strict=True))
+
+
+QUOTE_KEYS = (
+    "ltp",
+    "day_open",
+    "day_high",
+    "day_low",
+    "prev_close",
+    "volume",
+    "exchange_ts",
+    "updated_at",
+)
+
+
+def save_quotes(
+    conn: psycopg.Connection, quotes: Mapping[int, Tick], ids: Mapping[int, int], now: datetime
+) -> int:
+    """Replace each followed stock's latest quote in place; returns how many rows were written. A tick that carries no day
+    figures, volume or exchange time (a price-only packet) keeps the ones already stored."""
+    n = 0
+    for token, t in quotes.items():
+        iid = ids.get(token)
+        if iid is None:
+            continue
+        conn.execute(
+            "INSERT INTO live_quote (instrument_id, ltp, day_open, day_high, day_low, prev_close, volume, exchange_ts, updated_at)"
+            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_id) DO UPDATE SET ltp=EXCLUDED.ltp,"
+            " day_open=COALESCE(EXCLUDED.day_open, live_quote.day_open), day_high=COALESCE(EXCLUDED.day_high, live_quote.day_high),"
+            " day_low=COALESCE(EXCLUDED.day_low, live_quote.day_low), prev_close=COALESCE(EXCLUDED.prev_close, live_quote.prev_close),"
+            " volume=COALESCE(EXCLUDED.volume, live_quote.volume), exchange_ts=COALESCE(EXCLUDED.exchange_ts, live_quote.exchange_ts),"
+            " updated_at=EXCLUDED.updated_at",
+            (
+                iid,
+                t.ltp,
+                t.day_open,
+                t.day_high,
+                t.day_low,
+                t.prev_close,
+                t.volume,
+                t.exchange_ts,
+                now,
+            ),
+        )
+        n += 1
+    return n
+
+
+def read_quote(conn: psycopg.Connection, instrument_id: int) -> dict[str, Any] | None:
+    row = conn.execute(
+        "SELECT ltp, day_open, day_high, day_low, prev_close, volume, exchange_ts, updated_at FROM live_quote WHERE instrument_id=%s",
+        (instrument_id,),
+    ).fetchone()
+    return None if row is None else dict(zip(QUOTE_KEYS, row, strict=True))

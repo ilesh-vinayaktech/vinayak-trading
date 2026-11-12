@@ -23,6 +23,7 @@ from algo.api import (
     dashboard_routes,
     freshness,
     kite_routes,
+    live_routes,
     market_routes,
     paper_routes,
     queries,
@@ -103,6 +104,7 @@ def create_app(
     app.include_router(users_routes.router)
     app.include_router(kite_routes.router)
     app.include_router(market_routes.router)
+    app.include_router(live_routes.router)
     app.include_router(paper_routes.router)
     app.include_router(strategy_routes.router)
     app.include_router(costs_routes.router)

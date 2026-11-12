@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { ChartWorkspace, BASES, presetStart } from "@/components/charts/ChartWorkspace";
 import { PageHeader } from "@/components/layout/PageHeader";
-import type { Mark } from "@/components/charts/PriceChart";
+import type { LiveView, Mark } from "@/components/charts/PriceChart";
 import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/status/Badge";
 import { Card, Stat } from "@/components/status/LoadState";
@@ -57,6 +57,22 @@ export default function InstrumentsPage() {
     queryFn: () => api.strategySignals(chosen, { instrument_id: id as number, start: range.start, end: range.end, holding: false }),
     enabled: chosen !== "" && ready && range.start <= range.end && timeframe === "1d",
   });
+  // the live price: polled every 2 s while the chart shows the latest days on the daily timeframe; it moves today's candle
+  const lastDay = detail.data?.bars.last ?? "";
+  const atLatest = lastDay !== "" && range.end >= lastDay;
+  const liveQ = useQuery({
+    queryKey: ["live", id],
+    queryFn: () => api.live(id as number),
+    enabled: ready && timeframe === "1d" && atLatest,
+    refetchInterval: 2000,
+    refetchIntervalInBackground: false, // a hidden tab does not poll
+  });
+  const liveView = useMemo<LiveView | null>(() => {
+    const d = liveQ.data;
+    if (!d?.quote || !d.session_date || d.session_date < lastDay) return null; // nothing newer than the stored bars
+    const q = d.quote;
+    return { day: d.session_date, open: q.open, high: q.high, low: q.low, price: q.ltp, volume: q.volume, prevClose: q.prev_close, live: d.live };
+  }, [liveQ.data, lastDay]);
   const marks = useMemo<Mark[]>(() => (signals.data?.days ?? []).flatMap((d) => (d.action ? [{ day: d.day, action: d.action }] : [])), [signals.data]);
   const buys = marks.filter((m) => m.action === "BUY").length;
   const strategyStatus = chosen === "" || timeframe !== "1d" ? null : signals.isError ? "Could not run" : signals.isFetching || !signals.data ? "Running..." : `${buys} buy, ${marks.length - buys} sell`;
@@ -99,6 +115,7 @@ export default function InstrumentsPage() {
         loading={id !== null && (detail.isLoading || bars.isLoading || !ready)}
         error={detail.error ?? bars.error}
         signals={marks}
+        live={liveView}
         strategy={{ options: strategies.map((s) => ({ id: s.config_id, name: s.name })), value: chosen, onChange: setStrategyId, status: strategyStatus }}
       />
 

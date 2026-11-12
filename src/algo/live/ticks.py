@@ -32,6 +32,11 @@ class Tick:
     ltp: Decimal
     volume: int | None  # traded so far today (cumulative); None where the packet has none
     exchange_ts: datetime | None  # UTC; None where the packet has none
+    # the exchange's own figures for the day so far (quote and full packets only): they stay right even if we joined mid-session
+    day_open: Decimal | None = None
+    day_high: Decimal | None = None
+    day_low: Decimal | None = None
+    prev_close: Decimal | None = None
 
 
 def _time(epoch: int) -> datetime | None:
@@ -48,10 +53,14 @@ def _packet(p: bytes) -> Tick:
             token, ltp, None, _time(struct.unpack_from(">i", p, 28)[0]) if len(p) == 32 else None
         )
     volume = struct.unpack_from(">i", p, 16)[0]
+    div = DIVISORS.get(token & 0xFF, DEFAULT_DIVISOR)
+    day = [
+        Decimal(x) / div for x in struct.unpack_from(">4i", p, 28)
+    ]  # open, high, low, previous close
     if len(p) == 44:
-        return Tick(token, ltp, volume, None)
+        return Tick(token, ltp, volume, None, *day)
     last_trade, exchange = struct.unpack_from(">i", p, 44)[0], struct.unpack_from(">i", p, 60)[0]
-    return Tick(token, ltp, volume, _time(exchange or last_trade))
+    return Tick(token, ltp, volume, _time(exchange or last_trade), *day)
 
 
 def parse(data: bytes) -> list[Tick]:

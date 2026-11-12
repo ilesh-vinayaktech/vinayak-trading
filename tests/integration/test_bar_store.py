@@ -7,8 +7,16 @@ import pytest
 
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
-from algo.live.bar_store import read_status, save_bars, save_status, token_map
+from algo.live.bar_store import (
+    read_quote,
+    read_status,
+    save_bars,
+    save_quotes,
+    save_status,
+    token_map,
+)
 from algo.live.bars import LiveBar
+from algo.live.ticks import Tick
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 11, 12, 4, 0, tzinfo=UTC)
@@ -112,3 +120,43 @@ def test_the_status_is_one_row_that_is_replaced_each_time(env):
     assert conn.execute("SELECT count(*) FROM feed_status").fetchone() == (1,)
     with pytest.raises(psycopg.errors.CheckViolation):
         save_status(conn, "BOGUS", "", now=NOW, **kw)
+
+
+def tick(price, volume=1000):
+    day = {"day_open": D(100), "day_high": D(105), "day_low": D(99), "prev_close": D(98)}
+    return Tick(738561, D(price), volume, OPEN, **day)
+
+
+def test_the_latest_quote_of_each_stock_is_kept_in_place_for_the_charts(env):
+    conn, a, b = env
+    ids = {738561: a, 2953217: b}
+    assert (
+        save_quotes(conn, {738561: tick(101), 2953217: tick(50), 555: tick(7)}, ids, NOW) == 2
+    )  # 555 is not ours
+    q = read_quote(conn, a)
+    assert (q["ltp"], q["day_open"], q["day_high"], q["day_low"], q["prev_close"], q["volume"]) == (
+        D(101), D(100), D(105), D(99), D(98), 1000,
+    )  # fmt: skip
+    assert q["updated_at"] == NOW and q["exchange_ts"] == OPEN
+    assert read_quote(conn, 12345) is None
+    later = NOW + timedelta(seconds=2)
+    save_quotes(conn, {738561: tick(103, 1500)}, ids, later)  # a newer tick replaces the row
+    q = read_quote(conn, a)
+    assert (q["ltp"], q["volume"], q["updated_at"]) == (D(103), 1500, later)
+    assert conn.execute("SELECT count(*) FROM live_quote").fetchone() == (2,)
+
+
+def test_a_price_only_tick_keeps_the_day_figures_and_volume_already_stored(env):
+    conn, a, _ = env
+    ids = {738561: a}
+    save_quotes(conn, {738561: tick(101)}, ids, NOW)
+    bare = Tick(738561, D("104"), None, None)  # an 8-byte packet: a price and nothing else
+    save_quotes(conn, {738561: bare}, ids, NOW + timedelta(seconds=1))
+    q = read_quote(conn, a)
+    assert (q["ltp"], q["day_open"], q["day_high"], q["volume"], q["exchange_ts"]) == (
+        D(104),
+        D(100),
+        D(105),
+        1000,
+        OPEN,
+    )

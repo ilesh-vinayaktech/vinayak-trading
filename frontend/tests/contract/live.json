@@ -1,0 +1,17 @@
+{
+ "feed": {
+  "last_tick_at": "2026-11-11T10:00:00+00:00",
+  "state": "CONNECTED"
+ },
+ "live": true,
+ "quote": {
+  "high": "2905",
+  "low": "2845",
+  "ltp": "2900",
+  "open": "2850",
+  "prev_close": "2850",
+  "updated_at": "2026-11-11T10:00:00+00:00",
+  "volume": "1000"
+ },
+ "session_date": "2026-11-11"
+}

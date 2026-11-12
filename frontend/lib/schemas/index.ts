@@ -679,3 +679,14 @@ export const signalsSchema = z.object({
 });
 export type Signals = z.infer<typeof signalsSchema>;
 export type SignalDay = z.infer<typeof signalDaySchema>;
+
+// ---- live price of one stock: the feed's latest quote (decimal strings) ------------------------------------------------------
+export const liveSchema = z.object({
+  live: z.boolean(), // the feed is connected and has ticked within the last 30 seconds
+  feed: z.object({ state: z.string().nullable(), last_tick_at: z.string().nullable() }),
+  session_date: z.string().nullable(), // the day (India) of the quote
+  quote: z
+    .object({ ltp: z.string(), open: z.string().nullable(), high: z.string().nullable(), low: z.string().nullable(), prev_close: z.string().nullable(), volume: z.string().nullable(), updated_at: z.string() })
+    .nullable(),
+});
+export type Live = z.infer<typeof liveSchema>;

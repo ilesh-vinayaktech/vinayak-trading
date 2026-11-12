@@ -47,9 +47,30 @@ def quote(token=RELIANCE, ltp=100050, volume=42):
 def test_a_full_packet_gives_price_cumulative_volume_and_the_exchange_time():
     (t,) = parse(frame(full()))
     assert t == Tick(
-        RELIANCE, Decimal("2875.50"), 1_234_567, datetime.fromtimestamp(1_794_468_900, UTC)
+        RELIANCE,
+        Decimal("2875.50"),
+        1_234_567,
+        datetime.fromtimestamp(1_794_468_900, UTC),
+        day_open=Decimal("2860.00"),
+        day_high=Decimal("2880.00"),
+        day_low=Decimal("2855.00"),
+        prev_close=Decimal("2865.00"),
     )
     assert isinstance(t.ltp, Decimal)
+
+
+def test_the_exchanges_own_day_open_high_low_and_previous_close_come_with_quote_and_full_packets():
+    (q,) = parse(frame(quote()))
+    assert (q.day_open, q.day_high, q.day_low, q.prev_close) == (
+        Decimal("990.00"),
+        Decimal("1010.00"),
+        Decimal("980.00"),
+        Decimal("995.00"),
+    )
+    (p,) = parse(
+        frame(struct.pack(">2i", RELIANCE, 100050))
+    )  # a price-only packet has none of them
+    assert (p.day_open, p.day_high, p.day_low, p.prev_close) == (None, None, None, None)
 
 
 def test_a_quote_packet_has_no_exchange_time_and_an_ltp_packet_has_no_volume():
