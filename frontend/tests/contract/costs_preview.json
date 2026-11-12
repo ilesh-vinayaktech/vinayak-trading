@@ -1,0 +1,43 @@
+{
+ "lines": [
+  {
+   "amount": "0",
+   "formula": "0% of 285050.0",
+   "type": "BROKERAGE"
+  },
+  {
+   "amount": "285.05",
+   "formula": "0.1% of 285050.0",
+   "type": "STT"
+  },
+  {
+   "amount": "8.75",
+   "formula": "0.00307% of 285050.0",
+   "type": "EXCHANGE_TRANSACTION"
+  },
+  {
+   "amount": "0.29",
+   "formula": "0.0001% of 285050.0",
+   "type": "SEBI_TURNOVER"
+  },
+  {
+   "amount": "42.76",
+   "formula": "0.015% of 285050.0",
+   "type": "STAMP_DUTY"
+  },
+  {
+   "amount": "1.63",
+   "formula": "18% of GST base 9.04",
+   "type": "GST"
+  }
+ ],
+ "schedule": {
+  "id": "nse-cash-delivery-zerodha-2026-03-01",
+  "status": "extracted_unverified",
+  "valid_from": "2026-03-01",
+  "valid_until": null,
+  "version": "2026-11-07.1"
+ },
+ "total": "338.48",
+ "value": "285050"
+}

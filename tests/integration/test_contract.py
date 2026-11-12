@@ -543,3 +543,35 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_cost_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    from pathlib import Path
+
+    from algo.backtest.costs.schedule_store import import_files
+    from algo.core.clock import SimClock
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    start = datetime(2026, 11, 12, 4, 0, tzinfo=UTC)
+    import_files(conn, Path(__file__).resolve().parents[2] / "config/cost_schedules", now=start)
+    clock = SimClock(start)
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    add_user(conn, clock, "ADMIN", "boss@example.com", name="The Boss")
+    c = sign_in(app, "boss@example.com")
+    enrol_second_factor(c, clock)
+    shots = {
+        "costs_schedules": c.get("/api/costs/schedules"),
+        "costs_preview": c.get(
+            "/api/costs/preview?broker=zerodha&product=DELIVERY&side=BUY&qty=100&price=2850.5&day=2026-11-12"
+        ),
+    }
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        text = json.dumps(resp.json(), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

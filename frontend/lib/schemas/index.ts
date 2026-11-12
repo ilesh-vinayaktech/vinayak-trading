@@ -608,3 +608,32 @@ export type PaperAccount = z.infer<typeof paperAccountSchema>;
 export type PaperSummary = z.infer<typeof paperSummarySchema>;
 export type PaperOrder = z.infer<typeof paperOrderSchema>;
 export type PaperRun = z.infer<typeof paperRunsSchema>["runs"][number];
+
+
+// ---- trading costs: schedules per provider, with effective dates, sources and a calculator ---------------------------------
+export const COST_STATUSES = ["verified", "extracted_unverified", "assumed_backfill"] as const;
+export const costScheduleSchema = z.object({
+  schedule_id: z.string(),
+  version: z.string(),
+  name: z.string(),
+  broker: z.string(),
+  product: z.enum(["DELIVERY", "INTRADAY"]),
+  valid_from: z.string(),
+  valid_until: z.string().nullable(),
+  status: z.enum(COST_STATUSES),
+  verified_by: z.string().nullable(),
+  verified_at: z.string().nullable(),
+  notes: z.string(),
+  contract_note_min_brokerage: z.string().nullable(),
+  components: z.array(z.object({ type: z.string(), side: z.enum(["BUY", "SELL", "BOTH"]), basis: z.string(), rate_pct: z.string().nullable(), amount: z.string().nullable(), minimum: z.string().nullable(), maximum: z.string().nullable(), source: z.string() })),
+  sources: z.array(z.object({ key: z.string(), url: z.string(), retrieved_at: z.string(), quote: z.string(), locator: z.string() })),
+});
+export const costSchedulesSchema = z.object({ schedules: z.array(costScheduleSchema) });
+export const costPreviewSchema = z.object({
+  schedule: z.object({ id: z.string(), version: z.string(), status: z.enum(COST_STATUSES), valid_from: z.string(), valid_until: z.string().nullable() }),
+  value: z.string(),
+  lines: z.array(z.object({ type: z.string(), amount: z.string(), formula: z.string() })),
+  total: z.string(),
+});
+export type CostSchedule = z.infer<typeof costScheduleSchema>;
+export type CostPreview = z.infer<typeof costPreviewSchema>;
