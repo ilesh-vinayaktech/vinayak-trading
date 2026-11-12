@@ -5,6 +5,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { ChartWorkspace, BASES, presetStart } from "@/components/charts/ChartWorkspace";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { SignalsPanel, type Mark } from "@/components/strategies/SignalsPanel";
+import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/status/Badge";
 import { Card, Stat } from "@/components/status/LoadState";
 import { DataTable } from "@/components/tables/DataTable";
@@ -31,6 +33,8 @@ const ACTION_COLUMNS: ColumnDef<Action, unknown>[] = [
 ];
 
 export default function InstrumentsPage() {
+  const { can } = useAuth();
+  const [marks, setMarks] = useState<Mark[]>([]);
   const [picked, setPicked] = useState<Instrument | null>(null);
   const [adjust, setAdjust] = useState<Adjust>("none");
   const [timeframe, setTimeframe] = useState<Timeframe>("1d");
@@ -70,7 +74,7 @@ export default function InstrumentsPage() {
 
       <ChartWorkspace
         picked={picked}
-        onPick={(i) => { setPicked(i); setRange({ id: null, start: "", end: "" }); }}
+        onPick={(i) => { setPicked(i); setMarks([]); setRange({ id: null, start: "", end: "" }); }}
         instrument={detail.data ?? null}
         adjust={adjust}
         onAdjust={setAdjust}
@@ -82,7 +86,10 @@ export default function InstrumentsPage() {
         bars={bars.data}
         loading={id !== null && (detail.isLoading || bars.isLoading || !ready)}
         error={detail.error ?? bars.error}
+        signals={marks}
       />
+
+      {can("strategy:own") ? <SignalsPanel instrument={picked} start={range.start} end={range.end} onMarks={setMarks} /> : null}
 
       {bars.data ? (
         <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="quality-strip">

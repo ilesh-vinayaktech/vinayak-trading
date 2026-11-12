@@ -7,16 +7,22 @@ real order."""
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from algo.api import queries
 from algo.api.paper_routes import _options, _params, _st
 from algo.api.security import CurrentUser, WConn
+from algo.data.reader import BarReader
 from algo.paper import configs
 from algo.portal import audit
+from algo.strategies.signals import replay
+from algo.strategies.trend_pullback import LOOKBACK_DAYS, TrendPullbackParams
 
 router = APIRouter(prefix="/api/strategies", tags=["strategies"])
 
@@ -128,3 +134,61 @@ def delete(config_id: UUID, request: Request, who: CurrentUser, conn: WConn) -> 
         raise _fail(e) from e
     _change(request, who, conn, "deleted", config_id, {})
     return {"ok": True}
+
+
+NOTES = [
+    "Decisions only: this is not a backtest and shows no profit or loss.",
+    "It reads one stock alone. It ignores the limit on how many stocks are held at once, the choice among stocks that are oversold on the same day, and index membership, so a BUY here is the strategy's signal for this stock, not a promise the whole strategy would have bought it.",
+    "A decision is made after the day's close and filled at the next session's open.",
+]
+MAX_SIGNAL_DAYS = 366 * 10
+
+
+@router.get("/{config_id}/signals")
+def signals(
+    config_id: UUID,
+    instrument_id: int,
+    start: date,
+    end: date,
+    who: CurrentUser,
+    conn: WConn,
+    holding: bool = False,
+) -> dict[str, Any]:
+    """One stock's buy/sell decisions under this strategy from `start` to `end`; `holding` starts the replay already holding it."""
+    mine = configs.get(conn, who.session.user_id, config_id)
+    if mine is None:
+        raise HTTPException(404, "no such strategy")
+    if end < start:
+        raise HTTPException(422, "end before start")
+    if (end - start).days > MAX_SIGNAL_DAYS:
+        raise HTTPException(422, "range longer than 10 years")
+    if queries.instrument(conn, instrument_id) is None:
+        raise HTTPException(404, f"no instrument {instrument_id}")
+    params = TrendPullbackParams(**mine["params"])
+    history = BarReader.for_env(conn).issuer_history(
+        instrument_id, start - timedelta(days=LOOKBACK_DAYS), end, adjust="split"
+    )
+    rows = replay(history.bars, params, start, end, holding=holding)
+    days = [
+        {
+            "day": r.day.isoformat(), "close": _num(r.close), "sma": _num(r.sma), "rsi": _num(r.rsi), "ready": r.ready,
+            "action": r.action, "reason": r.reason, "holding_after": r.holding_after,
+            "fill_day": r.fill_day.isoformat() if r.fill_day else None, "fill_price": _num(r.fill_price),
+        }
+        for r in rows
+    ]  # fmt: skip
+    return {
+        "label": "UNVALIDATED",
+        "strategy": mine["name"],
+        "params": mine["params"],
+        "notes": NOTES,
+        "summary": {
+            "buys": sum(r.action == "BUY" for r in rows),
+            "sells": sum(r.action == "SELL" for r in rows),
+        },
+        "days": days,
+    }
+
+
+def _num(d: Decimal | None) -> str | None:
+    return None if d is None else format(d.normalize(), "f")

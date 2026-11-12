@@ -31,6 +31,7 @@ def test_only_people_who_may_trade_can_use_the_strategy_routes(env):  # noqa: F8
     cid = uuid4()
     routes = [
         ("GET", "/api/strategies"),
+        ("GET", f"/api/strategies/{cid}/signals"),
         ("POST", "/api/strategies"),
         ("POST", f"/api/strategies/{cid}"),
         ("POST", f"/api/strategies/{cid}/use"),
@@ -110,3 +111,77 @@ def test_the_paper_account_picks_a_strategy_and_follows_its_edits(env):  # noqa:
         "strategy.used",
         "strategy.changed",
     ]
+
+
+def _series(conn, iid):
+    """A long rise, a sharp 6-day drop that stays above the 200-day average, then a recovery (about 330 sessions)."""
+    from datetime import date, timedelta
+    from decimal import Decimal as D
+
+    from tests.support.bt import put_bars
+
+    day, price, out = date(2025, 1, 1), D(100), {}
+    steps = [D("1.002")] * 300 + [D("0.97")] * 6 + [D("1.03")] * 12
+    for step in steps:
+        while day.weekday() >= 5:
+            day += timedelta(days=1)
+        out[day] = price
+        price *= step
+        day += timedelta(days=1)
+    put_bars(conn, iid, out)
+    return sorted(out)
+
+
+def test_the_signals_replay_one_stocks_decisions_from_a_chosen_day(env):  # noqa: F811
+    conn, app, clock, ids = env
+    _, c = trader(conn, app, clock)
+    cid = c.post("/api/strategies", json=BODY).json()["config_id"]
+    days = _series(conn, ids["BBB"])
+    q = {"instrument_id": ids["BBB"], "start": days[0].isoformat(), "end": days[-1].isoformat()}
+    r = c.get(f"/api/strategies/{cid}/signals", params={**q, "start": days[250].isoformat()})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["strategy"] == "Cautious" and d["label"] == "UNVALIDATED"
+    assert d["params"]["entry_rsi"] == 30 and "how many stocks are held" in " ".join(d["notes"])
+    assert (
+        d["days"][0]["day"] == days[250].isoformat()
+        and d["days"][-1]["day"] == days[-1].isoformat()
+    )
+    actions = [(x["action"], x["reason"]) for x in d["days"] if x["action"]]
+    assert actions[0] == ("BUY", "oversold in an uptrend") and d["summary"] == {
+        "buys": 1,
+        "sells": 1,
+    }
+    buy = next(x for x in d["days"] if x["action"] == "BUY")
+    assert buy["fill_day"] > buy["day"] and isinstance(buy["fill_price"], str)
+    assert all(isinstance(x["close"], str) for x in d["days"])
+    held = c.get(
+        f"/api/strategies/{cid}/signals",
+        params={**q, "start": days[250].isoformat(), "holding": "true"},
+    ).json()
+    assert held["days"][0]["holding_after"] is True or held["days"][0]["action"] == "SELL"
+
+
+def test_the_signals_refuse_other_peoples_strategies_unknown_stocks_and_bad_ranges(env):  # noqa: F811
+    conn, app, clock, ids = env
+    _, c = trader(conn, app, clock)
+    _, c2 = trader(conn, app, clock, "bob@example.com")
+    cid = c.post("/api/strategies", json=BODY).json()["config_id"]
+    ok = {"instrument_id": ids["AAA"], "start": "2026-01-01", "end": "2026-02-01"}
+    assert (
+        c.get(f"/api/strategies/{cid}/signals", params=ok).status_code == 200
+    )  # no bars before: nothing ready, still answers
+    assert c2.get(f"/api/strategies/{cid}/signals", params=ok).status_code == 404
+    assert c.get(f"/api/strategies/{uuid4()}/signals", params=ok).status_code == 404
+    assert (
+        c.get(f"/api/strategies/{cid}/signals", params={**ok, "instrument_id": 999999}).status_code
+        == 404
+    )
+    assert (
+        c.get(f"/api/strategies/{cid}/signals", params={**ok, "end": "2025-01-01"}).status_code
+        == 422
+    )
+    assert (
+        c.get(f"/api/strategies/{cid}/signals", params={**ok, "start": "1970-01-01"}).status_code
+        == 422
+    )

@@ -654,3 +654,27 @@ export const strategiesSchema = z.object({ label: z.string(), options: paperAcco
 export const strategyCreatedSchema = z.object({ config_id: z.string() });
 export type StrategyConfig = z.infer<typeof strategyConfigSchema>;
 export type Strategies = z.infer<typeof strategiesSchema>;
+
+// ---- strategy signals: one stock's buy/sell decisions (UNVALIDATED research, decisions only) ----------------------------------
+export const signalDaySchema = z.object({
+  day: z.string(),
+  close: z.string(),
+  sma: z.string().nullable(),
+  rsi: z.string().nullable(),
+  ready: z.boolean(),
+  action: z.enum(["BUY", "SELL"]).nullable(),
+  reason: z.string().nullable(),
+  holding_after: z.boolean(),
+  fill_day: z.string().nullable(),
+  fill_price: z.string().nullable(),
+});
+export const signalsSchema = z.object({
+  label: z.string(),
+  strategy: z.string(),
+  params: paperParamsSchema,
+  notes: z.array(z.string()),
+  summary: z.object({ buys: z.number(), sells: z.number() }),
+  days: z.array(signalDaySchema),
+});
+export type Signals = z.infer<typeof signalsSchema>;
+export type SignalDay = z.infer<typeof signalDaySchema>;

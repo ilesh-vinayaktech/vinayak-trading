@@ -1,5 +1,6 @@
 "use client";
 
+import type { Mark } from "@/components/strategies/SignalsPanel";
 import {
   AreaSeries,
   CandlestickSeries,
@@ -25,6 +26,7 @@ import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools
 import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
+const NO_SIGNALS: Mark[] = []; // a stable default: a fresh array each render would rebuild the chart each render
 type Bar = Bars["bars"][number];
 export type ChartType = "candles" | "line" | "area";
 export type ChartApi = DrawingApi & { screenshot: () => void };
@@ -45,7 +47,7 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar }: { bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS }: { signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -87,6 +89,12 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
       if (!day || a.ex_date < (days[0] ?? "")) continue;
       markers.push({ time: day as Time, position: "aboveBar", color: a.status === "ok" ? "#2563eb" : "#d97706", shape: "arrowDown", text: a.kind });
     }
+    if (!isIntraday(timeframe)) {
+      for (const s of signals) { // a decision is drawn on the day it was made (after that close)
+        const day = days.find((d) => d >= s.day);
+        if (day) markers.push({ time: day as Time, position: s.action === "BUY" ? "belowBar" : "aboveBar", color: s.action === "BUY" ? "#089981" : "#f23645", shape: s.action === "BUY" ? "arrowUp" : "arrowDown", text: s.action });
+      }
+    }
     markers.sort((x, y) => String(x.time).localeCompare(String(y.time)));
     createSeriesMarkers(series, markers);
     chart.timeScale().fitContent();
@@ -108,7 +116,7 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
       handles.current = null;
       chart.remove();
     };
-  }, [bars, actions, chartType, timeframe]);
+  }, [bars, actions, signals, chartType, timeframe]);
 
   // indicators: overlays on the price pane, oscillators one pane each below it
   const { active, data, catalog } = indicators;

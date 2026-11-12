@@ -499,6 +499,18 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     ).json()["config_id"]
     c.post(f"/api/strategies/{made}/use", json={})
     shots["strategies"] = c.get("/api/strategies")
+    from tests.integration.portal.test_strategy_routes import _series
+
+    infy = repo.add_instrument(x, "INFY")
+    sig_days = _series(conn, infy)
+    shots["strategy_signals"] = c.get(
+        f"/api/strategies/{made}/signals",
+        params={
+            "instrument_id": infy,
+            "start": sig_days[250].isoformat(),
+            "end": sig_days[-1].isoformat(),
+        },
+    )
     book.record_fill(
         conn,
         uid,

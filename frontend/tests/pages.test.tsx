@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BacktestsPage from "@/app/research/backtests/page";
 import DashboardPage from "@/app/dashboard/page";
+import { AuthProvider } from "@/lib/auth";
 import InstrumentsPage from "@/app/data/instruments/page";
 import SystemPage from "@/app/system/page";
 import { benchmarkDetail, dashboard, route } from "./fixtures";
@@ -173,7 +174,7 @@ describe("Data Explorer", () => {
 
   it("labels the price basis, shows the adjustment version and surfaces data-quality warnings", async () => {
     vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars }));
-    wrap(<InstrumentsPage />);
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
     expect(await screen.findByText("basis: Raw (as traded)")).toBeInTheDocument();
@@ -209,7 +210,7 @@ describe("Data Explorer", () => {
 
   it("closes the suggestion list once an instrument is chosen and reopens it when typing again", async () => {
     vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars }));
-    wrap(<InstrumentsPage />);
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     const box = screen.getByLabelText("Symbol, ISIN or name");
     fireEvent.change(box, { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
@@ -228,7 +229,7 @@ describe("Data Explorer", () => {
       urls.push(String(input));
       return respond(input);
     });
-    wrap(<InstrumentsPage />);
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
     await screen.findByText("basis: Raw (as traded)");
@@ -250,7 +251,7 @@ describe("Data Explorer", () => {
 
   it("explains an empty search instead of showing nothing", async () => {
     vi.stubGlobal("fetch", route({ "/api/instruments": [] }));
-    wrap(<InstrumentsPage />);
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "zzz" } });
     expect(await screen.findByText("No instrument matches.")).toBeInTheDocument();
   });

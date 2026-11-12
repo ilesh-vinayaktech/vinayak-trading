@@ -67,6 +67,7 @@ ROUTE_PERMISSIONS = {
     ("GET", "/api/paper/runs"): "strategy:own",
     ("GET", "/api/strategies"): "strategy:own",
     ("POST", "/api/strategies"): "strategy:own",
+    ("GET", "/api/strategies/{config_id}/signals"): "strategy:own",
     ("POST", "/api/strategies/{config_id}"): "strategy:own",
     ("POST", "/api/strategies/{config_id}/use"): "strategy:own",
     ("POST", "/api/strategies/{config_id}/delete"): "strategy:own",
