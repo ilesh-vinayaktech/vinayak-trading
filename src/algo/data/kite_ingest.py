@@ -67,7 +67,15 @@ def map_universe(
         if symbol.startswith("DUMMY"):
             out.unmatched.append((symbol, "placeholder, not a real security"))
             continue
-        k = next((by_symbol[c] for c in (symbol, f"{symbol}-{series}") if c in by_symbol), None)
+        # the series in the list first; then BE (trade-for-trade), which Kite names with a suffix even when we do not know it
+        k = next(
+            (
+                by_symbol[c]
+                for c in (symbol, f"{symbol}-{series}", f"{symbol}-BE")
+                if c in by_symbol
+            ),
+            None,
+        )
         if k is None:
             out.unmatched.append((symbol, "no Kite instrument"))
             continue
@@ -107,7 +115,7 @@ def upsert_kite_instruments(
 def master_universe(conn: psycopg.Connection) -> list[tuple[str, str, str]]:
     """Every active equity in our own instrument master as (symbol, ISIN, series): the stocks worth downloading from Kite.
     ISINs starting INE are company shares; INF are funds and ETFs, which are left out. Delisted stocks have no Kite
-    instrument anyway. Series is EQ: stocks Kite lists under another series (-BE) are reported unmatched, not guessed."""
+    instrument anyway. Series is EQ; map_universe also tries the -BE name Kite uses for trade-for-trade stocks."""
     rows = conn.execute(
         "SELECT symbol, isin FROM instrument WHERE status='active' AND isin LIKE 'INE%' ORDER BY symbol"
     ).fetchall()

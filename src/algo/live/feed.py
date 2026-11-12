@@ -34,6 +34,9 @@ class Socket(Protocol):
     async def recv(self) -> str | bytes: ...
 
 
+MAX_PER_CONNECTION = 3000
+
+
 class Feed:
     def __init__(
         self,
@@ -61,6 +64,12 @@ class Feed:
             clock,
             sleep,
         )
+        if (
+            len(ids) > MAX_PER_CONNECTION
+        ):  # Kite's limit for one WebSocket; more would be silently dropped by Kite
+            raise ValueError(
+                f"{len(ids)} instruments: one Kite connection carries at most {MAX_PER_CONNECTION}"
+            )
         self.builder = builder or BarBuilder()
         self.batch, self.mode, self.recv_timeout, self.dead_after = (
             batch,
@@ -200,7 +209,7 @@ class Feed:
         """Write the latest tick of each stock seen since the last publish, for the charts."""
         self._last_quote = now
         if self._quotes:
-            save_quotes(self._conn, self._quotes, self.ids, now)
+            save_quotes(self._conn, self._quotes, self.ids, now, self.builder.in_progress())
             self._quotes = {}
 
     def _save(self, state: str, detail: str) -> None:

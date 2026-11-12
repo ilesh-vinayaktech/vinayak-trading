@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 from psycopg.types.json import Jsonb
 
-from algo.data.kite_ingest import map_universe, upsert_kite_instruments
+from algo.data.kite_ingest import map_universe, master_universe, upsert_kite_instruments
 from algo.data.lake import LocalLake
 from algo.data.providers.kite import KiteInstrument
 
@@ -78,13 +78,17 @@ def refresh(
     *,
     now: datetime,
     list_name: str = "nifty500_list",
+    whole_market: bool = False,
 ) -> RefreshResult:
     day = now.astimezone(IST).date()
     raw: list[bytes] = []
     nse = client.instruments(None, raw_sink=raw.append)
     body = raw[0]
     lake.put("kite", "instruments", day, body, url="instruments", fetched_at=now)
-    mapping = map_universe(conn, nse, universe_rows(lake_root, list_name))
+    universe = master_universe(conn) if whole_market else universe_rows(lake_root, list_name)
+    mapping = map_universe(
+        conn, nse, universe
+    )  # whole_market: every active equity in our own master
 
     before = {
         int(iid): (int(token), sym)

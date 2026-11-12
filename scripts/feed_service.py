@@ -51,6 +51,16 @@ ap.add_argument("--mode", default="full", choices=["ltp", "quote", "full"])
 ap.add_argument(
     "--record", type=int, default=0, help="save the first N raw frames for parser checks"
 )
+ap.add_argument(
+    "--refresh-now",
+    action="store_true",
+    help="re-map the instruments now even if today's refresh already ran",
+)
+ap.add_argument(
+    "--index-only",
+    action="store_true",
+    help="follow only the Nifty 500 list (default: every active equity in our master)",
+)
 a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
@@ -117,7 +127,8 @@ async def main(conn: psycopg.Connection) -> str:
             )
             await asyncio.sleep(30)
             continue
-        if last_refresh(conn) != clock.now().astimezone(IST).date():
+        if a.refresh_now or last_refresh(conn) != clock.now().astimezone(IST).date():
+            a.refresh_now = False
             # the first connection of the day: bring the Kite instrument list (and our token mapping) up to date
             try:
                 r = refresh(
@@ -126,9 +137,10 @@ async def main(conn: psycopg.Connection) -> str:
                     LocalLake(a.lake),
                     a.lake,
                     now=clock.now(),
+                    whole_market=not a.index_only,
                 )
                 print(
-                    f"instrument dump: {r.total_rows} instruments, {r.mapped} mapped; added {r.added}; dropped {r.dropped}; token changes {r.token_changes}; unmatched {len(r.unmatched)}",
+                    f"instrument dump: {r.total_rows} instruments, {r.mapped} mapped; added {len(r.added)}; dropped {len(r.dropped)}; token changes {r.token_changes}; unmatched {len(r.unmatched)}",
                     flush=True,
                 )
             except (KiteError, RefreshError, OSError) as e:

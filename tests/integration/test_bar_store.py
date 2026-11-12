@@ -160,3 +160,30 @@ def test_a_price_only_tick_keeps_the_day_figures_and_volume_already_stored(env):
         1000,
         OPEN,
     )
+
+
+def test_the_quote_carries_the_minute_still_being_built_and_clears_it_when_none_is(env):
+    conn, a, _ = env
+    ids = {738561: a}
+    building = LiveBar(738561, OPEN, D("100"), D("102"), D("99"), D("101"), 300, 4, False)
+    save_quotes(conn, {738561: tick(101)}, ids, NOW, {738561: building})
+    q = read_quote(conn, a)
+    assert (q["minute_ts"], q["minute_open"], q["minute_high"], q["minute_low"], q["minute_volume"]) == (
+        OPEN, D("100"), D("102"), D("99"), 300,
+    )  # fmt: skip
+    save_quotes(conn, {738561: tick(102)}, ids, NOW + timedelta(seconds=2))  # no minute open now
+    assert read_quote(conn, a)["minute_ts"] is None
+
+
+def test_a_whole_market_of_quotes_is_written_in_one_go(env):
+    conn, a, b = env
+    ids = {738561: a, 2953217: b}
+    many = {738561: tick(101), 2953217: Tick(2953217, D("50"), 9, OPEN)}
+    assert save_quotes(conn, many, ids, NOW) == 2
+    assert conn.execute("SELECT count(*) FROM live_quote").fetchone() == (2,)
+
+
+def test_quotes_only_for_stocks_we_do_not_follow_write_nothing(env):
+    conn, _, _ = env
+    assert save_quotes(conn, {555: tick(7)}, {738561: 1}, NOW) == 0
+    assert conn.execute("SELECT count(*) FROM live_quote").fetchone() == (0,)

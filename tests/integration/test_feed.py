@@ -268,3 +268,22 @@ def test_a_price_that_arrived_inside_the_quiet_gap_is_still_published_when_the_f
     feed = rig.feed(sock, dead_after=600, quote_every=2.0)
     asyncio.run(feed.run())
     assert read_quote(rig.conn, rig.ids[RELIANCE])["ltp"] == D(101)
+
+
+def test_the_published_quote_includes_the_minute_still_being_built(rig):
+    sock = rig.script(
+        Advance(at(0, 5)), ticks(0, 5, 100, 1000),
+        Advance(at(0, 30)), ticks(0, 30, 104, 1200),
+        Do(lambda: feed.stop()),
+    )  # fmt: skip
+    feed = rig.feed(sock, dead_after=600, quote_every=2.0)
+    asyncio.run(feed.run())
+    q = read_quote(rig.conn, rig.ids[RELIANCE])
+    assert (q["minute_ts"], q["minute_open"], q["minute_high"], q["minute_low"], q["ltp"]) == (
+        at(0), D(100), D(104), D(100), D(104),
+    )  # fmt: skip
+
+
+def test_more_instruments_than_one_kite_connection_carries_are_refused_up_front(rig):
+    with pytest.raises(ValueError, match="3000"):
+        Feed(lambda: None, rig.conn, {i: 1 for i in range(3001)}, rig.clock)

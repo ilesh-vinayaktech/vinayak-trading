@@ -136,3 +136,7 @@ class BarBuilder:
     def flush(self, now: datetime) -> list[LiveBar]:
         done = [tok for tok, o in self._open.items() if now >= o.ts + MINUTE + self.grace]
         return [self._open.pop(tok).bar(tok) for tok in done]
+
+    def in_progress(self) -> dict[int, LiveBar]:
+        """The minute each instrument is still building (not emitted yet), by token. Reading it changes nothing."""
+        return {tok: o.bar(tok) for tok, o in self._open.items()}

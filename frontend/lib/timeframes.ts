@@ -36,6 +36,17 @@ export const INTRADAY_PRESETS = [
 
 const IST_OFFSET_S = 19800; // India has no daylight saving: a fixed +05:30
 
+/** Today in India (the session day), from this browser's clock. */
+export function todayIST(now: number = Date.now()): string {
+  return new Date(now + IST_OFFSET_S * 1000).toISOString().slice(0, 10);
+}
+
+/** The last day an intraday chart should reach: today when the stored bars stop earlier (today's minutes come live). */
+export function latestDay(lastStored: string, now: number = Date.now()): string {
+  const today = todayIST(now);
+  return today > lastStored ? today : lastStored;
+}
+
 /** Minute and hour bars: built from minutes, with a UTC `time`. 1d / 1w / 1mo use a plain date axis. */
 export const isIntraday = (tf: Timeframe): tf is Intraday => tf !== "1d" && tf !== "1w" && tf !== "1mo";
 

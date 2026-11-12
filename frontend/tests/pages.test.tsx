@@ -7,6 +7,7 @@ import DashboardPage from "@/app/dashboard/page";
 import { createSeriesMarkers } from "lightweight-charts";
 import { AuthProvider } from "@/lib/auth";
 import InstrumentsPage from "@/app/data/instruments/page";
+import { shiftDays, todayIST } from "@/lib/timeframes";
 import SystemPage from "@/app/system/page";
 import { benchmarkDetail, dashboard, route } from "./fixtures";
 
@@ -246,7 +247,8 @@ describe("Data Explorer", () => {
     expect(menu.getByRole("menuitemradio", { name: /1 day/ })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(menu.getByRole("menuitemradio", { name: "5 minutes" }));
     expect(screen.queryByRole("menu", { name: "Timeframes" })).not.toBeInTheDocument(); // closes on pick
-    await waitFor(() => expect(urls.some((u) => u.includes("timeframe=5m") && u.includes("start=2024-12-01") && u.includes("end=2024-12-31"))).toBe(true));
+    const end = todayIST(); // intraday ranges reach today: today's minutes come from the live feed
+    await waitFor(() => expect(urls.some((u) => u.includes("timeframe=5m") && u.includes(`start=${shiftDays(end, -30)}`) && u.includes(`end=${end}`))).toBe(true));
     expect(screen.getByRole("button", { name: "Indicators" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Timeframe: 5m" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "2Y" })).not.toBeInTheDocument(); // 5m is served up to 124 days
@@ -335,7 +337,9 @@ describe("Data Explorer", () => {
 
   describe("live price", () => {
     const quote = { ltp: "2875.5", open: "2860", high: "2880", low: "2855", prev_close: "2865", volume: "1234567", updated_at: "2026-11-12T04:30:00+00:00" };
-    const live = (over: Record<string, unknown> = {}) => ({ live: true, feed: { state: "CONNECTED", last_tick_at: "2026-11-12T04:30:00+00:00" }, session_date: "2026-11-12", quote, ...over });
+    const dayCandle = { time: "2026-11-12", open: "2860", high: "2880", low: "2855", close: "2875.5", volume: "1234567" };
+    const live = (over: Record<string, unknown> = {}) => ({ today: "2026-11-12", candle: dayCandle, live: true, feed: { state: "CONNECTED", last_tick_at: "2026-11-12T04:30:00+00:00" }, session_date: "2026-11-12", quote, ...over });
+    const liveCalls = (urls: string[]) => urls.filter((u) => u.includes("/api/live/7"));
     const open = async (liveBody: unknown, urls: string[] = []) => {
       const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/live/7": liveBody });
       vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
@@ -348,18 +352,39 @@ describe("Data Explorer", () => {
       await screen.findByText("basis: Raw (as traded)");
       scale.update.mockClear();
     };
+    const pick = (name: string) => {
+      fireEvent.click(screen.getByRole("button", { name: /^Timeframe:/ }));
+      fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name }));
+    };
 
-    it("moves today's candle with the feed's price and the exchange's day figures, and says it is live", async () => {
-      await open(live());
+    it("moves today's daily candle with the server's live candle and says it is live", async () => {
+      const urls: string[] = [];
+      await open(live(), urls);
       await waitFor(() => expect(scale.update).toHaveBeenCalledWith({ time: "2026-11-12", open: 2860, high: 2880, low: 2855, close: 2875.5 }));
       expect(scale.update).toHaveBeenCalledWith(expect.objectContaining({ time: "2026-11-12", value: 1234567 })); // the volume bar
+      expect(liveCalls(urls)[0]).toContain("timeframe=1d");
+      expect(liveCalls(urls)[0]).toContain("adjust=none");
       expect(screen.getByTestId("live-badge")).toHaveTextContent("LIVE");
       expect(screen.getByTestId("ohlc-legend")).toHaveTextContent("C 2875.5");
     });
 
-    it("widens the candle when the price is outside the day's high and low it was last given", async () => {
-      await open(live({ quote: { ...quote, ltp: "2890", high: "2880" } }));
-      await waitFor(() => expect(scale.update).toHaveBeenCalledWith({ time: "2026-11-12", open: 2860, high: 2890, low: 2855, close: 2890 }));
+    it("asks for this week's candle on the weekly chart and draws it on the week's first day", async () => {
+      const urls: string[] = [];
+      await open(live({ candle: { ...dayCandle, time: "2026-11-09", open: "2800" } }), urls);
+      pick("1 week");
+      await waitFor(() => expect(liveCalls(urls).some((u) => u.includes("timeframe=1w"))).toBe(true));
+      await waitFor(() => expect(scale.update).toHaveBeenCalledWith({ time: "2026-11-09", open: 2800, high: 2880, low: 2855, close: 2875.5 }));
+    });
+
+    it("draws the current intraday bar at its own minute, reaching today in the range it asks for", async () => {
+      const urls: string[] = [];
+      const t = 1794456000; // a UTC minute
+      await open(live({ candle: { time: t, open: "2870", high: "2876", low: "2869", close: "2875.5", volume: "900" } }), urls);
+      pick("5 minutes");
+      await waitFor(() => expect(liveCalls(urls).some((u) => u.includes("timeframe=5m"))).toBe(true));
+      await waitFor(() => expect(scale.update).toHaveBeenCalledWith({ time: t + 19800, open: 2870, high: 2876, low: 2869, close: 2875.5 }));
+      const asked = urls.filter((u) => u.includes("/bars") && u.includes("timeframe=5m")).at(-1) ?? "";
+      expect(asked).toContain(`end=${todayIST()}`); // today's minutes come live, so the range reaches today
     });
 
     it("still shows the last price after the market closes but does not call it live", async () => {
@@ -367,29 +392,29 @@ describe("Data Explorer", () => {
       expect(await screen.findByTestId("live-badge")).toHaveTextContent("last price");
     });
 
-    it("draws nothing when the quote is older than the stored bars", async () => {
-      await open(live({ session_date: "2024-06-01" }));
+    it("ignores a candle older than the bars the chart already has", async () => {
+      await open(live({ candle: { ...dayCandle, time: "2024-06-01" } }));
+      await new Promise((r) => setTimeout(r, 100));
+      expect(scale.update).not.toHaveBeenCalled();
+    });
+
+    it("draws nothing when there is no candle yet", async () => {
+      await open(live({ candle: null, quote: null, live: false }));
       await new Promise((r) => setTimeout(r, 100));
       expect(scale.update).not.toHaveBeenCalled();
       expect(screen.queryByTestId("live-badge")).not.toBeInTheDocument();
     });
 
-    it("does not ask for a live price when there is no quote yet", async () => {
-      await open({ live: false, feed: { state: null, last_tick_at: null }, session_date: null, quote: null });
-      await new Promise((r) => setTimeout(r, 100));
-      expect(scale.update).not.toHaveBeenCalled();
-    });
-
-    it("keeps asking every couple of seconds, and stops on the 5-minute timeframe", async () => {
+    it("keeps asking every couple of seconds, and stops once the chart is moved back to an older range", async () => {
       const urls: string[] = [];
       await open(live(), urls);
-      await waitFor(() => expect(urls.filter((u) => u.includes("/api/live/7")).length).toBeGreaterThanOrEqual(2), { timeout: 4500 });
-      fireEvent.click(screen.getByRole("button", { name: "Timeframe: 1D" }));
-      fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name: "5 minutes" }));
-      await screen.findByRole("button", { name: "Timeframe: 5m" });
-      const before = urls.filter((u) => u.includes("/api/live/7")).length;
+      await waitFor(() => expect(liveCalls(urls).length).toBeGreaterThanOrEqual(2), { timeout: 4500 });
+      fireEvent.click(screen.getByRole("button", { name: "Custom range" }));
+      fireEvent.change(screen.getByLabelText("To"), { target: { value: "2024-06-30" } });
+      await waitFor(() => expect(urls.some((u) => u.includes("/bars") && u.includes("end=2024-06-30"))).toBe(true));
+      const before = liveCalls(urls).length;
       await new Promise((r) => setTimeout(r, 2600));
-      expect(urls.filter((u) => u.includes("/api/live/7")).length).toBe(before);
+      expect(liveCalls(urls).length).toBe(before);
     }, 15000);
   });
 

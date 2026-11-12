@@ -57,3 +57,14 @@ def test_extra_stocks_are_stored_inactive_so_the_live_feed_does_not_follow_them(
         "AAA": True,
         "BBB": False,
     }  # the existing feed stock keeps its flag; the new one is history-only
+
+
+def test_a_stock_kite_lists_under_its_be_series_is_still_matched_from_our_master(env):
+    conn, _ = env
+    mapped = map_universe(
+        conn, [kite(201, "AAA-BE"), kite(202, "BBB")], master_universe(conn)
+    ).mapped
+    assert {k.tradingsymbol for k, _ in mapped} == {
+        "AAA-BE",
+        "BBB",
+    }  # we do not know AAA's series; Kite names it AAA-BE

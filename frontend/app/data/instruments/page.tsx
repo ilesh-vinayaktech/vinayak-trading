@@ -13,7 +13,7 @@ import { DataTable } from "@/components/tables/DataTable";
 import { api } from "@/lib/api/client";
 import { shortHash } from "@/lib/formatting";
 import type { Adjust, Instrument, InstrumentDetail, Timeframe } from "@/lib/schemas";
-import { intradayStart, isIntraday } from "@/lib/timeframes";
+import { intradayStart, isIntraday, latestDay } from "@/lib/timeframes";
 
 type Action = InstrumentDetail["actions"][number];
 
@@ -57,22 +57,21 @@ export default function InstrumentsPage() {
     queryFn: () => api.strategySignals(chosen, { instrument_id: id as number, start: range.start, end: range.end, holding: false }),
     enabled: chosen !== "" && ready && range.start <= range.end && timeframe === "1d",
   });
-  // the live price: polled every 2 s while the chart shows the latest days on the daily timeframe; it moves today's candle
+  // the live price: polled every 2 s while the chart reaches the latest day, on every timeframe; the server builds the
+  // candle still forming (today, this week, this month, or the current N-minute bar) and the chart moves it in place
   const lastDay = detail.data?.bars.last ?? "";
-  const atLatest = lastDay !== "" && range.end >= lastDay;
+  const atLatest = lastDay !== "" && range.end >= (isIntraday(timeframe) ? latestDay(lastDay) : lastDay);
   const liveQ = useQuery({
-    queryKey: ["live", id],
-    queryFn: () => api.live(id as number),
-    enabled: ready && timeframe === "1d" && atLatest,
+    queryKey: ["live", id, timeframe, adjust],
+    queryFn: () => api.live(id as number, timeframe, adjust),
+    enabled: ready && atLatest,
     refetchInterval: 2000,
     refetchIntervalInBackground: false, // a hidden tab does not poll
   });
   const liveView = useMemo<LiveView | null>(() => {
     const d = liveQ.data;
-    if (!d?.quote || !d.session_date || d.session_date < lastDay) return null; // nothing newer than the stored bars
-    const q = d.quote;
-    return { day: d.session_date, open: q.open, high: q.high, low: q.low, price: q.ltp, volume: q.volume, prevClose: q.prev_close, live: d.live };
-  }, [liveQ.data, lastDay]);
+    return d?.candle ? { candle: d.candle, prevClose: d.quote?.prev_close ?? null, live: d.live } : null;
+  }, [liveQ.data]);
   const marks = useMemo<Mark[]>(() => (signals.data?.days ?? []).flatMap((d) => (d.action ? [{ day: d.day, action: d.action }] : [])), [signals.data]);
   const buys = marks.filter((m) => m.action === "BUY").length;
   const strategyStatus = chosen === "" || timeframe !== "1d" ? null : signals.isError ? "Could not run" : signals.isFetching || !signals.data ? "Running..." : `${buys} buy, ${marks.length - buys} sell`;
@@ -87,7 +86,8 @@ export default function InstrumentsPage() {
     if (!last) return;
     if (isIntraday(t)) {
       if (adjust === "total_return") setAdjust("split"); // minutes carry no dividend basis
-      setRange((r) => ({ ...r, start: intradayStart(last, t), end: last }));
+      const end = latestDay(last); // today's minutes come from the live feed
+      setRange((r) => ({ ...r, start: intradayStart(end, t), end }));
     } else {
       const months = t === "1mo" ? 0 : t === "1w" ? 60 : 12; // monthly: all history; weekly: 5 years; daily: 1 year
       setRange((r) => ({ ...r, start: presetStart(last, detail.data?.bars.first ?? null, months), end: last }));

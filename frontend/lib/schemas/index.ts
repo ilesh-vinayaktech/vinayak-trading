@@ -682,6 +682,9 @@ export type SignalDay = z.infer<typeof signalDaySchema>;
 
 // ---- live price of one stock: the feed's latest quote (decimal strings) ------------------------------------------------------
 export const liveSchema = z.object({
+  today: z.string(), // the server's day in India
+  // the candle still forming for the requested timeframe: `time` is a date (1d/1w/1mo) or UTC epoch seconds (intraday)
+  candle: z.object({ time: z.union([z.number(), z.string()]), open: z.string(), high: z.string(), low: z.string(), close: z.string(), volume: z.string() }).nullable(),
   live: z.boolean(), // the feed is connected and has ticked within the last 30 seconds
   feed: z.object({ state: z.string().nullable(), last_tick_at: z.string().nullable() }),
   session_date: z.string().nullable(), // the day (India) of the quote

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INTRADAY_MAX_DAYS, barLabel, barTime, intradayStart, isIntraday, shiftDays } from "@/lib/timeframes";
+import { INTRADAY_MAX_DAYS, barLabel, barTime, intradayStart, isIntraday, latestDay, shiftDays, todayIST } from "@/lib/timeframes";
 
 const daily = { date: "2025-06-09", open: "1", high: "1", low: "1", close: "1", volume: "1", factor: "1" };
 const minute = { ...daily, time: 1749440700 }; // 2025-06-09 03:45 UTC = 09:15 IST
@@ -32,5 +32,19 @@ describe("timeframe menu data", () => {
     expect(TIMEFRAMES.filter((t) => isIntraday(t))).toHaveLength(11);
     expect(isIntraday("1w") || isIntraday("1mo")).toBe(false);
     for (const t of TIMEFRAMES.filter(isIntraday)) expect(INTRADAY_MAX_DAYS[t]).toBeGreaterThan(0);
+  });
+});
+
+describe("today in India", () => {
+  it("is the Indian date even when it is still the day before in UTC", () => {
+    expect(todayIST(Date.parse("2026-11-11T20:00:00Z"))).toBe("2026-11-12"); // 01:30 IST
+    expect(todayIST(Date.parse("2026-11-12T18:29:00Z"))).toBe("2026-11-12"); // 23:59 IST
+  });
+
+  it("an intraday chart reaches today unless the stored bars already go further", () => {
+    const now = Date.parse("2026-11-12T06:00:00Z");
+    expect(latestDay("2026-11-11", now)).toBe("2026-11-12");
+    expect(latestDay("2026-11-12", now)).toBe("2026-11-12");
+    expect(latestDay("2026-11-13", now)).toBe("2026-11-13");
   });
 });

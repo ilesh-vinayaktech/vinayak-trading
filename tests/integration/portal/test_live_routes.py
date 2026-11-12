@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal as D
 
 import pytest
@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from algo.core.clock import SimClock
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
-from algo.live.bar_store import save_quotes, save_status
+from algo.live.bar_store import save_bars, save_quotes, save_status
 from algo.live.ticks import Tick
 from tests.support.portal import add_user, make_app, settings, sign_in
 
@@ -51,6 +51,8 @@ def test_before_any_tick_there_is_no_quote_and_the_feed_is_not_live(env):
     conn, app, _, iid = env
     d = sign_in(app, "viewer@example.com").get(f"/api/live/{iid}").json()
     assert d == {
+        "today": "2026-11-12",
+        "candle": None,
         "live": False,
         "feed": {"state": None, "last_tick_at": None},
         "session_date": None,
@@ -95,3 +97,127 @@ def test_a_quote_from_an_earlier_day_carries_its_own_session_date_so_a_chart_can
     quote(conn, iid, when=START - timedelta(days=1))
     d = sign_in(app, "viewer@example.com").get(f"/api/live/{iid}").json()
     assert (d["live"], d["session_date"]) == (False, "2026-11-11")
+
+
+def put_day(conn, iid, d, o, c):
+    from tests.support.bt import put_bars
+
+    put_bars(conn, iid, {d: (D(o), D(c))})
+
+
+def live_quote(conn, iid, ltp, o, h, low, volume, building=None, when=START):
+    t = Tick(TOKEN, D(ltp), volume, when, D(o), D(h), D(low), D(o))
+    save_quotes(conn, {TOKEN: t}, {TOKEN: iid}, when, {TOKEN: building} if building else None)
+
+
+def minute_bar(m, o, h, low, c, v):
+    from algo.live.bars import LiveBar
+
+    return LiveBar(TOKEN, START + timedelta(minutes=m), D(o), D(h), D(low), D(c), v, 3, False)
+
+
+@pytest.fixture
+def week(env):
+    conn, app, clock, iid = env
+    feed(conn)
+    days = ((date(2026, 11, 2), 90, 95), (date(2026, 11, 6), 95, 100), (date(2026, 11, 9), 100, 103),
+            (date(2026, 11, 10), 103, 108), (date(2026, 11, 11), 108, 96))  # fmt: skip
+    for d, o, c in days:
+        put_day(conn, iid, d, o, c)  # 10,000,000 shares a day
+    live_quote(conn, iid, "98", "96", "100", "94", 40)
+    return conn, sign_in(app, "viewer@example.com"), iid
+
+
+def candle(c, iid, timeframe, **params):
+    r = c.get(f"/api/live/{iid}", params={"timeframe": timeframe, **params})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def test_todays_daily_candle_is_the_exchanges_day_with_the_last_price(week):
+    _, c, iid = week
+    d = candle(c, iid, "1d")
+    assert d["today"] == "2026-11-12"
+    assert d["candle"] == {
+        "time": "2026-11-12",
+        "open": "96",
+        "high": "100",
+        "low": "94",
+        "close": "98",
+        "volume": "40",
+    }
+
+
+def test_this_weeks_candle_is_monday_to_today_like_a_brokers_weekly_chart(week):
+    _, c, iid = week
+    assert candle(c, iid, "1w")["candle"] == {
+        "time": "2026-11-09", "open": "100", "high": "108", "low": "94", "close": "98", "volume": "30000040",
+    }  # fmt: skip
+
+
+def test_this_months_candle_runs_from_the_months_first_trading_day_to_today(week):
+    _, c, iid = week
+    assert candle(c, iid, "1mo")["candle"] == {
+        "time": "2026-11-02", "open": "90", "high": "108", "low": "90", "close": "98", "volume": "50000040",
+    }  # fmt: skip
+
+
+def test_the_current_intraday_bar_merges_todays_finished_live_minutes_with_the_one_still_building(
+    env,
+):
+    conn, app, _, iid = env
+    feed(conn)
+    done = [
+        minute_bar(m, 100 + m, 102 + m, 99 + m, 101 + m, 10) for m in range(-5, 0)
+    ]  # 09:55 .. 09:59 IST
+    save_bars(conn, done, {TOKEN: iid}, START)
+    live_quote(
+        conn, iid, "97", "90", "110", "88", 999, building=minute_bar(0, 96, 98, 95, 97, 7)
+    )  # 10:00 IST
+    c = sign_in(app, "viewer@example.com")
+    ten = candle(c, iid, "10m")["candle"]  # 09:55 .. 10:04 holds them all
+    assert ten == {"time": int((START - timedelta(minutes=5)).timestamp()), "open": "95", "high": "101",
+                   "low": "94", "close": "97", "volume": "57"}  # fmt: skip
+    one = candle(c, iid, "1m")["candle"]
+    assert (one["time"], one["open"], one["close"], one["volume"]) == (
+        int(START.timestamp()),
+        "96",
+        "97",
+        "7",
+    )
+    bars = c.get(
+        f"/api/instruments/{iid}/bars",
+        params={"start": "2026-11-12", "end": "2026-11-12", "timeframe": "5m"},
+    ).json()
+    assert (
+        [(b["time"], b["open"], b["close"], b["volume"]) for b in bars["bars"]]
+        == [
+            (int((START - timedelta(minutes=5)).timestamp()), "95", "100", "50"),
+        ]
+    )  # the chart's own 5-minute bars include today's finished live minutes (stored history has none yet)
+
+
+def test_no_quote_means_no_candle_and_a_timeframe_must_be_one_the_chart_knows(env):
+    conn, app, _, iid = env
+    c = sign_in(app, "viewer@example.com")
+    assert candle(c, iid, "1w")["candle"] is None
+    assert c.get(f"/api/live/{iid}", params={"timeframe": "7m"}).status_code == 422
+    assert c.get(f"/api/live/{iid}", params={"adjust": "magic"}).status_code == 422
+
+
+def test_a_day_the_stored_minute_history_already_has_ignores_the_live_minutes(env):
+    conn, app, _, iid = env
+    conn.execute(
+        "INSERT INTO bar_1m (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,dataset_version,ingested_at)"
+        " VALUES (%s,%s,500,500,500,500,1,'kite','2026-11-12',1,%s)",
+        (iid, START - timedelta(minutes=45), START),  # 09:15 IST, from Kite's history
+    )
+    save_bars(conn, [minute_bar(-5, 100, 101, 99, 100, 10)], {TOKEN: iid}, START)  # 09:55 IST, live
+    c = sign_in(app, "viewer@example.com")
+    bars = c.get(
+        f"/api/instruments/{iid}/bars",
+        params={"start": "2026-11-12", "end": "2026-11-12", "timeframe": "1m"},
+    ).json()
+    assert [b["close"] for b in bars["bars"]] == [
+        "500"
+    ]  # the vetted history wins for the whole day

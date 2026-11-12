@@ -6,7 +6,7 @@ import { ErrorBox, Loading } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
 import { MAX_ACTIVE, defaultSpec, loadActive, newUid, saveActive, type Active } from "@/lib/indicators";
 import { type Adjust, type Bars, type Instrument, type InstrumentDetail, type Timeframe } from "@/lib/schemas";
-import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, isIntraday, shiftDays } from "@/lib/timeframes";
+import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, isIntraday, latestDay, shiftDays } from "@/lib/timeframes";
 import { TimeframeMenu } from "./TimeframeMenu";
 import { Icon, type IconName } from "./icons";
 import { IndicatorDialog } from "./IndicatorDialog";
@@ -89,7 +89,8 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
     const n = a.spec.split(":")[0] as string;
     counts[n] = (counts[n] ?? 0) + 1;
   }
-  const last = instrument?.bars.last ?? null;
+  const stored = instrument?.bars.last ?? null;
+  const last = stored && isIntraday(timeframe) ? latestDay(stored) : stored; // intraday ranges reach today (live minutes)
   const first = instrument?.bars.first ?? null;
   // moving left or zooming out past the loaded bars: load the same span again further back, never before the first bar
   const extend = () => {

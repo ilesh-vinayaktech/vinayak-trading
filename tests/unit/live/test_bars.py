@@ -144,3 +144,17 @@ def test_several_windows_in_a_day_each_count():
     assert (
         len(b.flush(OPEN + timedelta(hours=7))) == 1
     )  # the second window's bar; the first closed on the way
+
+
+def test_the_minute_still_being_built_can_be_read_without_closing_it():
+    b = BarBuilder()
+    assert b.in_progress() == {}
+    b.on_tick(tick(100, 1000, at(0, 5)), at(0, 5))
+    b.on_tick(tick(103, 1200, at(0, 30)), at(0, 30))
+    b.on_tick(tick(50, 7, at(0, 40), token=2), at(0, 40))
+    now = b.in_progress()
+    assert now[1] == LiveBar(1, at(0), D(100), D(103), D(100), D(103), 200, 2, partial=False)
+    assert set(now) == {1, 2}
+    assert b.in_progress()[1] == now[1]  # reading it changes nothing
+    b.flush(at(2))
+    assert b.in_progress() == {}  # once a minute is emitted it is no longer in progress

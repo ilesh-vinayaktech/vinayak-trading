@@ -144,3 +144,15 @@ def test_a_missing_index_list_is_reported_not_guessed_at(conn, tmp_path):
 
     with pytest.raises(RefreshError, match="no nifty500_list"):
         run(conn, tmp_path, FakeKite(dump(eq(101, "AAA"))), DAY1)
+
+
+def test_the_whole_market_is_followed_when_asked_not_just_the_index_list(env):
+    conn, lake = env
+    raw = dump(eq(101, "AAA"), eq(102, "BBB"), eq(103, "CCC"), eq(104, "NEWCO"))
+    r = refresh(conn, FakeKite(raw), LocalLake(lake), lake, now=DAY1, whole_market=True)
+    assert r.mapped == 4 and set(token_map(conn)) == {
+        101,
+        102,
+        103,
+        104,
+    }  # NEWCO is in our master, not the index list

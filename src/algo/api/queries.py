@@ -4,7 +4,7 @@ service already owns (adjustment, eligibility, metrics)."""
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -227,6 +227,22 @@ def instrument_intraday_bars(
     minutes = [
         Bar(str(instrument_id), b.ts, b.open, b.high, b.low, b.close, b.volume) for b in h.bars
     ]
+    # Days the stored history does not have yet (today, until Kite's minutes are loaded) come from
+    # the live feed's finished minutes: as traded, and nothing after them can need an adjustment.
+    live = conn.execute(
+        "SELECT ts, open, high, low, close, volume FROM live_bar_1m"
+        " WHERE instrument_id=%s AND ts >= %s AND ts < %s ORDER BY ts",
+        (
+            instrument_id,
+            datetime.combine(start, time(0), IST),
+            datetime.combine(end + timedelta(days=1), time(0), IST),
+        ),
+    ).fetchall()
+    for r in live:
+        if _ist_day(r[0]) not in factor_of_day:
+            minutes.append(Bar(str(instrument_id), *r))
+    for r in live:
+        factor_of_day.setdefault(_ist_day(r[0]), Decimal(1))
     out = resample(minutes, INTRADAY_MINUTES[timeframe])
     return {
         "adjust": adjust,

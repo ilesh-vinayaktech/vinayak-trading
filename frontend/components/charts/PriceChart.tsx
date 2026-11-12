@@ -26,8 +26,15 @@ import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
 export type Mark = { day: string; action: "BUY" | "SELL" };
-/** Today's candle as the feed last reported it: the exchange's day open/high/low, the last price and the volume so far. */
-export type LiveView = { day: string; open: string | null; high: string | null; low: string | null; price: string; volume: string | null; prevClose: string | null; live: boolean };
+/** The candle still forming, as the server built it for this timeframe from the live feed (`time`: date or UTC epoch seconds). */
+export type LiveView = { candle: { time: number | string; open: string; high: string; low: string; close: string; volume: string }; prevClose: string | null; live: boolean };
+
+/** The live candle as a bar of the chart's own shape, so it is placed and labelled like every other bar. */
+function liveBarOf(v: LiveView): Bar {
+  const c = v.candle;
+  const date = typeof c.time === "number" ? new Date((c.time + 19800) * 1000).toISOString().slice(0, 10) : c.time;
+  return { date, ...(typeof c.time === "number" ? { time: c.time } : {}), open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume, factor: "1" };
+}
 const NO_SIGNALS: Mark[] = []; // a stable default: a fresh array each render would rebuild the chart each render
 type Bar = Bars["bars"][number];
 export type ChartType = "candles" | "line" | "area";
@@ -172,19 +179,24 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     };
   }, [active, data, ready, colorsFor]);
 
-  // the current candle follows the feed: update it in place, so zoom and position are kept (no rebuild of the chart)
+  // the candle still forming follows the feed: updated in place, so zoom and position are kept (no rebuild of the chart).
+  // One older than the last stored bar is ignored: the chart already has that bar.
+  const liveBar = useMemo(() => (live ? liveBarOf(live) : null), [live]);
   useEffect(() => {
     const h = handles.current;
-    if (!h || !live || timeframe !== "1d") return;
-    const time = live.day as Time;
-    const close = plotNumber(live.price);
-    const open = plotNumber(live.open ?? live.price);
-    const high = Math.max(plotNumber(live.high ?? live.price), close, open);
-    const low = Math.min(plotNumber(live.low ?? live.price), close, open);
-    if (chartType === "candles") (h.series as ISeriesApi<"Candlestick">).update({ time, open, high, low, close });
-    else (h.series as ISeriesApi<"Line">).update({ time, value: close });
-    if (live.volume !== null) (h.volume as ISeriesApi<"Histogram"> | undefined)?.update({ time, value: plotNumber(live.volume), color: close >= plotNumber(live.prevClose ?? live.open ?? live.price) ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" });
-  }, [live, ready, chartType, timeframe]);
+    const last = bars[bars.length - 1];
+    if (!h || !live || !liveBar || !last) return;
+    const time = barTime(liveBar);
+    if (time < barTime(last)) return;
+    const close = plotNumber(liveBar.close);
+    const open = plotNumber(liveBar.open);
+    const high = plotNumber(liveBar.high);
+    const low = plotNumber(liveBar.low);
+    if (chartType === "candles") (h.series as ISeriesApi<"Candlestick">).update({ time: time as Time, open, high, low, close });
+    else (h.series as ISeriesApi<"Line">).update({ time: time as Time, value: close });
+    const up = close >= (timeframe === "1d" && live.prevClose !== null ? plotNumber(live.prevClose) : open);
+    (h.volume as ISeriesApi<"Histogram"> | undefined)?.update({ time: time as Time, value: plotNumber(liveBar.volume), color: up ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" });
+  }, [live, liveBar, ready, chartType, timeframe, bars]);
 
   const screenshot = () => {
     const h = handles.current;
@@ -196,7 +208,6 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     a.click();
   };
 
-  const liveBar: Bar | null = live ? { date: live.day, open: live.open ?? live.price, high: live.high ?? live.price, low: live.low ?? live.price, close: live.price, volume: live.volume ?? "0", factor: "1" } : null;
   const shown = hover ?? liveBar ?? bars[bars.length - 1];
   const hoverIndex = hover && data ? data.dates.indexOf(hover.date) : -1;
   const index = hoverIndex >= 0 ? hoverIndex : null;
