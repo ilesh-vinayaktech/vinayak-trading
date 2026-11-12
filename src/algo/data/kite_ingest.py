@@ -85,17 +85,33 @@ def map_universe(
 
 
 def upsert_kite_instruments(
-    conn: psycopg.Connection, mapped: Sequence[tuple[KiteInstrument, int]], now: datetime
+    conn: psycopg.Connection,
+    mapped: Sequence[tuple[KiteInstrument, int]],
+    now: datetime,
+    *,
+    active: bool = True,
 ) -> int:
+    """Store the token mapping. `active` applies to NEW rows only (the live feed follows active ones); a stock already
+    stored keeps its flag, so adding history-only stocks never switches anything on or off for the feed."""
     for k, iid in mapped:
         conn.execute(
-            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id, refreshed_at)"
-            " VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_token) DO UPDATE SET exchange_token=EXCLUDED.exchange_token,"
+            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id, refreshed_at, active)"
+            " VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_token) DO UPDATE SET exchange_token=EXCLUDED.exchange_token,"
             " tradingsymbol=EXCLUDED.tradingsymbol, name=EXCLUDED.name, instrument_id=EXCLUDED.instrument_id,"
             " refreshed_at=EXCLUDED.refreshed_at",
-            (k.instrument_token, k.exchange_token, k.tradingsymbol, k.name, iid, now),
+            (k.instrument_token, k.exchange_token, k.tradingsymbol, k.name, iid, now, active),
         )
     return len(mapped)
+
+
+def master_universe(conn: psycopg.Connection) -> list[tuple[str, str, str]]:
+    """Every active equity in our own instrument master as (symbol, ISIN, series): the stocks worth downloading from Kite.
+    ISINs starting INE are company shares; INF are funds and ETFs, which are left out. Delisted stocks have no Kite
+    instrument anyway. Series is EQ: stocks Kite lists under another series (-BE) are reported unmatched, not guessed."""
+    rows = conn.execute(
+        "SELECT symbol, isin FROM instrument WHERE status='active' AND isin LIKE 'INE%' ORDER BY symbol"
+    ).fetchall()
+    return [(symbol, isin, "EQ") for symbol, isin in rows]
 
 
 def _digest(candles: Sequence[Candle]) -> str:

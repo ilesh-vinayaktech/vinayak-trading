@@ -14,6 +14,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
   usePathname: () => "/dashboard",
 }));
+const scale = vi.hoisted(() => ({ range: { from: 0, to: 100 } as { from: number; to: number } | null, set: vi.fn(), fit: vi.fn() }));
 vi.mock("lightweight-charts", () => {
   const series = () => ({ setData: vi.fn(), createPriceLine: vi.fn(() => ({})), removePriceLine: vi.fn(), coordinateToPrice: vi.fn(() => 100), priceToCoordinate: vi.fn(() => 50) });
   return {
@@ -32,7 +33,7 @@ vi.mock("lightweight-charts", () => {
       panes: () => [{ getHeight: () => 400, setHeight: vi.fn(), getHTMLElement: () => document.createElement("div") }],
       takeScreenshot: vi.fn(),
       priceScale: () => ({ applyOptions: vi.fn() }),
-      timeScale: () => ({ fitContent: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
+      timeScale: () => ({ fitContent: scale.fit, getVisibleLogicalRange: () => scale.range, setVisibleLogicalRange: scale.set, subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
       applyOptions: vi.fn(),
       subscribeCrosshairMove: vi.fn(),
       unsubscribeCrosshairMove: vi.fn(),
@@ -167,6 +168,7 @@ describe("Data Explorer", () => {
     adjust: "none",
     timeframe: "1d",
     adjustment_version: "a7ca8ba234cb8b8a",
+    source: "nse",
     clean: false,
     bars: [{ date: "2024-06-11", open: "100", high: "101", low: "99", close: "100.5", volume: "1000", factor: "1" }],
     unapplied: [{ kind: "demerger", ex_date: "2024-07-01" }],
@@ -179,6 +181,7 @@ describe("Data Explorer", () => {
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
     expect(await screen.findByText("basis: Raw (as traded)")).toBeInTheDocument();
+    expect(screen.getByText("prices: NSE bhavcopy")).toBeInTheDocument();
     expect(screen.getByText("adjustment version a7ca8ba234cb8b8a")).toBeInTheDocument();
     expect(screen.getByText("data-quality warnings")).toBeInTheDocument();
     expect(screen.getByTestId("ohlc-legend")).toHaveTextContent("C 100.5");
@@ -255,6 +258,79 @@ describe("Data Explorer", () => {
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "zzz" } });
     expect(await screen.findByText("No instrument matches.")).toBeInTheDocument();
+  });
+
+  describe("moving the chart", () => {
+    const long = { ...detail, bars: { first: "2020-01-01", last: "2024-12-31", count: 1200 } };
+    const open = async (d: typeof detail, urls: string[] = []) => {
+      const respond = route({ "/api/instruments": [inst], "/api/instruments/7": d, "/api/instruments/7/bars": bars });
+      vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+        urls.push(String(input));
+        return respond(input);
+      });
+      wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+      fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+      fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+      await screen.findByText("basis: Raw (as traded)");
+      scale.set.mockClear();
+      scale.fit.mockClear();
+    };
+
+    it("zooms in to half the width around the middle and zooms out to twice the width", async () => {
+      scale.range = { from: 20, to: 80 };
+      await open(detail);
+      fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+      expect(scale.set).toHaveBeenLastCalledWith({ from: 35, to: 65 });
+      fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+      expect(scale.set).toHaveBeenLastCalledWith({ from: -10, to: 110 }); // twice the 60 bars in view
+    });
+
+    it("stops zooming in once only a handful of bars are in view", async () => {
+      scale.range = { from: 40, to: 48 };
+      await open(detail);
+      fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+      expect(scale.set).not.toHaveBeenCalled();
+    });
+
+    it("moves a quarter of the view left and right, and fits everything", async () => {
+      scale.range = { from: 20, to: 120 };
+      await open(detail);
+      fireEvent.click(screen.getByRole("button", { name: "Move right" }));
+      expect(scale.set).toHaveBeenLastCalledWith({ from: 45, to: 145 });
+      fireEvent.click(screen.getByRole("button", { name: "Move left" }));
+      expect(scale.set).toHaveBeenLastCalledWith({ from: -5, to: 95 });
+      fireEvent.click(screen.getByRole("button", { name: "Fit all" }));
+      expect(scale.fit).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks for earlier history when moving left or zooming out from the first loaded bar", async () => {
+      scale.range = { from: 0, to: 100 };
+      const urls: string[] = [];
+      await open(long, urls);
+      const before = urls.filter((u) => u.includes("/bars")).length;
+      fireEvent.click(screen.getByRole("button", { name: "Move left" }));
+      await waitFor(() => expect(urls.filter((u) => u.includes("/bars")).length).toBeGreaterThan(before));
+      expect(urls.filter((u) => u.includes("/bars")).at(-1)).toMatch(/start=2022-12-3[01]/); // the year before, ending where it ended
+      expect(urls.filter((u) => u.includes("/bars")).at(-1)).toContain("end=2024-12-31");
+    });
+
+    it("never goes back past the instrument's first bar", async () => {
+      scale.range = { from: 0, to: 100 };
+      const urls: string[] = [];
+      await open(detail, urls); // the chart already starts on the first bar, 2024-01-01
+      const before = urls.length;
+      fireEvent.click(screen.getByRole("button", { name: "Move left" }));
+      fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+      expect(urls.length).toBe(before);
+    });
+
+    it("does nothing before the chart has laid out", async () => {
+      scale.range = null;
+      await open(detail);
+      fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+      expect(scale.set).not.toHaveBeenCalled();
+      scale.range = { from: 0, to: 100 };
+    });
   });
 
   describe("strategy on the chart", () => {

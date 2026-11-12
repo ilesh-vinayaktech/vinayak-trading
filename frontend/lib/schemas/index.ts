@@ -129,6 +129,7 @@ export const barsSchema = z.object({
   timeframe: z.enum(TIMEFRAMES),
   adjustment_version: z.string(),
   clean: z.boolean(),
+  source: z.enum(["kite", "nse"]).optional(), // where the daily prices came from (minute bars are always Kite)
   bars: z.array(
     z.object({
       date: z.string(), // the IST trading day

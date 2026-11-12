@@ -18,7 +18,6 @@ from pydantic import BaseModel, Field
 from algo.api import queries
 from algo.api.paper_routes import _options, _params, _st
 from algo.api.security import CurrentUser, WConn
-from algo.data.reader import BarReader
 from algo.paper import configs
 from algo.portal import audit
 from algo.strategies.signals import replay
@@ -165,7 +164,7 @@ def signals(
     if queries.instrument(conn, instrument_id) is None:
         raise HTTPException(404, f"no instrument {instrument_id}")
     params = TrendPullbackParams(**mine["params"])
-    history = BarReader.for_env(conn).issuer_history(
+    history = queries.reader_for(conn, instrument_id)[0].issuer_history(
         instrument_id, start - timedelta(days=LOOKBACK_DAYS), end, adjust="split"
     )
     rows = replay(history.bars, params, start, end, holding=holding)

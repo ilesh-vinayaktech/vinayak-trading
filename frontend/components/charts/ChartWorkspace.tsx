@@ -91,6 +91,13 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   }
   const last = instrument?.bars.last ?? null;
   const first = instrument?.bars.first ?? null;
+  // moving left or zooming out past the loaded bars: load the same span again further back, never before the first bar
+  const extend = () => {
+    if (isIntraday(timeframe) || !first || !start || start <= first) return;
+    const span = Math.max(30, Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000));
+    const earlier = shiftDays(start, -span);
+    onRange(earlier < first ? first : earlier, end);
+  };
 
   useEffect(() => {
     const on = () => setFull(document.fullscreenElement === box.current);
@@ -216,7 +223,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   return (
     <div ref={box} className={`flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm ${full ? "h-screen" : "h-[calc(100vh-15rem)] min-h-[560px]"}`} data-testid="chart-workspace">
       {bars && bars.bars.length > 0 && picked ? (
-        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} />
+        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} />
       ) : (
         <>
           {topbar({ undo: () => {}, redo: () => {}, canUndo: false, canRedo: false, count: 0, listOpen: false, toggleList: () => {}, screenshot: () => {} })}

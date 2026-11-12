@@ -243,6 +243,26 @@ def instrument_intraday_bars(
     }  # fmt: skip
 
 
+def reader_for(conn: psycopg.Connection, instrument_id: int) -> tuple[BarReader, str]:
+    """The reader for one stock's daily bars, and the source it reads ("kite" or "nse").
+
+    With ALGO_PRICE_SOURCE=kite a stock reads Kite's candles. Kite is mapped to a few hundred
+    names and bhavcopy covers thousands, so a stock with no Kite candles reads bhavcopy and the
+    caller says so. Only the explorer views (chart, indicators, signals) do this; the paper
+    runner and backtests keep their own strict choice.
+    """
+    reader = BarReader.for_env(conn)
+    if reader.source == "kite" and (
+        conn.execute(
+            "SELECT 1 FROM bar_1d WHERE instrument_id=%s AND source='kite' LIMIT 1",
+            (instrument_id,),
+        ).fetchone()
+        is None
+    ):
+        return BarReader(conn), "nse"
+    return reader, reader.source
+
+
 CALENDAR_PERIODS = {"1w": "week", "1mo": "month"}
 
 
@@ -257,7 +277,8 @@ def instrument_bars(
     # Issuer-scoped: one continuous history across an ISIN change; each bar names the instrument
     # that traded it (`instrument_id`), so the transition is visible and nothing is merged.
     # 1w / 1mo are rolled up from these adjusted daily bars (dated by their first trading day).
-    h = BarReader.for_env(conn).issuer_history(instrument_id, start, end, adjust=adjust)
+    reader, source = reader_for(conn, instrument_id)
+    h = reader.issuer_history(instrument_id, start, end, adjust=adjust)
     if timeframe in CALENDAR_PERIODS:
         by_ts = {b.ts: b for b in h.bars}
         rolled = resample_calendar(
@@ -280,6 +301,7 @@ def instrument_bars(
     return {
         "adjust": adjust,
         "timeframe": timeframe,
+        "source": source,
         "adjustment_version": h.adjustment_version,
         "clean": h.clean,
         "bars": [
@@ -444,7 +466,9 @@ def indicator_series(
     """Indicators over the instrument's WHOLE history up to `end` (so the first visible value is
     already warmed up), returned for [start, end] only. Computed by algo.indicators on the same
     adjusted bars the chart draws, as strings; None where an indicator has no value yet."""
-    h = BarReader.for_env(conn).issuer_history(instrument_id, date(1900, 1, 1), end, adjust=adjust)
+    h = reader_for(conn, instrument_id)[0].issuer_history(
+        instrument_id, date(1900, 1, 1), end, adjust=adjust
+    )
     bars = Bars(
         [b.open for b in h.bars], [b.high for b in h.bars], [b.low for b in h.bars],
         [b.close for b in h.bars], [b.volume for b in h.bars],

@@ -47,7 +47,7 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS }: { signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend }: { onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -235,9 +235,41 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
   } catch {
     paneOverlay = null; // the chart was replaced mid-render
   }
+  // moving the chart without a mouse: zoom, move, fit. At the start of the loaded history, moving left or zooming out asks
+  // for earlier history (onExtend) instead of stopping dead.
+  const view = (action: "in" | "out" | "left" | "right" | "fit") => {
+    const scale = handles.current?.chart.timeScale();
+    const r = scale?.getVisibleLogicalRange();
+    if (!scale || !r) return;
+    const width = r.to - r.from;
+    const mid = (r.from + r.to) / 2;
+    const atStart = r.from <= 0.5;
+    if (action === "fit") scale.fitContent();
+    else if (action === "in") {
+      if (width > 10) scale.setVisibleLogicalRange({ from: mid - width / 4, to: mid + width / 4 });
+    } else if (action === "out") {
+      if (atStart) onExtend?.();
+      scale.setVisibleLogicalRange({ from: mid - width, to: mid + width });
+    } else {
+      const step = (action === "left" ? -1 : 1) * width * 0.25;
+      if (action === "left" && atStart) onExtend?.();
+      scale.setVisibleLogicalRange({ from: r.from + step, to: r.to + step });
+    }
+    setTick((n) => n + 1);
+  };
+  const viewBtn = "flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-sm text-slate-700 hover:bg-slate-100";
+  const controls = (
+    <div className="absolute bottom-10 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-line bg-white/95 p-0.5 shadow" role="group" aria-label="Move the chart">
+      <button type="button" aria-label="Move left" title="Move left (earlier)" onClick={() => view("left")} className={viewBtn}>‹</button>
+      <button type="button" aria-label="Zoom out" title="Zoom out" onClick={() => view("out")} className={viewBtn}>−</button>
+      <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => view("in")} className={viewBtn}>+</button>
+      <button type="button" aria-label="Move right" title="Move right (later)" onClick={() => view("right")} className={viewBtn}>›</button>
+      <button type="button" aria-label="Fit all" title="Fit all loaded bars" onClick={() => view("fit")} className={`${viewBtn} text-xs`}>Fit</button>
+    </div>
+  );
   const hiddenRows = paneRows.filter(({ a }) => !a.visible);
   return (
-    <DrawingTools handles={handles.current} ready={ready} tick={tick} bars={bars} instrumentId={instrumentId} adjust={adjust} above={legend} overlay={<>{paneOverlay}{hiddenRows.length ? <div className="pointer-events-none absolute bottom-9 right-20 z-20 flex gap-2">{hiddenRows.map(({ a, r }) => row(a, r))}</div> : null}</>} topbar={(api) => topbar({ ...api, screenshot })}>
+    <DrawingTools handles={handles.current} ready={ready} tick={tick} bars={bars} instrumentId={instrumentId} adjust={adjust} above={legend} overlay={<>{controls}{paneOverlay}{hiddenRows.length ? <div className="pointer-events-none absolute bottom-9 right-20 z-20 flex gap-2">{hiddenRows.map(({ a, r }) => row(a, r))}</div> : null}</>} topbar={(api) => topbar({ ...api, screenshot })}>
       <div ref={ref} className="h-full w-full" data-testid="price-chart" />
     </DrawingTools>
   );

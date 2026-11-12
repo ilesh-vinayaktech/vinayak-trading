@@ -45,6 +45,7 @@
  ],
  "clean": false,
  "provisional": [],
+ "source": "nse",
  "timeframe": "1d",
  "unapplied": [
   {

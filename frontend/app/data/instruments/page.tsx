@@ -106,6 +106,7 @@ export default function InstrumentsPage() {
       {bars.data ? (
         <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="quality-strip">
           <Badge tone="neutral">basis: {mode?.label}</Badge>
+          {bars.data.source ? <Badge tone="neutral">prices: {bars.data.source === "kite" ? "Kite candles" : "NSE bhavcopy"}</Badge> : null}
           <Badge tone="neutral">adjustment version {shortHash(bars.data.adjustment_version, 16)}</Badge>
           <Badge tone={bars.data.clean ? "good" : "warn"}>{bars.data.clean ? "no unpriced or provisional events" : "data-quality warnings"}</Badge>
           <span className="text-ink-soft">{mode?.blurb}</span>
