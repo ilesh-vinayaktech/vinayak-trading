@@ -1,0 +1,129 @@
+# ruff: noqa: E501
+"""A backtest study: everything the owner configures for an official backtest, checked before it can be registered.
+
+Every choice is the owner's (strategy and its parameter grid, which stocks, the period, the holdout, capital, costs and the
+pass/fail thresholds), but each one is fixed the moment the study is registered: changing a setting after seeing a result
+is what turns a backtest into curve fitting, so a change means a new study and the trial count goes up.
+What is refused here, with the reason: a strategy or parameter value the strategy itself does not accept, a grid so large
+that the overfitting correction would swamp any result, a holdout outside 5-50% of the study, an end date in the future, and
+a start before October 2019 unless the owner explicitly accepts the survivorship bias (before then our data only holds
+stocks still listed today)."""
+
+from __future__ import annotations
+
+import itertools
+import json
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from algo.strategies.registry import STRATEGIES
+
+MAX_TRIALS = 64
+SURVIVORSHIP_SAFE_FROM = date(2019, 10, 1)  # NSE bhavcopy (which keeps delisted stocks) starts here
+SEGMENT_LISTS_FROM = date(
+    2018, 8, 1
+)  # the first AMFI market-cap list (Jun 2018) is relied on from here
+HOLDOUT_SHARE = (0.05, 0.50)
+THRESHOLDS_FILE = Path(__file__).resolve().parents[3] / "config" / "validation_thresholds.json"
+Segment = Literal["large", "mid", "small", "micro"]
+
+
+class StudyError(ValueError):
+    pass
+
+
+class UniverseSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    segments: list[Segment] = Field(min_length=1)
+    # AMFI's first list is relied on from 2018-08-01; before it, rank by traded value as a stand-in, or leave those days out
+    before_segment_lists: Literal["traded_value_rank", "skip"] = "traded_value_rank"
+    min_history_sessions: int = Field(default=252, ge=0, le=2000)
+
+
+class StudySpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=80)
+    hypothesis: str = Field(min_length=20, max_length=4000)
+    strategy_id: str = Field(max_length=60)
+    grid: dict[str, list[int | float]]
+    universe: UniverseSpec
+    timeframe: Literal["1D"] = (
+        "1D"  # the engine decides on daily bars; intraday arrives with intraday strategies
+    )
+    start: date
+    end: date
+    holdout_start: date
+    capital: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    capacity_multiple: Decimal = Field(default=Decimal(3), ge=1, le=10)
+    broker: str = Field(min_length=1, max_length=40)
+    product: Literal["DELIVERY"] = "DELIVERY"
+    thresholds: dict[str, Decimal]
+    accept_survivorship_bias: bool = False
+
+
+def default_thresholds() -> dict[str, str]:
+    """The provisional long-only thresholds (config/validation_thresholds.json), as decimal strings."""
+    return {k: str(v) for k, v in json.loads(THRESHOLDS_FILE.read_text())["long_only"].items()}
+
+
+def _check_grid(s: StudySpec, max_trials: int) -> None:
+    if s.strategy_id not in STRATEGIES:
+        raise StudyError(f"unknown strategy {s.strategy_id!r}")
+    params = STRATEGIES[s.strategy_id][1]
+    if not s.grid:
+        raise StudyError("the grid needs at least one parameter")
+    for name, values in s.grid.items():
+        if name not in params.model_fields:
+            raise StudyError(f"{s.strategy_id} has no parameter {name!r}")
+        if not values:
+            raise StudyError(f"{name} needs at least one value")
+        if len(set(values)) != len(values):
+            raise StudyError(f"{name} repeats a value")
+        for v in values:
+            try:
+                params.model_validate({name: v})
+            except ValidationError as e:
+                raise StudyError(f"{name}={v} is not allowed by {s.strategy_id}") from e
+    n = len(combinations(s))
+    if n > max_trials:
+        raise StudyError(
+            f"{n} trials is more than {max_trials}: every combination counts against the strategy"
+        )
+
+
+def check(s: StudySpec, *, today: date, max_trials: int = MAX_TRIALS) -> None:
+    """Refuse a study that cannot be honoured, with the reason."""
+    _check_grid(s, max_trials)
+    if set(s.thresholds) != set(default_thresholds()):
+        raise StudyError(
+            f"thresholds must be exactly these twelve: {', '.join(sorted(default_thresholds()))}"
+        )
+    if s.holdout_start <= s.start:
+        raise StudyError("the holdout must start after the study starts")
+    if s.holdout_start > s.end:
+        raise StudyError("the holdout must start on or before the study's end")
+    if s.end > today:
+        raise StudyError(f"the study ends {s.end}, in the future")
+    share = (s.end - s.holdout_start).days / (s.end - s.start).days
+    if not HOLDOUT_SHARE[0] <= share <= HOLDOUT_SHARE[1]:
+        raise StudyError(
+            f"the holdout is {round(share * 100)}% of the study; keep it between 5% and 50% (the spec suggests 20-30%)"
+        )
+    if s.start < SURVIVORSHIP_SAFE_FROM and not s.accept_survivorship_bias:
+        raise StudyError(
+            f"before {SURVIVORSHIP_SAFE_FROM} our data only holds stocks still listed today (survivorship bias): "
+            "start later, or accept the bias explicitly"
+        )
+
+
+def combinations(s: StudySpec) -> list[dict[str, Any]]:
+    """Every parameter combination of the grid, in a fixed order (names, then values, ascending)."""
+    names = sorted(s.grid)
+    return [
+        dict(zip(names, values, strict=True))
+        for values in itertools.product(*(sorted(s.grid[n]) for n in names))
+    ]

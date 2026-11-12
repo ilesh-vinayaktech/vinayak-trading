@@ -32,14 +32,13 @@ from algo.live.market_calendar import windows_for
 from algo.paper import book
 from algo.paper.universe import FOREVER, UniverseError, current_universe
 from algo.strategies.nifty200_momentum import DataNotReady, IntervalMembership
-from algo.strategies.trend_pullback import TrendPullback, TrendPullbackParams
+from algo.strategies.registry import STRATEGIES
 from algo.strategy.context import Context, DataAccess, PortfolioView
 
 BUY_BUFFER = Decimal(
     "1.01"
 )  # a buy is sized as if it cost 1% more than the close: it fills at the next open, with costs
 SELL_PROCEEDS = Decimal("0.99")  # and a sale is counted as bringing in 1% less
-STRATEGIES = {"trend_pullback": (TrendPullback, TrendPullbackParams)}
 LABEL = "UNVALIDATED"
 Proposal = tuple[str, int, Decimal, Decimal, str]  # side, instrument, qty, close, reason
 

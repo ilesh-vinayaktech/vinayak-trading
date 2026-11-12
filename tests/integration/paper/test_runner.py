@@ -11,7 +11,7 @@ from algo.data.store.migrate import migrate
 from algo.live.market_calendar import mark_closed
 from algo.paper import book
 from algo.paper.runner import run_day
-from algo.strategies.trend_pullback import TrendPullback
+from algo.strategies.trend_pullback import TrendPullback, TrendPullbackParams
 from tests.integration.test_trend_pullback_engine import DAYS, UP, falling, sawtooth
 from tests.support.bt import add_action, put_bars
 from tests.support.portal import add_user
@@ -306,7 +306,7 @@ def test_a_strategy_that_keeps_its_targets_proposes_nothing(env, monkeypatch):
 
     from algo.paper import runner
 
-    monkeypatch.setitem(runner.STRATEGIES, "trend_pullback", (Keeps, runner.TrendPullbackParams))
+    monkeypatch.setitem(runner.STRATEGIES, "trend_pullback", (Keeps, TrendPullbackParams))
     uid = user(conn)
     out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
     assert out.status == "NO_CHANGE" and "kept its targets" in out.detail["reason"]

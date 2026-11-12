@@ -9,6 +9,7 @@ import json
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from typing import Any
+from uuid import UUID
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -39,7 +40,11 @@ def register(
     param_ranges: Mapping[str, Sequence[float]],
     holdout: tuple[date, date],
     now: datetime,
+    study: Mapping[str, Any] | None = None,
+    owner_user_id: UUID | None = None,
 ) -> int:
+    """`study`: the owner's full study settings (algo.research.study); stored with a checksum
+    and locked with the rest of the row (migration 045)."""
     if not hypothesis.strip():
         raise RegistryError("a hypothesis is required before any trial")
     for k, r in param_ranges.items():
@@ -47,8 +52,20 @@ def register(
             raise RegistryError(f"range for {k!r} must be [low, high] with low <= high")
     row = conn.execute(
         "INSERT INTO experiment (name,strategy_id,hypothesis,style,param_ranges,holdout_start,"
-        "holdout_end,registered_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING experiment_id",
-        (name, strategy_id, hypothesis, style, Jsonb(param_ranges), *holdout, require_utc(now)),
+        "holdout_end,registered_at,study,study_sha256,owner_user_id)"
+        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING experiment_id",
+        (
+            name,
+            strategy_id,
+            hypothesis,
+            style,
+            Jsonb(param_ranges),
+            *holdout,
+            require_utc(now),
+            None if study is None else Jsonb(dict(study)),
+            None if study is None else params_hash(study),
+            owner_user_id,
+        ),  # fmt: skip
     ).fetchone()
     assert row is not None
     return int(row[0])

@@ -29,6 +29,7 @@ from algo.api import (
     queries,
     reviews,
     strategy_routes,
+    study_routes,
     tickets_routes,
     users_routes,
 )
@@ -107,6 +108,7 @@ def create_app(
     app.include_router(live_routes.router)
     app.include_router(paper_routes.router)
     app.include_router(strategy_routes.router)
+    app.include_router(study_routes.router)
     app.include_router(costs_routes.router)
     app.include_router(crm_routes.router)
     app.include_router(dashboard_routes.router)
