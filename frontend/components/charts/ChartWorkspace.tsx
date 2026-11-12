@@ -1,6 +1,5 @@
 "use client";
 
-import type { Mark } from "@/components/strategies/SignalsPanel";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorBox, Loading } from "@/components/status/LoadState";
@@ -11,7 +10,7 @@ import { INTRADAY_MAX_DAYS, INTRADAY_PRESETS, isIntraday, shiftDays } from "@/li
 import { TimeframeMenu } from "./TimeframeMenu";
 import { Icon, type IconName } from "./icons";
 import { IndicatorDialog } from "./IndicatorDialog";
-import { PriceChart, type ChartType, type IndicatorControls } from "./PriceChart";
+import { PriceChart, type ChartType, type IndicatorControls, type Mark } from "./PriceChart";
 import { SymbolSearch } from "./SymbolSearch";
 
 export const BASES: { value: Adjust; label: string; blurb: string }[] = [
@@ -44,10 +43,14 @@ export function presetStart(last: string, first: string | null, months: number):
   return first && iso < first ? first : iso;
 }
 
+/** The strategy dropdown in the toolbar: choose a saved strategy and its buy/sell decisions are drawn on the chart. */
+export type StrategyPick = { options: { id: string; name: string }[]; value: string; onChange: (id: string) => void; status: string | null };
+const NO_STRATEGY: StrategyPick = { options: [], value: "", onChange: () => {}, status: null };
+
 const tbBtn = (active = false) => `flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[13px] transition-colors ${active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"} disabled:opacity-35 disabled:hover:bg-transparent`;
 const Sep = () => <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />;
 
-export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals }: { signals?: Mark[]; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
+export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY }: { signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
   const box = useRef<HTMLDivElement>(null);
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [full, setFull] = useState(false);
@@ -178,9 +181,24 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
       <button type="button" title={full ? "Exit full screen" : "Full screen"} aria-label={full ? "Exit full screen" : "Full screen"} onClick={toggleFull} className={tbBtn(full)}>
         <Icon name={full ? "exit" : "fullscreen"} size={18} />
       </button>
-      <button type="button" disabled title="Needs a stored backtest with its trades; none exist yet" className="ml-1 hidden h-8 cursor-not-allowed items-center rounded-md border border-dashed border-line px-2 text-[12px] text-slate-400 lg:flex">
-        Strategy run: not available yet
-      </button>
+      <Sep />
+      <label className="sr-only" htmlFor="strategy">
+        Strategy
+      </label>
+      <select
+        id="strategy"
+        value={strategy.value}
+        disabled={strategy.options.length === 0 || timeframe !== "1d"}
+        title={strategy.options.length === 0 ? "No saved strategy. Create one on the Strategies page." : timeframe !== "1d" ? "Strategy decisions are daily: choose the 1D timeframe" : "Draw this strategy's buy/sell decisions on the chart (decisions only, no profit or loss)"}
+        onChange={(e) => strategy.onChange(e.target.value)}
+        className="h-8 max-w-44 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-40"
+      >
+        <option value="">{strategy.options.length === 0 ? "Strategy: none saved" : "No strategy"}</option>
+        {strategy.options.map((o) => (
+          <option key={o.id} value={o.id}>{o.name}</option>
+        ))}
+      </select>
+      {strategy.status ? <span className="px-1 text-[12px] text-slate-600" role="status" data-testid="strategy-status">{strategy.status}</span> : null}
     </div>
   );
 

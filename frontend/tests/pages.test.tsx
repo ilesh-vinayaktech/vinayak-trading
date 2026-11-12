@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BacktestsPage from "@/app/research/backtests/page";
 import DashboardPage from "@/app/dashboard/page";
+import { createSeriesMarkers } from "lightweight-charts";
 import { AuthProvider } from "@/lib/auth";
 import InstrumentsPage from "@/app/data/instruments/page";
 import SystemPage from "@/app/system/page";
@@ -201,7 +202,7 @@ describe("Data Explorer", () => {
     expect(screen.getByRole("button", { name: "Screenshot" })).toBeEnabled();
     expect(screen.getByRole("group", { name: "Chart type" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1Y" })).toBeInTheDocument();
-    expect(screen.getByText(/Strategy run: not available yet/)).toBeDisabled();
+    expect(screen.getByLabelText("Strategy")).toBeDisabled(); // no saved strategy to choose
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();
     expect(screen.getByText("review")).toBeInTheDocument(); // an unverified action is not shown as verified
     fireEvent.change(screen.getByLabelText("Price basis"), { target: { value: "split" } });
@@ -254,5 +255,88 @@ describe("Data Explorer", () => {
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "zzz" } });
     expect(await screen.findByText("No instrument matches.")).toBeInTheDocument();
+  });
+
+  describe("strategy on the chart", () => {
+    const params = { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 };
+    const saved = (id: string, name: string) => ({ config_id: id, name, strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params, in_use: false, created_at: "2026-11-11T10:00:00+00:00" });
+    const me = { user: { id: "u1", email: "j@example.com", name: "Jane", role: "TRADER", permissions: ["strategy:own"], mfa_enabled: true, enrolment_required: false, must_change_password: false } };
+    const day = (d: string, over: Record<string, unknown> = {}) => ({ day: d, close: "100", sma: "90", rsi: "20", ready: true, action: null, reason: null, holding_after: false, fill_day: null, fill_price: null, ...over });
+    const signals = {
+      label: "UNVALIDATED",
+      strategy: "Cautious",
+      params,
+      notes: [],
+      summary: { buys: 1, sells: 1 },
+      days: [day("2024-06-10", { action: "BUY", reason: "oversold in an uptrend" }), day("2024-06-11", { action: "SELL", reason: "rsi_above_exit" })],
+    };
+    const table = {
+      "/api/auth/me": me,
+      "/api/instruments": [inst],
+      "/api/instruments/7": detail,
+      "/api/instruments/7/bars": bars,
+      "/api/strategies": { label: "UNVALIDATED", options: { universes: [], timeframes: [], params: { trend_sma: [], entry_rsi: [], exit_rsi: [], max_positions: [] } }, strategies: [saved("c1", "Cautious"), saved("c2", "Bolder")] },
+      "/api/strategies/c1/signals": signals,
+    };
+    const open = async (urls: string[] = []) => {
+      const respond = route(table);
+      vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+        urls.push(String(input));
+        return respond(input);
+      });
+      wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+      fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+      fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+      await screen.findByText("basis: Raw (as traded)");
+    };
+
+    it("lists the saved strategies in the toolbar and draws nothing until one is chosen", async () => {
+      await open();
+      const pick = await screen.findByLabelText("Strategy");
+      await waitFor(() => expect(within(pick).getAllByRole("option").map((o) => o.textContent)).toEqual(["No strategy", "Cautious", "Bolder"]));
+      expect(pick).toBeEnabled();
+      expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument();
+    });
+
+    it("runs the chosen strategy over the chart's range and draws its buy and sell signals on the chart", async () => {
+      const urls: string[] = [];
+      await open(urls);
+      const pick = await screen.findByLabelText("Strategy");
+      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+      vi.mocked(createSeriesMarkers).mockClear();
+      fireEvent.change(pick, { target: { value: "c1" } });
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell"));
+      const asked = urls.find((u) => u.includes("/api/strategies/c1/signals")) ?? "";
+      expect(asked).toContain("instrument_id=7");
+      expect(asked).toContain("start=2024-01-01");
+      expect(asked).toContain("end=2024-12-31");
+      expect(asked).toContain("holding=false");
+      await waitFor(() => {
+        const drawn = vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string; position: string; time: string }[];
+        expect(drawn.filter((m) => m.text === "BUY" || m.text === "SELL").map((m) => [m.text, m.position])).toEqual([["BUY", "belowBar"], ["SELL", "aboveBar"]]);
+      });
+      fireEvent.change(pick, { target: { value: "" } }); // choosing none takes them off again
+      await waitFor(() => expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument());
+      await waitFor(() => expect((vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string }[]).some((m) => m.text === "BUY")).toBe(false));
+    });
+
+    it("is switched off on timeframes other than daily, because the decisions are daily", async () => {
+      await open();
+      const pick = await screen.findByLabelText("Strategy");
+      await waitFor(() => expect(pick).toBeEnabled());
+      fireEvent.click(screen.getByRole("button", { name: "Timeframe: 1D" }));
+      fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name: "5 minutes" }));
+      await waitFor(() => expect(screen.getByLabelText("Strategy")).toBeDisabled());
+    });
+
+    it("says so when the strategy cannot be run", async () => {
+      table["/api/strategies/c1/signals"] = undefined as unknown as typeof signals;
+      await open();
+      const pick = await screen.findByLabelText("Strategy");
+      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+      fireEvent.change(pick, { target: { value: "c1" } });
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("Could not run"));
+      table["/api/strategies/c1/signals"] = signals;
+    });
   });
 });

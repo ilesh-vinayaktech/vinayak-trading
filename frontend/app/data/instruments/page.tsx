@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { ChartWorkspace, BASES, presetStart } from "@/components/charts/ChartWorkspace";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { SignalsPanel, type Mark } from "@/components/strategies/SignalsPanel";
+import type { Mark } from "@/components/charts/PriceChart";
 import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/status/Badge";
 import { Card, Stat } from "@/components/status/LoadState";
@@ -34,7 +34,7 @@ const ACTION_COLUMNS: ColumnDef<Action, unknown>[] = [
 
 export default function InstrumentsPage() {
   const { can } = useAuth();
-  const [marks, setMarks] = useState<Mark[]>([]);
+  const [strategyId, setStrategyId] = useState("");
   const [picked, setPicked] = useState<Instrument | null>(null);
   const [adjust, setAdjust] = useState<Adjust>("none");
   const [timeframe, setTimeframe] = useState<Timeframe>("1d");
@@ -48,6 +48,18 @@ export default function InstrumentsPage() {
     if (d && d.id === id && range.id !== d.id && d.bars.last) setRange({ id: d.id, start: presetStart(d.bars.last, d.bars.first, 12), end: d.bars.last });
   }, [detail.data, id, range.id]);
   const ready = range.id === id && id !== null;
+  // a chosen strategy runs on the open stock over the chart's own date range; its decisions are drawn on the chart
+  const saved = useQuery({ queryKey: ["strategies"], queryFn: api.strategies, enabled: can("strategy:own") });
+  const strategies = saved.data?.strategies ?? [];
+  const chosen = strategies.some((s) => s.config_id === strategyId) ? strategyId : "";
+  const signals = useQuery({
+    queryKey: ["signals", chosen, id, range.start, range.end],
+    queryFn: () => api.strategySignals(chosen, { instrument_id: id as number, start: range.start, end: range.end, holding: false }),
+    enabled: chosen !== "" && ready && range.start <= range.end && timeframe === "1d",
+  });
+  const marks = useMemo<Mark[]>(() => (signals.data?.days ?? []).flatMap((d) => (d.action ? [{ day: d.day, action: d.action }] : [])), [signals.data]);
+  const buys = marks.filter((m) => m.action === "BUY").length;
+  const strategyStatus = chosen === "" || timeframe !== "1d" ? null : signals.isError ? "Could not run" : signals.isFetching || !signals.data ? "Running..." : `${buys} buy, ${marks.length - buys} sell`;
   const bars = useQuery({
     queryKey: ["bars", id, range.start, range.end, adjust, timeframe],
     queryFn: () => api.bars(id as number, range.start, range.end, adjust, timeframe),
@@ -74,7 +86,7 @@ export default function InstrumentsPage() {
 
       <ChartWorkspace
         picked={picked}
-        onPick={(i) => { setPicked(i); setMarks([]); setRange({ id: null, start: "", end: "" }); }}
+        onPick={(i) => { setPicked(i); setRange({ id: null, start: "", end: "" }); }}
         instrument={detail.data ?? null}
         adjust={adjust}
         onAdjust={setAdjust}
@@ -87,9 +99,9 @@ export default function InstrumentsPage() {
         loading={id !== null && (detail.isLoading || bars.isLoading || !ready)}
         error={detail.error ?? bars.error}
         signals={marks}
+        strategy={{ options: strategies.map((s) => ({ id: s.config_id, name: s.name })), value: chosen, onChange: setStrategyId, status: strategyStatus }}
       />
 
-      {can("strategy:own") ? <SignalsPanel instrument={picked} start={range.start} end={range.end} onMarks={setMarks} /> : null}
 
       {bars.data ? (
         <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="quality-strip">

@@ -1,6 +1,5 @@
 "use client";
 
-import type { Mark } from "@/components/strategies/SignalsPanel";
 import {
   AreaSeries,
   CandlestickSeries,
@@ -26,6 +25,7 @@ import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools
 import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
+export type Mark = { day: string; action: "BUY" | "SELL" };
 const NO_SIGNALS: Mark[] = []; // a stable default: a fresh array each render would rebuild the chart each render
 type Bar = Bars["bars"][number];
 export type ChartType = "candles" | "line" | "area";
