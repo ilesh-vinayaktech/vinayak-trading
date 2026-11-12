@@ -22,6 +22,8 @@ import {
   paperOrdersSchema,
   paperRunsSchema,
   paperSummarySchema,
+  strategiesSchema,
+  strategyCreatedSchema,
   marketIdSchema,
   myDashboardSchema,
   opsDashboardSchema,
@@ -133,6 +135,8 @@ export async function post(path: string, body: unknown, fetcher: typeof fetch = 
   if (!res.ok) throw await failure(res);
 }
 
+export type StrategyBody = { name: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number> };
+
 export const api = {
   login: (email: string, password: string, totpCode?: string) => send("POST", "/api/auth/login", { email, password, totp_code: totpCode || undefined }, loginSchema),
   logout: () => send("POST", "/api/auth/logout", undefined, okSchema),
@@ -174,6 +178,11 @@ export const api = {
   approvePaperOrder: (id: string) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/approve`, undefined, okSchema),
   rejectPaperOrder: (id: string) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/reject`, undefined, okSchema),
   paperRuns: () => get("/api/paper/runs", paperRunsSchema),
+  strategies: () => get("/api/strategies", strategiesSchema),
+  createStrategy: (b: StrategyBody) => send("POST", "/api/strategies", b, strategyCreatedSchema),
+  changeStrategy: (id: string, b: StrategyBody) => send("POST", `/api/strategies/${encodeURIComponent(id)}`, b, okSchema),
+  useStrategy: (id: string) => send("POST", `/api/strategies/${encodeURIComponent(id)}/use`, undefined, okSchema),
+  deleteStrategy: (id: string) => send("POST", `/api/strategies/${encodeURIComponent(id)}/delete`, undefined, okSchema),
   myDashboard: () => get("/api/dashboard/me", myDashboardSchema),
   opsDashboard: () => get("/api/dashboard/operations", opsDashboardSchema),
   kiteConnection: () => get("/api/kite/connection", kiteConnectionSchema),

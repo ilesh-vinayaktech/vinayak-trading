@@ -637,3 +637,20 @@ export const costPreviewSchema = z.object({
 });
 export type CostSchedule = z.infer<typeof costScheduleSchema>;
 export type CostPreview = z.infer<typeof costPreviewSchema>;
+
+// ---- strategies: saved, named settings (UNVALIDATED research) -------------------------------------------------------------
+export const strategyConfigSchema = z.object({
+  config_id: z.string(),
+  name: z.string(),
+  strategy_id: z.string(),
+  universe: z.string(),
+  max_instruments: z.number().nullable(),
+  timeframe: z.string(),
+  params: paperParamsSchema,
+  in_use: z.boolean(),
+  created_at: z.string(),
+});
+export const strategiesSchema = z.object({ label: z.string(), options: paperAccountSchema.shape.options, strategies: z.array(strategyConfigSchema) });
+export const strategyCreatedSchema = z.object({ config_id: z.string() });
+export type StrategyConfig = z.infer<typeof strategyConfigSchema>;
+export type Strategies = z.infer<typeof strategiesSchema>;

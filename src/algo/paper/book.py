@@ -22,7 +22,7 @@ from algo.data.adjust.factors import ActionRecord
 from algo.ledger.ledger import Ledger
 from algo.paper.universe import UNIVERSES
 
-COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe"
+COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe, config_id"
 
 
 class PaperError(ValueError):

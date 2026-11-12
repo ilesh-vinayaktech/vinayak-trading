@@ -487,6 +487,18 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         },
     )
     shots["paper_account"] = c.get("/api/paper/account")
+    made = c.post(
+        "/api/strategies",
+        json={
+            "name": "Cautious",
+            "universe": "nifty100",
+            "max_instruments": 50,
+            "timeframe": "1D",
+            "params": {"entry_rsi": 30},
+        },
+    ).json()["config_id"]
+    c.post(f"/api/strategies/{made}/use", json={})
+    shots["strategies"] = c.get("/api/strategies")
     book.record_fill(
         conn,
         uid,
@@ -529,7 +541,7 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             return {k: scrub(x, k) for k, x in v.items()}
         if isinstance(v, list):
             return [scrub(x, key) for x in v]
-        return "<order_id>" if key == "order_id" else v
+        return f"<{key}>" if key in ("order_id", "config_id") else v
 
     for name, resp in shots.items():
         assert resp.status_code == 200, (name, resp.text)

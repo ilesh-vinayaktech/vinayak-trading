@@ -1,0 +1,83 @@
+{
+ "label": "UNVALIDATED",
+ "options": {
+  "params": {
+   "entry_rsi": [
+    20,
+    25,
+    30
+   ],
+   "exit_rsi": [
+    55,
+    60,
+    65
+   ],
+   "max_positions": [
+    5,
+    10,
+    20
+   ],
+   "trend_sma": [
+    100,
+    200
+   ]
+  },
+  "timeframes": [
+   {
+    "available": true,
+    "key": "1D",
+    "label": "Daily"
+   },
+   {
+    "available": false,
+    "key": "1h",
+    "label": "1 hour"
+   },
+   {
+    "available": false,
+    "key": "15m",
+    "label": "15 minutes"
+   }
+  ],
+  "universes": [
+   {
+    "key": "nifty50",
+    "label": "Nifty 50"
+   },
+   {
+    "key": "nifty100",
+    "label": "Nifty 100"
+   },
+   {
+    "key": "nifty200",
+    "label": "Nifty 200"
+   },
+   {
+    "key": "midcap100",
+    "label": "Nifty Midcap 100"
+   },
+   {
+    "key": "nifty500",
+    "label": "Nifty 500"
+   }
+  ]
+ },
+ "strategies": [
+  {
+   "config_id": "<config_id>",
+   "created_at": "2026-11-11T10:00:00+00:00",
+   "in_use": true,
+   "max_instruments": 50,
+   "name": "Cautious",
+   "params": {
+    "entry_rsi": 30,
+    "exit_rsi": 60,
+    "max_positions": 10,
+    "trend_sma": 200
+   },
+   "strategy_id": "trend_pullback",
+   "timeframe": "1D",
+   "universe": "nifty100"
+  }
+ ]
+}

@@ -1,7 +1,9 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { DEFAULTS } from "@/components/strategies/StrategyDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Field } from "@/components/ui/Field";
 import { Panel, SettingsSection } from "@/components/ui/Layout";
@@ -11,42 +13,35 @@ import { ApiError, api } from "@/lib/api/client";
 import type { PaperAccount } from "@/lib/schemas";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not save. Try again.");
-type Params = { trend_sma: number; entry_rsi: number; exit_rsi: number; max_positions: number };
-const DEFAULTS: Params = { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 10 };
+const CUSTOM = "";
 
-function Choice({ id, label, hint, value, options, onChange }: { id: string; label: string; hint: string; value: number; options: number[]; onChange: (n: number) => void }) {
-  return (
-    <Field id={id} label={label} hint={hint}>
-      <select id={id} value={value} onChange={(e) => onChange(Number(e.target.value))} className={inputFull}>
-        {options.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
-    </Field>
-  );
-}
-
-/** What the strategy runs on and how it behaves. The same form starts an account (with a starting amount) and edits one. */
+/** Starts a paper account (with a starting amount) or edits one: on/off and which saved strategy it runs. The strategy's own
+ *  choices (stocks, rules) are made on the Strategies page. */
 export function SettingsForm({ data }: { data: PaperAccount }) {
   const qc = useQueryClient();
   const toast = useToast();
   const acct = data.account;
+  const strategies = useQuery({ queryKey: ["strategies"], queryFn: api.strategies });
+  const saved = strategies.data?.strategies ?? [];
+  const inUse = saved.find((s) => s.in_use)?.config_id ?? CUSTOM;
   const [cash, setCash] = useState("1000000");
-  const [universe, setUniverse] = useState(acct?.universe ?? "nifty200");
-  const [cap, setCap] = useState(acct?.max_instruments ? String(acct.max_instruments) : "");
-  const [timeframe, setTimeframe] = useState(acct?.timeframe ?? "1D");
-  const [params, setParams] = useState<Params>(acct?.params ?? DEFAULTS);
-  const grid = data.options.params;
-  const capNumber = cap.trim() === "" ? null : Number(cap);
-  const capBad = capNumber !== null && (!Number.isInteger(capNumber) || capNumber < 5 || capNumber > 500);
-  const refresh = () => void qc.invalidateQueries({ queryKey: ["paper"] });
+  const [pick, setPick] = useState<string | null>(null);
+  const chosen = pick ?? (acct ? inUse : (saved[0]?.config_id ?? CUSTOM));
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["paper"] });
+    void qc.invalidateQueries({ queryKey: ["strategies"] });
+  };
   const create = useMutation({
-    mutationFn: () => api.createPaperAccount({ initial_cash: cash, universe, max_instruments: capNumber, timeframe, params }),
+    mutationFn: async () => {
+      const s = saved.find((x) => x.config_id === chosen);
+      await api.createPaperAccount({ initial_cash: cash, universe: s?.universe ?? "nifty200", max_instruments: s?.max_instruments ?? null, timeframe: s?.timeframe ?? "1D", params: s?.params ?? DEFAULTS });
+      if (s) await api.useStrategy(s.config_id);
+    },
     onSuccess: () => { toast.success("Paper account started."); refresh(); },
   });
-  const save = useMutation({
-    mutationFn: () => api.updatePaperSettings({ universe, max_instruments: capNumber, timeframe, params }),
-    onSuccess: () => { toast.success("Settings saved. They apply from the next daily decision."); refresh(); },
+  const switchTo = useMutation({
+    mutationFn: (id: string) => api.useStrategy(id),
+    onSuccess: () => { toast.success("Strategy changed. It applies from the next daily decision."); setPick(null); refresh(); },
   });
   const toggle = useMutation({
     mutationFn: (enabled: boolean) => api.updatePaperSettings({ enabled }),
@@ -54,11 +49,24 @@ export function SettingsForm({ data }: { data: PaperAccount }) {
   });
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (capBad) return;
-    (acct ? save : create).mutate();
+    if (!acct) create.mutate();
   };
-  const err = create.error ?? save.error ?? toggle.error;
-  const set = <K extends keyof Params>(k: K) => (n: number) => setParams((p) => ({ ...p, [k]: n }));
+  const err = create.error ?? switchTo.error ?? toggle.error;
+  const picker = saved.length > 0 && (
+    <Field id="strategy" label="Strategy" hint="Saved on the Strategies page, where you choose the index, the number of stocks and the rules.">
+      <select
+        id="strategy"
+        value={chosen}
+        onChange={(e) => { setPick(e.target.value); if (acct && e.target.value !== CUSTOM) switchTo.mutate(e.target.value); }}
+        className={inputFull}
+      >
+        {!acct ? null : <option value={CUSTOM} disabled>Custom (not a saved strategy)</option>}
+        {saved.map((s) => (
+          <option key={s.config_id} value={s.config_id}>{s.name}</option>
+        ))}
+      </select>
+    </Field>
+  );
 
   return (
     <Panel>
@@ -78,37 +86,12 @@ export function SettingsForm({ data }: { data: PaperAccount }) {
             </Field>
           </SettingsSection>
         )}
-        <SettingsSection title="What it trades" description="The index the strategy picks from, and how many of its most liquid stocks to consider.">
-          <div className="space-y-4">
-            <Field id="universe" label="Index">
-              <select id="universe" value={universe} onChange={(e) => setUniverse(e.target.value)} className={inputFull}>
-                {data.options.universes.map((u) => (
-                  <option key={u.key} value={u.key}>{u.label}</option>
-                ))}
-              </select>
-            </Field>
-            <Field id="cap" label="Number of stocks" hint="Leave empty to use the whole index. A number keeps only that many of the most traded stocks (5 to 500), which avoids thinly traded ones." error={capBad ? "Enter a whole number from 5 to 500, or leave it empty." : null}>
-              <input id="cap" inputMode="numeric" placeholder="All" value={cap} onChange={(e) => setCap(e.target.value)} className={inputFull} />
-            </Field>
-            <Field id="timeframe" label="Time frame" hint="The bar size the strategy decides on. Only daily is supported today; shorter ones need intraday data in the strategy engine.">
-              <select id="timeframe" value={timeframe} onChange={(e) => setTimeframe(e.target.value)} className={inputFull}>
-                {data.options.timeframes.map((t) => (
-                  <option key={t.key} value={t.key} disabled={!t.available}>{t.label}{t.available ? "" : " (not available yet)"}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
+        <SettingsSection title="What it runs" description={acct ? `Index: ${data.options.universes.find((u) => u.key === acct.universe)?.label ?? acct.universe}, ${acct.max_instruments ? `top ${acct.max_instruments} stocks` : "all stocks"}.` : "Pick a saved strategy, or start with the standard settings (Nifty 200, all stocks)."}>
+          {picker || <p className="text-sm text-ink-soft">You have no saved strategies yet.</p>}
+          <p className="mt-3 text-sm"><Link href="/strategies" className="font-medium text-brand underline">{saved.length > 0 ? "Manage strategies" : "Create a strategy"}</Link></p>
         </SettingsSection>
-        <SettingsSection title="How it behaves" description="The rules of the pullback strategy: buy a stock that has dipped inside an uptrend, sell it when it recovers.">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Choice id="trend" label="Uptrend test (days)" hint="Only buy a stock trading above its average of this many days." value={params.trend_sma} options={grid.trend_sma} onChange={set("trend_sma")} />
-            <Choice id="max" label="Most stocks held at once" hint="Each gets an equal share of the account." value={params.max_positions} options={grid.max_positions} onChange={set("max_positions")} />
-            <Choice id="entry" label="Buy when the 5-day RSI is below" hint="Lower means a deeper dip and fewer trades." value={params.entry_rsi} options={grid.entry_rsi} onChange={set("entry_rsi")} />
-            <Choice id="exit" label="Sell when the 5-day RSI is above" hint="Higher means holding on for more of the recovery." value={params.exit_rsi} options={grid.exit_rsi} onChange={set("exit_rsi")} />
-          </div>
-        </SettingsSection>
-        {acct ? <p className="mb-4 text-xs text-ink-soft">Changing the index or the number of stocks does not sell anything right away: holdings that no longer qualify are sold at the next daily decision.</p> : null}
-        <button type="submit" disabled={capBad || create.isPending || save.isPending} className={buttonClass("primary")}>{acct ? "Save settings" : "Start paper trading"}</button>
+        {acct ? <p className="mb-4 text-xs text-ink-soft">Changing the strategy does not sell anything right away: holdings that no longer qualify are sold at the next daily decision.</p> : null}
+        {acct ? null : <button type="submit" disabled={create.isPending} className={buttonClass("primary")}>Start paper trading</button>}
       </form>
     </Panel>
   );

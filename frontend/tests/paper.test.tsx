@@ -222,7 +222,24 @@ const ready = (
   "GET /api/paper/summary": SUMMARY,
   "GET /api/paper/orders": ORDERS,
   "GET /api/paper/runs": RUNS,
+  "GET /api/strategies": strategies([]),
   ...extra,
+});
+const STRATEGY = {
+  config_id: "c1",
+  name: "Cautious",
+  strategy_id: "trend_pullback",
+  universe: "nifty100",
+  max_instruments: 50,
+  timeframe: "1D",
+  params: { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 },
+  in_use: false,
+  created_at: "2026-11-11T10:00:00+00:00",
+};
+const strategies = (list: Record<string, unknown>[]) => ({
+  label: "UNVALIDATED",
+  options: OPTIONS,
+  strategies: list,
 });
 const posted = () => calls.filter((c) => c.method === "POST");
 
@@ -264,21 +281,18 @@ describe("relative time", () => {
 });
 
 describe("starting a paper account", () => {
-  it("explains it is unvalidated and posts what was chosen, including the index, the number of stocks and the time frame", async () => {
+  it("explains it is unvalidated and, with no saved strategy, starts with the standard settings", async () => {
     backend(ready(null, { "POST /api/paper/account": { ok: true } }));
     mount();
     expect(await screen.findByText("Unvalidated research")).toBeInTheDocument();
-    fireEvent.change(await screen.findByLabelText("Index"), {
-      target: { value: "nifty500" },
-    });
-    fireEvent.change(screen.getByLabelText("Number of stocks"), {
-      target: { value: "100" },
-    });
+    expect(
+      await screen.findByText("You have no saved strategies yet."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Create a strategy" }),
+    ).toHaveAttribute("href", "/strategies");
     fireEvent.change(screen.getByLabelText("Starting cash (₹)"), {
       target: { value: "500000" },
-    });
-    fireEvent.change(screen.getByLabelText("Buy when the 5-day RSI is below"), {
-      target: { value: "30" },
     });
     fireEvent.click(
       screen.getByRole("button", { name: "Start paper trading" }),
@@ -286,58 +300,47 @@ describe("starting a paper account", () => {
     await waitFor(() =>
       expect(posted()[0]?.body).toEqual({
         initial_cash: "500000",
-        universe: "nifty500",
-        max_instruments: 100,
+        universe: "nifty200",
+        max_instruments: null,
         timeframe: "1D",
         params: {
           trend_sma: 200,
-          entry_rsi: 30,
+          entry_rsi: 25,
           exit_rsi: 60,
           max_positions: 10,
         },
       }),
     );
+    expect(posted()).toHaveLength(1);
     expect(
       await screen.findByText("Paper account started."),
     ).toBeInTheDocument();
   });
 
-  it("leaves the number of stocks empty for the whole index and refuses a nonsense cap before sending anything", async () => {
-    backend(ready(null, { "POST /api/paper/account": { ok: true } }));
+  it("starts with the chosen saved strategy's settings and links the account to it", async () => {
+    backend(
+      ready(null, {
+        "GET /api/strategies": strategies([
+          STRATEGY,
+          { ...STRATEGY, config_id: "c2", name: "Bolder", universe: "nifty50" },
+        ]),
+        "POST /api/paper/account": { ok: true },
+        "POST /api/strategies/c2/use": { ok: true },
+      }),
+    );
     mount();
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start paper trading" }),
-    );
-    await waitFor(() =>
-      expect(posted()[0]?.body).toMatchObject({ max_instruments: null }),
-    );
-    calls.length = 0;
-    fireEvent.change(screen.getByLabelText("Number of stocks"), {
-      target: { value: "3" },
-    });
-    expect(
-      screen.getByText(
-        "Enter a whole number from 5 to 500, or leave it empty.",
-      ),
-    ).toBeInTheDocument();
+    const pick = await screen.findByLabelText("Strategy");
+    await waitFor(() => expect(pick).toHaveValue("c1"));
+    fireEvent.change(pick, { target: { value: "c2" } });
     fireEvent.click(
       screen.getByRole("button", { name: "Start paper trading" }),
     );
-    expect(posted()).toHaveLength(0);
-  });
-
-  it("only offers the daily time frame today and shows the others as not available", async () => {
-    backend(ready(null));
-    mount();
-    const frame = await screen.findByLabelText("Time frame");
-    const options = within(frame).getAllByRole("option");
-    expect(
-      options.map((o) => [o.textContent, (o as HTMLOptionElement).disabled]),
-    ).toEqual([
-      ["Daily", false],
-      ["1 hour (not available yet)", true],
-      ["15 minutes (not available yet)", true],
-    ]);
+    await waitFor(() => expect(posted()).toHaveLength(2));
+    expect(posted()[0]?.body).toMatchObject({
+      universe: "nifty50",
+      max_instruments: 50,
+    });
+    expect(posted()[1]?.path).toBe("/api/strategies/c2/use");
   });
 
   it("shows the server's reason when starting is refused", async () => {
@@ -576,34 +579,35 @@ describe("settings", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Settings" }));
   };
 
-  it("shows the current choices and saves changes to the index, the cap and the rules", async () => {
+  it("shows the index it runs, and no longer holds the strategy's own choices", async () => {
     await open({ universe: "nifty50", max_instruments: 20 });
-    expect(await screen.findByLabelText("Index")).toHaveValue("nifty50");
-    expect(screen.getByLabelText("Number of stocks")).toHaveValue("20");
-    fireEvent.change(screen.getByLabelText("Index"), {
-      target: { value: "nifty500" },
-    });
-    fireEvent.change(screen.getByLabelText("Number of stocks"), {
-      target: { value: "" },
-    });
-    fireEvent.change(screen.getByLabelText("Most stocks held at once"), {
-      target: { value: "5" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-    await waitFor(() =>
-      expect(posted()[0]?.body).toEqual({
-        universe: "nifty500",
-        max_instruments: null,
-        timeframe: "1D",
-        params: {
-          trend_sma: 200,
-          entry_rsi: 25,
-          exit_rsi: 60,
-          max_positions: 5,
-        },
-      }),
+    expect(
+      await screen.findByText("Index: Nifty 50, top 20 stocks."),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Number of stocks")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Create a strategy" }),
+    ).toHaveAttribute("href", "/strategies");
+  });
+
+  it("switches the account to another saved strategy", async () => {
+    await open(
+      {},
+      {
+        "GET /api/strategies": strategies([
+          { ...STRATEGY, in_use: true },
+          { ...STRATEGY, config_id: "c2", name: "Bolder" },
+        ]),
+        "POST /api/strategies/c2/use": { ok: true },
+      },
     );
-    expect(await screen.findByText(/Settings saved/)).toBeInTheDocument();
+    const pick = await screen.findByLabelText("Strategy");
+    await waitFor(() => expect(pick).toHaveValue("c1"));
+    fireEvent.change(pick, { target: { value: "c2" } });
+    await waitFor(() =>
+      expect(posted()[0]?.path).toBe("/api/strategies/c2/use"),
+    );
+    expect(await screen.findByText(/Strategy changed/)).toBeInTheDocument();
   });
 
   it("switches paper trading off and on", async () => {
@@ -637,7 +641,7 @@ describe("settings", () => {
       },
     );
     fireEvent.click(
-      await screen.findByRole("button", { name: "Save settings" }),
+      await screen.findByRole("switch", { name: "Paper trading" }),
     );
     expect(await screen.findByText("unknown universe 'x'")).toBeInTheDocument();
   });
