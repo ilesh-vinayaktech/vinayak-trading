@@ -5,7 +5,7 @@ Both sides are therefore tested against what the API actually returns, not hand-
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from pathlib import Path
 
 import pytest
@@ -517,6 +517,31 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     save_status(conn, "CONNECTED", "497 instruments", subscribed=497, last_tick_at=start, last_bar_at=None, ticks=1, bars=0, bad_frames=0, late_ticks=0, now=start)  # fmt: skip
     save_quotes(conn, {738561: Tick(738561, D("2900"), 1000, start, D("2850"), D("2905"), D("2845"), D("2850"))}, {738561: a}, start)  # fmt: skip
     shots["live"] = c.get(f"/api/live/{a}")
+    from pathlib import Path
+
+    from algo.backtest.costs import schedule_store
+    from algo.data import freeze as data_freeze
+    from tests.unit.research.test_study import spec as study_spec
+
+    conn.execute(
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,adjusted_through,dataset_version,ingested_at)"
+        " VALUES (%s,%s,1,1,1,1,1,'kite',%s,1,%s)",
+        (
+            a,
+            datetime.combine(today - timedelta(days=1), time(3, 45), UTC),
+            today - timedelta(days=1),
+            start,
+        ),
+    )
+    data_freeze.take(conn, "kite", today - timedelta(days=1), start, "contract")
+    schedule_store.import_files(conn, Path("config/cost_schedules"), now=start)
+    shots["study_options"] = c.get("/api/studies/options")
+    made_study = c.post(
+        "/api/studies",
+        json=study_spec(end=(today - timedelta(days=1)).isoformat()).model_dump(mode="json"),
+    ).json()["experiment_id"]
+    shots["studies"] = c.get("/api/studies")
+    shots["study"] = c.get(f"/api/studies/{made_study}")
     book.record_fill(
         conn,
         uid,
@@ -559,7 +584,9 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             return {k: scrub(x, k) for k, x in v.items()}
         if isinstance(v, list):
             return [scrub(x, key) for x in v]
-        return f"<{key}>" if key in ("order_id", "config_id") else v
+        return (
+            f"<{key}>" if key in ("order_id", "config_id", "id", "owner_user_id", "sha256") else v
+        )
 
     for name, resp in shots.items():
         assert resp.status_code == 200, (name, resp.text)

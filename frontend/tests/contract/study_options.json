@@ -1,0 +1,81 @@
+{
+ "brokers": [
+  {
+   "broker": "zerodha",
+   "product": "DELIVERY"
+  }
+ ],
+ "frozen_through": "2026-11-10",
+ "holdout_share": [
+  0.05,
+  0.5
+ ],
+ "max_trials": 64,
+ "segment_lists_from": "2018-08-01",
+ "segments": [
+  "large",
+  "mid",
+  "small",
+  "micro"
+ ],
+ "strategies": [
+  {
+   "id": "<id>",
+   "params": [
+    {
+     "choices": [
+      100,
+      200
+     ],
+     "default": 200,
+     "name": "trend_sma"
+    },
+    {
+     "choices": [
+      20,
+      25,
+      30
+     ],
+     "default": 25,
+     "name": "entry_rsi"
+    },
+    {
+     "choices": [
+      55,
+      60,
+      65
+     ],
+     "default": 60,
+     "name": "exit_rsi"
+    },
+    {
+     "choices": [
+      5,
+      10,
+      20
+     ],
+     "default": 10,
+     "name": "max_positions"
+    }
+   ]
+  }
+ ],
+ "survivorship_safe_from": "2019-10-01",
+ "thresholds": {
+  "max_drawdown_vs_benchmark": "1.25",
+  "max_pbo": "0.2",
+  "max_top3_concentration": "0.5",
+  "max_window_share": "0.5",
+  "min_benchmark_drawdown": "0.02",
+  "min_dsr": "0.95",
+  "min_oos_days": "252",
+  "min_oos_sharpe": "0.8",
+  "min_regimes": "2",
+  "min_sharpe_over_benchmark": "0.2",
+  "owner_max_drawdown": "0.25",
+  "plateau_tolerance": "0.3"
+ },
+ "timeframes": [
+  "1D"
+ ]
+}

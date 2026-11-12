@@ -693,3 +693,55 @@ export const liveSchema = z.object({
     .nullable(),
 });
 export type Live = z.infer<typeof liveSchema>;
+
+// ---- backtest studies: the owner's choices, locked at registration ------------------------------------------------------------
+export const studyOptionsSchema = z.object({
+  strategies: z.array(z.object({ id: z.string(), params: z.array(z.object({ name: z.string(), choices: z.array(z.number()).nullable(), default: z.number() })) })),
+  segments: z.array(z.string()),
+  timeframes: z.array(z.string()),
+  brokers: z.array(z.object({ broker: z.string(), product: z.string() })),
+  frozen_through: z.string().nullable(),
+  survivorship_safe_from: z.string(),
+  segment_lists_from: z.string(),
+  max_trials: z.number(),
+  holdout_share: z.array(z.number()),
+  thresholds: z.record(z.string(), z.string()),
+});
+export const studySpecSchema = z.object({
+  name: z.string(),
+  hypothesis: z.string(),
+  strategy_id: z.string(),
+  grid: z.record(z.string(), z.array(z.number())),
+  universe: z.object({ segments: z.array(z.string()), before_segment_lists: z.string(), min_history_sessions: z.number() }),
+  timeframe: z.string(),
+  start: z.string(),
+  end: z.string(),
+  holdout_start: z.string(),
+  capital: z.string(),
+  capacity_multiple: z.string(),
+  broker: z.string(),
+  product: z.string(),
+  thresholds: z.record(z.string(), z.string()),
+  accept_survivorship_bias: z.boolean(),
+});
+export const studySchema = z.object({
+  experiment_id: z.number(),
+  name: z.string(),
+  strategy_id: z.string(),
+  hypothesis: z.string(),
+  registered_at: z.string(),
+  holdout_opened_at: z.string().nullable(),
+  spec: studySpecSchema,
+  combinations: z.array(z.record(z.string(), z.number())),
+  data_freeze: z.object({ id: z.string(), through: z.string() }),
+  cost_schedules: z.array(z.object({ schedule_id: z.string(), version: z.string(), broker: z.string(), product: z.string(), status: z.string(), valid_from: z.string(), valid_until: z.string().nullable() })),
+  trials_planned: z.number(),
+  trials_run: z.number(),
+  sha256: z.string(),
+  owner_user_id: z.string().nullable(),
+});
+export const studiesSchema = z.object({ studies: z.array(studySchema) });
+export const studyCreatedSchema = z.object({ experiment_id: z.number() });
+export type StudyOptions = z.infer<typeof studyOptionsSchema>;
+export type StudySpec = z.infer<typeof studySpecSchema>;
+export type Study = z.infer<typeof studySchema>;

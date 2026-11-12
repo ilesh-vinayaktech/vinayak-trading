@@ -1,0 +1,168 @@
+{
+ "studies": [
+  {
+   "combinations": [
+    {
+     "entry_rsi": 20,
+     "exit_rsi": 60,
+     "max_positions": 10,
+     "trend_sma": 100
+    },
+    {
+     "entry_rsi": 20,
+     "exit_rsi": 60,
+     "max_positions": 10,
+     "trend_sma": 200
+    },
+    {
+     "entry_rsi": 20,
+     "exit_rsi": 65,
+     "max_positions": 10,
+     "trend_sma": 100
+    },
+    {
+     "entry_rsi": 20,
+     "exit_rsi": 65,
+     "max_positions": 10,
+     "trend_sma": 200
+    },
+    {
+     "entry_rsi": 25,
+     "exit_rsi": 60,
+     "max_positions": 10,
+     "trend_sma": 100
+    },
+    {
+     "entry_rsi": 25,
+     "exit_rsi": 60,
+     "max_positions": 10,
+     "trend_sma": 200
+    },
+    {
+     "entry_rsi": 25,
+     "exit_rsi": 65,
+     "max_positions": 10,
+     "trend_sma": 100
+    },
+    {
+     "entry_rsi": 25,
+     "exit_rsi": 65,
+     "max_positions": 10,
+     "trend_sma": 200
+    },
+    {
+     "entry_rsi": 30,
+     "exit_rsi": 60,
+     "max_positions": 10,
+     "trend_sma": 100
+    },
+    {
+     "entry_rsi": 30,
+     "exit_rsi": 60,
+     "max_positions": 10,
+     "trend_sma": 200
+    },
+    {
+     "entry_rsi": 30,
+     "exit_rsi": 65,
+     "max_positions": 10,
+     "trend_sma": 100
+    },
+    {
+     "entry_rsi": 30,
+     "exit_rsi": 65,
+     "max_positions": 10,
+     "trend_sma": 200
+    }
+   ],
+   "cost_schedules": [
+    {
+     "broker": "zerodha",
+     "product": "DELIVERY",
+     "schedule_id": "nse-cash-delivery-zerodha-assumed-2020-07-01",
+     "status": "assumed_backfill",
+     "valid_from": "2020-07-01",
+     "valid_until": "2026-02-28",
+     "version": "2026-11-07.1"
+    },
+    {
+     "broker": "zerodha",
+     "product": "DELIVERY",
+     "schedule_id": "nse-cash-delivery-zerodha-2026-03-01",
+     "status": "extracted_unverified",
+     "valid_from": "2026-03-01",
+     "valid_until": null,
+     "version": "2026-11-07.1"
+    }
+   ],
+   "data_freeze": {
+    "id": "<id>",
+    "through": "2026-11-10"
+   },
+   "experiment_id": 1,
+   "holdout_opened_at": null,
+   "hypothesis": "Buying a 5-day RSI dip inside a 200-day uptrend beats buy-and-hold after costs.",
+   "name": "Pullback, large and mid caps",
+   "owner_user_id": "<owner_user_id>",
+   "registered_at": "2026-11-11T10:00:00Z",
+   "sha256": "<sha256>",
+   "spec": {
+    "accept_survivorship_bias": false,
+    "broker": "zerodha",
+    "capacity_multiple": "3",
+    "capital": "1000000",
+    "end": "2026-11-10",
+    "grid": {
+     "entry_rsi": [
+      20,
+      25,
+      30
+     ],
+     "exit_rsi": [
+      60,
+      65
+     ],
+     "max_positions": [
+      10
+     ],
+     "trend_sma": [
+      100,
+      200
+     ]
+    },
+    "holdout_start": "2024-05-01",
+    "hypothesis": "Buying a 5-day RSI dip inside a 200-day uptrend beats buy-and-hold after costs.",
+    "name": "Pullback, large and mid caps",
+    "product": "DELIVERY",
+    "start": "2019-10-01",
+    "strategy_id": "trend_pullback",
+    "thresholds": {
+     "max_drawdown_vs_benchmark": "1.25",
+     "max_pbo": "0.2",
+     "max_top3_concentration": "0.5",
+     "max_window_share": "0.5",
+     "min_benchmark_drawdown": "0.02",
+     "min_dsr": "0.95",
+     "min_oos_days": "252",
+     "min_oos_sharpe": "0.8",
+     "min_regimes": "2",
+     "min_sharpe_over_benchmark": "0.2",
+     "owner_max_drawdown": "0.25",
+     "plateau_tolerance": "0.3"
+    },
+    "timeframe": "1D",
+    "universe": {
+     "before_segment_lists": "traded_value_rank",
+     "min_history_sessions": 252,
+     "segments": [
+      "large",
+      "mid"
+     ]
+    }
+   },
+   "strategy_id": "trend_pullback",
+   "trials_planned": 12,
+   "trials_run": 0
+  }
+ ]
+}

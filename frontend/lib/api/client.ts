@@ -23,6 +23,10 @@ import {
   paperRunsSchema,
   paperSummarySchema,
   liveSchema,
+  studiesSchema,
+  studyCreatedSchema,
+  studyOptionsSchema,
+  studySchema,
   signalsSchema,
   strategiesSchema,
   strategyCreatedSchema,
@@ -137,6 +141,8 @@ export async function post(path: string, body: unknown, fetcher: typeof fetch = 
   if (!res.ok) throw await failure(res);
 }
 
+export type { StudySpec } from "@/lib/schemas";
+import type { StudySpec } from "@/lib/schemas";
 export type StrategyBody = { name: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number> };
 
 export const api = {
@@ -184,6 +190,10 @@ export const api = {
   createStrategy: (b: StrategyBody) => send("POST", "/api/strategies", b, strategyCreatedSchema),
   changeStrategy: (id: string, b: StrategyBody) => send("POST", `/api/strategies/${encodeURIComponent(id)}`, b, okSchema),
   useStrategy: (id: string) => send("POST", `/api/strategies/${encodeURIComponent(id)}/use`, undefined, okSchema),
+  studyOptions: () => get("/api/studies/options", studyOptionsSchema),
+  studies: () => get("/api/studies", studiesSchema),
+  study: (id: number) => get(`/api/studies/${id}`, studySchema),
+  registerStudy: (b: StudySpec) => send("POST", "/api/studies", b, studyCreatedSchema),
   live: (id: number, timeframe: string, adjust: string) => get(`/api/live/${id}`, liveSchema, { timeframe, adjust }),
   strategySignals: (id: string, p: { instrument_id: number; start: string; end: string; holding: boolean }) => get(`/api/strategies/${encodeURIComponent(id)}/signals`, signalsSchema, { ...p, holding: p.holding ? "true" : "false" }),
   deleteStrategy: (id: string) => send("POST", `/api/strategies/${encodeURIComponent(id)}/delete`, undefined, okSchema),
