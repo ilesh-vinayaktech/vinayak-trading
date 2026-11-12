@@ -66,3 +66,27 @@ def test_the_golden_inputs_are_decimals_not_floats():
     assert all(isinstance(v, D) for v in core.sma(d(1, 2, 3), 2) if v is not None)
     with pytest.raises(TypeError):
         core.sma([1.5, 2.5], 2)  # type: ignore[list-item]  # floats are refused by the Decimal arithmetic
+
+
+def test_the_last_average_alone_is_exactly_the_last_value_of_the_whole_series():
+    import random
+
+    rng = random.Random(7)
+    for _ in range(300):
+        n = rng.randint(1, 12)
+        x = [
+            None if rng.random() < 0.15 else D(str(round(rng.uniform(1, 500), rng.randint(0, 6))))
+            for _ in range(rng.randint(0, 40))
+        ]
+        assert core.sma_last(x, n) == (core.sma(x, n)[-1] if x else None), (n, x)
+
+
+def test_the_last_average_is_none_when_the_window_is_short_has_a_gap_or_the_series_is_empty():
+    assert core.sma_last([], 3) is None
+    assert core.sma_last(d(1, 2), 3) is None  # fewer values than the window
+    assert core.sma_last(d(1, None, 3, 4), 3) is None  # a gap inside the last window
+    assert core.sma_last(d(None, None, 1, 2, 3), 3) == D(
+        2
+    )  # warm-up Nones before the window do not matter
+    assert core.sma_last(d(1, 2, 3), 0) is None
+    assert core.sma_last([None, None], 2) is None

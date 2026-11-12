@@ -132,6 +132,11 @@
   "hypothesis": "Buying a 5-day RSI dip inside a 200-day uptrend beats buy-and-hold after costs.",
   "name": "Pullback, large and mid caps",
   "product": "DELIVERY",
+  "slippage": {
+   "base_bps": "5",
+   "participation_bps_per_pct": "5",
+   "volatility_fraction": "0"
+  },
   "start": "2019-10-01",
   "strategy_id": "trend_pullback",
   "thresholds": {

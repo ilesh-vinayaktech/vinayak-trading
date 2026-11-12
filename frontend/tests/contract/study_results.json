@@ -1,0 +1,45 @@
+{
+ "run": {
+  "created_at": "2026-11-11T10:00:00Z",
+  "current": null,
+  "done": 1,
+  "error": null,
+  "experiment_id": 1,
+  "finished_at": null,
+  "requested_by": "<requested_by>",
+  "run_id": 1,
+  "started_at": "2026-11-11T10:00:00Z",
+  "status": "RUNNING",
+  "total": 12
+ },
+ "trials": [
+  {
+   "error": null,
+   "finished_at": "2026-11-11T10:00:00Z",
+   "metrics": {
+    "cagr": 0.12,
+    "costs": 5000.5,
+    "max_drawdown": -0.09,
+    "sharpe": 1.25,
+    "trades": 100
+   },
+   "params": {
+    "entry_rsi": 20,
+    "trend_sma": 200
+   },
+   "seconds": 12.5,
+   "status": "DONE",
+   "trial_id": 1
+  }
+ ],
+ "universe_coverage": [
+  {
+   "from": "2024-02-01",
+   "in_segments": 250,
+   "list": "2023-12-31",
+   "matched": 244,
+   "until": "2024-07-31",
+   "usable": 238
+  }
+ ]
+}

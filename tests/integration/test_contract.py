@@ -542,6 +542,46 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     ).json()["experiment_id"]
     shots["studies"] = c.get("/api/studies")
     shots["study"] = c.get(f"/api/studies/{made_study}")
+    from algo.research import study_jobs
+
+    run_id = c.post(f"/api/studies/{made_study}/runs").json()["run_id"]
+    study_jobs.start(
+        conn,
+        run_id,
+        12,
+        1,
+        {
+            "universe_coverage": [
+                {
+                    "list": "2023-12-31",
+                    "from": "2024-02-01",
+                    "until": "2024-07-31",
+                    "in_segments": 250,
+                    "matched": 244,
+                    "usable": 238,
+                }
+            ]
+        },
+        start,
+    )
+    study_jobs.save_trial(
+        conn,
+        made_study,
+        {"entry_rsi": 20, "trend_sma": 200},
+        "h",
+        "DONE",
+        start,
+        metrics={
+            "sharpe": 1.25,
+            "cagr": 0.12,
+            "max_drawdown": -0.09,
+            "trades": 100,
+            "costs": 5000.5,
+        },
+        returns=[0.01],
+        seconds=12.5,
+    )
+    shots["study_results"] = c.get(f"/api/studies/{made_study}/results")
     book.record_fill(
         conn,
         uid,
@@ -585,7 +625,9 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         if isinstance(v, list):
             return [scrub(x, key) for x in v]
         return (
-            f"<{key}>" if key in ("order_id", "config_id", "id", "owner_user_id", "sha256") else v
+            f"<{key}>"
+            if key in ("order_id", "config_id", "id", "owner_user_id", "requested_by", "sha256")
+            else v
         )
 
     for name, resp in shots.items():

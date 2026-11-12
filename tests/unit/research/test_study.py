@@ -112,3 +112,35 @@ def test_unknown_settings_and_impossible_values_are_refused_before_anything_else
         spec(universe={"segments": []})
     with pytest.raises(ValueError):
         spec(timeframe="5m")  # only daily bars until the engine runs intraday strategies
+
+
+def test_slippage_is_a_setting_with_a_realistic_default_and_can_be_changed_or_refused():
+    s = spec()
+    assert (
+        s.slippage.base_bps,
+        s.slippage.participation_bps_per_pct,
+        s.slippage.volatility_fraction,
+    ) == (D(5), D(5), D(0))
+    custom = spec(
+        slippage={"base_bps": "12", "participation_bps_per_pct": "2", "volatility_fraction": "0.1"}
+    )
+    assert custom.slippage.base_bps == D(12) and custom.slippage.volatility_fraction == D("0.1")
+    with pytest.raises(ValueError):
+        spec(slippage={"base_bps": "-1"})
+    with pytest.raises(ValueError):
+        spec(slippage={"base_bps": "5000"})  # beyond the model's own 1000 bps ceiling
+
+
+def test_a_minimum_history_shorter_than_the_strategys_longest_lookback_is_refused():
+    check(
+        spec(universe={"segments": ["large"], "min_history_sessions": 210}), today=TODAY
+    )  # 200-day average + warm-up
+    with pytest.raises(StudyError, match="210 sessions"):
+        check(spec(universe={"segments": ["large"], "min_history_sessions": 100}), today=TODAY)
+    check(
+        spec(
+            grid={"trend_sma": [100], "entry_rsi": [25]},
+            universe={"segments": ["large"], "min_history_sessions": 110},
+        ),
+        today=TODAY,
+    )

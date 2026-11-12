@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.portal import audit
+from algo.research import study_jobs
 from algo.research.study import (
     HOLDOUT_SHARE,
     MAX_TRIALS,
@@ -89,3 +90,56 @@ def register(body: StudySpec, request: Request, who: CurrentUser, conn: WConn) -
         target_id=str(sid), detail={"name": body.name, "strategy_id": body.strategy_id},
     )  # fmt: skip
     return {"experiment_id": sid}
+
+
+def _st(request: Request) -> PortalSettings:
+    st: PortalSettings = request.app.state.portal
+    return st
+
+
+def _trial(t: dict[str, Any]) -> dict[str, Any]:
+    return {
+        k: t[k]
+        for k in ("trial_id", "params", "status", "metrics", "error", "seconds", "finished_at")
+    }
+
+
+@router.get("/{experiment_id}/results")
+def results(experiment_id: int, conn: WConn) -> dict[str, Any]:
+    run = study_jobs.latest_run(conn, experiment_id)
+    detail = (run or {}).get("detail") or {}
+    return {
+        "run": None if run is None else {k: v for k, v in run.items() if k != "detail"},
+        "trials": [_trial(t) for t in study_jobs.trials(conn, experiment_id)],
+        "universe_coverage": detail.get("universe_coverage", []),
+    }
+
+
+@router.post("/{experiment_id}/runs")
+def request_run(
+    experiment_id: int, request: Request, who: CurrentUser, conn: WConn
+) -> dict[str, int]:
+    now = _st(request).clock.now()
+    try:
+        run_id = study_jobs.enqueue(conn, experiment_id, who.session.user_id, now)
+    except study_jobs.JobError as e:
+        raise HTTPException(404 if "no such" in str(e) else 400, str(e)) from e
+    audit.record(
+        conn, now=now, action="study.run_requested", actor_user_id=who.session.user_id, target_type="experiment",
+        target_id=str(experiment_id), detail={"run_id": run_id},
+    )  # fmt: skip
+    return {"run_id": run_id}
+
+
+@router.post("/runs/{run_id}/cancel")
+def cancel_run(run_id: int, request: Request, who: CurrentUser, conn: WConn) -> dict[str, bool]:
+    now = _st(request).clock.now()
+    try:
+        study_jobs.cancel(conn, run_id, now)
+    except study_jobs.JobError as e:
+        raise HTTPException(400, str(e)) from e
+    audit.record(
+        conn, now=now, action="study.run_cancelled", actor_user_id=who.session.user_id, target_type="study_run",
+        target_id=str(run_id), detail={},
+    )  # fmt: skip
+    return {"ok": True}

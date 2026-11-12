@@ -40,6 +40,20 @@ def sma(x: Sequence[Decimal | None], n: int) -> Series:
     return out
 
 
+def sma_last(x: Sequence[Decimal | None], n: int) -> Decimal | None:
+    """Exactly `sma(x, n)[-1]` without building the whole series: O(n), not O(len(x) * n).
+
+    For a decision that only needs today's average: a backtest would otherwise rebuild the whole
+    series for every stock on every day."""
+    f = _first_valid(x)
+    if f is None or n < 1 or len(x) < f + n:
+        return None
+    window = x[-n:]
+    if any(v is None for v in window):
+        return None
+    return sum((v for v in window if v is not None), ZERO) / n
+
+
 def _recursive(x: Sequence[Decimal | None], n: int, alpha: Decimal) -> Series:
     out: Series = [None] * len(x)
     seed = sma(x, n)

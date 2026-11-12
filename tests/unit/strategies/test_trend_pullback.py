@@ -138,3 +138,68 @@ def test_strict_mode_makes_no_decision_when_the_membership_evidence_is_unusable(
     assert s.on_schedule(ctx_with(stub, LAST, mode="strict")) is None
     assert s.audit[-1]["skipped"].startswith("strict") and s.audit[-1]["reasons"] == "unpublished"
     assert s.on_schedule(ctx_with(stub, LAST, mode="research")) == {1: D("0.1")}
+
+
+def test_the_indicators_of_the_same_bars_are_computed_once_and_a_changed_bar_is_computed_again(
+    monkeypatch,
+):
+    from algo.indicators import catalog
+    from algo.strategies import trend_pullback as tp
+
+    closes = list(uptrend().values())
+    from datetime import UTC, datetime, time
+
+    from algo.data.reader import AdjBar
+
+    def make(vals):
+        return [
+            AdjBar(datetime.combine(d, time(3, 45), UTC), c, c, c, c, D(1), D(1), 5)
+            for d, c in zip(uptrend(), vals, strict=True)
+        ]
+
+    calls = []
+    real = catalog.compute
+    monkeypatch.setattr(catalog, "compute", lambda *a, **k: calls.append(1) or real(*a, **k))
+    tp.clear_indicator_cache()
+    first = tp._indicators(make(closes), 200)
+    assert (
+        tp._indicators(make(closes), 200) == first and len(calls) == 1
+    )  # the second call is served from the memo
+    changed = list(closes)
+    changed[-1] = changed[-1] + 1
+    assert (
+        tp._indicators(make(changed), 200) != first and len(calls) == 2
+    )  # a different last close is a different question
+    tp.clear_indicator_cache()
+    tp._indicators(make(closes), 200)
+    assert len(calls) == 3  # cleared: computed again
+    assert (
+        tp._indicators(make(closes)[:50], 200) is None
+    )  # too little history never reaches the memo
+
+
+def test_a_full_memo_is_emptied_rather_than_growing_without_limit(monkeypatch):
+    from datetime import UTC, datetime, time
+
+    from algo.data.reader import AdjBar
+    from algo.strategies import trend_pullback as tp
+
+    monkeypatch.setattr(tp, "_CACHE_MAX", 1)
+    tp.clear_indicator_cache()
+    bars = [
+        AdjBar(datetime.combine(d, time(3, 45), UTC), c, c, c, c, D(1), D(1), 5)
+        for d, c in uptrend().items()
+    ]
+    tp._indicators(bars, 100)
+    tp._indicators(bars, 200)  # the memo is full at one entry: it empties before storing this one
+    assert len(tp._CACHE) == 1
+
+
+def test_the_history_a_stock_needs_before_it_can_be_decided_on_is_the_trend_average_plus_the_warm_up():
+    assert TrendPullback.required_history({"trend_sma": 200, "entry_rsi": 25}) == 210
+    assert TrendPullback.required_history({"trend_sma": 100}) == 110
+
+
+def test_a_membership_knows_its_first_day():
+    assert members([1, 2], start=date(2024, 3, 1)).first_day() == date(2024, 3, 1)
+    assert IntervalMembership([]).first_day() is None

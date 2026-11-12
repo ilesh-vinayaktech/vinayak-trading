@@ -25,11 +25,15 @@ const OPTIONS = {
 };
 const SPEC = { name: "Pullback, large and mid caps", hypothesis: "Buying a 5-day RSI dip inside a 200-day uptrend beats buy-and-hold.", strategy_id: "trend_pullback",
   grid: { entry_rsi: [20, 25, 30], exit_rsi: [60, 65], max_positions: [10], trend_sma: [100, 200] }, universe: { segments: ["large", "mid"], before_segment_lists: "traded_value_rank", min_history_sessions: 252 },
-  timeframe: "1D", start: "2019-10-01", end: "2026-11-06", holdout_start: "2024-05-01", capital: "1000000", capacity_multiple: "3", broker: "zerodha", product: "DELIVERY", thresholds: THRESHOLDS, accept_survivorship_bias: false };
+  timeframe: "1D", start: "2019-10-01", end: "2026-11-06", holdout_start: "2024-05-01", capital: "1000000", capacity_multiple: "3", broker: "zerodha", product: "DELIVERY", slippage: { base_bps: "5", participation_bps_per_pct: "5", volatility_fraction: "0" }, thresholds: THRESHOLDS, accept_survivorship_bias: false };
 const STUDY = { experiment_id: 7, name: SPEC.name, strategy_id: "trend_pullback", hypothesis: SPEC.hypothesis, registered_at: "2026-11-12T06:00:00+00:00", holdout_opened_at: null, spec: SPEC,
   combinations: Array.from({ length: 12 }, () => ({ entry_rsi: 20 })), data_freeze: { id: "f", through: "2026-11-11" },
   cost_schedules: [{ schedule_id: "a", version: "1", broker: "zerodha", product: "DELIVERY", status: "extracted_unverified", valid_from: "2026-03-01", valid_until: null }],
   trials_planned: 12, trials_run: 0, sha256: "abcdef0123456789abcdef", owner_user_id: "u1" };
+const NO_RUN = { run: null, trials: [], universe_coverage: [] };
+const RUN = { run_id: 3, experiment_id: 7, status: "RUNNING", total: 12, done: 4, current: "entry_rsi 25, exit_rsi 60", error: null, requested_by: "u1", created_at: "2026-11-12T06:00:00+00:00", started_at: "2026-11-12T06:00:05+00:00", finished_at: null };
+const TRIAL = (id: number, rsi: number, sharpe: number | null, status = "DONE") => ({ trial_id: id, params: { entry_rsi: rsi, trend_sma: 200 }, status, metrics: sharpe === null ? null : { sharpe, cagr: 0.123, max_drawdown: -0.0912, trades: 1437, costs: 52000.4 }, error: status === "FAILED" ? "DataNotReady: x" : null, seconds: 164.6, finished_at: "2026-11-12T06:10:00+00:00" });
+const COVERAGE = [{ list: "2023-12-31", from: "2024-02-01", until: "2024-07-31", in_segments: 250, matched: 244, usable: 238 }];
 const who = (perms: string[]) => ({ user: { id: "u1", email: "j@example.com", name: "Jane", role: "TRADER", permissions: perms, mfa_enabled: true, enrolment_required: false, must_change_password: false } });
 const SAVED = { label: "UNVALIDATED", options: { universes: [], timeframes: [], params: { trend_sma: [], entry_rsi: [], exit_rsi: [], max_positions: [] } },
   strategies: [{ config_id: "c1", name: "My paper strategy", strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params: { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 5 }, in_use: true, created_at: "2026-11-11T10:00:00+00:00" }] };
@@ -132,6 +136,7 @@ describe("a new study", () => {
     fireEvent.click(screen.getByText("Small cap (251-500)"));
     fireEvent.click(screen.getByRole("button", { name: "Last 30%" }));
     fireEvent.change(screen.getByLabelText("Out-of-sample Sharpe, at least"), { target: { value: "1.0" } });
+    fireEvent.change(screen.getByLabelText("Slippage: fixed (bps)"), { target: { value: "8" } });
     fireEvent.click(register());
     expect(posted()).toHaveLength(0); // not yet: the dialog asks first
     fireEvent.click(await screen.findByRole("button", { name: "Register and lock" }));
@@ -140,6 +145,7 @@ describe("a new study", () => {
     expect(b).toMatchObject({
       name: "My study", strategy_id: "trend_pullback", timeframe: "1D", start: "2019-10-01", end: "2026-11-11", capital: "1000000", capacity_multiple: "3",
       broker: "zerodha", product: "DELIVERY", accept_survivorship_bias: false,
+      slippage: { base_bps: "8", participation_bps_per_pct: "5", volatility_fraction: "0" },
       grid: { trend_sma: [100, 200], entry_rsi: [20, 25], exit_rsi: [60], max_positions: [10] },
       universe: { segments: ["large", "mid", "small"], before_segment_lists: "traded_value_rank", min_history_sessions: 252 },
     });
@@ -204,7 +210,7 @@ describe("a new study", () => {
 
 describe("a registered study", () => {
   it("shows every locked setting, the pass bar in words, and that the holdout is untouched", async () => {
-    backend({ "GET /api/auth/me": who(["research:read"]), "GET /api/studies/7": STUDY });
+    backend({ "GET /api/auth/me": who(["research:read"]), "GET /api/studies/7": STUDY, "GET /api/studies/7/results": NO_RUN });
     mount(<StudyPage />);
     expect(await screen.findByText("Locked")).toBeInTheDocument();
     expect(screen.getByText("0 of 12 trials run")).toBeInTheDocument();
@@ -216,7 +222,7 @@ describe("a registered study", () => {
   });
   it("says when the holdout has been opened and when the owner accepted the survivorship bias", async () => {
     const opened = { ...STUDY, holdout_opened_at: "2026-11-20T06:00:00+00:00", spec: { ...SPEC, start: "2016-01-01", accept_survivorship_bias: true } };
-    backend({ "GET /api/auth/me": who(["research:read"]), "GET /api/studies/7": opened });
+    backend({ "GET /api/auth/me": who(["research:read"]), "GET /api/studies/7": opened, "GET /api/studies/7/results": NO_RUN });
     mount(<StudyPage />);
     expect(await screen.findByText("Holdout opened")).toBeInTheDocument();
     expect(screen.getByText(/bias accepted by the owner/)).toBeInTheDocument();
@@ -225,5 +231,64 @@ describe("a registered study", () => {
     backend({ "GET /api/auth/me": who(["research:read"]) });
     mount(<StudyPage />);
     expect(await screen.findByText("Could not load the study")).toBeInTheDocument();
+  });
+});
+
+describe("running a study", () => {
+  const open = (results: unknown, perms = ["research:read", "strategy:own"], extra: Record<string, unknown> = {}) => {
+    backend({ "GET /api/auth/me": who(perms), "GET /api/studies/7": STUDY, "GET /api/studies/7/results": results, ...extra });
+    mount(<StudyPage />);
+  };
+  it("offers to start the first run to someone who may, and queues it", async () => {
+    open(NO_RUN, undefined, { "POST /api/studies/7/runs": { run_id: 3 } });
+    expect(await screen.findByText("No trials run yet")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Run the trials" }));
+    await waitFor(() => expect(posted()[0]?.path).toBe("/api/studies/7/runs"));
+    expect(await screen.findByText("Run queued.")).toBeInTheDocument();
+  });
+  it("does not offer a run to someone who cannot run strategies", async () => {
+    open(NO_RUN, ["research:read"]);
+    expect(await screen.findByText("No trials run yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Run the trials" })).not.toBeInTheDocument();
+  });
+  it("shows progress while running, each finished combination's numbers, and the universe coverage", async () => {
+    open({ run: RUN, trials: [TRIAL(1, 20, 1.234), TRIAL(2, 25, null, "FAILED")], universe_coverage: COVERAGE });
+    expect(await screen.findByText("Running")).toBeInTheDocument();
+    expect(screen.getByText("4 of 12 combinations")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Progress" })).toHaveAttribute("aria-valuenow", "33");
+    expect(screen.getByText(/now: entry_rsi 25/)).toBeInTheDocument();
+    const row = screen.getByText("entry_rsi 20 · trend_sma 200").closest("tr") as HTMLElement;
+    expect(within(row).getByText("1.23")).toBeInTheDocument();
+    expect(within(row).getByText("12.3%")).toBeInTheDocument();
+    expect(within(row).getByText("-9.1%")).toBeInTheDocument();
+    expect(within(row).getByText("1437")).toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+    expect(screen.getByText("2023-12-31")).toBeInTheDocument();
+    expect(screen.getByText("238")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Run again" })).not.toBeInTheDocument(); // one at a time
+  });
+  it("lets a queued run be cancelled", async () => {
+    open({ run: { ...RUN, status: "QUEUED", done: 0, total: 0, current: null, started_at: null }, trials: [], universe_coverage: [] }, undefined, { "POST /api/studies/runs/3/cancel": { ok: true } });
+    expect(await screen.findByText("Waiting for a worker")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(posted()[0]?.path).toBe("/api/studies/runs/3/cancel"));
+  });
+  it("shows why a run stopped and offers to run again", async () => {
+    open({ run: { ...RUN, status: "FAILED", current: null, error: "no stocks to trade: the chosen segments hold none", finished_at: "2026-11-12T07:00:00+00:00" }, trials: [], universe_coverage: [] });
+    expect(await screen.findByText("The run stopped")).toBeInTheDocument();
+    expect(screen.getByText(/no stocks to trade/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Run again" })).toBeInTheDocument();
+  });
+  it("shows a finished run without a progress bar, and the server's reason when starting is refused", async () => {
+    open({ run: { ...RUN, status: "DONE", done: 12, current: null, finished_at: "2026-11-12T08:00:00+00:00" }, trials: [TRIAL(1, 20, 0.5)], universe_coverage: [] }, undefined, { "POST /api/studies/7/runs": [400, { detail: "this study already has a run queued or running" }] });
+    expect(await screen.findByText("Finished")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Run again" }));
+    expect(await screen.findByText("this study already has a run queued or running")).toBeInTheDocument();
+  });
+  it("says so when the results cannot be loaded", async () => {
+    backend({ "GET /api/auth/me": who(["research:read"]), "GET /api/studies/7": STUDY });
+    mount(<StudyPage />);
+    expect(await screen.findByText("Could not load the results.")).toBeInTheDocument();
   });
 });

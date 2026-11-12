@@ -44,6 +44,15 @@ class UniverseSpec(BaseModel):
     min_history_sessions: int = Field(default=252, ge=0, le=2000)
 
 
+class SlippageSpec(BaseModel):
+    """What an order costs beyond charges: base bps, bps per 1% of the day's volume taken, and a share of the day's range."""
+
+    model_config = ConfigDict(extra="forbid")
+    base_bps: Decimal = Field(default=Decimal(5), ge=0, le=1000)
+    participation_bps_per_pct: Decimal = Field(default=Decimal(5), ge=0, le=1000)
+    volatility_fraction: Decimal = Field(default=Decimal(0), ge=0, le=1)
+
+
 class StudySpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=80)
@@ -61,6 +70,7 @@ class StudySpec(BaseModel):
     capacity_multiple: Decimal = Field(default=Decimal(3), ge=1, le=10)
     broker: str = Field(min_length=1, max_length=40)
     product: Literal["DELIVERY"] = "DELIVERY"
+    slippage: SlippageSpec = Field(default_factory=SlippageSpec)
     thresholds: dict[str, Decimal]
     accept_survivorship_bias: bool = False
 
@@ -88,6 +98,14 @@ def _check_grid(s: StudySpec, max_trials: int) -> None:
                 params.model_validate({name: v})
             except ValidationError as e:
                 raise StudyError(f"{name}={v} is not allowed by {s.strategy_id}") from e
+    need = max(
+        getattr(STRATEGIES[s.strategy_id][0], "required_history", lambda _: 0)(c)
+        for c in combinations(s)
+    )
+    if s.universe.min_history_sessions < need:
+        raise StudyError(
+            f"stocks need at least {need} sessions of history for this strategy's longest lookback; the study asks for {s.universe.min_history_sessions}"
+        )
     n = len(combinations(s))
     if n > max_trials:
         raise StudyError(

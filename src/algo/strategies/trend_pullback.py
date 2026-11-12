@@ -43,17 +43,37 @@ class TrendPullbackParams(StrategyParams):
     max_positions: Literal[5, 10, 20] = 10
 
 
+_CACHE: dict[tuple[Any, ...], tuple[Decimal, Decimal, Decimal] | None] = {}
+_CACHE_MAX = 3_000_000
+
+
+def clear_indicator_cache() -> None:
+    """Forget the memoised indicator values (a study run calls this first, so a changed adjustment is never served stale)."""
+    _CACHE.clear()
+
+
 def _indicators(bars: Sequence[AdjBar], trend: int) -> tuple[Decimal, Decimal, Decimal] | None:
-    """(close, SMA(trend), RSI(RSI_LEN)) on the last bar, or None when the history is too short."""
+    """(close, SMA(trend), RSI(RSI_LEN)) on the last bar, or None when the history is too short.
+
+    A pure function of the bars it reads, so it is memoised on what identifies them (stock, first and last bar, length, their
+    closes, trend): the trials of one study differ in thresholds, not in these values, and share them."""
     if len(bars) < trend + WARMUP:
         return None
+    first, last = bars[0], bars[-1]
+    key = (last.owner, first.ts, last.ts, len(bars), first.close, last.close, trend)
+    if key in _CACHE:
+        return _CACHE[key]
     series = catalog.Bars(
         [b.open for b in bars], [b.high for b in bars], [b.low for b in bars],
         [b.close for b in bars], [b.volume for b in bars],
     )  # fmt: skip
-    sma = core.sma(series.close, trend)[-1]
+    sma = core.sma_last(series.close, trend)
     rsi = catalog.compute(f"rsi:{RSI_LEN}", series)[2]["value"][-1]
-    return None if sma is None or rsi is None else (bars[-1].close, sma, rsi)
+    out = None if sma is None or rsi is None else (last.close, sma, rsi)
+    if len(_CACHE) >= _CACHE_MAX:
+        _CACHE.clear()
+    _CACHE[key] = out
+    return out
 
 
 def decide(
@@ -113,6 +133,11 @@ class TrendPullback(Strategy):
         self.p = params
         self.membership = membership
         self.audit: list[dict[str, Any]] = []
+
+    @classmethod
+    def required_history(cls, params: dict[str, Any]) -> int:
+        """Sessions of history a stock needs before this strategy can decide on it (the longest lookback plus warm-up)."""
+        return int(params["trend_sma"]) + WARMUP
 
     def universe(self, ctx: Context) -> list[int]:
         return self.membership.ever()

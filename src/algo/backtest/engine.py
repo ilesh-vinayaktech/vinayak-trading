@@ -186,8 +186,10 @@ def run_backtest(
     cfg: BacktestConfig,
     *,
     code_version: str = "unversioned",
+    reader: BarReader | None = None,
 ) -> RunResult:
-    reader, strict = BarReader.for_env(conn), cfg.mode is Mode.STRICT
+    """`reader` pins the price source (a study uses frozen Kite data); default: the environment."""
+    reader, strict = reader or BarReader.for_env(conn), cfg.mode is Mode.STRICT
     req = strategy.requirements()
     clock = SimClock(datetime.combine(cfg.start, time(0), UTC))
     res = RunResult(strategy.id, strategy.version, strategy.params.model_dump_json(),

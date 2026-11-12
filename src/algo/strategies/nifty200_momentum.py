@@ -62,6 +62,10 @@ class IntervalMembership:
     def ever(self) -> list[int]:
         return sorted({i.instrument_id for i in self._ivs})
 
+    def first_day(self) -> date | None:
+        """The first day anyone is a member (None when nobody ever is)."""
+        return min((i.start for i in self._ivs), default=None)
+
 
 class MomentumParams(StrategyParams):
     lookback: Literal[126, 189, 252]

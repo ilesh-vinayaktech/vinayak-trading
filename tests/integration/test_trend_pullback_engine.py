@@ -112,3 +112,21 @@ def test_orchestrated_engineering_run_replays_to_the_same_manifest(market):
     a, b = one(), one()
     assert a.manifest == b.manifest and a.manifest["purpose"] == "ENGINEERING_TEST_ONLY"
     assert a.manifest["strategy"]["id"] == "trend_pullback"
+
+
+def test_the_caller_can_pin_the_price_reader_so_the_environment_does_not_choose_the_source(market):
+    from algo.data.reader import BarReader
+
+    conn, ids = market
+    s = TrendPullback(P, IntervalMembership([Interval(i, date(2000, 1, 1), None) for i in ids]))
+    cfg = BacktestConfig(start=START, end=END, initial_cash=D(1_000_000), cost=ZERO)
+    on_nse = run_backtest(conn, s, cfg, reader=BarReader(conn, source="nse"))
+    assert (
+        on_nse.result_hash == run_backtest(conn, s, cfg).result_hash
+    )  # the default here is bhavcopy: the same
+    on_kite = run_backtest(
+        conn, s, cfg, reader=BarReader(conn, source="kite", publish_lag=timedelta(0))
+    )
+    assert not on_kite.trades and len(on_kite.blocked) == len(
+        ids
+    )  # this data has no Kite bars: every name is blocked

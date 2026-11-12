@@ -35,6 +35,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const [capital, setCapital] = useState("1000000");
   const [capacity, setCapacity] = useState("3");
   const [broker, setBroker] = useState(options.brokers[0] ? `${options.brokers[0].broker}|${options.brokers[0].product}` : "");
+  const [slip, setSlip] = useState({ base_bps: "5", participation_bps_per_pct: "5", volatility_fraction: "0" });
   const [thresholds, setThresholds] = useState<Record<string, string>>(options.thresholds);
   const [acceptBias, setAcceptBias] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -60,7 +61,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     name: name.trim(), hypothesis: hypothesis.trim(), strategy_id: strategy?.id ?? "", grid,
     universe: { segments, before_segment_lists: beforeLists, min_history_sessions: Number(minHistory) || 0 },
     timeframe: "1D", start, end, holdout_start: holdout, capital, capacity_multiple: capacity, broker: b ?? "", product: product ?? "DELIVERY",
-    thresholds, accept_survivorship_bias: acceptBias,
+    slippage: slip, thresholds, accept_survivorship_bias: acceptBias,
   };
   const register = useMutation({
     mutationFn: () => api.registerStudy(body),
@@ -178,6 +179,11 @@ export function StudyForm({ options }: { options: StudyOptions }) {
                 ))}
               </select>
             </Field>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field id="slip-base" label="Slippage: fixed (bps)" hint="Cost of every order beyond charges. 100 bps = 1%."><input id="slip-base" inputMode="decimal" value={slip.base_bps} onChange={(e) => setSlip((s) => ({ ...s, base_bps: e.target.value }))} className={inputFull} /></Field>
+            <Field id="slip-part" label="Slippage: per 1% of volume (bps)" hint="Extra cost for taking a larger share of the day's volume."><input id="slip-part" inputMode="decimal" value={slip.participation_bps_per_pct} onChange={(e) => setSlip((s) => ({ ...s, participation_bps_per_pct: e.target.value }))} className={inputFull} /></Field>
+            <Field id="slip-vol" label="Slippage: share of the day's range (0-1)" hint="Wider-moving stocks cost more to trade."><input id="slip-vol" inputMode="decimal" value={slip.volatility_fraction} onChange={(e) => setSlip((s) => ({ ...s, volatility_fraction: e.target.value }))} className={inputFull} /></Field>
           </div>
         </SettingsSection>
 

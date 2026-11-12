@@ -99,3 +99,103 @@ def test_a_study_that_cannot_be_honoured_is_refused_with_the_reason_and_nothing_
     assert r.status_code == 400 and "survivorship" in r.json()["detail"]
     assert c.post("/api/studies", json={**body(), "colour": "blue"}).status_code == 422
     assert c.get("/api/studies").json()["studies"] == [] and audit_actions(conn) == []
+
+
+def test_a_run_is_requested_watched_and_its_trials_read_back_without_the_daily_series(env):
+    from algo.research import study_jobs
+
+    conn, app = env
+    c = sign_in(app, "jane@example.com")
+    sid = c.post("/api/studies", json=body()).json()["experiment_id"]
+    empty = c.get(f"/api/studies/{sid}/results").json()
+    assert empty == {"run": None, "trials": [], "universe_coverage": []}
+    rid = c.post(f"/api/studies/{sid}/runs").json()["run_id"]
+    assert c.post(f"/api/studies/{sid}/runs").status_code == 400  # one active run per study
+    queued = c.get(f"/api/studies/{sid}/results").json()["run"]
+    assert (queued["run_id"], queued["status"], queued["done"], queued["total"]) == (
+        rid,
+        "QUEUED",
+        0,
+        0,
+    )
+    study_jobs.start(
+        conn,
+        rid,
+        12,
+        1,
+        {
+            "universe_coverage": [
+                {
+                    "list": "2023-12-31",
+                    "from": "2024-02-01",
+                    "until": "2024-07-31",
+                    "in_segments": 250,
+                    "matched": 244,
+                    "usable": 240,
+                }
+            ]
+        },
+        NOW,
+    )
+    study_jobs.save_trial(
+        conn,
+        sid,
+        {"entry_rsi": 20},
+        "h1",
+        "DONE",
+        NOW,
+        metrics={"sharpe": 1.2, "trades": 40},
+        returns=[0.01, -0.02],
+        seconds=3.5,
+    )
+    study_jobs.save_trial(
+        conn, sid, {"entry_rsi": 25}, "h2", "FAILED", NOW, error="DataNotReady: x"
+    )
+    r = c.get(f"/api/studies/{sid}/results").json()
+    assert r["run"]["status"] == "RUNNING" and (r["run"]["done"], r["run"]["total"]) == (1, 12)
+    assert [(t["params"]["entry_rsi"], t["status"]) for t in r["trials"]] == [
+        (20, "DONE"),
+        (25, "FAILED"),
+    ]
+    assert (
+        r["trials"][0]["metrics"]["sharpe"] == 1.2
+        and "returns" not in r["trials"][0]
+        and r["trials"][1]["error"] == "DataNotReady: x"
+    )
+    assert r["universe_coverage"][0]["usable"] == 240
+    assert audit_actions_like(conn, "study.run%") == ["study.run_requested"]
+
+
+def audit_actions_like(conn, like):
+    return [
+        x[0]
+        for x in conn.execute(
+            "SELECT action FROM portal_audit WHERE action LIKE %s ORDER BY audit_id", (like,)
+        )
+    ]
+
+
+def test_only_the_person_who_may_run_strategies_starts_or_cancels_a_run_and_a_started_run_cannot_be_cancelled(
+    env,
+):
+    from algo.research import study_jobs
+
+    conn, app = env
+    jane, viewer = sign_in(app, "jane@example.com"), sign_in(app, "viewer@example.com")
+    sid = jane.post("/api/studies", json=body()).json()["experiment_id"]
+    assert viewer.post(f"/api/studies/{sid}/runs").status_code == 403
+    assert viewer.get(f"/api/studies/{sid}/results").status_code == 200
+    rid = jane.post(f"/api/studies/{sid}/runs").json()["run_id"]
+    assert viewer.post(f"/api/studies/runs/{rid}/cancel").status_code == 403
+    assert jane.post(f"/api/studies/runs/{rid}/cancel").json() == {"ok": True}
+    assert jane.get(f"/api/studies/{sid}/results").json()["run"]["status"] == "CANCELLED"
+    assert jane.post(f"/api/studies/runs/{rid}/cancel").status_code == 400  # already cancelled
+    assert jane.post("/api/studies/9999/runs").status_code == 404
+    rid2 = jane.post(f"/api/studies/{sid}/runs").json()["run_id"]
+    study_jobs.claim(conn, NOW)
+    assert jane.post(f"/api/studies/runs/{rid2}/cancel").status_code == 400  # it has started
+    assert audit_actions_like(conn, "study.run%") == [
+        "study.run_requested",
+        "study.run_cancelled",
+        "study.run_requested",
+    ]

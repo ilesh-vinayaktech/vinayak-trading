@@ -721,6 +721,7 @@ export const studySpecSchema = z.object({
   capacity_multiple: z.string(),
   broker: z.string(),
   product: z.string(),
+  slippage: z.object({ base_bps: z.string(), participation_bps_per_pct: z.string(), volatility_fraction: z.string() }),
   thresholds: z.record(z.string(), z.string()),
   accept_survivorship_bias: z.boolean(),
 });
@@ -745,3 +746,35 @@ export const studyCreatedSchema = z.object({ experiment_id: z.number() });
 export type StudyOptions = z.infer<typeof studyOptionsSchema>;
 export type StudySpec = z.infer<typeof studySpecSchema>;
 export type Study = z.infer<typeof studySchema>;
+
+export const studyRunSchema = z.object({
+  run_id: z.number(),
+  experiment_id: z.number(),
+  status: z.enum(["QUEUED", "RUNNING", "DONE", "FAILED", "CANCELLED"]),
+  total: z.number(),
+  done: z.number(),
+  current: z.string().nullable(),
+  error: z.string().nullable(),
+  requested_by: z.string().nullable(),
+  created_at: z.string(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+});
+export const studyTrialSchema = z.object({
+  trial_id: z.number(),
+  params: z.record(z.string(), z.number()),
+  status: z.enum(["DONE", "FAILED"]),
+  metrics: z.record(z.string(), z.number().nullable()).nullable(),
+  error: z.string().nullable(),
+  seconds: z.number().nullable(),
+  finished_at: z.string(),
+});
+export const studyResultsSchema = z.object({
+  run: studyRunSchema.nullable(),
+  trials: z.array(studyTrialSchema),
+  universe_coverage: z.array(z.object({ list: z.string(), from: z.string(), until: z.string(), in_segments: z.number(), matched: z.number(), usable: z.number() })),
+});
+export const studyRunCreatedSchema = z.object({ run_id: z.number() });
+export type StudyRun = z.infer<typeof studyRunSchema>;
+export type StudyTrial = z.infer<typeof studyTrialSchema>;
+export type StudyResults = z.infer<typeof studyResultsSchema>;
