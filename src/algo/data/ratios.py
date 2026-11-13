@@ -788,7 +788,7 @@ def _valuation(
         _pick(q0.quarter, "FaceValueOfEquityShareCapital"),
     )
     shares = _div(paid, face)
-    if why is None and shares is None:
+    if why is None and (shares is None or shares <= 0):  # a filing can report zero paid-up capital
         why = "share count not in the filing"
     if why is not None or m.price is None or shares is None:
         for k in keys:

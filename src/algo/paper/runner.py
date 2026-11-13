@@ -31,8 +31,12 @@ from algo.data.universe import Interval
 from algo.live.market_calendar import windows_for
 from algo.paper import book
 from algo.paper.universe import FOREVER, UniverseError, current_universe
+from algo.research import fundamentals_book
+from algo.research.study import UniverseSpec
+from algo.research.study_universe import build as segment_universe
 from algo.strategies.nifty200_momentum import DataNotReady, IntervalMembership
 from algo.strategies.registry import STRATEGIES
+from algo.strategies.screener import ScreenerParams, ScreenerStrategy, ScreenSpec
 from algo.strategy.context import Context, DataAccess, PortfolioView
 
 BUY_BUFFER = Decimal(
@@ -155,7 +159,18 @@ def _decide(
     lake_root: Path,
 ) -> Outcome:
     strategy_cls, params_cls = STRATEGIES[acct["strategy_id"]]
-    members, universe = current_universe(conn, lake_root, day, acct["universe"])
+    screen = acct["screen"]
+    if screen is None:
+        members, universe = current_universe(conn, lake_root, day, acct["universe"])
+    else:  # a screener picks from market-cap classes as AMFI's list in force put each stock on this day
+        members, coverage = segment_universe(
+            conn, UniverseSpec(segments=screen["segments"]), day, day
+        )
+        universe = {
+            "universe": acct["universe"],
+            "segments": screen["segments"],
+            "coverage": coverage,
+        }
     reader = BarReader.for_env(conn)
     held = book.load(conn, user_id).quantities()
     loaded, signal = {}, {}
@@ -174,7 +189,16 @@ def _decide(
         keep = sorted(members.ever(), key=lambda i: (-value[i], i))[:cap]
         members = IntervalMembership([Interval(i, FOREVER, None) for i in keep])
         universe = {**universe, "capped_to": cap}
-    strategy = strategy_cls(params_cls(**acct["params"]), members)
+    if screen is None:
+        strategy = strategy_cls(params_cls(**acct["params"]), members)
+    else:
+        spec = ScreenSpec.model_validate(screen["screen"])
+        filings = (  # filed ratios as known by the decision day (nothing later exists yet)
+            fundamentals_book.load(conn, sorted(set(members.ever()) | set(held)), day, day)
+            if spec.needs_fundamentals()
+            else None
+        )
+        strategy = ScreenerStrategy(ScreenerParams(**acct["params"]), members, spec, filings)
     ident = (strategy.id, strategy.version, strategy.params_hash)
     book.apply_actions(
         conn, user_id, {i: loaded[i].recs for i in held if i in loaded}, through=day, now=now
@@ -220,6 +244,7 @@ def _decide(
 
     repo = InstrumentRepo(conn)
     exits, entries = audit.get("exits", {}), set(audit.get("entries", []))
+    entry_reason = audit.get("entry_reason", "entry: oversold in an uptrend")
     sells: list[Proposal] = []
     buys: list[Proposal] = []
     for iid in sorted(set(targets) | set(held)):
@@ -246,9 +271,7 @@ def _decide(
                     iid,
                     delta,
                     px,
-                    "entry: oversold in an uptrend"
-                    if iid in entries
-                    else "increase to the target weight",
+                    entry_reason if iid in entries else "increase to the target weight",
                 )
             )
     available = ledger.cash + sum((q * px for _, _, q, px, _ in sells), Decimal(0)) * SELL_PROCEEDS

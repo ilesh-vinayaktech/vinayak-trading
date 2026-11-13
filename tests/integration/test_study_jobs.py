@@ -2,6 +2,7 @@
 
 from datetime import UTC, date, datetime
 
+import psycopg
 import pytest
 
 from algo.backtest.validation import registry
@@ -75,3 +76,48 @@ def test_the_latest_verdict_report_is_the_newest_one(env):
         )
     got = study_jobs.latest_report(conn, exp)
     assert got["n_trials"] == 2 and got["passed"] is False and len(got["gates"]) == 14
+
+
+# --- several workers at once: each takes its own run, and a restart only recovers runs nobody is working on ---
+def _second_study(conn, owner):
+    return registry.register(conn, name="S2", strategy_id="s", hypothesis="h", style="long_only",
+                             param_ranges={"a": [1, 2]}, holdout=(date(2026, 1, 1), date(2026, 2, 1)),
+                             now=NOW, study={"combinations": [{"a": 1}, {"a": 2}]})  # fmt: skip
+
+
+def test_two_workers_take_different_runs(env, pg_url):
+    conn, owner, exp = env
+    first = study_jobs.enqueue(conn, exp, owner, NOW)
+    second = study_jobs.enqueue(conn, _second_study(conn, owner), owner, NOW)
+    with psycopg.connect(pg_url, autocommit=True) as other:
+        assert study_jobs.claim(conn, NOW) == first
+        assert study_jobs.claim(other, NOW) == second  # not the one the first worker holds
+        assert study_jobs.claim(other, NOW) is None
+
+
+def test_a_starting_worker_leaves_alone_a_run_another_live_worker_is_running(env, pg_url):
+    conn, owner, exp = env
+    run = study_jobs.enqueue(conn, exp, owner, NOW)
+    with psycopg.connect(pg_url, autocommit=True) as busy:
+        assert study_jobs.claim(busy, NOW) == run
+        assert study_jobs.requeue_orphans(conn) == 0  # a new worker starts: it is not its to take
+        assert study_jobs.get_run(conn, run)["status"] == "RUNNING"
+
+
+def test_a_run_whose_worker_died_is_put_back_in_the_queue(env, pg_url):
+    conn, owner, exp = env
+    run = study_jobs.enqueue(conn, exp, owner, NOW)
+    with psycopg.connect(pg_url, autocommit=True) as dying:
+        assert study_jobs.claim(dying, NOW) == run
+    assert study_jobs.requeue_orphans(conn) == 1  # its connection is gone, so is its claim
+    assert study_jobs.get_run(conn, run)["status"] == "QUEUED"
+    assert study_jobs.claim(conn, NOW) == run
+
+
+def test_a_finished_run_is_released_so_nothing_holds_it(env, pg_url):
+    conn, owner, exp = env
+    run = study_jobs.enqueue(conn, exp, owner, NOW)
+    with psycopg.connect(pg_url, autocommit=True) as worker:
+        study_jobs.claim(worker, NOW)
+        study_jobs.release(worker, run)
+        assert study_jobs.requeue_orphans(conn) == 1  # still marked RUNNING, but nobody holds it

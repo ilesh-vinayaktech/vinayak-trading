@@ -176,14 +176,14 @@ export default function BacktestReportPage() {
         <StatCard label="Closed trades" value={s.trades} hint={`${s.wins} won · ${s.losses} lost`} />
         <StatCard label="Win rate" value={pct(s.win_rate)} />
         <StatCard label="Profit factor" value={s.profit_factor ?? "-"} hint="Money won per ₹1 lost" />
-        <StatCard label="Charges paid" value={rs(s.charges)} tone={Number.parseFloat(s.cost_drag ?? "0") > 0.3 ? "warn" : undefined}
+        <StatCard label="Charges paid" value={rs(h.charges)} tone={Number.parseFloat(s.cost_drag ?? "0") > 0.3 ? "warn" : undefined}
           hint={s.cost_drag === null ? `Average hold ${s.avg_holding_days ?? "-"} days` : `${pct(s.cost_drag)} of the profit before charges · average hold ${s.avg_holding_days ?? "-"} days`} />
       </div>
 
       <Panel title="Account value over time">
         <div className="px-5 py-4">
           {r.curve.length > 1 ? <LineChart points={r.curve.map((p) => ({ date: p.date, level: p.equity }))} compare={r.benchmark?.curve} /> : <p className="text-sm text-ink-soft">No equity curve was stored for this run.</p>}
-          <p className="mt-2 text-xs text-ink-soft">Closed trades made {rs(s.net_pnl)} after charges (average win {rs(s.avg_win)}, average loss {rs(s.avg_loss)}). The total above also counts shares still held and dividends, so the two can differ.</p>
+          <p className="mt-2 text-xs text-ink-soft">Closed trades made {rs(s.net_pnl)} after charges (average win {rs(s.avg_win)}, average loss {rs(s.avg_loss)}). The total above adds {rs(h.dividends)} of dividends and the gain on shares still held (less what it cost to buy them), so the two differ. Charges paid is for the whole run, including those held shares.</p>
         </div>
       </Panel>
 

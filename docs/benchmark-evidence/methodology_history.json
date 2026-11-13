@@ -1,0 +1,470 @@
+{
+ "what": "official methodology documents as archived by the Internet Archive (web.archive.org); the text on total return indices and dividends is hashed per edition",
+ "limit": "the Archive's copies start in 2018 (Nifty 50) and 2020 (all equity indices); earlier editions could not be retrieved",
+ "editions": {
+  "methodology_equity": [
+   {
+    "captured": "2020-09-25",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20200925120218id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "9652cf01cb78f7b7103fece2f0f55188638de70599e68079e83def9efe477c32",
+    "bytes": 1048576,
+    "issued_line": "",
+    "tri_dividend_lines": 0,
+    "tri_dividend_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "captured": "2020-11-01",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20201101054734id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "af7fd63c879a6710c3d64b3fd0e80b3c75eb4ef86056993d387b7c10cf3b4516",
+    "bytes": 2848339,
+    "issued_line": "october 2020",
+    "tri_dividend_lines": 63,
+    "tri_dividend_text_sha256": "558d6615c0cc1a4ccfa22c84573a5fcba5df8319cfe6740e4cfaa35b31a2657b",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2021-05-16",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20210516084903id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "c2a4b123f8c4f9c7b2b53a52c82c593f9e73102c476bf639479ffd8c59f680f1",
+    "bytes": 1671422,
+    "issued_line": "may 2021",
+    "tri_dividend_lines": 63,
+    "tri_dividend_text_sha256": "609e5198833ccfc12913475083f6ba6647ecc38951154b747687bc7734c026df",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2021-06-29",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20210629033420id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "bb85706745a88ca57ff163d7025f487f8b3b4aecb9acd1c236b0ed9240be5679",
+    "bytes": 1673162,
+    "issued_line": "may 2021",
+    "tri_dividend_lines": 63,
+    "tri_dividend_text_sha256": "609e5198833ccfc12913475083f6ba6647ecc38951154b747687bc7734c026df",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2021-09-15",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20210915045546id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "f42a1d9ce0b45a6e460b3c0305ffcf11c184564055d38306839d42f21fc8f49a",
+    "bytes": 1758324,
+    "issued_line": "august 2021",
+    "tri_dividend_lines": 75,
+    "tri_dividend_text_sha256": "f5aec75867a4e59fb04f976ff0e2974220fb78bfcc5991accaf598958cfa8237",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2021-11-13",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20211113201832id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "d2ccb5019aff1facd98c81281f8366cf6e2ff7648ff0861b0d29435ae2f9b3b9",
+    "bytes": 1786911,
+    "issued_line": "october 2021",
+    "tri_dividend_lines": 74,
+    "tri_dividend_text_sha256": "d5e402e26f8fbbd8936be0287ef8be0c71cb5b581a5b57cf2b1da31dd10cf35c",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2022-10-20",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20221020053715id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "58a733fb576afd60b289dd9e4b3352bbed3286380d50f4d524293547f36ee2a7",
+    "bytes": 2107907,
+    "issued_line": "october 2022",
+    "tri_dividend_lines": 73,
+    "tri_dividend_text_sha256": "33295e45db29b1207316b6d75e167b04606d29f4f257ba6edb571f490a77985c",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2023-04-05",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20230405040257id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "a116f1f67c8c659d38d2f332b505a2f6f78e7756baad9336e718d07956a54345",
+    "bytes": 2163009,
+    "issued_line": "march 2023",
+    "tri_dividend_lines": 75,
+    "tri_dividend_text_sha256": "b31c3e40618c7b443cf53581c0f78273ea0811b67d5d4cf8ea18200124ba2e50",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2023-12-03",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20231203212006id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "2a08db5872a6e19f0c3812e61e0127769e85b4efbd1309bb53e8f92337e6f417",
+    "bytes": 2257855,
+    "issued_line": "september 2023",
+    "tri_dividend_lines": 75,
+    "tri_dividend_text_sha256": "fecc8db5f5b0b337caa5bbe0f3b84bb1b0ba6e6db9580f9e789b6fd8b88e99b5",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-01-17",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20240117020639id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "56166274ed2d8d9ef0a84b67b787127de6f2277a83cb1a766a46571c4f7ab1b5",
+    "bytes": 2306497,
+    "issued_line": "january 2024",
+    "tri_dividend_lines": 85,
+    "tri_dividend_text_sha256": "7baeac46947c6a197ed68b9d60ede0c8266895fb318475ee749bf68e552717ef",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-05-20",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20240520055306id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "74714a8f554bb1fbd4f025f48fbce3b08af87187d8ca6833001dc0a352e42766",
+    "bytes": 2480544,
+    "issued_line": "may 2024",
+    "tri_dividend_lines": 84,
+    "tri_dividend_text_sha256": "b4994a894bd2e5fad0ba910816318a781a16ce5f329fdcb17bcd8410e741c553",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-06-09",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20240609192551id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "b39c22b84a3e9ce351f72a5ecd8ef766b1066d2410c4dcf2cc4b77eb0fd503c5",
+    "bytes": 2546411,
+    "issued_line": "june 2024",
+    "tri_dividend_lines": 84,
+    "tri_dividend_text_sha256": "7d2e29b2492732e47074dac37cdfc7f4f98f05947de06503cd88b6ea8e08462b",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-08-25",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20240825130405id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "84c217d90f15da67df81565f34762a7bdf94e830999815bfaa1d2e41847f7c15",
+    "bytes": 2669586,
+    "issued_line": "august 2024",
+    "tri_dividend_lines": 87,
+    "tri_dividend_text_sha256": "872e00cb6050e92297996ef1d42719b8808fa44c98b4b1006df562e4660ffd24",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-11-09",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20241109193727id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "9eac157e992a9751ff2af3e73b30a6289390fb179ae7c3631841bc3f1678bf2d",
+    "bytes": 2780423,
+    "issued_line": "november 2024",
+    "tri_dividend_lines": 87,
+    "tri_dividend_text_sha256": "423ddb5a626b3b2413b3ab6c0547f7e285995aa6d1dd54d9751e4af19fa4acc3",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-11-17",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20241117123600id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "773e416bceb0fe97935f16d29032758727fc0a2af943f688baf296b4e5121d42",
+    "bytes": 2786358,
+    "issued_line": "november 2024",
+    "tri_dividend_lines": 87,
+    "tri_dividend_text_sha256": "5af1e88c28b4ba265b5e830a3f4f660e62cb5dc4da5bfe4bd59aa357a9eede67",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2024-12-24",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20241224160614id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "f3e1c1ff8e084f08c1efb24f7f3a58c942d2814e5a4274164a916927f7abdaf2",
+    "bytes": 2855412,
+    "issued_line": "december 2024",
+    "tri_dividend_lines": 87,
+    "tri_dividend_text_sha256": "6248701e8b7c1865e71b1ba8ab4952459423ee5d91b20f33aff9f78b994502ae",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-01-24",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250124093658id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "8de5418c1ed4fb5e0b8d6f4547135e6c60cb996affb8b239bcb560e0bfad4a61",
+    "bytes": 2873134,
+    "issued_line": "december 2024",
+    "tri_dividend_lines": 87,
+    "tri_dividend_text_sha256": "6248701e8b7c1865e71b1ba8ab4952459423ee5d91b20f33aff9f78b994502ae",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2025-02-09",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250209070343id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "7feabb0d1431a40f6f29e4ae633b10b8d71eb974fcf205498064859bc889ec99",
+    "bytes": 1048576,
+    "issued_line": "",
+    "tri_dividend_lines": 0,
+    "tri_dividend_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-03-28",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250328091301id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "f4732aedb14f61451e7754fffbb6667e5e701fb9bc35ebefccd129174e55ad52",
+    "bytes": 2949136,
+    "issued_line": "march 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "c6485dab3b9d03e71a5b66da895bdc0af3f9329479b0d866905d99a42432e203",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-04-27",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250427120138id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "a57b45fb5e43d38adc0eb05edcdc6cc225400568ddcd67796e70c80778ef2e6b",
+    "bytes": 2976153,
+    "issued_line": "april 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "b108149acdaf073efcc37c255655ee9d7aaac34b26806a4b6f3b209f5b128c18",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-07-09",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250709154009id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "34a13426f5c552527b220e8d13d863d63d6c2bfdd22a625afc36d7f0380bfc72",
+    "bytes": 3132877,
+    "issued_line": "june 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "6803d072bde8689bce36ccef9b43289321cc93a28672ac4046ffe4d3d34828f8",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-07-31",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250731115518id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "48d1ba56b6a1062c5f0604396d52470089f811af948476f2296cf38ac92aee10",
+    "bytes": 3136523,
+    "issued_line": "june 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "ef3d3778910806b4965d6f25a8391bef9305773774c01396fad54c19ef685f95",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-08-06",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250806102125id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "738551a0d431333811f74f72bce540b75873a07816731ea39fe0cf95edb61b1f",
+    "bytes": 3172737,
+    "issued_line": "august 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "5fb8e0ad55e9d8ebe1a3f71a225dc7fd398e934a41ff15c089a6a67a1f6b8122",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-09-13",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20250913211315id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "dd19458198d5155d373692efa2743c1e95aea059aefb4bfef879b5c142c03a33",
+    "bytes": 3225094,
+    "issued_line": "september 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "35cec3b7f18a010d5dd3071a6e7711e5117ed0423937be69f8026b8ebd4e8ce8",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-11-04",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20251104232419id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "e8fa93656ad2045d7fcdfc239779bb43d6bf91c5adbabda7ef33e35d54a9ed14",
+    "bytes": 3203562,
+    "issued_line": "october 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "073d8202b44e24883ed1eb33df8a26cfc499832fd9cf6b8889f23be1129cf70c",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-11-29",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20251129062415id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "56bc89bdf4392f483c169f49fa5d3fb7a9a26afc865196926ce70e9b7bbd23d0",
+    "bytes": 3219458,
+    "issued_line": "november 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "952e9fe8688f519cab27011fc7606b05134a0e459b757d20ade04a64e2af8638",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-12-11",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20251211054905id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "b8b3bebe29a554d9af71e089ab2d32e83d682bd8d366877326483f93bba01750",
+    "bytes": 3230154,
+    "issued_line": "november 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "35cec3b7f18a010d5dd3071a6e7711e5117ed0423937be69f8026b8ebd4e8ce8",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-01-08",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260108174603id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "2093241f585a57fce9d758a3fc53ec484cf79c3d3c9f76a541aa7a6bbac388bf",
+    "bytes": 3233169,
+    "issued_line": "december 2025",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "35cec3b7f18a010d5dd3071a6e7711e5117ed0423937be69f8026b8ebd4e8ce8",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2026-01-28",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260128081512id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "46bb303d36c9f3886572880bd5ee75b45b49b54fee0f46e1380a653ce9b18b18",
+    "bytes": 3248487,
+    "issued_line": "january 2026",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "e00409e4d2264d067abe4d94d0f2baa95419bfd44156e3677bbe3fa0d2fb3a58",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-03-02",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260302003936id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "58b760907e11cc8051fcefddfc8238bdb5121bc41a98e4ec2cb497081a759a6c",
+    "bytes": 3260093,
+    "issued_line": "february 2026",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "a0a71c194593788cdc36459b12f521f4f98a81b6435a9817a9285bc27e3b9526",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-04-01",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260401005238id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "963e9294bbb2ea2086760622cbcdbf8303046a2ed248bbe103e88e8b8bb6c696",
+    "bytes": 3382291,
+    "issued_line": "march 2026",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "1d445b3f165b12fb77b062ec66eb50866497898f4c764fe57ed19df9017be6d1",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-05-02",
+    "source_url": "archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260502121129id_/https://archives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "5a117f1df91be57ce14e9024e3d632fe6f39ffbd32c66a1dc8a4d1793eb84d49",
+    "bytes": 3390276,
+    "issued_line": "march 2026",
+    "tri_dividend_lines": 92,
+    "tri_dividend_text_sha256": "bb9d837cd12ccee75900c6c451688a9849a6dc22924ec373fd76d8c4746d8e95",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-09-11",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260911055700id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "6cf051cfd3e35b1e64c47956fc7031da09b5fd0aa3c19dc7a0fe643691bbbd4e",
+    "bytes": 3627578,
+    "issued_line": "august 2026",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "76fdd34287738668c76214b228042a4db062d714090d6bbe6f763213a2e7e68e",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-09-13",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20260913110157id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "5affa659681f1b3bcdd0a559ce286d8dc5b59bf97892e6526df016e920059c3f",
+    "bytes": 3647711,
+    "issued_line": "september 2026",
+    "tri_dividend_lines": 90,
+    "tri_dividend_text_sha256": "f44eee88c48bf1f8127ffe0b63a1f6d5c37c3ca2549ac856103bce1205447745",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2026-10-11",
+    "source_url": "www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "archive_url": "https://web.archive.org/web/20261011055920id_/https://www.niftyindices.com/Methodology/Method_NIFTY_Equity_Indices.pdf",
+    "sha256": "ce478bdd24fb5fb7973fe3e23768469e835c0861db00b9a3c4aa50201f716cef",
+    "bytes": 3697637,
+    "issued_line": "september 2026",
+    "tri_dividend_lines": 108,
+    "tri_dividend_text_sha256": "2f727217ea6fe0c4d001ec66da201e7dea8c311a9e2059e025dc52f5813087f1",
+    "tri_text_changed_from_previous": true
+   }
+  ],
+  "methodology_nifty50": [
+   {
+    "captured": "2018-01-28",
+    "source_url": "niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20180128025349id_/https://niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "sha256": "a6ba7487a4757e4ed30195e85a6761e61e3f1b68ae0b7e85d210f0da546ec110",
+    "bytes": 388537,
+    "issued_line": "august 2017",
+    "tri_dividend_lines": 29,
+    "tri_dividend_text_sha256": "569be5e6e0aaea7b8b8847fb8e113704fe0bc1b45eb89b2466957917f541feea"
+   },
+   {
+    "captured": "2018-03-28",
+    "source_url": "niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20180328224150id_/https://niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "sha256": "1ced00df6afc35fc1266cd0aaaa6e50ef4b81baf7b3c9173a840e4d0420db920",
+    "bytes": 392128,
+    "issued_line": "august 2017",
+    "tri_dividend_lines": 29,
+    "tri_dividend_text_sha256": "569be5e6e0aaea7b8b8847fb8e113704fe0bc1b45eb89b2466957917f541feea",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2018-08-26",
+    "source_url": "niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20180826215414id_/https://niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "sha256": "13c6a4883db13fd3a8737f8d7dfd75ce12b4c3fbe2381225091ba0754ed730be",
+    "bytes": 463776,
+    "issued_line": "august 2018",
+    "tri_dividend_lines": 29,
+    "tri_dividend_text_sha256": "569be5e6e0aaea7b8b8847fb8e113704fe0bc1b45eb89b2466957917f541feea",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2019-02-01",
+    "source_url": "niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20190201142323id_/https://niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "sha256": "3e05a8ead3275992a2da86bf328d026cae7ce6f74ce7e7d4feeaf533cdb8e7a4",
+    "bytes": 465130,
+    "issued_line": "august 2018",
+    "tri_dividend_lines": 29,
+    "tri_dividend_text_sha256": "569be5e6e0aaea7b8b8847fb8e113704fe0bc1b45eb89b2466957917f541feea",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2019-11-21",
+    "source_url": "niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20191121193146id_/https://niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "sha256": "b0be45d5b1ea8c4bbff6fae7d3bacc0f8b0e49f1fee46a65ba1525daf6510d92",
+    "bytes": 457055,
+    "issued_line": "august 2019",
+    "tri_dividend_lines": 29,
+    "tri_dividend_text_sha256": "569be5e6e0aaea7b8b8847fb8e113704fe0bc1b45eb89b2466957917f541feea",
+    "tri_text_changed_from_previous": false
+   },
+   {
+    "captured": "2021-04-23",
+    "source_url": "nseindia.com/content/indices/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20210423175811id_/https://nseindia.com/content/indices/Method_Nifty_50.pdf",
+    "sha256": "b1ad1ffd8f88ecd59fda94bf7240199282ec331e6c9fb983ba05b3b32c883d92",
+    "bytes": 556514,
+    "issued_line": "october 2019",
+    "tri_dividend_lines": 31,
+    "tri_dividend_text_sha256": "154075892b3ecae17cebfb9bad401397e9a6a10f071f9a79f97ddcd9697d2b17",
+    "tri_text_changed_from_previous": true
+   },
+   {
+    "captured": "2025-08-20",
+    "source_url": "niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "archive_url": "https://web.archive.org/web/20250820032148id_/https://niftyindices.com/Methodology/Method_Nifty_50.pdf",
+    "sha256": "52a4cd5f909dab2ca7149aa1ca4d93a63217863b6d50ccb86589d0e283abb7fa",
+    "bytes": 2136890,
+    "issued_line": "november 2022",
+    "tri_dividend_lines": 73,
+    "tri_dividend_text_sha256": "33295e45db29b1207316b6d75e167b04606d29f4f257ba6edb571f490a77985c",
+    "tri_text_changed_from_previous": true
+   }
+  ]
+ }
+}

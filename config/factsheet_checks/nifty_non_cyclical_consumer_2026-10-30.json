@@ -1,0 +1,50 @@
+{
+ "index": "NIFTY_NON-CYCLICAL_CONSUMER",
+ "as_of": "2026-10-30",
+ "source": {
+  "dataset": "factsheet_nifty_non_cyclical_consumer",
+  "sha256": "302dff52745f42bb3937623a3b61cb648130cbeb87a1e6192219c5d73be611b9",
+  "url": "https://www.niftyindices.com/Factsheet/Factsheet_NiftyNonCyclicalConsumer.pdf",
+  "document_date": "2026-10-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (+/-0.005 pp); CAGR also depends on the unstated day-count convention (+/-0.02 pp); the difference is always reported. The since-inception figure is not checked: our series starts later than the index.",
+ "checks": [
+  {
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "0.04",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-9.71",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-11.76",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "7.92",
+   "tolerance_pp": "0.02",
+   "series": "gross"
+  }
+ ],
+ "not_reproducible": []
+}

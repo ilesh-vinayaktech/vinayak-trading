@@ -16,7 +16,7 @@ from algo.data.amfi_caps import CapList, CapRow
 from algo.data.market_caps import load_list
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
-from algo.research import study_jobs
+from algo.research import study_jobs, study_runner
 from algo.research.study_runner import StudyRunError, run_study
 from algo.research.study_store import register_study
 from tests.support.portal import add_user
@@ -325,6 +325,72 @@ def study_jobs_params(conn, sid):
     return [t["params"] for t in study_jobs.trials(conn, sid)]
 
 
+@pytest.fixture(autouse=True)
+def gate_off(monkeypatch, tmp_path):
+    monkeypatch.setattr(study_runner, "GATE_FILE", tmp_path / "no_gate.json")
+
+
+def _benchmark_study(long_env):
+    from algo.data.benchmark import DEFAULT_BENCHMARK, ingest, register, store_validation
+
+    conn, owner = long_env
+    bid = register(conn, name=DEFAULT_BENCHMARK, provider="p", index_symbol="N200TRI", return_type="TOTAL_RETURN", methodology_version="m")  # fmt: skip
+    ingest(conn, bid, [(d, D(1000) * (1 + D("0.0003") * i + D(str(0.01 * math.sin(i))))) for i, d in enumerate(LONG)], source="s", source_timestamp=NOW, raw_hash="h", now=NOW)  # fmt: skip
+    store_validation(conn, bid, report={"report_version": "2", "technical_validation_passed": True, "check_states": {}}, passed=True, normalized_sha256="n", factsheet_sha256=None, unresolved=[], now=NOW)  # fmt: skip
+    sid = register_study(conn, owner, long_spec(), NOW)
+    run_study(conn, study_jobs.enqueue(conn, sid, owner, NOW), NOW)
+    assert judge(conn, owner, sid)["status"] == "DONE"
+    return conn, bid, sid
+
+
+def test_with_the_gate_on_a_benchmark_the_release_does_not_call_eligible_fails_its_gates_and_says_why(
+    long_env, monkeypatch, tmp_path
+):
+    from types import SimpleNamespace
+
+    gate = tmp_path / "gate.json"
+    gate.write_text('{"enabled": true}')
+    monkeypatch.setattr(study_runner, "GATE_FILE", gate)
+    found = {
+        "series": "B1_X",
+        "uses": {"BENCHMARK_GATE": {"eligible": False, "blockers": ["U06: x"]}},
+    }
+    monkeypatch.setattr(
+        study_runner.artifacts,
+        "load",
+        lambda docs: SimpleNamespace(version="9.9", eligibility_of=lambda i: found),
+    )
+    conn, _bid, sid = _benchmark_study(long_env)
+    refs = conn.execute(
+        "SELECT refs FROM validation_report WHERE experiment_id=%s", (sid,)
+    ).fetchone()[0]
+    assert (
+        "not BENCHMARK_GATE_ELIGIBLE in release 9.9" in refs["benchmark_note"]
+        and "U06: x" in refs["benchmark_note"]
+    )
+
+
+def test_with_the_gate_on_an_eligible_benchmark_supplies_the_evidence(
+    long_env, monkeypatch, tmp_path
+):
+    from types import SimpleNamespace
+
+    gate = tmp_path / "gate.json"
+    gate.write_text('{"enabled": true}')
+    monkeypatch.setattr(study_runner, "GATE_FILE", gate)
+    found = {"series": "B1_X", "uses": {"BENCHMARK_GATE": {"eligible": True, "blockers": []}}}
+    monkeypatch.setattr(
+        study_runner.artifacts,
+        "load",
+        lambda docs: SimpleNamespace(version="9.9", eligibility_of=lambda i: found),
+    )
+    conn, _bid, sid = _benchmark_study(long_env)
+    refs = conn.execute(
+        "SELECT refs FROM validation_report WHERE experiment_id=%s", (sid,)
+    ).fetchone()[0]
+    assert refs["benchmark_note"] is None
+
+
 def test_a_validated_benchmark_supplies_the_benchmark_evidence(long_env):
     from algo.data.benchmark import DEFAULT_BENCHMARK, ingest, register, store_validation
 
@@ -540,3 +606,17 @@ def test_stopping_a_holdout_before_it_ends_leaves_the_holdout_unopened(long_env)
         "SELECT holdout_opened_at FROM experiment WHERE experiment_id=%s", (sid,)
     ).fetchone() == (None,)
     assert study_jobs.holdout_result(conn, sid) is None
+
+
+def test_a_screener_study_runs_through_the_real_engine_and_buys_what_the_screen_picks(env):
+    conn, owner = env
+    screen = {"conditions": [{"field": "chg_3m", "op": "gt", "value": 0}], "sort": "chg_3m"}
+    sid = registered(
+        conn, owner, strategy_id="screener", grid={"max_positions": [5]}, screen=screen
+    )
+    rid = study_jobs.enqueue(conn, sid, owner, NOW)
+    run_study(conn, rid, NOW)
+    run = study_jobs.get_run(conn, rid)
+    assert (run["status"], run["error"]) == ("DONE", None)
+    (t,) = study_jobs.trials(conn, sid)
+    assert t["status"] == "DONE" and t["metrics"]["trades"] > 0

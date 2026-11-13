@@ -291,3 +291,11 @@ def test_the_whole_filing_is_stored_and_a_backfill_restores_it_for_filings_store
     assert backfill_facts(conn, lake) == 2  # two filings re-read from the lake, no network
     assert conn.execute(q).fetchall() == full
     assert backfill_facts(conn, lake) == 2 and conn.execute(q).fetchall() == full  # idempotent
+
+
+@pytest.mark.parametrize("integrated", [False, True])
+def test_a_symbol_with_an_ampersand_is_url_encoded_in_the_listing_request(env, integrated):
+    conn, lake, _ = env
+    get = Fake(listing=json.dumps([]).encode())
+    ingest_symbol(conn, lake, get, "ARE&M", NOW, integrated=integrated)
+    assert "symbol=ARE%26M" in get.calls[0]

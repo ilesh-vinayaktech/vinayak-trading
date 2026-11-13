@@ -56,7 +56,7 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null }: { live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null, compare }: { compare?: { name: string; points: { date: string; level: string }[] }; live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -197,6 +197,20 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     const up = close >= (timeframe === "1d" && live.prevClose !== null ? plotNumber(live.prevClose) : open);
     (h.volume as ISeriesApi<"Histogram"> | undefined)?.update({ time: time as Time, value: plotNumber(liveBar.volume), color: up ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" });
   }, [live, liveBar, ready, chartType, timeframe, bars]);
+
+  // a benchmark drawn over the stock as a line on its own left scale (index levels are not in rupees per share)
+  useEffect(() => {
+    const h = handles.current;
+    if (!h || !compare || compare.points.length === 0) return;
+    h.chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#e2e8f0" } });
+    const s = h.chart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 2, priceScaleId: "left", title: compare.name, priceLineVisible: false });
+    s.setData(compare.points.map((p) => ({ time: p.date as Time, value: plotNumber(p.level) })));
+    return () => {
+      if (handles.current?.chart !== h.chart) return; // the chart was replaced: its series went with it
+      h.chart.removeSeries(s);
+      h.chart.applyOptions({ leftPriceScale: { visible: false } });
+    };
+  }, [compare, ready]);
 
   const screenshot = () => {
     const h = handles.current;

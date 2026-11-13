@@ -6,12 +6,12 @@ import NewStudyPage from "@/app/research/studies/new/page";
 import StudyPage from "@/app/research/studies/[id]/page";
 import { holdoutFor, holdoutShare, orderSizeWarnings, trialCount } from "@/lib/studies";
 
-const nav = vi.hoisted(() => ({ replace: vi.fn(), id: "7" }));
+const nav = vi.hoisted(() => ({ replace: vi.fn(), id: "7", search: "" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: nav.replace }),
   useParams: () => ({ id: nav.id }),
   usePathname: () => "/research/studies",
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: () => new URLSearchParams(nav.search),
 }));
 
 const THRESHOLDS = { min_oos_sharpe: "0.8", min_dsr: "0.95", max_pbo: "0.2", max_drawdown_vs_benchmark: "1.25", owner_max_drawdown: "0.25", plateau_tolerance: "0.3", max_top3_concentration: "0.5", min_sharpe_over_benchmark: "0.2", min_oos_days: "252", min_regimes: "2", max_window_share: "0.5", min_benchmark_drawdown: "0.02" };
@@ -36,7 +36,7 @@ const TRIAL = (id: number, rsi: number, sharpe: number | null, status = "DONE") 
 const COVERAGE = [{ list: "2023-12-31", from: "2024-02-01", until: "2024-07-31", in_segments: 250, matched: 244, usable: 238 }];
 const who = (perms: string[]) => ({ user: { id: "u1", email: "j@example.com", name: "Jane", role: "TRADER", permissions: perms, mfa_enabled: true, enrolment_required: false, must_change_password: false } });
 const SAVED = { label: "UNVALIDATED", options: { universes: [], timeframes: [], params: { trend_sma: [], entry_rsi: [], exit_rsi: [], max_positions: [] } },
-  strategies: [{ config_id: "c1", name: "My paper strategy", strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params: { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 5 }, in_use: true, created_at: "2026-11-11T10:00:00+00:00", stage: "RESEARCH" }] };
+  strategies: [{ config_id: "c1", name: "My paper strategy", strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params: { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 5 }, screen: null, in_use: true, created_at: "2026-11-11T10:00:00+00:00", stage: "RESEARCH" }] };
 
 const calls: { method: string; path: string; body: unknown }[] = [];
 function backend(table: Record<string, unknown>) {
@@ -57,6 +57,7 @@ const posted = () => calls.filter((c) => c.method === "POST");
 beforeEach(() => {
   document.cookie = "csrf=tok";
   nav.replace.mockClear();
+  nav.search = "";
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -145,6 +146,88 @@ describe("a new study", () => {
     expect(screen.getByText("Give the study a name.")).toBeInTheDocument();
     fillIdea();
     expect(register()).toBeEnabled();
+  });
+
+  it("can trade a screener: ready-made screens on prices or filed results are offered (not market-cap classes), and it registers as the strategy", async () => {
+    const field = (key: string, label: string, kind: string) => ({ key, label, group: "g", kind, unit: "x" });
+    const preset = (id: string, name: string, f: string, sort: string) => ({ id, name, category: "technical", description: "d", sort, descending: true, conditions: [{ field: f, op: "lt", value: 30 }] });
+    await open({
+      "GET /api/studies/options": { ...OPTIONS, strategies: [...OPTIONS.strategies, { id: "screener", params: [{ name: "max_positions", choices: [5, 10, 20], default: 10 }] }] },
+      "GET /api/screener/meta": { fields: [field("rsi_14", "RSI (14)", "technical"), field("chg_6m", "Change, 6 months", "technical"), field("pe", "P/E", "fundamental"), field("segment", "Market-cap class", "profile")], presets: [preset("oversold", "Oversold", "rsi_14", "chg_6m"), preset("cheap", "Cheap", "pe", "pe"), preset("bigcap", "Big caps", "segment", "chg_6m")] },
+      "POST /api/studies": { experiment_id: 8 },
+    });
+    fillIdea();
+    fireEvent.click(screen.getByLabelText("A screener"));
+    expect(screen.getByText(/Pick a screen to trade/)).toBeInTheDocument();
+    const pick = await screen.findByLabelText("Start from a ready-made screen");
+    await waitFor(() => expect(within(pick).getByText("Oversold")).toBeInTheDocument());
+    expect(within(pick).getByText("Cheap")).toBeInTheDocument(); // filed results are backtestable
+    expect(within(pick).queryByText("Big caps")).not.toBeInTheDocument(); // a study picks market-cap classes elsewhere
+    fireEvent.change(pick, { target: { value: "oversold" } });
+    expect(screen.getByText("RSI (14) < 30")).toBeInTheDocument();
+    fireEvent.click(register());
+    fireEvent.click(await screen.findByRole("button", { name: "Register and lock" }));
+    await waitFor(() => expect(posted()).toHaveLength(1));
+    expect(posted()[0]?.body).toMatchObject({ strategy_id: "screener", grid: { max_positions: [10] }, screen: { conditions: [{ field: "rsi_14", op: "lt", value: 30 }], match: "all", sort: "chg_6m", descending: true } });
+  });
+
+  it("opens preloaded from a saved screener: its screen, the caps it picks from and the stocks it holds", async () => {
+    nav.search = new URLSearchParams({
+      screen: JSON.stringify({ conditions: [{ field: "rsi_14", op: "lte", value: "40" }], match: "all", sort: "rsi_14", descending: false }),
+      segments: "small,micro,bogus",
+      slots: "20",
+    }).toString();
+    await open({
+      "GET /api/studies/options": { ...OPTIONS, strategies: [...OPTIONS.strategies, { id: "screener", params: [{ name: "max_positions", choices: [5, 10, 20], default: 10 }] }] },
+      "GET /api/screener/meta": { fields: [{ key: "rsi_14", label: "RSI (14)", group: "g", kind: "technical", unit: "x" }], presets: [] },
+      "POST /api/studies": { experiment_id: 8 },
+    });
+    expect(screen.getByLabelText("A screener")).toBeChecked();
+    fillIdea();
+    fireEvent.click(register());
+    fireEvent.click(await screen.findByRole("button", { name: "Register and lock" }));
+    await waitFor(() => expect(posted()).toHaveLength(1));
+    expect(posted()[0]?.body).toMatchObject({
+      strategy_id: "screener",
+      grid: { max_positions: [20] },
+      universe: { segments: ["small", "micro"] }, // an unknown class is ignored
+      screen: { conditions: [{ field: "rsi_14", op: "lte", value: "40" }], sort: "rsi_14" },
+    });
+  });
+
+  describe("starting from a saved strategy", () => {
+    const SCREENER = { config_id: "c9", name: "Dip buyer", strategy_id: "screener", universe: "segments", max_instruments: null, timeframe: "1D", params: { max_positions: 20 }, in_use: false, created_at: "2026-11-11T10:00:00+00:00", stage: "RESEARCH",
+      screen: { screen: { conditions: [{ field: "rsi_14", op: "lte", value: "40" }], match: "all", sort: "rsi_14", descending: false }, segments: ["small"] } };
+    const both = { ...SAVED, strategies: [...SAVED.strategies, SCREENER] };
+    const withScreener = { ...OPTIONS, strategies: [...OPTIONS.strategies, { id: "screener", params: [{ name: "max_positions", choices: [5, 10, 20], default: 10 }] }] };
+    const META = { fields: [{ key: "rsi_14", label: "RSI (14)", group: "g", kind: "technical", unit: "x" }], presets: [] };
+    const ready = { "GET /api/studies/options": withScreener, "GET /api/strategies": both, "GET /api/screener/meta": META, "POST /api/studies": { experiment_id: 8 } };
+
+    it("offers only trend strategies to a trend study, so a saved screener cannot be sent as one", async () => {
+      await open(ready);
+      const pick = await screen.findByLabelText("Start from a saved strategy");
+      await waitFor(() => expect(within(pick).getByText("My paper strategy")).toBeInTheDocument());
+      expect(within(pick).queryByText("Dip buyer")).not.toBeInTheDocument();
+    });
+
+    it("fills a screener study with the saved screen, its market-cap classes and its number of stocks, and registers it as a screener", async () => {
+      await open(ready);
+      fillIdea();
+      fireEvent.click(screen.getByLabelText("A screener"));
+      const pick = await screen.findByLabelText("Start from a saved strategy");
+      await waitFor(() => expect(within(pick).getByText("Dip buyer")).toBeInTheDocument());
+      expect(within(pick).queryByText("My paper strategy")).not.toBeInTheDocument();
+      fireEvent.change(pick, { target: { value: "c9" } });
+      expect(screen.getByLabelText("max_positions 20")).toBeChecked();
+      fireEvent.click(register());
+      fireEvent.click(await screen.findByRole("button", { name: "Register and lock" }));
+      await waitFor(() => expect(posted()).toHaveLength(1));
+      expect(posted()[0]?.body).toMatchObject({
+        strategy_id: "screener", grid: { max_positions: [20] },
+        screen: { conditions: [{ field: "rsi_14", op: "lte", value: "40" }], match: "all", sort: "rsi_14", descending: false },
+        universe: { segments: ["small"] },
+      });
+    });
   });
 
   it("asks before locking, then registers exactly what was chosen and opens the study", async () => {

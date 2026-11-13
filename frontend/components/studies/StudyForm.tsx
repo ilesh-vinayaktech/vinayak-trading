@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Dialog } from "@/components/ui/Dialog";
@@ -9,24 +10,52 @@ import { Field } from "@/components/ui/Field";
 import { Panel, SettingsSection } from "@/components/ui/Layout";
 import { buttonClass, inputFull } from "@/components/ui/styles";
 import { ApiError, api } from "@/lib/api/client";
-import type { StudyOptions } from "@/lib/schemas";
+import { studySpecSchema, type StudyOptions, type StudySpec } from "@/lib/schemas";
 import { THRESHOLD_LABELS, holdoutFor, holdoutShare, orderSizeWarnings, trialCount } from "@/lib/studies";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not register the study. Try again.");
 const SEGMENT_LABELS: Record<string, string> = { large: "Large cap (ranks 1-100)", mid: "Mid cap (101-250)", small: "Small cap (251-500)", micro: "Micro cap (501 and beyond)" };
 const PARAM_LABELS: Record<string, string> = { trend_sma: "Uptrend test (days)", entry_rsi: "Buy when 5-day RSI is below", exit_rsi: "Sell when 5-day RSI is above", max_positions: "Most stocks held at once" };
 
+const OPS: Record<string, string> = { gt: ">", gte: "≥", lt: "<", lte: "≤", eq: "=", ne: "≠", between: "between" };
+type Screen = NonNullable<StudySpec["screen"]>;
+/** The screen the Screener page hands over in the address, or null when there is none (or it is not one). */
+function parseScreen(raw: string | null): Screen | null {
+  try {
+    const r = studySpecSchema.shape.screen.unwrap().unwrap().safeParse(JSON.parse(raw ?? "null"));
+    return r.success && r.data.conditions.length > 0 ? r.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Every choice of an official backtest. Nothing here is fixed in code; all of it is locked once the study is registered. */
 export function StudyForm({ options }: { options: StudyOptions }) {
   const router = useRouter();
-  const strategy = options.strategies[0];
+  const params = useSearchParams();
+  const fromScreener = parseScreen(params.get("screen"));
+  const [source, setSource] = useState<"code" | "screen">(fromScreener ? "screen" : "code");
+  const [screen, setScreen] = useState<Screen | null>(fromScreener);
+  const strategy = options.strategies.find((s) => (s.id === "screener") === (source === "screen")) ?? options.strategies[0];
   const saved = useQuery({ queryKey: ["strategies"], queryFn: api.strategies });
+  const meta = useQuery({ queryKey: ["screener-meta"], queryFn: api.screenerMeta, staleTime: Infinity });
+  const kind = (k: string) => meta.data?.fields.find((f) => f.key === k)?.kind;
+  const label = (k: string) => meta.data?.fields.find((f) => f.key === k)?.label ?? k;
+  const usable = (k: string) => ["technical", "fundamental"].includes(kind(k) ?? "");
+  const backtestable = (meta.data?.presets ?? []).filter((p) => p.conditions.every((c) => usable(c.field)) && usable(p.sort));
   const end0 = options.frozen_through ?? "";
   const start0 = options.survivorship_safe_from;
   const [name, setName] = useState("");
   const [hypothesis, setHypothesis] = useState("");
-  const [grid, setGrid] = useState<Record<string, number[]>>(() => Object.fromEntries((strategy?.params ?? []).map((p) => [p.name, [p.default]])));
-  const [segments, setSegments] = useState<string[]>(["large", "mid"]);
+  // arriving from "Backtest it" on a saved screener: its stock count and the caps it picks from come along with the screen
+  const slots = Number(params.get("slots"));
+  const [grid, setGrid] = useState<Record<string, number[]>>(() =>
+    Object.fromEntries((strategy?.params ?? []).map((p) => [p.name, fromScreener && p.name === "max_positions" && p.choices?.includes(slots) ? [slots] : [p.default]])),
+  );
+  const [segments, setSegments] = useState<string[]>(() => {
+    const given = fromScreener ? (params.get("segments") ?? "").split(",").filter((k) => options.segments.includes(k)) : [];
+    return given.length > 0 ? given : ["large", "mid"];
+  });
   const [beforeLists, setBeforeLists] = useState("traded_value_rank");
   const [minHistory, setMinHistory] = useState("252");
   const [start, setStart] = useState(start0);
@@ -49,6 +78,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const beforeSegments = start !== "" && start < options.segment_lists_from;
   const [lo, hi] = options.holdout_share as [number, number];
   const problems = [
+    source === "screen" && !screen && "Pick a screen to trade: start from a ready-made one below, or build one on the Screener page.",
     !name.trim() && "Give the study a name.",
     hypothesis.trim().length < 20 && "Write the hypothesis (at least 20 characters): what you expect, and why.",
     trials === 0 && "Pick at least one value for every parameter.",
@@ -65,7 +95,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const sizeAdvice = orderSizeWarnings(capital, grid.max_positions ?? [], minOrder, maxOrder);
   const [b, product] = broker.split("|");
   const body = {
-    name: name.trim(), hypothesis: hypothesis.trim(), strategy_id: strategy?.id ?? "", grid,
+    name: name.trim(), hypothesis: hypothesis.trim(), strategy_id: strategy?.id ?? "", grid, screen: source === "screen" ? screen : undefined,
     universe: { segments, before_segment_lists: beforeLists, min_history_sessions: Number(minHistory) || 0 },
     timeframe: "1D", start, end, holdout_start: holdout, capital, capacity_multiple: capacity, broker: b ?? "", product: product ?? "DELIVERY",
     slippage: slip, benchmark, min_order_value: minOrder.trim() || "0", max_order_value: maxOrder.trim() || null, thresholds, accept_survivorship_bias: acceptBias,
@@ -74,10 +104,22 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     mutationFn: () => api.registerStudy(body),
     onSuccess: (r) => router.replace(`/research/studies/${r.experiment_id}`),
   });
+  const defaults = (id: string) => Object.fromEntries((options.strategies.find((s) => s.id === id)?.params ?? []).map((p) => [p.name, [p.default]]));
+  const switchSource = (next: "code" | "screen") => {
+    setSource(next);
+    setGrid(defaults(options.strategies.find((s) => (s.id === "screener") === (next === "screen"))?.id ?? ""));
+  };
   const toggle = (param: string, v: number) => setGrid((g) => ({ ...g, [param]: (g[param] ?? []).includes(v) ? (g[param] ?? []).filter((x) => x !== v) : [...(g[param] ?? []), v].sort((x, y) => x - y) }));
+  // a trend study starts from saved trend strategies, a screener study from saved screeners: never the other kind
+  const savedOfKind = (saved.data?.strategies ?? []).filter((s) => (s.screen !== null) === (source === "screen"));
   const fromSaved = (id: string) => {
-    const s = saved.data?.strategies.find((x) => x.config_id === id);
-    if (s) setGrid(Object.fromEntries(Object.entries(s.params).map(([k, v]) => [k, [v as number]])));
+    const s = savedOfKind.find((x) => x.config_id === id);
+    if (!s) return;
+    setGrid(Object.fromEntries(Object.entries(s.params).map(([k, v]) => [k, [v as number]])));
+    if (s.screen) {
+      setScreen(parseScreen(JSON.stringify(s.screen.screen)));
+      setSegments(s.screen.segments);
+    }
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -98,11 +140,39 @@ export function StudyForm({ options }: { options: StudyOptions }) {
 
         <SettingsSection title="Strategy and settings to try" description={`Every combination is one trial, and every trial counts against the strategy. ${trials} trial${trials === 1 ? "" : "s"} (at most ${options.max_trials}).`}>
           <div className="space-y-4">
-            {saved.data && saved.data.strategies.length > 0 ? (
+            <fieldset>
+              <legend className="text-sm font-medium">Where the strategy comes from</legend>
+              <div className="mt-1 flex flex-wrap gap-4">
+                <label className="flex items-center gap-1.5 text-sm"><input type="radio" name="study-source" checked={source === "code"} onChange={() => switchSource("code")} />A coded strategy</label>
+                <label className="flex items-center gap-1.5 text-sm"><input type="radio" name="study-source" checked={source === "screen"} onChange={() => switchSource("screen")} />A screener</label>
+              </div>
+            </fieldset>
+            {source === "screen" ? (
+              <div className="space-y-3">
+                <p className="text-sm text-ink-soft">Every trading day the screen runs on what was known that day (prices, and results as filed by then) and the best matches are held, equal weight, up to the number of slots. A market-cap class cannot be a condition here: choose the segments under Which stocks.</p>
+                <Field id="study-screen" label="Start from a ready-made screen">
+                  <select id="study-screen" value="" onChange={(e) => { const p = backtestable.find((x) => x.id === e.target.value); if (p) setScreen({ conditions: p.conditions, match: "all", sort: p.sort, descending: p.descending }); }} className={inputFull}>
+                    <option value="">Choose...</option>
+                    {backtestable.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </Field>
+                {screen ? (
+                  <div className="rounded-lg border border-line p-3 text-sm">
+                    <p className="font-medium">Match {screen.match === "all" ? "all" : "any"} of:</p>
+                    <ul className="mt-1 list-disc pl-5" aria-label="Screen conditions">
+                      {screen.conditions.map((c, i) => <li key={i}>{label(c.field)} {OPS[c.op] ?? c.op} {Array.isArray(c.value) ? c.value.join(" and ") : String(c.value)}</li>)}
+                    </ul>
+                    <p className="mt-1 text-ink-soft">Best first: {label(screen.sort)}, {screen.descending ? "highest" : "lowest"} first.</p>
+                  </div>
+                ) : null}
+                <p className="text-sm text-ink-soft">Want your own conditions? Build them on the <Link href="/screener" className="text-brand hover:underline">Screener page</Link> and choose &ldquo;Backtest as a strategy&rdquo;.</p>
+              </div>
+            ) : null}
+            {savedOfKind.length > 0 ? (
               <Field id="study-from" label="Start from a saved strategy" hint="Fills the settings below with that strategy's values; add more values to test around them.">
                 <select id="study-from" defaultValue="" onChange={(e) => fromSaved(e.target.value)} className={inputFull}>
                   <option value="">Choose...</option>
-                  {saved.data.strategies.map((s) => (
+                  {savedOfKind.map((s) => (
                     <option key={s.config_id} value={s.config_id}>{s.name}</option>
                   ))}
                 </select>

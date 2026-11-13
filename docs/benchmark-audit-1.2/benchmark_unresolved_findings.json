@@ -1,0 +1,310 @@
+{
+ "audit": "benchmark_unresolved_findings",
+ "findings": [
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "session-evidence",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "resolved: the exchange's own file was recovered (docs/recovery/bhavcopy_2022-08-08.json)",
+   "evidence": [
+    "session_reconciliation_report.json#special_2022_08_08",
+    "docs/recovery/bhavcopy_2022-08-08.json"
+   ],
+   "id": "U01",
+   "material_correctness_issue": false,
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "2022-08-08 bhavcopy recovered from the spreadsheet NSE served"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [
+    "INTRADAY_RESEARCH"
+   ],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "session-hours",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "every one of the 2691 days in the stored 1-minute history (2016-01-04 to 2026-11-12) was read: 2675 ran 09:15-15:30, 15 are listed special sessions and 1 have one extra closing-price bar; none is unexplained. Before 2016-01-04 only daily data exists, so no intraday research can depend on those hours. Daily benchmark levels do not depend on hours.",
+   "evidence": [
+    "session_reconciliation_report.json#historical_session_hours"
+   ],
+   "id": "U02",
+   "material_correctness_issue": false,
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "Regular session hours observed on every day of the minute history"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [
+    "INTRADAY_RESEARCH"
+   ],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "session-evidence",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "40 listed sessions. 19 fall inside the 1-minute history: each has its kind and hours from an NSE circular (15 of them) and/or from the stored minute bars, and every circular agrees with the bars. The other 21 (1999 to 2015) are marked SPECIAL with kind and hours unknown, by the owner's decision on 2026-11-13: no intraday data exists for them, so no intraday research can depend on them; their existence is confirmed by an exchange bhavcopy or the benchmark. Two sessions of 2015-2016 have secondary (broker bulletin) claims recorded, not promoted.",
+   "evidence": [
+    "session_reconciliation_report.json#evidence",
+    "config/exchange_sessions.json",
+    "config/session_secondary_evidence.json",
+    "docs/session-evidence/legacy_bhavcopy_check.json",
+    "docs/session-evidence/minute_hours_scan.json"
+   ],
+   "id": "U03",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Special sessions: every one inside the minute history has its hours; earlier ones are marked SPECIAL"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "session-evidence",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "every observed weekday has an exchange file (6769 regular sessions, 39 special) and no weekday without a value is unconfirmed; weekday closures are inferred from the PREVCLOSE chain of the exchange files (264 dates in the longest series), not from holiday lists (the NSE holiday feed holds [2026] only). Two PREVCLOSE chain breaks (1999-10-25, 2001-07-02) are unexplained and do not affect any inference (docs/calendar-evidence/chain_break_investigation.md).",
+   "evidence": [
+    "session_reconciliation_report.json#observed_counts",
+    "docs/calendar-evidence/chain_break_investigation.md"
+   ],
+   "id": "U04",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Weekday closures before 2026 are inferred from exchange files, not holiday lists"
+  },
+  {
+   "applies_to": [
+    "B1",
+    "B4"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "numerical-behaviour",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "395 days from 2011-10-10; mechanism unknown. Overlap verdict with the net/gross rises: NO_OVERLAP_BEYOND_CHANCE.",
+   "evidence": [
+    "benchmark_alignment_report.json#anomaly_overlap"
+   ],
+   "id": "U05",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Price return exceeds gross TRI by up to 0.005% on some days"
+  },
+  {
+   "applies_to": [
+    "B2",
+    "B3"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "numerical-behaviour",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "41 days, dividend-ex-date share 0.98 against 0.66 of all days.",
+   "evidence": [
+    "benchmark_validation (benchmark 3)",
+    "benchmark_alignment_report.json#anomaly_overlap"
+   ],
+   "id": "U06",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Net TRI gains on gross TRI on 41 days (0.002-0.006%)"
+  },
+  {
+   "applies_to": [
+    "B3"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "methodology",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "label EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED; the net validation stays technically failed.",
+   "evidence": [
+    "benchmark_validation (benchmark 3)"
+   ],
+   "id": "U07",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "11 net/gross jumps on bonus ex-dates: explained, not numerically reconciled"
+  },
+  {
+   "applies_to": [
+    "B2",
+    "B3"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "methodology",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "same response row; tax basis 23.92% current rate, historical rates undocumented; net starts 2000-01-03.",
+   "evidence": [
+    "docs/tri-endpoint-report.md"
+   ],
+   "id": "U08",
+   "material_correctness_issue": false,
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Gross and net independence unknown; net is a non-resident institutional measure"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "provenance",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "on 2026-11-13 every stored window (81, across 3 datasets) was requested again with its original request body and compared observation by observation with what was stored on 2026-11-07 or later: none differs. Revision can still happen later; scripts/check_revisions.py repeats the check.",
+   "evidence": [
+    "docs/tri-endpoint-report.md",
+    "docs/benchmark-evidence/revision_check_2026-11-13.json"
+   ],
+   "id": "U09",
+   "material_correctness_issue": false,
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "Revision behaviour of the endpoints: history re-fetched and unchanged"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "provenance",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "42 distinct editions of NSE's methodology documents (Nifty equity indices and Nifty 50) from the Internet Archive's copies of the official URLs, captured 2018-01-28 to 2026-10-11 and kept untouched in the lake; the text on total return indices and dividends differs between 33 consecutive editions (the documents grow as indices are added, so a difference is not by itself a change of method; 2 damaged archive copies gave no text; hashes in docs/benchmark-evidence/methodology_history.json). Editions before 2018 could not be retrieved, so the treatment of dividends in the earliest years of each series rests on the later editions.",
+   "evidence": [
+    "docs/tri-endpoint-report.md",
+    "docs/benchmark-evidence/methodology_history.json"
+   ],
+   "id": "U10",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Methodology documents: editions from 2018 to 2026 held"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "reconciliation",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "differences up to ~0.01 pp; the published 12.15% matches only from an assumed 1995 base.",
+   "evidence": [
+    "benchmark_validation (benchmark 2)"
+   ],
+   "id": "U11",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible"
+  },
+  {
+   "applies_to": [
+    "ALL"
+   ],
+   "blocked_dates": [],
+   "blocks": [],
+   "calendar_version": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608",
+   "category": "discontinuity",
+   "dataset_hashes": {
+    "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+   },
+   "detail": "2 moves (pre-2000/2004 Nifty 50 history; nothing to compare)",
+   "evidence": [
+    "benchmark_alignment_report.json#discontinuities_5pct"
+   ],
+   "id": "U16",
+   "material_correctness_issue": false,
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Large daily moves seen by one series only"
+  }
+ ],
+ "gate_activation": "NOT decided here"
+}

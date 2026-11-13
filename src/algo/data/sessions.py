@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Exchange sessions that a Monday-Friday-minus-holidays rule cannot express (Budget-day and
 other weekend sessions, Muhurat). They are DATA with their evidence, kept in
 config/exchange_sessions.json, and fed to the calendar. Nothing is invented: a session is listed
@@ -7,7 +8,7 @@ is stated on the entry."""
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import date, time
 from pathlib import Path
 from typing import Any
@@ -45,7 +46,7 @@ def load(
     path: Path,
 ) -> tuple[dict[date, tuple[time, time]], dict[date, str], dict[date, tuple[str, str]]]:
     """(hours used for bars, kinds, (kind_status, hours_status)) from the evidence file. Hours given
-    without a VERIFIED status, or VERIFIED without hours, are refused: provisional hours must never
+    without a VERIFIED or OBSERVED status, or such a status without hours, are refused: provisional hours must never
     pass as verified."""
     doc = json.loads(path.read_text())
     hours: dict[date, tuple[time, time]] = {}
@@ -57,11 +58,17 @@ def load(
             raise ValueError(f"{s['date']}: kind must be SPECIAL or MUHURAT")
         if d in hours:
             raise ValueError(f"{s['date']}: listed twice")
-        ks = _status(s["kind_status"], ("CONFIRMED", "UNCONFIRMED"), "kind_status", s["date"])
-        hs = _status(s["hours_status"], ("VERIFIED", "UNKNOWN"), "hours_status", s["date"])
+        ks = _status(
+            s["kind_status"], ("CONFIRMED", "OBSERVED", "UNCONFIRMED"), "kind_status", s["date"]
+        )
+        hs = _status(
+            s["hours_status"], ("VERIFIED", "OBSERVED", "UNKNOWN"), "hours_status", s["date"]
+        )
         h = s.get("hours")
-        if bool(h) != (hs == "VERIFIED"):
-            raise ValueError(f"{s['date']}: hours are given exactly when hours_status is VERIFIED")
+        if bool(h) != (hs in ("VERIFIED", "OBSERVED")):
+            raise ValueError(
+                f"{s['date']}: hours are given exactly when hours_status is VERIFIED or OBSERVED"
+            )
         hours[d] = (time.fromisoformat(h[0]), time.fromisoformat(h[1])) if h else REGULAR_HOURS
         kinds[d] = s["kind"]
         status[d] = (ks, hs)
@@ -71,3 +78,23 @@ def load(
 def calendar(path: Path, holidays: Iterable[date] = ()) -> SessionCalendar:
     hours, kinds, status = load(path)
     return nse(holidays, hours, kinds, status)
+
+
+def observed_intervals(counts: Mapping[time, int], share: float = 0.2) -> list[tuple[time, time]]:
+    """When the market was actually trading, from minute bars: `counts` is how many instruments have a bar opening at each minute.
+    A minute counts as trading when at least `share` of the day's busiest minute did; consecutive minutes join into one interval
+    (open, close), the close being the end of the last bar. A thin tail (a few instruments after everyone else stopped) is not
+    part of the interval."""
+    if not counts:
+        return []
+    floor = max(counts.values()) * share
+    out: list[list[int]] = []
+    for t in sorted(counts):
+        m = t.hour * 60 + t.minute
+        if counts[t] < floor:
+            continue
+        if out and m == out[-1][1]:
+            out[-1][1] = m + 1
+        else:
+            out.append([m, m + 1])
+    return [(time(a // 60, a % 60), time(b // 60 % 24, b % 60)) for a, b in out]

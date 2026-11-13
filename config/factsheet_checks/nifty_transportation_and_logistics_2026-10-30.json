@@ -1,0 +1,50 @@
+{
+ "index": "NIFTY_TRANSPORTATION_&_LOGISTICS",
+ "as_of": "2026-10-30",
+ "source": {
+  "dataset": "factsheet_nifty_transportation_and_logistics",
+  "sha256": "fea71052b561a30e0b37020bcc7f67e66933f740d24d274bad6834b77fbb2039",
+  "url": "https://www.niftyindices.com/Factsheet/Factsheet_NiftyTransportationandLogistics.pdf",
+  "document_date": "2026-10-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (+/-0.005 pp); CAGR also depends on the unstated day-count convention (+/-0.02 pp); the difference is always reported. The since-inception figure is not checked: our series starts later than the index.",
+ "checks": [
+  {
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-2.70",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-6.44",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-5.58",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "17.77",
+   "tolerance_pp": "0.02",
+   "series": "gross"
+  }
+ ],
+ "not_reproducible": []
+}

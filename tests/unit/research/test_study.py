@@ -157,3 +157,41 @@ def test_order_size_limits_are_off_by_default_and_must_make_sense():
         spec(max_order_value="0")
     with pytest.raises(ValueError, match="maximum"):
         spec(min_order_value="5000", max_order_value="1000")
+
+
+SCREEN = {"conditions": [{"field": "rsi_14", "op": "lt", "value": 30}], "sort": "chg_6m"}
+
+
+def test_a_screener_study_needs_a_price_only_screen_and_only_it_takes_one():
+    ok = spec(strategy_id="screener", grid={"max_positions": [10]}, screen=SCREEN)
+    check(ok, today=TODAY)
+    assert combinations(ok) == [{"max_positions": 10}]
+    with pytest.raises(StudyError, match="needs its screen"):
+        check(spec(strategy_id="screener", grid={"max_positions": [10]}), today=TODAY)
+    with pytest.raises(StudyError, match="needs its screen"):
+        check(spec(screen=SCREEN), today=TODAY)  # a code strategy takes no screen
+    check(
+        spec(
+            strategy_id="screener",
+            grid={"max_positions": [10]},
+            screen={"conditions": [{"field": "pe", "op": "lt", "value": 15}], "sort": "chg_6m"},
+        ),
+        today=TODAY,
+    )  # filed ratios are fine in a study
+    bad = {"conditions": [{"field": "segment", "op": "eq", "value": "large"}], "sort": "chg_6m"}
+    with pytest.raises(StudyError, match="market-cap class"):
+        check(spec(strategy_id="screener", grid={"max_positions": [10]}, screen=bad), today=TODAY)
+
+
+def test_a_grid_that_leaves_a_parameter_out_uses_its_default_instead_of_crashing():
+    check(
+        spec(grid={"max_positions": [10]}), today=TODAY
+    )  # trend_sma is not in the grid: its default (200) applies
+
+
+def test_a_grid_without_the_trend_average_is_refused_with_a_reason_when_the_history_asked_for_is_too_short():
+    short = {"segments": ["large", "mid"], "min_history_sessions": 100}
+    with pytest.raises(
+        StudyError, match="at least 210 sessions"
+    ):  # the default 200-day average plus warm-up
+        check(spec(grid={"max_positions": [10]}, universe=short), today=TODAY)

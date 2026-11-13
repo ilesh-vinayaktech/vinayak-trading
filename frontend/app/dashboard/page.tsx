@@ -7,8 +7,8 @@ import { Badge, Eligibility, Flag } from "@/components/status/Badge";
 import { StateChip } from "@/components/status/StateChip";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
-import { fmtDateTime, fmtInt, humanize } from "@/lib/formatting";
-import type { Dashboard } from "@/lib/schemas";
+import { fmtDateTime, fmtInt, fmtIst, fmtRelative, partitionStatus, schedule } from "@/lib/formatting";
+import type { Dashboard, ScheduledJob } from "@/lib/schemas";
 
 type Freshness = NonNullable<Dashboard["data"]["freshness"]>;
 
@@ -33,6 +33,67 @@ function FreshnessPanel({ f }: { f: Freshness }) {
   );
 }
 
+const PLATFORM_TONE = { OK: "good", ATTENTION: "warn", DOWN: "bad" } as const;
+const RESULT_TONE = { ok: "good", failed: "bad", skipped: "neutral" } as const;
+
+/** When each scheduled job last ran and how it ended: every sync the platform does on a timer, in one place. */
+function SyncPanel({ jobs }: { jobs: ScheduledJob[] }) {
+  const failed = jobs.filter((j) => j.last_run?.status === "failed").length;
+  const never = jobs.filter((j) => j.last_run === null).length;
+  const note = `${jobs.length - failed - never} ran fine, ${failed} failed, ${never} never run. Times are Indian time.`;
+  return (
+    <Card title="Scheduled syncs" note={note}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Scheduled syncs</caption>
+          <thead className="border-b border-line text-xs text-ink-soft">
+            <tr>
+              <th className="py-2 pr-4">Job</th>
+              <th className="whitespace-nowrap px-3">Schedule</th>
+              <th className="whitespace-nowrap px-3">Last run</th>
+              <th className="whitespace-nowrap px-3">Result</th>
+              <th className="whitespace-nowrap px-3">Last success</th>
+            </tr>
+          </thead>
+          <tbody>
+            {jobs.map((j) => (
+              <tr key={j.name} className="border-b border-line align-top last:border-0">
+                <td className="py-2.5 pr-4">
+                  <div className="font-medium">{j.name}</div>
+                  <div className="max-w-xl text-xs text-ink-soft">{j.description}</div>
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-ink-soft">{schedule(j.calendar)}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {j.last_run ? (
+                    <>
+                      <div>{fmtIst(j.last_run.finished_at)}</div>
+                      <div className="text-xs text-ink-soft">{fmtRelative(j.last_run.finished_at)}</div>
+                    </>
+                  ) : (
+                    <span className="text-ink-soft">-</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {j.last_run ? (
+                    <>
+                      <Badge tone={RESULT_TONE[j.last_run.status]}>{j.last_run.status}</Badge>
+                      {j.last_run.attempts > 1 ? <span className="ml-1.5 text-xs text-ink-soft">{j.last_run.attempts} attempts</span> : null}
+                      {j.last_run.detail ? <div className="mt-1 max-w-[16rem] whitespace-normal text-xs text-ink-soft">{j.last_run.detail}</div> : null}
+                    </>
+                  ) : (
+                    <Badge>never run</Badge>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5">{j.last_success_at ? fmtIst(j.last_success_at) : <span className="text-ink-soft">never</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { data: d, error, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: api.dashboard });
   if (isLoading) return <Loading what="dashboard" />;
@@ -53,8 +114,20 @@ export default function DashboardPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card title="Platform status" note={d.platform.reason}>
-          <StateChip state="UNKNOWN" text={d.platform.state.toLowerCase()} />
+        <Card title="Platform status" note="Worked out live from how current the data is, how the scheduled jobs last ended, load quarantines and the Kite connection.">
+          <Badge tone={PLATFORM_TONE[d.platform.status]}>{d.platform.status.toLowerCase()}</Badge>
+          {d.platform.reasons.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-soft">Everything is current and every scheduled job is on time.</p>
+          ) : (
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {d.platform.reasons.map((r) => (
+                <li key={r.text} className="flex gap-2">
+                  <span aria-hidden className={r.level === "down" ? "text-red-600" : "text-amber-600"}>●</span>
+                  <span>{r.text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
         <Card title="Data health" note={barsNote}>
           <div className="grid grid-cols-2 gap-3">
@@ -64,7 +137,7 @@ export default function DashboardPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(bars.partitions).map(([k, v]) => (
               <Badge key={k} tone={k === "loaded" ? "good" : "neutral"}>
-                {humanize(k)}: {fmtInt(v)}
+                {partitionStatus(k)}: {fmtInt(v)}
               </Badge>
             ))}
             <Badge tone={bars.quarantined_partitions.length ? "bad" : "good"}>
@@ -83,6 +156,8 @@ export default function DashboardPage() {
           </p>
         </Card>
       </div>
+
+      <SyncPanel jobs={d.jobs} />
 
       <Card
         title={`Benchmarks (release ${d.benchmarks.release ?? "none"})`}

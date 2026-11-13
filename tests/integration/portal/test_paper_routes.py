@@ -125,6 +125,7 @@ def test_an_account_is_started_with_the_chosen_settings_once_and_audited(env):
         "strategy_id": "trend_pullback", "enabled": True, "mode": "PAPER", "initial_cash": "100000",
         "started_on": "2026-11-11", "attention": None, "universe": "nifty100", "max_instruments": 50,
         "timeframe": "1D", "params": {"trend_sma": 200, "entry_rsi": 30, "exit_rsi": 60, "max_positions": 10},
+        "screen": None,
     }  # fmt: skip
     assert c.post("/api/paper/account", json=CREATE).status_code == 400  # already has one
     other, c2 = trader(conn, app, clock, "bob@example.com")

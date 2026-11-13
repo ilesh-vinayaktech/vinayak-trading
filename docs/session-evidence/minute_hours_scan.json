@@ -1,0 +1,127 @@
+{
+ "what": "first and last 1-minute bar of every day in the stored history (Kite), against the regular session 09:15-15:30 (last bar opens 15:29)",
+ "scanned": {
+  "first_day": "2016-01-04",
+  "last_day": "2026-11-12",
+  "days": 2691
+ },
+ "regular_days": 2675,
+ "special_sessions_listed_in_config": [
+  {
+   "date": "2016-10-30",
+   "weekday": "Sun",
+   "first_bar": "18:30",
+   "last_bar": "19:29",
+   "instruments": 325
+  },
+  {
+   "date": "2017-07-10",
+   "weekday": "Mon",
+   "first_bar": "12:30",
+   "last_bar": "15:29",
+   "instruments": 332
+  },
+  {
+   "date": "2017-10-19",
+   "weekday": "Thu",
+   "first_bar": "18:30",
+   "last_bar": "19:29",
+   "instruments": 337
+  },
+  {
+   "date": "2018-11-07",
+   "weekday": "Wed",
+   "first_bar": "17:30",
+   "last_bar": "18:29",
+   "instruments": 357
+  },
+  {
+   "date": "2019-10-27",
+   "weekday": "Sun",
+   "first_bar": "18:15",
+   "last_bar": "19:14",
+   "instruments": 369
+  },
+  {
+   "date": "2020-11-14",
+   "weekday": "Sat",
+   "first_bar": "18:15",
+   "last_bar": "19:14",
+   "instruments": 379
+  },
+  {
+   "date": "2021-02-24",
+   "weekday": "Wed",
+   "first_bar": "09:15",
+   "last_bar": "16:59",
+   "instruments": 382
+  },
+  {
+   "date": "2021-11-04",
+   "weekday": "Thu",
+   "first_bar": "18:15",
+   "last_bar": "19:14",
+   "instruments": 402
+  },
+  {
+   "date": "2022-10-24",
+   "weekday": "Mon",
+   "first_bar": "18:15",
+   "last_bar": "19:14",
+   "instruments": 419
+  },
+  {
+   "date": "2023-11-12",
+   "weekday": "Sun",
+   "first_bar": "18:15",
+   "last_bar": "19:14",
+   "instruments": 434
+  },
+  {
+   "date": "2024-03-02",
+   "weekday": "Sat",
+   "first_bar": "09:15",
+   "last_bar": "12:29",
+   "instruments": 441
+  },
+  {
+   "date": "2024-05-18",
+   "weekday": "Sat",
+   "first_bar": "09:15",
+   "last_bar": "12:29",
+   "instruments": 360
+  },
+  {
+   "date": "2024-11-01",
+   "weekday": "Fri",
+   "first_bar": "18:00",
+   "last_bar": "18:59",
+   "instruments": 453
+  },
+  {
+   "date": "2025-10-21",
+   "weekday": "Tue",
+   "first_bar": "13:45",
+   "last_bar": "14:44",
+   "instruments": 479
+  },
+  {
+   "date": "2026-11-08",
+   "weekday": "Sun",
+   "first_bar": "14:20",
+   "last_bar": "15:29",
+   "instruments": 497
+  }
+ ],
+ "one_extra_bar_at_15_30": [
+  {
+   "date": "2020-04-27",
+   "weekday": "Mon",
+   "first_bar": "09:15",
+   "last_bar": "15:30",
+   "instruments": 374
+  }
+ ],
+ "unexplained": [],
+ "sessions_file_sha256": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608"
+}

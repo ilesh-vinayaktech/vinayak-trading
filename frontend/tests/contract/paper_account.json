@@ -11,6 +11,7 @@
    "max_positions": 10,
    "trend_sma": 200
   },
+  "screen": null,
   "started_on": "2026-11-11",
   "strategy_id": "trend_pullback",
   "timeframe": "1D",

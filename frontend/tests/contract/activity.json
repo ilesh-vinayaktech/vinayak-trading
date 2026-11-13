@@ -20,38 +20,24 @@
   "items": [
    {
     "at": "2026-11-07T00:00:00+00:00",
-    "current_status": "loaded",
     "dataset": "bhav",
     "id": 3,
     "partition": "2025-06-10",
     "source": "nse",
-    "status": "loaded",
-    "superseded": false
+    "status": "loaded"
    },
    {
     "at": "2026-11-07T00:00:00+00:00",
-    "current_status": "loaded",
     "dataset": "bhav",
     "id": 2,
     "partition": "2025-06-09",
     "source": "nse",
-    "status": "loaded",
-    "superseded": false
-   },
-   {
-    "at": "2026-11-07T00:00:00+00:00",
-    "current_status": "loaded",
-    "dataset": "bhav",
-    "id": 1,
-    "partition": "2025-06-09",
-    "source": "nse",
-    "status": "quarantined",
-    "superseded": true
+    "status": "loaded"
    }
   ],
   "limit": 25,
   "offset": 0,
-  "total": 3
+  "total": 2
  },
  "jobs": {
   "note": "job runtime and resource use are not recorded",

@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from algo.data.benchmark import DEFAULT_BENCHMARK
 from algo.strategies.registry import STRATEGIES
+from algo.strategies.screener import ScreenSpec
 
 MAX_TRIALS = 64
 SURVIVORSHIP_SAFE_FROM = date(2019, 10, 1)  # NSE bhavcopy (which keeps delisted stocks) starts here
@@ -60,6 +61,9 @@ class StudySpec(BaseModel):
     hypothesis: str = Field(min_length=20, max_length=4000)
     strategy_id: str = Field(max_length=60)
     grid: dict[str, list[int | float]]
+    screen: ScreenSpec | None = (
+        None  # the rules of a screener strategy (strategy_id 'screener'), locked with the study
+    )
     universe: UniverseSpec
     timeframe: Literal["1D"] = (
         "1D"  # the engine decides on daily bars; intraday arrives with intraday strategies
@@ -96,6 +100,10 @@ def default_thresholds() -> dict[str, str]:
 def _check_grid(s: StudySpec, max_trials: int) -> None:
     if s.strategy_id not in STRATEGIES:
         raise StudyError(f"unknown strategy {s.strategy_id!r}")
+    if (s.strategy_id == "screener") != (s.screen is not None):
+        raise StudyError("a screener study needs its screen, and no other strategy takes one")
+    if s.screen is not None and (why := s.screen.problem()):
+        raise StudyError(why)
     params = STRATEGIES[s.strategy_id][1]
     if not s.grid:
         raise StudyError("the grid needs at least one parameter")

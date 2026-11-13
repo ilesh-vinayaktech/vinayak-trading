@@ -47,6 +47,7 @@ const ACCOUNT = {
   max_instruments: null,
   timeframe: "1D",
   params: { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 10 },
+  screen: null,
 };
 const account = (over: Record<string, unknown> | null = {}) => ({
   label: "UNVALIDATED",
@@ -233,6 +234,7 @@ const STRATEGY = {
   max_instruments: 50,
   timeframe: "1D",
   params: { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 },
+  screen: null,
   in_use: false,
   stage: "RESEARCH",
   created_at: "2026-11-11T10:00:00+00:00",
@@ -342,6 +344,26 @@ describe("starting a paper account", () => {
       max_instruments: 50,
     });
     expect(posted()[1]?.path).toBe("/api/strategies/c2/use");
+  });
+
+  it("starts a screener strategy's account on the standard settings and then puts the strategy on it", async () => {
+    const screener = {
+      ...STRATEGY, config_id: "c3", name: "Dip buyer", strategy_id: "screener", universe: "segments", max_instruments: null, params: { max_positions: 10 },
+      screen: { screen: { conditions: [{ field: "rsi_14", op: "lte", value: "40" }], match: "all", sort: "rsi_14", descending: false }, segments: ["large", "mid"] },
+    };
+    backend(
+      ready(null, {
+        "GET /api/strategies": strategies([screener]),
+        "POST /api/paper/account": { ok: true },
+        "POST /api/strategies/c3/use": { ok: true },
+      }),
+    );
+    mount();
+    await waitFor(() => expect(screen.getByLabelText("Strategy")).toHaveValue("c3"));
+    fireEvent.click(screen.getByRole("button", { name: "Start paper trading" }));
+    await waitFor(() => expect(posted()).toHaveLength(2));
+    expect(posted()[0]?.body).toMatchObject({ universe: "nifty200", max_instruments: null, params: { trend_sma: 200, max_positions: 10 } });
+    expect(posted()[1]?.path).toBe("/api/strategies/c3/use");
   });
 
   it("shows the server's reason when starting is refused", async () => {

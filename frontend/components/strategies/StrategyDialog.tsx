@@ -12,7 +12,7 @@ import { ApiError, api } from "@/lib/api/client";
 import type { Strategies, StrategyConfig } from "@/lib/schemas";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not save. Try again.");
-type Params = StrategyConfig["params"];
+type Params = Required<StrategyConfig["params"]>;
 export const DEFAULTS: Params = { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 10 };
 
 function Choice({ id, label, hint, value, options, onChange }: { id: string; label: string; hint: string; value: number; options: number[]; onChange: (n: number) => void }) {
@@ -35,7 +35,7 @@ export function StrategyDialog({ open, onClose, options, strategy }: { open: boo
   const [universe, setUniverse] = useState(strategy?.universe ?? "nifty200");
   const [cap, setCap] = useState(strategy?.max_instruments ? String(strategy.max_instruments) : "");
   const [timeframe, setTimeframe] = useState(strategy?.timeframe ?? "1D");
-  const [params, setParams] = useState<Params>(strategy?.params ?? DEFAULTS);
+  const [params, setParams] = useState<Params>({ ...DEFAULTS, ...strategy?.params });
   const grid = options.params;
   const capNumber = cap.trim() === "" ? null : Number(cap);
   const capBad = capNumber !== null && (!Number.isInteger(capNumber) || capNumber < 5 || capNumber > 500);

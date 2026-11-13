@@ -66,7 +66,10 @@ describe("Dashboard", () => {
     expect(within(net).getByText("blocked")).toBeInTheDocument(); // intraday
     expect(screen.getByText(/Benchmark gate: disabled/)).toBeInTheDocument();
     expect(screen.getByText("not persisted yet")).toBeInTheDocument();
-    expect(screen.getByText("unknown", { selector: "[data-state=UNKNOWN]" })).toBeInTheDocument();
+    const platform = (screen.getByText("Platform status").closest("section") as HTMLElement);
+    expect(within(platform).getByText("attention")).toBeInTheDocument();
+    expect(within(platform).getByText(/No Kite data feed is connected/)).toBeInTheDocument();
+    expect(within(platform).getByText(/11 scheduled jobs have never run/)).toBeInTheDocument();
     expect(screen.getByText("redis not configured")).toBeInTheDocument();
     const fresh = screen.getByTestId("freshness");
     expect(fresh).toHaveTextContent("data current");
@@ -75,6 +78,33 @@ describe("Dashboard", () => {
     expect(screen.getByTestId("pending-review")).toHaveTextContent("529");
     expect(screen.getByTestId("provisional")).toHaveTextContent("10");
     expect(screen.getByText("quarantined: 0")).toBeInTheDocument();
+    expect(screen.getByText("holiday / no file: 100")).toBeInTheDocument(); // days the exchange published nothing
+    const syncs = screen.getByRole("table", { name: "Scheduled syncs" });
+    const ok = within(syncs).getByText("bhavcopy-daily").closest("tr") as HTMLElement;
+    expect(within(ok).getByText("ok")).toBeInTheDocument();
+    expect(within(ok).getByText("Mon..Fri 18:30 IST")).toBeInTheDocument();
+    expect(within(ok).getAllByText(/18:15 IST/).length).toBeGreaterThan(0); // 12:45 UTC, in exchange time
+    const bad = within(syncs).getByText("kite-reconcile").closest("tr") as HTMLElement;
+    expect(within(bad).getByText("failed")).toBeInTheDocument();
+    expect(within(bad).getByText(/reconcile_kite_prices.py exited 3/)).toBeInTheDocument();
+    expect(within(bad).getByText(/12 Nov.*20:01 IST/)).toBeInTheDocument(); // the last success (the day before), kept apart from the failed last run
+    const never = within(syncs).getByText("fundamentals-daily").closest("tr") as HTMLElement;
+    expect(within(never).getByText("never run")).toBeInTheDocument();
+    expect(screen.queryByText(/not published/)).not.toBeInTheDocument();
+  });
+
+  it("says everything is fine when there is nothing to report, and DOWN loudly when the data is gone", async () => {
+    vi.stubGlobal("fetch", route({ "/api/dashboard": { ...dashboard, platform: { status: "OK", reasons: [] } } }));
+    const { unmount } = wrap(<DashboardPage />);
+    const ok = within((await screen.findByText("Platform status")).closest("section") as HTMLElement);
+    expect(ok.getByText("ok")).toBeInTheDocument();
+    expect(ok.getByText("Everything is current and every scheduled job is on time.")).toBeInTheDocument();
+    unmount();
+    vi.stubGlobal("fetch", route({ "/api/dashboard": { ...dashboard, platform: { status: "DOWN", reasons: [{ level: "down", text: "No price data is loaded yet." }] } } }));
+    wrap(<DashboardPage />);
+    const down = within((await screen.findByText("Platform status")).closest("section") as HTMLElement);
+    expect(down.getByText("down")).toBeInTheDocument();
+    expect(down.getByText("No price data is loaded yet.")).toBeInTheDocument();
   });
 
   it("says plainly when the API cannot be reached", async () => {
@@ -144,7 +174,7 @@ describe("Backtests", () => {
 });
 
 describe("System Activity", () => {
-  const row = (id: number, status: string, superseded: boolean, current: string) => ({ id, source: "nse", dataset: "bhav", partition: `2022-08-0${id}`, status, at: "2026-11-07T10:00:00+00:00", current_status: current, superseded });
+  const row = (id: number, status: string) => ({ id, source: "nse", dataset: "bhav", partition: `2022-08-0${id}`, status, at: "2026-11-07T10:00:00+00:00" });
   const activity = (offset: number, items: ReturnType<typeof row>[]) => ({
     ingestion: { items, total: 30, limit: 25, offset },
     validations: [{ benchmark_id: 1, name: "Nifty 200 TRI", latest: null }],
@@ -152,15 +182,22 @@ describe("System Activity", () => {
     jobs: { persisted: false, note: "job runtime and resource use are not recorded" },
   });
 
-  it("shows a resolved quarantine as superseded history and a live one as a problem", async () => {
-    vi.stubGlobal("fetch", route({ "/api/system/activity": activity(0, [row(3, "quarantined", false, "quarantined"), row(2, "quarantined", true, "loaded"), row(1, "loaded", false, "loaded")]) }));
+  it("calls a day the exchange published no file a holiday / no file, not an alarming status", async () => {
+    vi.stubGlobal("fetch", route({ "/api/system/activity": activity(0, [row(1, "not_published")]) }));
+    wrap(<SystemPage />);
+    expect(await screen.findByText("holiday / no file")).toBeInTheDocument();
+    expect(screen.queryByText("not published")).not.toBeInTheDocument();
+  });
+
+  it("flags a quarantined partition as a problem and lists each date only once", async () => {
+    vi.stubGlobal("fetch", route({ "/api/system/activity": activity(0, [row(3, "quarantined"), row(1, "loaded")]) }));
     wrap(<SystemPage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("1 partition(s) on this page are currently quarantined: 2022-08-03");
-    expect(screen.getByText("superseded: partition is now loaded")).toBeInTheDocument();
+    expect(screen.queryByText(/superseded/)).not.toBeInTheDocument();
     expect(screen.getByText("Nifty 200 TRI")).toBeInTheDocument();
     expect(screen.getByText("never validated")).toBeInTheDocument();
     expect(screen.getByText("job runtime and resource use are not recorded")).toBeInTheDocument();
-    expect(screen.getByText("1-3 of 30 events")).toBeInTheDocument();
+    expect(screen.getByText("1-2 of 30 events")).toBeInTheDocument();
   });
 
   it("pages through the log", async () => {
@@ -168,7 +205,7 @@ describe("System Activity", () => {
     vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
       calls.push(url.searchParams.get("offset") ?? "");
-      return new Response(JSON.stringify(activity(Number(url.searchParams.get("offset")), [row(1, "loaded", false, "loaded")])));
+      return new Response(JSON.stringify(activity(Number(url.searchParams.get("offset")), [row(1, "loaded")])));
     });
     wrap(<SystemPage />);
     expect(await screen.findByRole("button", { name: "Newer" })).toBeDisabled();
@@ -436,7 +473,7 @@ describe("Data Explorer", () => {
 
   describe("strategy on the chart", () => {
     const params = { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 };
-    const saved = (id: string, name: string) => ({ config_id: id, name, strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params, in_use: false, created_at: "2026-11-11T10:00:00+00:00", stage: "RESEARCH" });
+    const saved = (id: string, name: string) => ({ config_id: id, name, strategy_id: "trend_pullback", universe: "nifty200", max_instruments: null, timeframe: "1D", params, screen: null, in_use: false, created_at: "2026-11-11T10:00:00+00:00", stage: "RESEARCH" });
     const me = { user: { id: "u1", email: "j@example.com", name: "Jane", role: "TRADER", permissions: ["strategy:own"], mfa_enabled: true, enrolment_required: false, must_change_password: false } };
     const day = (d: string, over: Record<string, unknown> = {}) => ({ day: d, close: "100", sma: "90", rsi: "20", ready: true, action: null, reason: null, holding_after: false, fill_day: null, fill_price: null, ...over });
     const signals = {

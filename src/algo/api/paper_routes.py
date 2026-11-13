@@ -95,7 +95,7 @@ def account(who: CurrentUser, conn: WConn) -> dict[str, Any]:
         shown = {
             "strategy_id": acct["strategy_id"], "enabled": acct["enabled"], "mode": acct["mode"], "initial_cash": _s(acct["initial_cash"]),
             "started_on": acct["started_on"].isoformat(), "attention": acct["attention"], "universe": acct["universe"],
-            "max_instruments": acct["max_instruments"], "timeframe": acct["timeframe"], "params": acct["params"],
+            "max_instruments": acct["max_instruments"], "timeframe": acct["timeframe"], "params": acct["params"], "screen": acct["screen"],
         }  # fmt: skip
     return {"label": "UNVALIDATED", "options": _options(), "account": shown}
 

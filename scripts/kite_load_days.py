@@ -39,8 +39,20 @@ if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
 now = datetime.now(UTC)
 env, tok = load_env(a.env), load_token(a.token_file, now)
+if (
+    tok is None
+):  # no token file: use the connected data feed from the portal (stored encrypted in the database)
+    from algo.portal.crypto import KeyRing
+    from algo.portal.kite_vault import system_feed_credentials
+
+    with psycopg.connect(a.db) as _c:
+        _feed = system_feed_credentials(_c, KeyRing.from_env(os.environ), now=now)
+    if _feed is not None:
+        env["ZERODHA_API_KEY"], tok = _feed[0], (_feed[1], "portal feed")
 if tok is None:
-    sys.exit("no valid Kite session: run scripts/kite_login.py first")
+    sys.exit(
+        "no valid Kite session: connect on the portal (data feed on) or run scripts/kite_login.py"
+    )
 client = KiteClient(env["ZERODHA_API_KEY"], tok[0], urllib_http, min_interval=a.interval, retries=6)
 end = a.end or now.astimezone(IST).date()
 lake = LocalLake(a.lake)

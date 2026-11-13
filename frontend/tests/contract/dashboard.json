@@ -53,9 +53,143 @@
   },
   "quarantined_partitions": []
  },
+ "jobs": [
+  {
+   "calendar": "Mon..Fri *-*-* 08:15 Asia/Kolkata",
+   "description": "Alert if there is no valid Kite session before the feed starts (the login is manual)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "kite-login-reminder"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 18:30 Asia/Kolkata",
+   "description": "Load the daily bhavcopy; retries every 10 min for 2 h until the newest bar is current",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "bhavcopy-daily"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 20:00 Asia/Kolkata",
+   "description": "Compare the stored Kite daily candles with bhavcopy (database only: needs no Kite session)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "kite-reconcile"
+  },
+  {
+   "calendar": "*-*-* 22:00 Asia/Kolkata",
+   "description": "Re-sweep the last 30 days for missing sessions",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "gap-nightly"
+  },
+  {
+   "calendar": "Sun *-*-* 03:00 Asia/Kolkata",
+   "description": "Deep sweep from 2019-10 (resumable; loaded days are skipped)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "gap-weekly"
+  },
+  {
+   "calendar": "Sun *-*-* 07:00 Asia/Kolkata",
+   "description": "Sync the NSE holiday calendar",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "calendar-weekly"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 19:00 Asia/Kolkata",
+   "description": "Security master, new listings, symbol changes and the Nifty 200 snapshot",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "universe-daily"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 19:30 Asia/Kolkata",
+   "description": "Kite daily candles for the mapped instruments (exit 3 = session expired, alerted)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "kite-daily-candles"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 21:00 Asia/Kolkata",
+   "description": "Latest results (resumable sweep of recent filings), then the full set of figures",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "fundamentals-daily"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 21:30 Asia/Kolkata",
+   "description": "Rebuild the stored stock-screener table from the day's bars and results (after both have loaded)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "screener-refresh"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 07:30 Asia/Kolkata",
+   "description": "Index total-return series (Nifty 50/200 and every broad, sector and thematic index) up to yesterday: capture, ingest, validate; a failed series alerts, the rest still load",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "benchmarks-daily"
+  },
+  {
+   "calendar": "Sat *-*-* 10:00 Asia/Kolkata",
+   "description": "Store today's official index constituent lists in the lake",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "constituents-weekly"
+  },
+  {
+   "calendar": "*-*-05 10:00 Asia/Kolkata",
+   "description": "AMFI market-cap rankings (picks up the Jun/Dec lists when published; safe to repeat)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "amfi-caps-monthly"
+  },
+  {
+   "calendar": "*-*-01 10:00 Asia/Kolkata",
+   "description": "Re-capture the official fee documents into the lake",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "cost-sources-monthly"
+  },
+  {
+   "calendar": "*-*-* 23:00 Asia/Kolkata",
+   "description": "Nightly database dump, 14 days kept (the lake is not backed up: needs a destination)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "db-backup"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 09:00 Asia/Kolkata",
+   "description": "Alert if the newest bar is behind the latest session",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "data-freshness"
+  },
+  {
+   "calendar": "*-*-* 06:00 Asia/Kolkata",
+   "description": "Alert when the disk holding the data is 90% full",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "disk-check"
+  }
+ ],
  "platform": {
-  "reason": "the platform state machine is not persisted",
-  "state": "UNKNOWN"
+  "reasons": [
+   {
+    "level": "down",
+    "text": "Price data is 366 sessions behind (latest bar session 2025-06-12)."
+   },
+   {
+    "level": "attention",
+    "text": "No Kite data feed is connected: the loaders and the live feed cannot run."
+   },
+   {
+    "level": "attention",
+    "text": "17 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, kite-reconcile and 14 more."
+   }
+  ],
+  "status": "DOWN"
  },
  "research": {
   "backtests": 1,
@@ -80,33 +214,19 @@
   "recent_ingestion": [
    {
     "at": "2026-11-07T00:00:00+00:00",
-    "current_status": "loaded",
     "dataset": "bhav",
     "id": 3,
     "partition": "2025-06-10",
     "source": "nse",
-    "status": "loaded",
-    "superseded": false
+    "status": "loaded"
    },
    {
     "at": "2026-11-07T00:00:00+00:00",
-    "current_status": "loaded",
     "dataset": "bhav",
     "id": 2,
     "partition": "2025-06-09",
     "source": "nse",
-    "status": "loaded",
-    "superseded": false
-   },
-   {
-    "at": "2026-11-07T00:00:00+00:00",
-    "current_status": "loaded",
-    "dataset": "bhav",
-    "id": 1,
-    "partition": "2025-06-09",
-    "source": "nse",
-    "status": "quarantined",
-    "superseded": true
+    "status": "loaded"
    }
   ],
   "redis": "not configured"

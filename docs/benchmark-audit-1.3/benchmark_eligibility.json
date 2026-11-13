@@ -1,0 +1,145 @@
+{
+ "audit": "benchmark_eligibility",
+ "benchmarks": {
+  "B1_NIFTY200_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U06",
+    "U08",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+   "disclosed_check_findings": {},
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "U06: Net TRI gains on gross TRI on 41 days (0.002-0.006%)",
+      "U08: Gross and net independence unknown; net is a non-resident institutional measure"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U06",
+    "U07",
+    "U08",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+   "disclosed_check_findings": {
+    "net_never_gains_on_gross": "UNRESOLVED",
+    "no_abrupt_net_gross_jump": "ACCEPTED_WITH_EVIDENCE"
+   },
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "technical validation did not pass (an accepted exception is not a pass)",
+      "U06: Net TRI gains on gross TRI on 41 days (0.002-0.006%)",
+      "U08: Gross and net independence unknown; net is a non-resident institutional measure"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  }
+ },
+ "gate_activation": "NOT decided here; the gate stays disabled",
+ "instrument_level_blocked_dates": [],
+ "states": [
+  "DATA_INGESTED",
+  "RESEARCH_ELIGIBLE",
+  "BENCHMARK_GATE_ELIGIBLE"
+ ]
+}

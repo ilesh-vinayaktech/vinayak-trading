@@ -50,6 +50,7 @@ ROUTE_PERMISSIONS = {
     ("GET", "/api/auth/sessions"): SELF,
     ("GET", "/api/dashboard/me"): SELF,
     ("GET", "/api/market/calendar"): "ops:read",
+    ("POST", "/api/screener/run"): "research:read",
     ("GET", "/api/costs/schedules"): "research:read",
     ("GET", "/api/costs/preview"): "research:read",
     ("POST", "/api/costs/providers"): "system:settings",

@@ -1,0 +1,50 @@
+{
+ "index": "NIFTY_MIDCAP_150",
+ "as_of": "2026-10-30",
+ "source": {
+  "dataset": "factsheet_nifty_midcap_150",
+  "sha256": "03f17cc23145a312a576e58ba65375777b003b7dd4f3b29985b00a6e82be9b87",
+  "url": "https://www.niftyindices.com/Factsheet/ind_nifty_midcap_150.pdf",
+  "document_date": "2026-10-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (+/-0.005 pp); CAGR also depends on the unstated day-count convention (+/-0.02 pp); the difference is always reported. The since-inception figure is not checked: our series starts later than the index.",
+ "checks": [
+  {
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-3.69",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-4.97",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-3.90",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "13.84",
+   "tolerance_pp": "0.02",
+   "series": "gross"
+  }
+ ],
+ "not_reproducible": []
+}

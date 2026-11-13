@@ -1,0 +1,6 @@
+{
+ "enabled": true,
+ "decided": "2026-11-13",
+ "by": "owner",
+ "meaning": "A study's benchmark gates (beats the index, drawdown against it) use only a benchmark that is BENCHMARK_GATE_ELIGIBLE in the latest frozen benchmark release; otherwise those gates fail for missing evidence and the report says why. Set enabled to false to go back to 'a passing validation is enough'."
+}

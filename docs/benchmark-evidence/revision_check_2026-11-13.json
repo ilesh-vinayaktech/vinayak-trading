@@ -1,0 +1,580 @@
+{
+ "checked_on": "2026-11-13",
+ "datasets": {
+  "tri_nifty200": [
+   {
+    "window_start": "2004-01-01",
+    "stored_observations": 253,
+    "refetched_observations": 253,
+    "stored_fetched_at": "2026-11-07T15:24:02.400824+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2004-12-31",
+    "stored_observations": 252,
+    "refetched_observations": 252,
+    "stored_fetched_at": "2026-11-07T15:24:08.704103+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2005-12-31",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:24:14.981448+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2006-12-31",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:24:21.316978+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2007-12-31",
+    "stored_observations": 245,
+    "refetched_observations": 245,
+    "stored_fetched_at": "2026-11-07T15:24:28.616252+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2008-12-30",
+    "stored_observations": 243,
+    "refetched_observations": 243,
+    "stored_fetched_at": "2026-11-07T15:24:35.031612+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2009-12-30",
+    "stored_observations": 252,
+    "refetched_observations": 252,
+    "stored_fetched_at": "2026-11-07T15:24:41.315357+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2010-12-30",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:24:47.727674+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2011-12-30",
+    "stored_observations": 251,
+    "refetched_observations": 251,
+    "stored_fetched_at": "2026-11-07T15:24:54.037091+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2012-12-29",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:25:00.338264+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2013-12-29",
+    "stored_observations": 243,
+    "refetched_observations": 243,
+    "stored_fetched_at": "2026-11-07T15:25:06.633843+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2014-12-29",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:25:12.942449+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2015-12-29",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T15:25:19.208917+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2016-12-28",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:25:26.252486+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2017-12-28",
+    "stored_observations": 246,
+    "refetched_observations": 246,
+    "stored_fetched_at": "2026-11-07T15:25:32.537543+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2018-12-28",
+    "stored_observations": 245,
+    "refetched_observations": 245,
+    "stored_fetched_at": "2026-11-07T15:25:38.835735+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2019-12-28",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:25:45.938151+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2020-12-27",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T15:25:52.246316+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2021-12-27",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:25:58.607872+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2022-12-27",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T15:26:04.947082+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2023-12-27",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:26:11.255658+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2024-12-26",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:26:17.524725+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2025-12-26",
+    "stored_observations": 214,
+    "refetched_observations": 214,
+    "stored_fetched_at": "2026-11-07T15:26:23.807793+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2026-11-07",
+    "stored_observations": 4,
+    "refetched_observations": 4,
+    "stored_fetched_at": "2026-11-13T05:28:03.170955+00:00",
+    "identical": true
+   }
+  ],
+  "price_nifty200": [
+   {
+    "window_start": "2004-01-01",
+    "stored_observations": 253,
+    "refetched_observations": 253,
+    "stored_fetched_at": "2026-11-07T16:14:02.675233+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2004-12-31",
+    "stored_observations": 252,
+    "refetched_observations": 252,
+    "stored_fetched_at": "2026-11-07T16:14:09.208951+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2005-12-31",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T16:14:16.260475+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2006-12-31",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T16:14:22.916069+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2007-12-31",
+    "stored_observations": 245,
+    "refetched_observations": 245,
+    "stored_fetched_at": "2026-11-07T16:14:29.236142+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2008-12-30",
+    "stored_observations": 243,
+    "refetched_observations": 243,
+    "stored_fetched_at": "2026-11-07T16:14:45.589449+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2009-12-30",
+    "stored_observations": 252,
+    "refetched_observations": 252,
+    "stored_fetched_at": "2026-11-07T16:14:51.896780+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2010-12-30",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T16:14:58.239249+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2011-12-30",
+    "stored_observations": 251,
+    "refetched_observations": 251,
+    "stored_fetched_at": "2026-11-07T16:15:04.574228+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2012-12-29",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T16:15:11.064129+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2013-12-29",
+    "stored_observations": 243,
+    "refetched_observations": 243,
+    "stored_fetched_at": "2026-11-07T16:15:17.462654+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2014-12-29",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T16:15:24.016620+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2015-12-29",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T16:15:30.308182+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2016-12-28",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T16:15:36.570258+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2017-12-28",
+    "stored_observations": 246,
+    "refetched_observations": 246,
+    "stored_fetched_at": "2026-11-07T16:15:43.104942+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2018-12-28",
+    "stored_observations": 245,
+    "refetched_observations": 245,
+    "stored_fetched_at": "2026-11-07T16:15:49.473979+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2019-12-28",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T16:15:55.813918+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2020-12-27",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T16:16:02.113673+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2021-12-27",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T16:16:08.613527+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2022-12-27",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T16:16:15.033615+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2023-12-27",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T16:16:21.366890+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2024-12-26",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T16:16:28.880926+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2025-12-26",
+    "stored_observations": 214,
+    "refetched_observations": 214,
+    "stored_fetched_at": "2026-11-07T16:16:35.209798+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2026-11-07",
+    "stored_observations": 4,
+    "refetched_observations": 4,
+    "stored_fetched_at": "2026-11-13T05:28:15.932398+00:00",
+    "identical": true
+   }
+  ],
+  "tri_nifty50": [
+   {
+    "window_start": "1995-11-03",
+    "stored_observations": 0,
+    "refetched_observations": 0,
+    "stored_fetched_at": "2026-11-07T15:45:17.131726+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "1996-11-02",
+    "stored_observations": 0,
+    "refetched_observations": 0,
+    "stored_fetched_at": "2026-11-07T15:45:24.456532+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "1997-11-02",
+    "stored_observations": 0,
+    "refetched_observations": 0,
+    "stored_fetched_at": "2026-11-07T15:45:30.673063+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "1998-11-02",
+    "stored_observations": 87,
+    "refetched_observations": 87,
+    "stored_fetched_at": "2026-11-07T15:45:37.535933+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "1999-11-02",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:45:43.827824+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2000-11-01",
+    "stored_observations": 251,
+    "refetched_observations": 251,
+    "stored_fetched_at": "2026-11-07T15:45:50.120527+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2001-11-01",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:45:56.385654+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2002-11-01",
+    "stored_observations": 252,
+    "refetched_observations": 252,
+    "stored_fetched_at": "2026-11-07T15:46:02.644297+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2003-11-01",
+    "stored_observations": 253,
+    "refetched_observations": 253,
+    "stored_fetched_at": "2026-11-07T15:46:08.958250+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2004-10-31",
+    "stored_observations": 251,
+    "refetched_observations": 251,
+    "stored_fetched_at": "2026-11-07T15:46:15.344141+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2005-10-31",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:46:21.617348+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2006-10-31",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:46:27.865052+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2007-10-31",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:46:34.188967+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2008-10-30",
+    "stored_observations": 241,
+    "refetched_observations": 241,
+    "stored_fetched_at": "2026-11-07T15:46:40.496217+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2009-10-30",
+    "stored_observations": 251,
+    "refetched_observations": 251,
+    "stored_fetched_at": "2026-11-07T15:46:46.774851+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2010-10-30",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:46:53.056449+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2011-10-30",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:46:59.346588+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2012-10-29",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:47:05.635903+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2013-10-29",
+    "stored_observations": 245,
+    "refetched_observations": 245,
+    "stored_fetched_at": "2026-11-07T15:47:11.954381+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2014-10-29",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:47:18.217792+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2015-10-29",
+    "stored_observations": 245,
+    "refetched_observations": 245,
+    "stored_fetched_at": "2026-11-07T15:47:24.485965+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2016-10-28",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:47:32.667599+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2017-10-28",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T15:47:40.492865+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2018-10-28",
+    "stored_observations": 244,
+    "refetched_observations": 244,
+    "stored_fetched_at": "2026-11-07T15:47:46.752130+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2019-10-28",
+    "stored_observations": 250,
+    "refetched_observations": 250,
+    "stored_fetched_at": "2026-11-07T15:47:53.084124+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2020-10-27",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:47:59.350499+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2021-10-27",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:48:05.639112+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2022-10-27",
+    "stored_observations": 248,
+    "refetched_observations": 248,
+    "stored_fetched_at": "2026-11-07T15:48:11.917537+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2023-10-27",
+    "stored_observations": 249,
+    "refetched_observations": 249,
+    "stored_fetched_at": "2026-11-07T15:48:18.149741+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2024-10-26",
+    "stored_observations": 247,
+    "refetched_observations": 247,
+    "stored_fetched_at": "2026-11-07T15:48:24.406446+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2025-10-26",
+    "stored_observations": 246,
+    "refetched_observations": 246,
+    "stored_fetched_at": "2026-11-07T15:48:30.673734+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2026-10-26",
+    "stored_observations": 10,
+    "refetched_observations": 10,
+    "stored_fetched_at": "2026-11-07T15:48:36.922602+00:00",
+    "identical": true
+   },
+   {
+    "window_start": "2026-11-07",
+    "stored_observations": 4,
+    "refetched_observations": 4,
+    "stored_fetched_at": "2026-11-13T05:28:09.598097+00:00",
+    "identical": true
+   }
+  ]
+ },
+ "windows": 81,
+ "different": 0
+}

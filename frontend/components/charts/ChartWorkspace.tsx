@@ -47,10 +47,14 @@ export function presetStart(last: string, first: string | null, months: number):
 export type StrategyPick = { options: { id: string; name: string }[]; value: string; onChange: (id: string) => void; status: string | null };
 const NO_STRATEGY: StrategyPick = { options: [], value: "", onChange: () => {}, status: null };
 
+/** The benchmark dropdown: choose an index and its levels are drawn over the chart for comparison. */
+export type BenchmarkPick = StrategyPick & { name: string; points: { date: string; level: string }[] };
+const NO_BENCHMARK: BenchmarkPick = { ...NO_STRATEGY, name: "", points: [] };
+
 const tbBtn = (active = false) => `flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[13px] transition-colors ${active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"} disabled:opacity-35 disabled:hover:bg-transparent`;
 const Sep = () => <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />;
 
-export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY, live = null }: { live?: LiveView | null; signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
+export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY, benchmark = NO_BENCHMARK, live = null }: { benchmark?: BenchmarkPick; live?: LiveView | null; signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
   const box = useRef<HTMLDivElement>(null);
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [full, setFull] = useState(false);
@@ -207,6 +211,24 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
         ))}
       </select>
       {strategy.status ? <span className="px-1 text-[12px] text-slate-600" role="status" data-testid="strategy-status">{strategy.status}</span> : null}
+      <Sep />
+      <label className="sr-only" htmlFor="benchmark">
+        Compare with a benchmark
+      </label>
+      <select
+        id="benchmark"
+        value={benchmark.value}
+        disabled={benchmark.options.length === 0 || isIntraday(timeframe)}
+        title={isIntraday(timeframe) ? "Benchmarks are daily: choose the 1D, 1W or 1M timeframe" : "Draw a benchmark index as a line over this chart (its own scale, on the left)"}
+        onChange={(e) => benchmark.onChange(e.target.value)}
+        className="h-8 max-w-44 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-40"
+      >
+        <option value="">No benchmark</option>
+        {benchmark.options.map((o) => (
+          <option key={o.id} value={o.id}>{o.name}</option>
+        ))}
+      </select>
+      {benchmark.status ? <span className="px-1 text-[12px] text-slate-600" role="status" data-testid="benchmark-status">{benchmark.status}</span> : null}
     </div>
   );
 
@@ -224,7 +246,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   return (
     <div ref={box} className={`flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm ${full ? "h-screen" : "h-[calc(100vh-15rem)] min-h-[560px]"}`} data-testid="chart-workspace">
       {bars && bars.bars.length > 0 && picked ? (
-        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} live={live} />
+        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} live={live} compare={benchmark.value && benchmark.points.length > 0 ? { name: benchmark.name, points: benchmark.points } : undefined} />
       ) : (
         <>
           {topbar({ undo: () => {}, redo: () => {}, canUndo: false, canRedo: false, count: 0, listOpen: false, toggleList: () => {}, screenshot: () => {} })}

@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
+from urllib.parse import quote
 
 import psycopg
 
@@ -67,7 +68,7 @@ def ingest_symbol(
 ) -> IngestResult:
     """`integrated=True` reads the SEBI integrated-filing feed (results from 2025 on); the default is the older feed."""
     res = IngestResult(symbol)
-    url = (INTEGRATED_URL if integrated else LISTING_URL).format(symbol=symbol)
+    url = (INTEGRATED_URL if integrated else LISTING_URL).format(symbol=quote(symbol, safe=""))
     raw = _fetch(get, url)
     lake.put(
         "nse",

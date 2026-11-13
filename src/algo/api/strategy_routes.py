@@ -20,11 +20,21 @@ from algo.api.paper_routes import _options, _params, _st
 from algo.api.security import CurrentUser, WConn
 from algo.paper import configs
 from algo.portal import audit
+from algo.research import fundamentals_book
+from algo.research.study import Segment
+from algo.strategies import screener_signals
+from algo.strategies.screener import ScreenSpec
 from algo.strategies.signals import replay
 from algo.strategies.trend_pullback import LOOKBACK_DAYS, TrendPullbackParams
 from algo.strategy import stage
 
 router = APIRouter(prefix="/api/strategies", tags=["strategies"])
+
+
+class ScreenBody(ScreenSpec):
+    """The rules of a screener strategy plus the market-cap classes it picks from."""
+
+    segments: list[Segment] = Field(min_length=1)
 
 
 class StrategyBody(BaseModel):
@@ -33,6 +43,35 @@ class StrategyBody(BaseModel):
     max_instruments: int | None = Field(default=None, ge=5, le=500)
     timeframe: str = Field(max_length=5)
     params: dict[str, int] = Field(default_factory=dict)
+    screen: ScreenBody | None = (
+        None  # given: a screener strategy (universe, cap and time frame are then fixed)
+    )
+
+
+SCREENER_SLOTS = (5, 10, 20)
+
+
+def _settings(body: StrategyBody) -> dict[str, Any]:
+    """What `configs.create/update` take for this body: a trend strategy's validated params, or a screener's rules."""
+    if body.screen is None:
+        if body.universe == configs.SEGMENTS:
+            raise HTTPException(400, "unknown universe 'segments'")
+        return {
+            "universe": body.universe,
+            "max_instruments": body.max_instruments,
+            "params": _params(body.params),
+        }
+    spec = ScreenSpec.model_validate(body.screen.model_dump(exclude={"segments"}))
+    if (why := spec.problem()) is not None:
+        raise HTTPException(400, why)
+    slots = body.params.get("max_positions", 10)
+    if slots not in SCREENER_SLOTS:
+        raise HTTPException(400, f"max_positions must be one of {list(SCREENER_SLOTS)}")
+    return {
+        "universe": configs.SEGMENTS, "max_instruments": None, "params": {"max_positions": slots},
+        "screen": {"screen": spec.model_dump(mode="json"), "segments": list(body.screen.segments)},
+        "strategy_id": "screener",
+    }  # fmt: skip
 
 
 def _shown(c: dict[str, Any], current_stage: str = "RESEARCH") -> dict[str, Any]:
@@ -79,12 +118,11 @@ def _change(
 
 @router.post("")
 def create(body: StrategyBody, request: Request, who: CurrentUser, conn: WConn) -> dict[str, str]:
-    params = _params(body.params)
+    mine = _settings(body)
     try:
         config_id = configs.create(
-            conn, who.session.user_id, name=body.name, universe=body.universe,
-            max_instruments=body.max_instruments, timeframe=body.timeframe, params=params,
-            now=_st(request).clock.now(),
+            conn, who.session.user_id, name=body.name, timeframe=body.timeframe,
+            now=_st(request).clock.now(), **mine,
         )  # fmt: skip
     except configs.ConfigError as e:
         raise _fail(e) from e
@@ -94,7 +132,7 @@ def create(body: StrategyBody, request: Request, who: CurrentUser, conn: WConn) 
         conn,
         "created",
         config_id,
-        {"name": body.name.strip(), "universe": body.universe},
+        {"name": body.name.strip(), "universe": mine["universe"]},
     )
     return {"config_id": str(config_id)}
 
@@ -103,11 +141,12 @@ def create(body: StrategyBody, request: Request, who: CurrentUser, conn: WConn) 
 def change(
     config_id: UUID, body: StrategyBody, request: Request, who: CurrentUser, conn: WConn
 ) -> dict[str, bool]:
-    params = _params(body.params)
+    mine = _settings(body)
+    params = mine["params"]
+    mine.pop("strategy_id", None)  # a strategy's kind never changes
     try:
         configs.update(
-            conn, who.session.user_id, config_id, name=body.name, universe=body.universe,
-            max_instruments=body.max_instruments, timeframe=body.timeframe, params=params,
+            conn, who.session.user_id, config_id, name=body.name, timeframe=body.timeframe, **mine,
         )  # fmt: skip
     except configs.ConfigError as e:
         raise _fail(e) from e
@@ -117,7 +156,7 @@ def change(
         conn,
         "changed",
         config_id,
-        {"name": body.name.strip(), "universe": body.universe, "params": params},
+        {"name": body.name.strip(), "universe": mine["universe"], "params": params},
     )
     return {"ok": True}
 
@@ -186,6 +225,15 @@ NOTES = [
     "It reads one stock alone. It ignores the limit on how many stocks are held at once, the choice among stocks that are oversold on the same day, and index membership, so a BUY here is the strategy's signal for this stock, not a promise the whole strategy would have bought it.",
     "A decision is made after the day's close and filled at the next session's open.",
 ]
+SCREENER_HISTORY_DAYS = (
+    420  # calendar days of bars before the range: the 252-session one-year change
+)
+SCREENER_NOTES = [
+    "Decisions only: this is not a backtest and shows no profit or loss.",
+    "A screener strategy runs the screen after every session. A BUY here means the stock started matching the screen that day; a SELL means it stopped matching (it is then sold, and not bought back until it matches again).",
+    "It reads this stock alone. It ignores the limit on how many stocks are held at once and the ranking among stocks that match on the same day, so a BUY here is the screen's signal for this stock, not a promise the whole strategy would have bought it.",
+    "A stock needs a full year of history before a one-year condition can match. A decision is made after the day's close and filled at the next session's open.",
+]
 MAX_SIGNAL_DAYS = 366 * 10
 
 
@@ -195,6 +243,7 @@ def signals(
     instrument_id: int,
     start: date,
     end: date,
+    request: Request,
     who: CurrentUser,
     conn: WConn,
     holding: bool = False,
@@ -209,11 +258,23 @@ def signals(
         raise HTTPException(422, "range longer than 10 years")
     if queries.instrument(conn, instrument_id) is None:
         raise HTTPException(404, f"no instrument {instrument_id}")
-    params = TrendPullbackParams(**mine["params"])
-    history = queries.reader_for(conn, instrument_id)[0].issuer_history(
-        instrument_id, start - timedelta(days=LOOKBACK_DAYS), end, adjust="split"
-    )
-    rows = replay(history.bars, params, start, end, holding=holding)
+    if mine["screen"] is not None:
+        history = queries.reader_for(conn, instrument_id)[0].issuer_history(
+            instrument_id, start - timedelta(days=SCREENER_HISTORY_DAYS), end, adjust="split"
+        )
+        spec = ScreenSpec.model_validate(mine["screen"]["screen"])
+        filings = (
+            fundamentals_book.load(conn, [instrument_id], start, end)
+            if spec.needs_fundamentals()
+            else None
+        )
+        rows = screener_signals.replay(history.bars, start, end, spec, filings, instrument_id)
+    else:
+        params = TrendPullbackParams(**mine["params"])
+        history = queries.reader_for(conn, instrument_id)[0].issuer_history(
+            instrument_id, start - timedelta(days=LOOKBACK_DAYS), end, adjust="split"
+        )
+        rows = replay(history.bars, params, start, end, holding=holding)
     days = [
         {
             "day": r.day.isoformat(), "close": _num(r.close), "sma": _num(r.sma), "rsi": _num(r.rsi), "ready": r.ready,
@@ -226,7 +287,7 @@ def signals(
         "label": "UNVALIDATED",
         "strategy": mine["name"],
         "params": mine["params"],
-        "notes": NOTES,
+        "notes": SCREENER_NOTES if mine["screen"] is not None else NOTES,
         "summary": {
             "buys": sum(r.action == "BUY" for r in rows),
             "sells": sum(r.action == "SELL" for r in rows),

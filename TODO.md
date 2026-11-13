@@ -4,27 +4,49 @@ Base: `Algo Trading Platform Developer Spec v1.md` + accepted review additions (
 Language: **Python 3.12**, uv, pytest. Scope: Stage 0 → paper trading (Stage 5). Live / US / crypto are outlined at the end only.
 Legend: `[ ]` todo · **(P0)** critical review addition · **(P1)** high review addition · `T:` tests required for the item.
 
+## Status 2026-11-13: what has been built since 2026-11-10 (keep this current: add a dated line whenever work lands)
+
+Built and tested. Everything dated 11-11/12 is committed; **everything dated 11-13 is in the working tree only (not committed)**. Details live in the git log and the sections below.
+
+- **Portal (2026-11-11, `docs/portal/DESIGN.md`)**: sign-in with 2FA, roles, deny-by-default routes, append-only audit, user directory, CRM, support tickets, per-user encrypted Kite connection + the system data feed switch, my-overview and operations dashboards, shared design system. Migrations 030-032.
+- **Kite data (11-11/12)**: v3 client, 1-minute loader (`bar_1m`), daily candles with full-day volume, raw archive with hash, daily instrument dump + mapping of 2,600 equities, price-source switch (`ALGO_PRICE_SOURCE`), timeframes 1m to 1M, Kite-vs-bhavcopy reconciliation, frozen Kite daily history. Migrations 027-029, 037, 041.
+- **Live feed (11-12)**: WebSocket to 1-minute bars (`live_bar_1m`), quotes every 2 s for the whole market, trading-calendar sessions (`market_session`), weekday systemd units. Migrations 033, 034, 042, 043.
+- **Costs (11-12)**: dated, verified Zerodha delivery schedules 2016 to now, DB-backed with owner verification and named assumptions (migration 039). See "Realistic costs".
+- **Paper trading (11-12)**: per-user paper accounts replayed through the engine's Ledger, daily runner, PENDING orders with approve/reject and simulated fills, saved strategy configs with the stage lifecycle (migrations 035, 036, 038, 040, 048, 055).
+- **Strategies**: trend-filtered RSI pullback; screener as a strategy on prices and fundamentals; signals drawn on the Data Explorer chart.
+- **Studies (11-12/13)**: owner-defined `StudySpec`, new-study form, trial runner on the real engine (research window only), verdict (walk-forward, 2x costs, 3x capital, benchmark gates), one-time holdout. Several workers may now run side by side (advisory locks per run; each ~2 GB). 5 validation reports, 0 passed.
+- **Market caps (11-12)**: AMFI half-yearly lists, large / mid / small / micro segments (044).
+- **Benchmarks (11-13, NOT yet committed)**: 49 series, release 1.6, 48 gate-eligible, gate enabled by the owner.
+- **Screener (11-12/13, NOT yet committed)**: `/screener`, snapshot table (053), saved-as-strategy (054), "Backtest it" after saving.
+- **Monitoring (11-13, NOT yet committed)**: job run history, Scheduled syncs panel, Platform status verdict, System Activity shows one row per date (latest load), "holiday / no file" wording.
+- **Backtest report fixes (11-13)**: the closed-trades view applies splits and bonuses from the run's ledger (run 15: an HCLTECH bonus had hidden Rs 99,520.58 of realized profit), "Charges paid" is the run's full fees, and `DivisionByZero` on zero paid-up capital in the ratios is fixed.
+- **Not committed yet (all of 2026-11-13)**: the fixes and features above plus `scripts/run_job.py` and the whole `algo/jobs/` package, `api/platform_health.py`, `screener/`, `strategies/screener*.py`, `strategies/fundamentals.py`, benchmark gate/audits, migrations 053-056, and today's edits to `backtest/report.py`, `backtest/store.py`, `api/queries.py`, `api/app.py`, `data/ratios.py`, `research/study_jobs.py`, `scripts/study_worker.py` and the frontend. Commit before they are lost.
+- **Housekeeping**: stray `package.json`, `pnpm-lock.yaml` and `node_modules/` sit at the repo root (untracked); `docs/costs.md` still describes the 2026-11-07 state (unverified rates) and needs the same update as the costs section here.
+
 ---
 
 ### B. Scheduled jobs (nothing is scheduled today except `algo-feed.timer`)
 
 Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert on failure or stale data, e.g. Telegram).
 
-- [ ] Job runner + failure/staleness alerts.
-- [ ] Daily bhavcopy after 18:30 IST (retry until published), then verify against Kite daily candles (`reconcile_kite_prices.py`); skip and alert when no Kite session (the login is manual, tokens expire 06:00 IST).
-- [ ] Gap refill: nightly sweep of the last 30 sessions, weekly deep sweep, quarantined files via `recover_bhavcopy.py`, completeness check (375 bars/day for minutes).
-- [ ] Index data: incremental TRI/price capture (`capture_tri.py` + `ingest_tri.py`) and constituent lists.
+- [x] (2026-11-13) Job runner + failure/staleness alerts (`algo/jobs/`, `scripts/run_job.py`, `check_stale.py`, `install_job_timers.py`): lock, log, retries, Telegram/journal alert, skip on no Kite session. Registered (17): kite-login-reminder, bhavcopy-daily (retry until current), kite-reconcile, kite-daily-candles, universe-daily, gap-nightly/weekly, calendar-weekly, fundamentals-daily, screener-refresh, benchmarks-daily, constituents-weekly, amfi-caps-monthly, cost-sources-monthly, db-backup (docker exec pg_dump, 14 days), data-freshness, disk-check. **Every run is recorded** (`job_run`, migration 056, `algo/jobs/history.py`; last 200 per job) and shown on the dashboard (Scheduled syncs: last run, result, last success) and in the Platform status verdict. Run end to end by hand on 2026-11-13: data-freshness, disk-check, calendar-weekly, bhavcopy-daily, universe-daily, kite-reconcile (all ok); not yet run through the runner: the other 11. **NOT installed**: run `uv run python scripts/install_job_timers.py` and the printed `systemctl --user` commands on prod (the unit sources `.env`, so `ALGO_DB_URL` is there for the recording). Prod also needs a daily Kite token refresh: `kite_token_from_portal.py` refuses when the portal feed's API key differs from `ZERODHA_API_KEY` in `.env` (unresolved), and the loaders already fall back to the portal feed when there is no token file. Still unscheduled: corporate-actions refresh (`actions500` skips symbols already stored), index-reconstitution notices, lake backup (needs a destination), a real today's-filings mode, a review-queue alert.
+- [x] (2026-11-13) Daily bhavcopy after 18:30 IST (`bhavcopy-daily`, retries every 10 min for 2 h until the newest bar is current; ran ok) then verified against Kite daily candles (`kite-reconcile`; database-only, needs no Kite session). First full reconcile of 2,600 stocks: 2,205 match, 263 step (mostly explained by a corporate action on file), 100 diverge, 31 no overlap, 1 offset. Waiting on: timers installed on prod.
+- [ ] Gap refill: `gap-nightly` (last 30 days) and `gap-weekly` (from 2019-10, resumable) are built and gap-nightly ran ok; NOT wired: quarantined files via `recover_bhavcopy.py`, completeness check (375 bars/day for minutes).
+- [ ] Index data: `benchmarks-daily` (capture, ingest, validate every benchmark series; a failed series alerts, the rest still load) and `constituents-weekly` are built; neither has run through the runner yet. Open until their first run is recorded.
 - [ ] Latest results: a "today's filings" mode for the integrated feed (the per-symbol sweep of 500 takes ~8 min), then `backfill_fundamental_facts.py`.
-- [ ] Not on the first list but needed: daily corporate actions (+ review-queue alert); security master, new listings and symbol changes; Kite instrument mapping and daily candles/minutes; morning Kite-login reminder; weekly holiday-calendar sync; DB and lake backups; AMFI market caps (Jun/Dec); index reconstitution notices (Mar/Sep) and the monthly constituent archive; monthly cost-source capture; disk and log checks.
+- [ ] Not on the first list but needed: DONE as registered jobs: security master / new listings / symbol changes (universe-daily), Kite daily candles, morning Kite-login reminder, weekly holiday-calendar sync, DB backup, AMFI market caps, monthly cost-source capture, disk and freshness checks. STILL OPEN: daily corporate actions (+ review-queue alert), index reconstitution notices (Mar/Sep) and the monthly constituent archive, lake backup, Kite minutes job (the live feed builds minutes; `kite_load_minutes.py` is by hand).
 
 ### C. Fundamentals and ratios follow-ups
 
 - [x] Integrated-feed (SEBI) results ingest, all XBRL figures stored (QUARTER/YTD/INSTANT), Data Explorer panel: Summary, Ratios (30, with year-ago, history and readings), All figures (Trendlyne-style).
-- [ ] Finish the integrated download (`data/fundamentals_integrated.log`, resumable), then run `scripts/backfill_fundamental_facts.py`; report the `fundamental_unloaded` count.
+- [x] Finish the integrated download (`data/fundamentals_integrated.log`, resumable), then run `scripts/backfill_fundamental_facts.py`; report the `fundamental_unloaded` count. (2026-11-13: `fundamentals-daily` swept all 501 symbols, 33,030 filings re-read; `fundamental_unloaded` = 5,579 rows.)
 - [ ] Cross-check old vs integrated feed on overlapping quarters.
 - [ ] Review the rule-of-thumb thresholds in `algo/data/ratios.py` (`RATIOS`): author's judgement, not validated.
 - [ ] Sector peer comparison: the Nifty 500 list has an `Industry` column (~20 groups); load it as dated data, then show ratios against the sector median.
-- [ ] Strategies read ratios through `Context.fundamentals.as_of` using `algo.data.ratios` only, with a no-lookahead test (ties to 2.6).
+- [x] Stock screener (`/screener`, `algo.screener`): 17 ratio + 17 technical fields, AND/OR conditions, 21 ready-made fundamental / technical / combined screens. Technicals use unadjusted bhavcopy closes cut at the latest split/bonus.
+- [ ] Screener follow-ups: sector filter (needs the Industry load above), save/share custom screens, "just crossed" signals, a link from each result to the Data Explorer.
+- [x] Screener as a strategy (`algo.strategies.screener`, v3; fundamentals added 2026-11-13): runs the screen after every session like any strategy; a stock that matches (and fits `max_positions`) is proposed for buying, a held stock that stops matching for selling, each needing approval. Price AND fundamental fields (filings known by the day, via `research/fundamentals_book.py` + `strategies/fundamentals.py`; the study runner loads them only when the screen uses them). Save it from the Screener page ("Save as a strategy", then **"Backtest it"** opens New study with the screen, caps and slots preloaded), use it for paper trading (migration 055), chart its buy/sell on the Data Explorer (`screener_signals`), or backtest it as a study. Benchmark dropdown on the Data Explorer overlays an index.
+- [ ] Strategies read ratios through `Context.fundamentals.as_of` using `algo.data.ratios` only, with a no-lookahead test (ties to 2.6). (2026-11-13: the screener strategy reads ratios from filings known by the day and `test_fundamentals_book` proves the loader keeps nothing filed after the stop day; no strategy-level no-lookahead test and no reporting-lag setting yet.)
 - [ ] Mutation tests for `ratios.py` and `nse_results.py` (gate 85%).
 
 ---
@@ -54,7 +76,7 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 - [ ] Create layout per spec §15 (`src/algo/{core,data,pipeline,features,strategy,backtest,portfolio,risk,execution,live,api}`, `strategies/`, `tests/`, `infra/`). Add new packages: `ledger/`, `platform_state/`, `readiness/`, `sandbox/`.
 - [x] `uv` project, lockfile, Python 3.12 pin, `Makefile`/`justfile`: `test`, `cov`, `mut`, `lint`, `type`, `e2e`, `up`, `down`.
-- [ ] GitHub Actions: lint → types → unit → integration (testcontainers) → coverage gate → golden backtest → build image. Nightly: mutation, fault, slow, replay.
+- [ ] GitHub Actions: lint → types → unit → integration (testcontainers) → coverage gate → golden backtest → build image. Nightly: mutation, fault, slow, replay. (2026-11-13: remote `origin` exists and `.github/workflows/ci.yml` runs `make check` on push/PR plus a nightly `make mut`; whether it has passed on GitHub is not verified from here. Not yet: golden backtest, image build, fault/slow/replay.)
 - [x] (file written, CI smoke test pending) `docker-compose.dev.yml`: timescaledb, redis, minio. Healthchecks. T: compose-up smoke test in CI.
 - [ ] Secrets policy: SOPS/age config, `.gitignore`, pre-commit secret scan (gitleaks). T: CI fails on seeded fake secret.
 - [ ] Structured JSON logging + correlation-id helper (`run_id, strategy_id, instrument_id, order_id`). T: log schema test.
@@ -84,23 +106,23 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 ### 1.2 Platform state machine **(P0)**
 
-- [x] States: INITIALIZING, DATA_VALIDATION, READY, PAPER, LIVE, DEGRADED, HALTED, RECOVERY. Explicit transition table + guards; persisted as append-only `platform_state_event`.
-- [x] Hard invariant: runner cannot emit targets unless state ∈ {PAPER, LIVE} and recovery checks passed (market data fresh, broker session valid, open orders / positions / cash reconciled, internal portfolio loaded).
+- [ ] States: INITIALIZING, DATA_VALIDATION, READY, PAPER, LIVE, DEGRADED, HALTED, RECOVERY. Explicit transition table + guards DONE (`platform_state/machine.py`, pure, 100% branch). NOT done: persisting as append-only `platform_state_event` (no such table exists) and anything driving or reading it. The dashboard's **Platform status** (2026-11-13, `api/platform_health.py`) is a separate live health verdict (data freshness, job results, quarantines, Kite), not this machine.
+- [ ] Hard invariant: runner cannot emit targets unless state ∈ {PAPER, LIVE} and recovery checks passed (market data fresh, broker session valid, open orders / positions / cash reconciled, internal portfolio loaded). Enforced inside the machine (`can_emit_targets`, `Checks`) and its tests only; the paper runner does not consult it.
 - [ ] Restart path: any boot → RECOVERY → READY only after reconciliation passes; stale Redis events discarded by epoch/sequence check.
 - [ ] T: exhaustive transition matrix (every illegal transition raises); property test: no event sequence reaches LIVE without passing READY; restart-at-10:30 scenario with stale Redis + unreconciled position → no orders emitted; DEGRADED restricts to reduce-only; HALTED needs explicit operator action.
 
 ### 1.3 Instrument master (spec §4 + `instrument_terms` **P1**)
 
-- [ ] (done so far: exchange, instrument, instrument_terms, instrument_alias via plain SQL runner; pending: instrument_derivative, index_membership, trading_calendar/session, fx_rate) Alembic migrations: `exchange`, `instrument`, `instrument_derivative`, `instrument_alias`, `index_membership`, `trading_calendar`, `trading_session`, `fx_rate`, **`instrument_terms`** (valid_from/to, lot_size, tick_size, qty_step, multiplier, margin_rule_version). Remove lot/tick from `instrument` or keep as "current" view.
+- [ ] (done so far: exchange, instrument, instrument_terms, instrument_alias via plain SQL runner; pending: instrument_derivative, index_membership, trading_calendar/session, fx_rate) Alembic migrations: `exchange`, `instrument`, `instrument_derivative`, `instrument_alias`, `index_membership`, `trading_calendar`, `trading_session`, `fx_rate`, **`instrument_terms`** (valid_from/to, lot_size, tick_size, qty_step, multiplier, margin_rule_version). Remove lot/tick from `instrument` or keep as "current" view. [2026-11-13: also done: index_membership (013), market_session (034); still pending: instrument_derivative, fx_rate]
 - [x] Repository layer + `terms_as_of(instrument, ts)`. T: lot-size change mid-history resolves correctly; overlapping validity ranges rejected by DB exclusion constraint.
 - [x] Alias resolution with validity dates; delisted never deleted. T: rename keeps history linked; lookup by symbol as-of date.
-- [ ] Daily instrument refresh job: diff vs DB, write changes with timestamp, alert on held-instrument status change. T: golden diff fixtures (new listing, rename, delist, lot-size change).
+- [x] Daily instrument refresh job: diff vs DB, write changes with timestamp, alert on held-instrument status change. T: golden diff fixtures (new listing, rename, delist, lot-size change). (2026-11-13: `universe-daily` = security master, new listings, symbol changes; the daily Kite instrument dump reports adds/drops/token changes, migration 037. Tests cover adds, drops, token changes and symbol renames. Still open: golden fixtures for a delisting and a lot-size change, and an alert on a held instrument's status change.)
 - [ ] Expired futures = separate rows; continuous contract view with documented roll rule. T: roll on expiry day, back-adjust option off by default.
 - [x] Asset-class enum + exchange table seeded for NSE/BSE; US/crypto rows added as data in a test to prove no schema change needed.
 
 ### 1.4 Calendars
 
-- [x] (NSE + special sessions done; fake US/crypto calendars pending) `ExchangeCalendar` adapter: NSE (holidays, 09:15–15:30 IST, special sessions e.g. Muhurat), a fake US (DST) and 24/7 crypto calendar for tests. API: `is_open`, `next_bar_boundary`, `session_bars(date)`, `prev_session`.
+- [x] (NSE + special sessions done; fake US/crypto calendars pending) `ExchangeCalendar` adapter: NSE (holidays, 09:15–15:30 IST, special sessions e.g. Muhurat), a fake US (DST) and 24/7 crypto calendar for tests. API: `is_open`, `next_bar_boundary`, `session_bars(date)`, `prev_session`. 2026-11-12: `market_session` table (closed days, special sessions, IST), weekly NSE holiday sync (starred days flagged as needing hours), bar builder and feed follow the day's windows, audited calendar API and portal page.
 - [ ] T: 375 bars per NSE day; half-day sessions; holiday suppression; DST spring/fall transitions; crypto no gaps; property test: `next_bar_boundary` always > t and aligned.
 
 **Exit gate 1:** Instrument + calendar correct for sample data; DB constraints tested; 100% branch on `platform_state` and `core` money types; coverage ≥ 90%.
@@ -119,26 +141,28 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 - [x] (fetch/parse/validate/load done; retries+rate limiter pending) `DataProvider` protocol incl. `supports_corrections()`; pipeline runner: fetch → store raw → parse → validate → load → publish. Retries w/ exponential backoff + rate limiter.
 - [x] Quarantine table + state for failed DQ partitions. T: quarantined partition never loads.
 - [x] Idempotent load; **versioned ingestion** (replaces bare `ON CONFLICT DO NOTHING`): rows carry `dataset_version`, `ingested_at`, `supersedes`; corrections create a new version, never overwrite. T: re-run is no-op; correction yields new version and old one still queryable; crash mid-load leaves no partial partition (single transaction).
-- [ ] (done: NSE bhavcopy + security master, verified on real Nov-2026 files, real HTTP client w/ retries; pending: ETF master (~355 EQ-series ETFs/index funds/day are unknown), Kite 1m, instrument dump, corp actions, index/VIX/FII, FRED, Stooq) Adapters (each with recorded raw fixtures + pure `parse` unit tests): NSE bhavcopy, Kite 1m candles, instrument dump, NSE corporate actions, index levels/VIX/FII-DII, FRED, Stooq/yfinance. NSE behind one client (headers, cookies, status recording, schema-change alert).
+- [ ] (done: NSE bhavcopy + security master, verified on real Nov-2026 files, real HTTP client w/ retries; pending: ETF master (~355 EQ-series ETFs/index funds/day are unknown), Kite 1m, instrument dump, corp actions, index/VIX/FII, FRED, Stooq) Adapters (each with recorded raw fixtures + pure `parse` unit tests): NSE bhavcopy, Kite 1m candles, instrument dump, NSE corporate actions, index levels/VIX/FII-DII, FRED, Stooq/yfinance. NSE behind one client (headers, cookies, status recording, schema-change alert). [2026-11-13 also done: Kite 1m candles (027) and daily candles (029) with a gzip raw archive + hash per response (028), Kite instrument dump (daily, 037), NSE corporate actions, index TRI + price benchmarks (49 series), AMFI market caps (044), SEBI integrated results (026), niftyindices factsheets. Still pending: ETF master, index levels/VIX/FII-DII, FRED, Stooq.]
 - [ ] T: parsers run offline on saved raw; malformed/truncated file → typed error + quarantine; non-200 recorded; schema drift detected.
 
 ### 2.3 Storage (spec §5)
 
-- [ ] Migrations: `bar_1m` hypertable (+compression policy), `bar_15m`/`bar_1d` continuous aggregates on exchange sessions, `corporate_action` (with explicit `announced_at` + **`knowledge_time`** **P1**), `adj_factor`, `fundamental` (PIT), `macro_series` (event_time + available_at), `feature_value`, `signal`, `job_run`, `dq_result`, `audit_log`.
+- [ ] Migrations: `bar_1m` hypertable (+compression policy), `bar_15m`/`bar_1d` continuous aggregates on exchange sessions, `corporate_action` (with explicit `announced_at` + **`knowledge_time`** **P1**), `adj_factor`, `fundamental` (PIT), `macro_series` (event_time + available_at), `feature_value`, `signal`, `job_run`, `dq_result`, `audit_log`. [2026-11-13 done: bar_1m hypertable (027), fundamental (026), corporate_action, job_run (056), audit log (portal_audit, append-only trigger, 030), live_bar_1m (033); timeframes 3m..1M are rolled up at read time, not continuous aggregates. Still pending: adj_factor, macro_series, feature_value, signal, dq_result.]
 - [ ] `bar_canonical` view (preferred source per instrument/day). T: source precedence, fallback when preferred missing.
 - [ ] Timestamp-convention rules: late-arriving bar handling, missing bar representation (explicit gap row/flag, **never zero-return**), duplicate multi-provider reconciliation, provider revision of a published bar. T: one test per rule.
-- [ ] Backups: `pg_dump`/WAL script + **restore test in CI** (restore into throwaway DB, row counts + checksums match).
+- [ ] Backups: `pg_dump`/WAL script + **restore test in CI** (restore into throwaway DB, row counts + checksums match). [2026-11-13: `db-backup` job does a nightly `pg_dump -Fc` (14 days). Restore verified BY HAND on 2026-11-13: 4.8 GB dump restored in 14m25s into a throwaway DB, all 96 tables present, row counts <= live (the dump was older), TimescaleDB structures back. It only works with `timescaledb_pre_restore()` before and `timescaledb_post_restore()` after (not written down yet). The CI restore test is still open.]
 
 ### 2.4 Immutable data snapshots **(P0)**
 
 - [ ] Tables `data_snapshot` (id, created_at, cutoff_time, status, snapshot_hash) and `snapshot_partition` (snapshot_id, dataset_id, partition_date, raw_manifest_id, checksum, record_count, source_version).
 - [ ] Snapshot also pins: instrument master version, corporate-action version, calendar version, feature definition versions, cost schedule version, strategy config, code commit.
 - [ ] Reader API: `DataAPI(snapshot_id)` serves only data referenced by the snapshot's immutable dataset versions (not "ingested_at <= x").
+- [ ] (partial, 2026-11-12) Kite daily-history freeze: `data_freeze` snapshot with per-stock row count, date range and SHA-256 (append-only, migration 041), `verify` names every stock whose frozen rows changed, a database guard refuses new Kite bars inside a frozen period (explicit override). Studies price from this freeze. The general `data_snapshot` / `DataAPI(snapshot_id)` is not built.
 - [x] (2026-11-12) T: **provider-correction scenario** (`tests/integration/test_snapshot.py`, `BarReader(known_at=)`, `data/snapshot.py`): backtest → provider corrects history → reingest → rerun with same snapshot = byte-identical result; new snapshot differs; snapshot_hash stable & changes when any pinned input changes.
 
 ### 2.5 Data-quality checks (spec §6) + readiness service **(P1)**
 
 - [ ] Checks: completeness (375/day), validity (OHLC bounds, negative, circuit), continuity (unadjusted split flag), reconciliation (1m→daily vs bhavcopy), freshness SLA, cross-provider. Results → `dq_result`.
+- [ ] (partial, 2026-11-13) Built outside `dq_result`: Kite-vs-bhavcopy reconciliation per stock (`kite_compare`, `reconcile_kite_prices.py`, job `kite-reconcile`), a session-based freshness verdict (`api/freshness.py`, `check_stale.py`, shown on the dashboard), the Platform status verdict, continuity check. Results are not stored in `dq_result` and there is no `ReadinessService`.
 - [ ] `ReadinessService`: given strategy `requirements` (timeframe, warmup_bars, max_data_age_seconds, datasets, features) returns pass/fail + reasons: instrument valid, session open, latest completed bar present, expected provider, no gaps, features computed, freshness SLA.
 - [ ] Runner refuses to call strategy when not ready. T: each failing condition individually blocks; missing bar never becomes zero-return; staleness boundary (exactly N sec).
 - [ ] T: each DQ check with pass/fail/edge fixtures; reconciliation tolerance breach opens alert.
@@ -147,20 +171,20 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 - [x] **Findings from real NSE data (Nov 2026):** `corporates-corporateActions` API needs a homepage session cookie; `caBroadcastDate` is NULL for every row (no announcement date), so `knowledge_time` cannot come from this feed; `subject` is free text (e.g. `Face Value Split (Sub-Division) - From Rs 10/- Per Share To Re 1/- Per Share`, `Bonus 1:1`, `Rights 3:8 @ Premium Re 0.50/-`, `Demerger`, `Buy Back`, `Interim Dividend - Rs 8 Per Share`, plus MF/InvIT `Distribution - ...` lines) and needs a tested parser; demerger / rights / buy-back carry no ratio or price in the subject and need explicit handling (manual-review queue, never silently adjusted).
 - [x] (owner approved) Corporate-action `knowledge_time` rule: conservative default = start of ex-date, stored with `knowledge_time_source` so a real announcement feed can later replace it.
-- [ ] Three separate price series, never one `adjusted_close`: raw OHLC (execution/audit, never adjusted), split/bonus-adjusted (signals/charts), total-return (performance). Adjusted prices are never used to simulate execution. NSE's F&O adjustment rules are NOT reused for equity history; our adjustment engine is versioned and documented.
+- [x] Three separate price series, never one `adjusted_close`: raw OHLC (execution/audit, never adjusted), split/bonus-adjusted (signals/charts), total-return (performance). Adjusted prices are never used to simulate execution. NSE's F&O adjustment rules are NOT reused for equity history; our adjustment engine is versioned and documented. (2026-11-13: `BarReader` serves none / split / total_return; the engine fills on RAW prices; every read carries an `adjustment_version`; policy in `docs/adjustment-policy.md`.)
 - [ ] (verified live; adapter pending) Add NSE CM-UDiFF common bhavcopy (`BhavCopy_NSE_CM_0_0_0_YYYYMMDD_F_0000.csv.zip`, verified live, includes ISIN) as a second source for cross-provider reconciliation and ISIN-based mapping; keep `sec_bhavdata_full` for delivery qty. Legacy `cmDDMONYYYYbhav.csv.zip` is gone (404).
 - [x] (split/bonus/dividend done, PIT-aware, 100% branch; rights/demerger/buy-back go to review) Factor builder: split/bonus `1/ratio`, dividend total-return series; split-adjusted vs total-return vs **point-in-time adjusted** (a later action must not alter an earlier backtest's information set).
 - [x] (`data/reader.py` BarReader: none/split/total_return, PIT via as_of, volume scaled, strict mode; verified on real BAJFINANCE/RELIANCE/TMPV. Still to wire into `Context.data.history` and a DuckDB/Polars research path) Adjustment applied at read time via data API (`adjusted=True`). T: property tests: adjusted series continuous across splits; position value preserved across split/bonus; factor rebuild only for affected instrument; action with no price discontinuity flagged; >20% move without action flagged.
-- [ ] `fundamentals.as_of()` with `knowledge_time` + configurable reporting lag; restatement = new row; standalone vs consolidated. T: restatement not visible before its knowledge_time; lag boundary at next session.
-- [ ] Historical `index_membership` loader + `universe_at(date)`. T: delisted names present in past universes (survivorship).
+- [ ] `fundamentals.as_of()` with `knowledge_time` + configurable reporting lag; restatement = new row; standalone vs consolidated. T: restatement not visible before its knowledge_time; lag boundary at next session. (partial 2026-11-13: filings are filtered by filing date for the screener strategy via `FundamentalsBook`; still open: configurable reporting lag, restatement handling, standalone vs consolidated switch.)
+- [x] Historical `index_membership` loader + `universe_at(date)`. T: delisted names present in past universes (survivorship). (Stage 4A: `index_membership_event` + `members_on(day, known_on=)`, membership revision 3 adopted 2026-11-09 with 13 documented exceptions, `docs/stage4/membership/`; Nifty 200 only. The trend strategy and studies use it; market-cap-segment universes use AMFI lists, migration 044.)
 - [ ] Macro as-of join on `available_at`, implemented once. T: US close D usable D+1 India session; Asian open same-day usable; property: never returns record with available_at > T.
 
 - [ ] Open from real-data work: (a) DONE for current Nifty 200 (4,823 actions, 2005-2026; 529 in review queue: 393 pre-2010 percent dividends, 63 buy-backs, 34 rights, 27 demerger/arrangement, ~12 other) - history for delisted / past Nifty 200 members still missing; (b) rights issues need historic face value / subscription price (feed `faceVal` is today's value); (c) percent-of-face-value dividends (`Dividend-500%`) have no rupee amount -> total-return series incomplete until resolved; (d) demerger/scheme-of-arrangement/buy-back manual-treatment workflow; (e) renamed symbols (TATAMOTORS returns [] after demerger: query by current symbol, map via alias); (f) historic holidays: feed has current year only, derive older trading days from bhavcopy availability; (g) Muhurat session times (08-Nov-2026) must be entered by hand; (h) `PREV_CLOSE` in sec_bhavdata_full is NOT adjusted (equals raw prior close).
 
 ### 2.7 Dagster pipeline
 
-- [ ] Assets, daily partitions, schedules per spec §6 table, sensors, retries, holiday suppression, alerts on freshness miss, backfill job. T: `dagster` in-process materialization tests for each asset on sample data; missing-file-on-trading-day raises incident; holiday does not.
-- [ ] Kite login job (token refresh before open) with alert on failure. T: contract test vs recorded fixtures; failure path pages.
+- [ ] Assets, daily partitions, schedules per spec §6 table, sensors, retries, holiday suppression, alerts on freshness miss, backfill job. T: `dagster` in-process materialization tests for each asset on sample data; missing-file-on-trading-day raises incident; holiday does not. [2026-11-13: not adopted so far; the same needs are covered by the `algo/jobs` runner + systemd timers (section B). Revisit only if those fall short.]
+- [ ] Kite login job (token refresh before open) with alert on failure. T: contract test vs recorded fixtures; failure path pages. [2026-11-13: `kite-login-reminder` alerts when there is no valid session; the login itself is manual by design (portal Kite page, system data feed). Contract tests vs recorded fixtures not done.]
 
 **Exit gate 2:** Sample + (when available) real history loaded; DQ + reconciliation pass; snapshot reproducibility test green; backup restore test green; coverage ≥ 90%, `data/adjust` 100% branch.
 
@@ -170,8 +194,8 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 ### 3.1 Strategy contract + Context (spec §9)
 
-- [ ] `Strategy` ABC, `Params` (pydantic), `Requirements`, `Targets`, `BarBatch`, manifest (`strategy.yaml`) loader + entry-point discovery; refuse to run if data requirements unmet.
-- [ ] `Context`: `now`, `data.history`, `features.get`, `fundamentals.as_of`, `macro.get`, `portfolio` (read-only), `calendar`, `log`, `metrics`. All reads bounded by `ctx.now()`.
+- [ ] `Strategy` ABC, `Params` (pydantic), `Requirements`, `Targets`, `BarBatch`, manifest (`strategy.yaml`) loader + entry-point discovery; refuse to run if data requirements unmet. [2026-11-13 done: `Strategy` ABC, params, `Requirements`, `Targets`, `Mode` (`strategy/base.py`); not done: manifest loader, entry-point discovery.]
+- [ ] `Context`: `now`, `data.history`, `features.get`, `fundamentals.as_of`, `macro.get`, `portfolio` (read-only), `calendar`, `log`, `metrics`. All reads bounded by `ctx.now()`. [2026-11-13 done: `now`, `data.history`, `fundamentals`, read-only `portfolio`, all bounded by `ctx.now()`; not done: `features.get`, `macro.get`, `calendar`, `metrics`.]
 - [ ] T: `history` never returns bar with close > now; bar visible only after close; read-only portfolio mutation attempts raise; manifest validation (bad/missing fields); entry-point discovery.
 
 ### 3.2 Strategy sandbox **(P0)**
@@ -189,10 +213,10 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 ### 3.4 Backtest engine (or Nautilus adapter per ADR-004)
 
 - [ ] Event-driven loop on `SimClock`; signal timing (decision at close t → exec ≥ open t+1); order types (market+slippage, limit through-price, stop at worse); liquidity cap (5% bar volume, carry/cancel); circuit/halt rules; lot/tick via `instrument_terms`; product type (intraday force-close); futures margin/MTM/expiry/roll; cash + buying power rejection.
-- [ ] Cost model: versioned `cost_schedule` (brokerage, STT/CTT, exchange, SEBI, GST, stamp) effective-dated, values loaded from published schedules + human-verified flag; slippage (half-spread + sqrt impact); 1x and 2x reports.
+- [x] Cost model: versioned `cost_schedule` (brokerage, STT/CTT, exchange, SEBI, GST, stamp) effective-dated, values loaded from published schedules + human-verified flag; slippage (half-spread + sqrt impact); 1x and 2x reports. (2026-11-13: DONE for NSE delivery 2016 to now, see "Realistic costs"; slippage is base + participation + volatility + illiquidity, capped, not half-spread + sqrt impact; 1x/2x/3x via `ScaledCosts` in the study verdict.)
 - [ ] Portfolio construction (capital allocation, caps, turnover, vol-target) and **same risk engine and execution interface** as live.
 - [ ] Persist `backtest_run/trade/equity` with code commit, param hash, snapshot id, cost version, seed, `experiment_id`; trial counter.
-- [ ] Metrics/tear sheet: CAGR, vol, Sharpe, Sortino, MDD+duration, Calmar, turnover, exposure, hit rate, beta, cost drag, yearly, rolling Sharpe.
+- [ ] Metrics/tear sheet: CAGR, vol, Sharpe, Sortino, MDD+duration, Calmar, turnover, exposure, hit rate, beta, cost drag, yearly, rolling Sharpe. [2026-11-13: per-run report page (`/research/backtests/{id}`): headline, equity and drawdown charts, benchmark comparison, round trips, by stock / month / weekday, win/loss distribution, charges. CAGR, vol, Sharpe, max drawdown stored; Sortino, Calmar, rolling Sharpe, beta not.]
 - [ ] T: hand-computed tiny scenarios per rule (each row of §10 fidelity table is a test); cost fixtures computed by hand; determinism (same inputs → identical hash of trades, 5 runs, varied xdist ordering); golden backtest on sample data (stored values; CI fails on drift); expired futures can't trade; halted instrument can't fill; fill never outside circuit; 2x cost ≥ 1x cost drag.
 
 ### 3.5 Validation protocol (spec §10)
@@ -204,7 +228,7 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 ### 3.6 Financial ledger **(P0)** (used by backtest, paper, live)
 
-- [ ] Tables: `cash_ledger`, `position_ledger`, `fee_ledger`, `realized_pnl`, `unrealized_pnl`, `margin_ledger`; every row references source event (fill id / charge id / corporate action id). Double-entry style, append-only; broker-reported vs internal stored separately + reconciliation diff table.
+- [ ] Tables: `cash_ledger`, `position_ledger`, `fee_ledger`, `realized_pnl`, `unrealized_pnl`, `margin_ledger`; every row references source event (fill id / charge id / corporate action id). Double-entry style, append-only; broker-reported vs internal stored separately + reconciliation diff table. [2026-11-13: built as ONE append-only table per run, `backtest_ledger` (ledger = cash / position / fee / pnl / event, every row has a `ref` to its trade or action), with views; paper accounts replay an event book through the same `Ledger` (035). Not built: margin ledger, broker-reported vs internal diffs.]
 - [ ] Single canonical P&L source; dashboards query ledger views only.
 - [ ] T (mandatory invariants): position = Σ fills; opening cash + movements = closing; duplicate execution cannot be booked twice (unique exec id); partial fills compose; cancelled order can't become filled without broker event; split/bonus preserve economic value; property tests with Hypothesis random fill sequences; backtest P&L == ledger P&L.
 
@@ -227,7 +251,7 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 - [x] (2026-11-09) Apply step, PROPOSAL-ONLY (`scripts/propose_review_application.py` -> `docs/stage4/apply_proposals/`): 28 decisions -> proposals + dry run (GSPL and PEL x2 would clear; JIOFIN pre-listing stays a non-tradable placeholder). Nothing applied; needs a person's review and a schema decision for successor/continuity records.
 - [x] (2026-11-09) Membership revision 3 adopted (see `docs/stage4/membership/README.md`, `DIFF_v2_to_v3.md`): all independent monthly checkpoints agree (N50 73/73, Next 50 49/49, Midcap 100 / N100 / N200 18/18); 13 exceptions (4 need instrument resolution: GSPL, JIOFIN pre-listing, PEL x2; 9 non-tradable placeholders). Point-in-time limit: listing-date handovers rest on later releases (known_at = announcement date).
 - [x] (2026-11-09) Membership revision 2 (`docs/stage4/membership/`, change list `DIFF_v1_to_v2.md`): 28 review items decided (append-only `review_decision`, none applied), parser v7, row-level revocations (migration 021), reviewed placeholder replacements (022, 023), one reviewed entity equivalence; exceptions 21 -> 12, Midcap 100 / Nifty 200 agree with 18/18 monthly checkpoints. Still open: the DUMMYABFRL/DUMMYSIEMS removal releases, Next 50 vs 4 checkpoints, the apply-decisions step (aliases, instruments for GSPL/PEL, coverage), 136 corporate actions, verified cost schedule, thresholds, older universe pipeline ignores revocations.
-- [ ] Pre-register hypothesis/universe/params; run validation protocol; store tear sheet; write pass/fail report.
+- [ ] Pre-register hypothesis/universe/params; run validation protocol; store tear sheet; write pass/fail report. [2026-11-13: the mechanism now exists end to end in the UI: a study locks every choice (SHA-256), trials run through the real engine, a verdict runs walk-forward + 2x costs + 3x capital + benchmark gates, the holdout opens once. 5 validation reports exist, 0 passed: no strategy has been validated, so nothing is cleared for promotion.]
 - [ ] Benchmarks: buy-and-hold Nifty (done 2026-11-12: every run report compares with Nifty 200 TRI; the verdict gates use it), 12-1 momentum baseline (not built); 2x cost result positive (done: gate `survives_2x_costs`).
 - [x] (2026-11-12) Lifecycle table + stage changes (approver, timestamp, reason, run) and the LIVE gate in code (`strategy/stage.py`, migration 048; Strategies page). Paper entry is waived by the owner and recorded as such. Still to do when a live runner exists: it must refuse a strategy that is not in stage LIVE.
 - [ ] Platform-correctness / strategy-validity / operational-reliability reported as three separate scorecards.
@@ -253,12 +277,13 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 - [ ] **Transactional outbox** for order commands (DB state + command in one txn; dispatcher is at-least-once, consumer idempotent).
 - [ ] `client_order_id` generation, strategy tagging; idempotent duplicate callbacks; out-of-order update handling.
 - [ ] `Broker` protocol; `PaperBroker` (live quotes, same slippage + cost models, `mode=paper`); `FakeBroker` with scriptable faults for tests. (`KiteBroker` implemented in Stage 6.)
+- [ ] (partial, 2026-11-12, NOT the OMS) Paper order flow: the daily runner proposes whole-share PENDING orders sized from the close; the owner approves or rejects; an approved order fills at the open of the first live minute bar after approval with slippage and charges from the cost policy, booked in the paper book; unanswered orders expire (migrations 035, 036, 038). No `order_intent`/`submission_attempt`/UNKNOWN states, no outbox, no `Broker` protocol, no reconciler.
 - [ ] Reconciler as independent process: minute-level compare orders/positions/cash vs broker; threshold halt; post-close pass.
 - [ ] T: full state-machine transition matrix; property tests (event replay rebuilds identical `order` projection; fills never exceed qty); ambiguous timeout → UNKNOWN → resolves to FILLED / not-found paths without double order; outbox crash-between-commit-and-dispatch; duplicate and out-of-order broker callbacks; reconciler detects injected mismatch and halts.
 
 ### 5.3 Live process model (paper)
 
-- [ ] `marketdata` (replayable feed for tests, Redis Streams, bars on exchange calendar → `bar_1m`), `runner` (loads sandboxed strategy workers), `portfolio-risk`, `oms`, `reconciler`, `api`. Heartbeats + missed-heartbeat alert.
+- [ ] `marketdata` (replayable feed for tests, Redis Streams, bars on exchange calendar → `bar_1m`), `runner` (loads sandboxed strategy workers), `portfolio-risk`, `oms`, `reconciler`, `api`. Heartbeats + missed-heartbeat alert. [2026-11-13: what exists instead: `feed_service` (Kite WebSocket frames parsed exactly, 1-minute bars with a partial flag, `live_bar_1m` + NOTIFY, quotes every 2 s for all 2,596 active equities, weekday systemd units, `--wait` mode) and a daily per-user paper runner. No Redis Streams, no separate runner/risk/OMS/reconciler processes, no heartbeats.]
 - [ ] T: consumer-group restart doesn't reprocess or skip bars; duplicate bar idempotent; stale data blocks targets; replay test: recorded session → identical orders.
 
 ### 5.4 Fault-injection suite **(P1)** (`tests/fault`, nightly + pre-release)
@@ -268,7 +293,7 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 ### 5.5 API + dashboard + alerting
 
-- [ ] FastAPI groups (data, pipeline, strategies, backtests, trading, control); OIDC viewer/operator roles; `audit_log` on every mutation. T: OpenAPI contract tests, authz matrix, audit row for each mutating call, control endpoints refuse viewer.
+- [x] FastAPI groups (data, pipeline, strategies, backtests, trading, control); OIDC viewer/operator roles; `audit_log` on every mutation. T: OpenAPI contract tests, authz matrix, audit row for each mutating call, control endpoints refuse viewer. (2026-11-11/13, as the portal, `docs/portal/DESIGN.md`: own auth instead of OIDC (Argon2id, TOTP 2FA, hashed server-side sessions, CSRF), roles Admin/Operator/Trader/Viewer, deny-by-default per-route permissions, append-only audit on every mutation, contract fixtures; plus user directory, CRM, tickets, per-user encrypted Kite credentials and the system data feed. Grafana/Prometheus/Alertmanager are NOT built; the dashboard, Scheduled syncs and Platform status are the in-app substitutes.)
 - [ ] Grafana dashboards as code: data health, portfolio (from ledger views), execution, risk. T: dashboard JSON lint + SQL queries run against sample DB in CI.
 - [ ] Prometheus metrics + Alertmanager rules P1/P2/P3; digest at 19:30 IST. T: `promtool test rules` for each alert.
 
@@ -335,7 +360,7 @@ Historical data → validation → Timescale → strategy (sandboxed) → backte
 - Scope today: pure modules with unit tests only (factors, continuity, NSE action parser, metrics, lifecycle gate, platform state machine, calendar, money, clock, lake): **946/992 killed = 95.4%**, every module >= 86%. It found real gaps that 100% coverage hid (sub-rupee dividends rejected, wrong prev-close date, `break` vs `continue` dropping later actions, UTC-vs-local conversion, unasserted event fields, a metrics crash on zero/wiped-out equity, an `assert` that should route to review).
 - NOT yet mutation-tested: DB-backed modules (reader, review, engine, store, pipeline, instruments, corporate_actions). Needs a shared test database so a mutant run does not start a container each time.
 - Known equivalent survivors are not worth killing (e.g. `sum(x, Decimal(0))` vs `sum(x)`).
-- CI has NOT been run: there is no git remote. `make check` is the local equivalent and passes.
+- CI: remote `origin` exists and `.github/workflows/ci.yml` runs `make check` (+ nightly `make mut`); a green GitHub run is not verified from here. `make check` is the local equivalent and passes (2026-11-13: 2,161 tests, 99.75% coverage, floors met).
 
 ## Owner research on demergers (received 2026-11-07, NOT yet used)
 
@@ -344,11 +369,11 @@ ABB India 78.19/21.81 (1:5), Reliance 95.32/4.68 (1:1), Siemens 76.18/23.82 (1:1
 ## Owner priorities for the next stage (2026-11-07) - do not let these slip
 
 1. **Financial ledger**: backtest positions, cash, dividends, fees and corporate-action entitlements must reconcile (cash_ledger / position_ledger / fee_ledger, every row traceable to its event; backtest P&L == ledger P&L).
-2. **Realistic costs**: brokerage, STT, exchange transaction charges, GST, SEBI charges, stamp duty and slippage from a versioned `cost_schedule` with historically applicable rates (replaces the flagged placeholder).
+2. **Realistic costs**: brokerage, STT, exchange transaction charges, GST, SEBI charges, stamp duty and slippage from a versioned `cost_schedule` with historically applicable rates (replaces the flagged placeholder). -> DONE 2026-11-12 for NSE delivery (see "Realistic costs").
 3. **Validation protocol**: walk-forward, out-of-sample, parameter sensitivity, multiple-testing controls (deflated Sharpe, PBO) before ANY strategy promotion. Research-mode results never authorize paper/live.
 4. **Mutation-test the DB-backed modules first** (reader, review, engine, store, pipeline) before trusting strict-mode correctness - needs a shared test database harness so a mutant run does not start a container.
 5. Demergers: price-adjust per the evidence hierarchy in `docs/adjustment-policy.md` (exchange-determined base price first); read each primary filing; unresolved ones stay PROVISIONAL / unresolved. Never fall back to `gap` for a verified factor.
-6. Add a git remote and run CI before merging / deploying (CI has never run).
+6. Add a git remote and run CI before merging / deploying (CI has never run). -> remote `origin` added and `ci.yml` exists (2026-11-13); confirm a green run on GitHub.
 
 ## Repo hygiene lesson
 
@@ -361,17 +386,17 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 - [x] Tests: hand-computed postings, exact entry contents, tamper detection for every check, Hypothesis random sequences, 12 seeded engine fuzz runs (random walks + random targets + costs). Mutation score on the ledger 98.8% (668/676); suite-wide 96.8% (1618/1672).
 - [ ] Still to build: broker-reported vs internal ledger + reconciliation diffs (needs live/paper OMS), margin ledger, slippage cost reporting, per-fee-type entries (arrives with the versioned cost schedule - priority 2), persisting unrealized P&L marks per day.
 
-## Realistic costs (priority 2) - engine DONE, rates UNVERIFIED (2026-11-07)
+## Realistic costs (priority 2) - DONE for NSE delivery, 2016 to now, verified (2026-11-12)
 
 - [x] Cost schedules are effective-dated DATA (`config/cost_schedules/`), every component citing url + sha256 + a literal quote verified against the stored document; documents captured in the raw lake (`capture_cost_sources.py`, `build_cost_schedules.py`). No rate in code.
 - [x] `backtest/costs/`: validated schedule model (+ `ScheduleBook`: refuses unverified/uncovered dates), per-order itemised calculator (brokerage incl. Rs 20 cap, STT, NSE transaction, SEBI, stamp duty, DP charge, GST, contract-note minimum), slippage model (base + participation + volatility + illiquidity, capped), engine-facing `CostPolicy` (flat placeholder or schedule-based), contract-note reconciliation tool.
 - [x] Engine: fills and charges from the policy, all-in affordability by bisection, itemised charges in the ledger (fee entry + cash entry per type), per-trade explanation persisted (`backtest_trade.charges`), `backtest_ledger_fees` view; promotion blocked by placeholder costs, unverified/assumed schedules, zero slippage.
 - [x] Tests: hand-computed orders (delivery buy 118.74, sell 129.46, intraday buy 30.34, sell 52.63), end-to-end 99-share delivery buy and round trip with DP charge reconciling to the paisa; mutation 95%+ on the cost modules.
-- [ ] **A PERSON must verify every quote** against its document, then set status `verified` (until then research-only).
-- [ ] Zerodha page has no effective dates: brokerage, DP charge, GST, SEBI fee history is NOT evidenced. Need archived schedules or contract notes. The `assumed_backfill` schedule (2020-07-01 .. 2026-02-28) extends today's rates and is approximate (exchange member tariff was slab-based before Oct 2024).
+- [x] **A PERSON must verify every quote** against its document, then set status `verified` (until then research-only). DONE 2026-11-12: the owner verifies in the UI; a schedule can list the assumptions it takes on trust and is verified by accepting them by name (`Schedule.assumptions`, `verify(accept_assumptions)` refuses until accepted and records who). DB has 9 verified schedules.
+- [x] Zerodha page has no effective dates: brokerage, DP charge, GST, SEBI fee history is NOT evidenced. Need archived schedules or contract notes. The `assumed_backfill` schedule (2020-07-01 .. 2026-02-28) extends today's rates and is approximate (exchange member tariff was slab-based before Oct 2024). DONE 2026-11-12: replaced by eight dated, verified delivery schedules (transaction rate 0.00345% -> 0.00325% Apr 2023 -> 0.00322% Apr 2024 -> 0.00297% Oct 2024 -> 0.00307% Mar 2026; no GST before 1 Jul 2017, SEBI-fee GST from 18 Jul 2022; DP fee Rs 13 + GST), each rate citing a literal quote from a stored document (Zerodha bulletins, the 2015 zero-brokerage post, NSE circulars); the three earliest periods (2016-01 to 2022-07-17) are verified with named assumptions. STILL assumed: the INTRADAY schedule 2020-07-01 to 2026-02-28 (`assumed_backfill`).
 - [ ] Acceptance test: reconcile to REAL contract notes (`reconcile_note` is ready) and to Zerodha's brokerage calculator. Needs sample contract notes from the owner.
 - [ ] Open questions from the published page: the footnote "SEBI charges will be reduced to Rs 15 per crore" (recorded verbatim, wording unexplained, not applied); IPFT listed separately by Zerodha although NSE's 306.99 + 0.01 = 307 suggests it is inside 0.00307%.
-- [ ] Not yet: intraday product in the engine, equity futures (STT history 0.01/0.0125/0.02/0.05% is in the fetched circulars), intraday/quote data for stronger execution simulation.
+- [ ] Not yet: intraday product in the engine, equity futures (STT history 0.01/0.0125/0.02/0.05% is in the fetched circulars), intraday/quote data for stronger execution simulation. [2026-11-13: costs are also stored in the database (039): providers, effective dates, owner verification, price changes as new versions, a calculator preview, admin-only audited changes; every run records `schedules_used`.]
 
 ## Validation protocol (priority 3) - toolkit DONE, no strategy validated yet (2026-11-07)
 
@@ -382,8 +407,8 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 ## Benchmark loader (2026-11-07) - storage DONE, official TRI data NOT YET LOADED
 
 - [x] `data/benchmark.py` + migration 012: benchmark / benchmark_observation, immutable (DB trigger), PRICE / TOTAL_RETURN / NET_TOTAL_RETURN never mixed, conflicting re-ingest rejected, exact-date alignment (a gap is an error), `dataset_hash` + `references()` for report refs, `gate_returns()` refuses non-TOTAL_RETURN series.
-- [ ] **Acquire official historical TRI levels** (primary: Nifty 200 TRI gross; secondary: Nifty 50 TRI gross; diagnostic: Nifty 200 price) from NSE Indices, store the raw files in the lake, ingest. Do NOT approximate a TRI from a dividend yield. Until then benchmark gates fail for missing evidence.
-- [ ] **Point-in-time universe**: Nifty 200 membership must reflect additions/removals over time (we only hold the current snapshot) - required before any strategy result is trusted (survivorship bias).
+- [x] **Acquire official historical TRI levels** (primary: Nifty 200 TRI gross; secondary: Nifty 50 TRI gross; diagnostic: Nifty 200 price) from NSE Indices, store the raw files in the lake, ingest. Do NOT approximate a TRI from a dividend yield. Until then benchmark gates fail for missing evidence. (2026-11-07 Nifty 200 TRI; by 2026-11-13: 49 benchmarks, 59 validations, factsheet reconciliation per series, release 1.6 has 48 series BENCHMARK_GATE_ELIGIBLE (Nifty 50 net is not). The owner ENABLED the benchmark gate on 2026-11-13 (`config/benchmark_gate.json`). Not committed yet: `benchmark_gate.py`, the audit/release dirs, 48 factsheet checks, `sync_benchmarks.py`.)
+- [x] **Point-in-time universe**: Nifty 200 membership must reflect additions/removals over time (we only hold the current snapshot) - required before any strategy result is trusted (survivorship bias). (see 2.6: membership revision 3 adopted 2026-11-09, strategy and studies use it.)
 - [ ] Not yet: information ratio / beta reporting, lag/`methodology_version` handling across index methodology changes.
 
 - [x] (2026-11-08) Symbol classification (read-only) `docs/stage4/symbol_classification/`: of 839 unmapped/placeholder symbols only 11 belong to the Nifty 200 family (151 rows); 0 mapped rows point at a different issuer. Open: effective dates for DHANI/MINDTREE rows, NESTLEIND ISIN history, placeholders, PEL/GSPL/ABIRLANUVO/DALMIABHA successors, HEXAWARE/BHARATFIN. Person review required before any mapping is written.
@@ -391,7 +416,7 @@ An unanchored `.gitignore` entry (`data/`) silently excluded `src/algo/data/`, i
 ## Stage 4A: point-in-time universe (2026-11-07) - model DONE, NO history loaded yet
 
 - [x] `data/universe.py` + migration 013: append-only `index_membership_event` (ADD/REMOVE, announcement vs effective date kept apart, source url + document hash, VERIFIED/PROVISIONAL/REJECTED), declared `index_membership_coverage`, derived intervals, `members_on(day, known_on=)` (no announcement leakage), `coverage_report`. Outside verified coverage membership is UNKNOWN (`UniverseGap`), never today's list; inconsistent histories (double ADD, REMOVE of a non-member) raise instead of being guessed away.
-- [ ] **Load the history**: collect NSE Nifty 200 reconstitution circulars (semi-annual, from ~2015), extract ADD/REMOVE with announcement + effective dates, store raw documents in the lake (hash), walk back from the verified current snapshot (`index_snapshot`), cross-check any official historical snapshots, resolve symbol changes to permanent instrument ids, then have a PERSON verify events and coverage. Do not infer missing changes from "there must be 200 members". The community nse-index-history project is a cross-check only. Report anything before the defensible start (~2015) as unavailable.
+- [x] **Load the history**: collect NSE Nifty 200 reconstitution circulars (semi-annual, from ~2015), extract ADD/REMOVE with announcement + effective dates, store raw documents in the lake (hash), walk back from the verified current snapshot (`index_snapshot`), cross-check any official historical snapshots, resolve symbol changes to permanent instrument ids, then have a PERSON verify events and coverage. Do not infer missing changes from "there must be 200 members". The community nse-index-history project is a cross-check only. Report anything before the defensible start (~2015) as unavailable. (done as Stage 4A rounds 1-4: 212 releases + 118 monthly archives parsed and reconciled, evidence frozen `docs/evidence-manifest.json`; verification by a person is recorded per decision in `docs/stage4/membership/`.)
 - [ ] Separate later: `strategy_eligibility` (liquidity, history length, suspension) computed point-in-time on top of membership; the engine/Context must take its universe from `members_on`.
 - [ ] Not yet: wiring the universe into `Context`/engine; delisted-security price retention check; ETF/other indices.
 

@@ -1,0 +1,50 @@
+{
+ "index": "NIFTY_INDIA_DEFENCE",
+ "as_of": "2026-10-30",
+ "source": {
+  "dataset": "factsheet_nifty_india_defence",
+  "sha256": "60dca278087fd72fa56272b6861487e4f2f98d34612735213185cc9b5084210e",
+  "url": "https://www.niftyindices.com/Factsheet/Factsheet_NiftyIndiaDefence.pdf",
+  "document_date": "2026-10-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (+/-0.005 pp); CAGR also depends on the unstated day-count convention (+/-0.02 pp); the difference is always reported. The since-inception figure is not checked: our series starts later than the index. Nifty India Defence 5-year CAGR (47.32%): tolerance 0.03 pp, accepted by the owner on 2026-11-13. At this growth rate the unstated day-count convention alone moves the figure by about 0.04 pp (365 vs 365.25 days), and the other four checks agree to 0.004 pp.",
+ "checks": [
+  {
+   "label": "QTD",
+   "base": "2026-09-30",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "-6.17",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "YTD",
+   "base": "2025-12-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "12.90",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "1 year",
+   "base": "2025-10-31",
+   "end": "2026-10-30",
+   "kind": "cumulative",
+   "total_return_pct": "7.55",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "5 years (CAGR)",
+   "base": "2021-10-29",
+   "end": "2026-10-30",
+   "kind": "cagr",
+   "total_return_pct": "47.32",
+   "tolerance_pp": "0.03",
+   "series": "gross"
+  }
+ ],
+ "not_reproducible": []
+}

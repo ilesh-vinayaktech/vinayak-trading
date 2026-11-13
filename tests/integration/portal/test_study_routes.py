@@ -60,8 +60,9 @@ def test_anyone_with_research_access_can_read_studies_but_only_traders_register_
 def test_the_options_come_from_the_strategy_its_parameters_and_the_data_we_hold(env):
     conn, app = env
     o = sign_in(app, "viewer@example.com").get("/api/studies/options").json()
-    (pullback,) = o["strategies"]
-    assert pullback["id"] == "trend_pullback"
+    pullback, screener = o["strategies"]
+    assert (pullback["id"], screener["id"]) == ("trend_pullback", "screener")
+    assert [p["name"] for p in screener["params"]] == ["max_positions"]
     assert {p["name"]: (p["choices"], p["default"]) for p in pullback["params"]}["entry_rsi"] == (
         [20, 25, 30],
         25,

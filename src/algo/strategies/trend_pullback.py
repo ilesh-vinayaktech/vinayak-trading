@@ -145,7 +145,9 @@ class TrendPullback(Strategy):
     @classmethod
     def required_history(cls, params: dict[str, Any]) -> int:
         """Sessions of history a stock needs before this strategy can decide on it (the longest lookback plus warm-up)."""
-        return int(params["trend_sma"]) + WARMUP
+        # a grid may leave a parameter out: the study then runs with its default
+        trend = params.get("trend_sma", TrendPullbackParams.model_fields["trend_sma"].default)
+        return int(trend) + WARMUP
 
     def universe(self, ctx: Context) -> list[int]:
         return self.membership.ever()

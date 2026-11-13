@@ -183,11 +183,8 @@ def test_research_and_activity_summaries_on_an_empty_research_store(env):
     act = queries.ingestion_activity(conn, 5)
     assert act["total"] == 1 and (act["limit"], act["offset"]) == (5, 0)
     row = act["items"][0]
-    assert (
-        row["partition"] == "2025-06-09"
-        and row["status"] == "loaded"
-        and row["superseded"] is False
-    )
+    assert row["partition"] == "2025-06-09" and row["status"] == "loaded"
+    assert set(row) == {"id", "source", "dataset", "partition", "status", "at"}
 
 
 def test_a_backtest_run_is_listed_and_returned_in_full(env):
@@ -210,24 +207,32 @@ def test_a_backtest_run_is_listed_and_returned_in_full(env):
     assert r["backtests"] == 1 and r["latest_run"]["strategy_id"] == "s"
 
 
-def test_a_superseded_quarantine_never_reads_as_a_live_problem(conn):
+def test_each_date_shows_only_its_latest_load_so_an_old_failure_or_no_file_never_lingers(conn):
     migrate(conn)
-    for status in ("quarantined", "loaded"):
+    for day, status in (
+        ("2022-08-08", "quarantined"),
+        ("2022-08-08", "loaded"),  # fixed later: the quarantine is gone from the list
+        ("2022-08-09", "quarantined"),  # still quarantined: stays, as a live problem
+        ("2026-11-13", "not_published"),  # the file was not out yet ...
+        ("2026-11-13", "not_published"),  # ... retried, still not out ...
+        ("2026-11-13", "loaded"),  # ... then it was
+    ):
         conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
-                     " ('nse','bhav','2022-08-08',%s,%s)", (status, NOW))  # fmt: skip
-    conn.execute(
-        "INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
-        " ('nse','bhav','2022-08-09','quarantined',%s)",
-        (NOW,),
-    )  # still quarantined
-    page = queries.ingestion_activity(conn, 10)["items"]
-    by = {(r["partition"], r["status"]): r for r in page}
-    old = by[("2022-08-08", "quarantined")]
-    assert old["superseded"] is True and old["current_status"] == "loaded"
-    assert by[("2022-08-08", "loaded")]["superseded"] is False
-    live = by[("2022-08-09", "quarantined")]
-    assert live["superseded"] is False and live["current_status"] == "quarantined"
-    assert [r["id"] for r in queries.ingestion_activity(conn, 1, 1)["items"]] == [2]  # paging
+                     " ('nse','bhav',%s,%s,%s)", (day, status, NOW))  # fmt: skip
+    act = queries.ingestion_activity(conn, 10)
+    assert act["total"] == 3
+    assert [(r["partition"], r["status"]) for r in act["items"]] == [
+        ("2026-11-13", "loaded"),
+        ("2022-08-09", "quarantined"),
+        ("2022-08-08", "loaded"),
+    ]  # newest event first
+    assert [r["partition"] for r in queries.ingestion_activity(conn, 1, 1)["items"]] == [
+        "2022-08-09"
+    ]
+    assert queries.ingestion_activity(conn, 5, 3)["items"] == []
+    conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
+                 " ('kite','bhav','2022-08-09','loaded',%s)", (NOW,))  # fmt: skip
+    assert queries.ingestion_activity(conn, 10)["total"] == 4  # a different source is its own row
 
 
 def test_search_treats_percent_and_underscore_literally(env):

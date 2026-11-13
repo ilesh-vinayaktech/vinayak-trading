@@ -12,8 +12,6 @@ const ingestionRow = z.object({
   partition: z.string(),
   status: z.string(),
   at: z.string(),
-  current_status: z.string(),
-  superseded: z.boolean(),
 });
 
 const page = <T extends z.ZodTypeAny>(item: T) =>
@@ -31,8 +29,12 @@ export const seriesStatusSchema = z.object({
   eligibility_state: z.string(),
 });
 
+const jobRun = z.object({ started_at: z.string(), finished_at: z.string(), status: z.enum(["ok", "failed", "skipped"]), attempts: z.number(), detail: z.string() });
+const scheduledJob = z.object({ name: z.string(), description: z.string(), calendar: z.string(), last_run: jobRun.nullable(), last_success_at: z.string().nullable() });
+export type ScheduledJob = z.infer<typeof scheduledJob>;
+
 export const dashboardSchema = z.object({
-  platform: z.object({ state: z.string(), reason: z.string() }),
+  platform: z.object({ status: z.enum(["OK", "ATTENTION", "DOWN"]), reasons: z.array(z.object({ level: z.enum(["attention", "down"]), text: z.string() })) }),
   data: z.object({
     bars: z.number(),
     instruments_with_bars: z.number(),
@@ -92,6 +94,7 @@ export const dashboardSchema = z.object({
     api: z.string(),
     recent_ingestion: z.array(ingestionRow),
   }),
+  jobs: z.array(scheduledJob),
 });
 
 export const instrumentSchema = z.object({
@@ -606,6 +609,15 @@ export type MarketCalendar = z.infer<typeof marketCalendarSchema>;
 // ---- paper trading (UNVALIDATED research: nothing here places a real order) ----------------------------------------------
 const decimal = z.string(); // money and quantities arrive as decimal strings and are only ever formatted, never computed
 export const paperParamsSchema = z.object({ trend_sma: z.number(), entry_rsi: z.number(), exit_rsi: z.number(), max_positions: z.number() });
+export const screenConfigSchema = z.object({
+  screen: z.object({
+    conditions: z.array(z.object({ field: z.string(), op: z.string(), value: z.unknown() })),
+    match: z.string(),
+    sort: z.string(),
+    descending: z.boolean(),
+  }),
+  segments: z.array(z.string()),
+});
 export const paperAccountSchema = z.object({
   label: z.string(),
   options: z.object({
@@ -624,7 +636,8 @@ export const paperAccountSchema = z.object({
       universe: z.string(),
       max_instruments: z.number().nullable(),
       timeframe: z.string(),
-      params: paperParamsSchema,
+      params: paperParamsSchema.partial(), // a screener account only has max_positions
+      screen: screenConfigSchema.nullable(), // the rules of a screener strategy, else null
     })
     .nullable(),
 });
@@ -701,7 +714,8 @@ export const strategyConfigSchema = z.object({
   universe: z.string(),
   max_instruments: z.number().nullable(),
   timeframe: z.string(),
-  params: paperParamsSchema,
+  params: paperParamsSchema.partial(), // a screener strategy only has max_positions
+  screen: screenConfigSchema.nullable(), // the rules of a screener strategy, else null
   in_use: z.boolean(),
   created_at: z.string(),
   stage: z.enum(["RESEARCH", "PAPER", "LIVE"]),
@@ -736,7 +750,7 @@ export const signalDaySchema = z.object({
 export const signalsSchema = z.object({
   label: z.string(),
   strategy: z.string(),
-  params: paperParamsSchema,
+  params: paperParamsSchema.partial(),
   notes: z.array(z.string()),
   summary: z.object({ buys: z.number(), sells: z.number() }),
   days: z.array(signalDaySchema),
@@ -777,6 +791,7 @@ export const studySpecSchema = z.object({
   hypothesis: z.string(),
   strategy_id: z.string(),
   grid: z.record(z.string(), z.array(z.number())),
+  screen: z.object({ conditions: z.array(z.object({ field: z.string(), op: z.string(), value: z.unknown() })), match: z.enum(["all", "any"]), sort: z.string(), descending: z.boolean() }).nullable().optional(),
   universe: z.object({ segments: z.array(z.string()), before_segment_lists: z.string(), min_history_sessions: z.number() }),
   timeframe: z.string(),
   start: z.string(),
@@ -864,7 +879,7 @@ export const backtestReportSchema = z.object({
   start: z.string().nullable(),
   end: z.string().nullable(),
   created_at: z.string(),
-  headline: z.object({ initial: z.string(), final: nstr, change: nstr, return: nstr, max_drawdown: z.string() }),
+  headline: z.object({ initial: z.string(), final: nstr, change: nstr, return: nstr, max_drawdown: z.string(), charges: z.string(), dividends: z.string() }),
   summary: z.object({
     trades: z.number(), wins: z.number(), losses: z.number(), win_rate: nstr, net_pnl: z.string(),
     gross_profit: z.string(), gross_loss: z.string(), profit_factor: nstr, avg_win: nstr, avg_loss: nstr,
@@ -932,3 +947,15 @@ export const studyVerdictSchema = z.object({
   trials_planned: z.number(),
 });
 export type StudyVerdict = z.infer<typeof studyVerdictSchema>;
+
+// ---- screener (fundamental + technical) ----------------------------------------------------------------------------------
+export const screenerMetaSchema = z.object({
+  fields: z.array(z.object({ key: z.string(), label: z.string(), group: z.string(), kind: z.enum(["fundamental", "technical", "profile"]), unit: z.string() })),
+  presets: z.array(z.object({
+    id: z.string(), name: z.string(), category: z.enum(["fundamental", "technical", "combined"]), description: z.string(), sort: z.string(), descending: z.boolean(),
+    conditions: z.array(z.object({ field: z.string(), op: z.string(), value: z.unknown() })),
+  })),
+});
+export const screenerRunSchema = z.object({ total: z.number(), sort: z.string().nullable(), as_of: z.string().nullable().optional(), rows: z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))) });
+export type ScreenerMeta = z.infer<typeof screenerMetaSchema>;
+export type ScreenerCondition = { field: string; op: string; value?: unknown };

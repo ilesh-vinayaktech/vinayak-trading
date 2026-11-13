@@ -52,4 +52,9 @@ describe("the backtest report", () => {
     expect(await screen.findByText("Ended with")).toBeInTheDocument();
     expect(screen.queryByText(/Compared with/)).not.toBeInTheDocument();
   });
+  it("shows the charges for the whole run and says how dividends and held shares make up the total", async () => {
+    show({ ...real, benchmark: null, headline: { ...real.headline, charges: "528267.56", dividends: "217310.9" } });
+    expect(await screen.findByText("₹5,28,267.56")).toBeInTheDocument();
+    expect(screen.getByText(/adds ₹2,17,310.90 of dividends and the gain on shares still held/)).toBeInTheDocument();
+  });
 });

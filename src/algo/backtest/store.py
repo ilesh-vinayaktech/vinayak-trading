@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -99,6 +100,18 @@ def save_run(
             ],
         )
     return int(run_id)
+
+
+def run_splits(conn: psycopg.Connection, run_id: int) -> list[tuple[date, int, Decimal]]:
+    """The splits and bonuses the run's ledger applied: (ex-date, instrument_id, extra shares)."""
+    return [
+        (r[0], r[1], r[2])
+        for r in conn.execute(
+            "SELECT day, instrument_id, qty FROM backtest_ledger"
+            " WHERE run_id=%s AND kind='SPLIT' AND qty<>0 ORDER BY seq",
+            (run_id,),
+        )
+    ]
 
 
 def summary(

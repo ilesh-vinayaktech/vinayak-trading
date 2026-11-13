@@ -16,11 +16,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
 
+from algo.api import artifacts
 from algo.backtest import store
 from algo.backtest.costs import schedule_store
 from algo.backtest.costs.policy import CostPolicy, ScheduleCosts
@@ -33,12 +35,17 @@ from algo.backtest.validation.evidence import assemble
 from algo.backtest.validation.gates import Thresholds, evaluate
 from algo.backtest.validation.stats import sharpe_per_period
 from algo.data import benchmark as benchmarks
+from algo.data import benchmark_gate
 from algo.data.reader import BarReader
-from algo.research import study_jobs, study_universe, verdict
+from algo.research import fundamentals_book, study_jobs, study_universe, verdict
 from algo.research.study import THRESHOLDS_FILE, StudySpec
 from algo.research.study_store import get_study
 from algo.strategies.registry import STRATEGIES
 from algo.strategies.trend_pullback import clear_indicator_cache
+
+_ROOT = Path(__file__).resolve().parents[3]
+GATE_FILE = _ROOT / "config" / "benchmark_gate.json"
+DOCS_ROOT = _ROOT / "docs"  # the frozen benchmark releases
 
 ALLOWED_COSTS = (
     "verified",
@@ -53,6 +60,13 @@ class StudyRunError(ValueError):
 
 class JobCancelled(Exception):
     """The owner asked this job to stop. It ends CANCELLED: not a failure, and nothing half-done is saved."""
+
+
+def build(spec: StudySpec, combo: dict[str, Any], setup: Setup) -> Any:
+    """The study's strategy for one parameter combination; a screener strategy also gets the study's screen (and the filings, if it reads them)."""
+    cls, params_cls = STRATEGIES[spec.strategy_id]
+    extra = (spec.screen, setup.fundamentals) if spec.screen else ()
+    return cls(params_cls(**combo), setup.membership, *extra)
 
 
 def cost_policy(conn: psycopg.Connection, spec: StudySpec) -> CostPolicy:
@@ -104,6 +118,7 @@ class Setup:
     research_end: date
     policy: CostPolicy
     reader: BarReader
+    fundamentals: Any = None  # the filings a screener strategy reads (a FundamentalsBook), only when its screen uses them
 
 
 def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: bool = False) -> Setup:
@@ -127,6 +142,9 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         research_end,
         cost_policy(conn, spec),
         BarReader(conn, source="kite", publish_lag=timedelta(0)),
+        fundamentals_book.load(conn, membership.ever(), start, research_end)
+        if spec.screen is not None and spec.screen.needs_fundamentals()
+        else None,
     )
 
 
@@ -141,11 +159,9 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
     study = get_study(conn, exp)
     assert study is not None
     spec = StudySpec.model_validate(study["spec"])
-    cls, params_cls = STRATEGIES[spec.strategy_id]
     try:
         setup = prepare(conn, spec, exp)
-        membership, coverage, begin, research_end = (
-            setup.membership,
+        coverage, begin, research_end = (
             setup.coverage,
             setup.begin,
             setup.research_end,
@@ -186,7 +202,7 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
                     max_order_value=spec.max_order_value,
                 )
                 result = run_backtest(
-                    conn, cls(params_cls(**combo), membership), cfg, reader=reader,
+                    conn, build(spec, combo, setup), cfg, reader=reader,
                     on_day=_ticker(conn, run_id),
                 )  # fmt: skip
             except JobCancelled:
@@ -254,6 +270,11 @@ def _benchmark(
         ).fetchone()
         if row is None:
             raise benchmarks.BenchmarkError(f"there is no benchmark called {spec.benchmark!r}")
+        why = benchmark_gate.blocker(
+            artifacts.load(DOCS_ROOT), row[0], benchmark_gate.is_enabled(GATE_FILE)
+        )
+        if why:
+            raise benchmarks.BenchmarkError(why)
         if not benchmarks.validated(conn, row[0]):
             raise benchmarks.BenchmarkError(
                 f"{spec.benchmark} has no passing validation for its stored data"
@@ -275,7 +296,6 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
     study = get_study(conn, exp)
     assert study is not None
     spec = StudySpec.model_validate(study["spec"])
-    cls, params_cls = STRATEGIES[spec.strategy_id]
     try:
         combos = study["combinations"]
         done = conn.execute(
@@ -302,7 +322,7 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
         setup = prepare(conn, spec, exp)
 
         def strategy_of() -> Any:
-            return cls(params_cls(**a.base), setup.membership)
+            return build(spec, a.base, setup)
 
         def stress(label: str, cost: CostPolicy, cash: Decimal) -> tuple[list[float], int]:
             study_jobs.progress(conn, run_id, 0 if label == "2x costs" else 1, label)
@@ -327,7 +347,7 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
                 plateau_tolerance=thresholds.plateau_tolerance,
                 returns_2x_costs=r2,
                 returns_3x_capital=r3,
-                trips=round_trips(_fills(conn, base_run)),
+                trips=round_trips(_fills(conn, base_run), store.run_splits(conn, base_run)),
             )
         )
         registry.save_report(
@@ -360,7 +380,6 @@ def run_holdout(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
     study = get_study(conn, exp)
     assert study is not None
     spec = StudySpec.model_validate(study["spec"])
-    cls, params_cls = STRATEGIES[spec.strategy_id]
     try:
         report = study_jobs.latest_report(conn, exp)
         if report is None or not report["passed"]:
@@ -378,7 +397,7 @@ def run_holdout(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
             min_order_value=spec.min_order_value, max_order_value=spec.max_order_value,
         )  # fmt: skip
         result = run_backtest(
-            conn, cls(params_cls(**chosen), setup.membership), cfg, reader=setup.reader,
+            conn, build(spec, chosen, setup), cfg, reader=setup.reader,
             on_day=_ticker(conn, run_id),
         )  # fmt: skip
         returns = _returns(result)

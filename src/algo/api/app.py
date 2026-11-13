@@ -26,8 +26,10 @@ from algo.api import (
     live_routes,
     market_routes,
     paper_routes,
+    platform_health,
     queries,
     reviews,
+    screener_routes,
     strategy_routes,
     study_routes,
     tickets_routes,
@@ -35,7 +37,10 @@ from algo.api import (
 )
 from algo.api.security import PortalSettings, WConn, guard
 from algo.core.clock import Clock, SystemClock
+from algo.data import benchmark_gate
 from algo.indicators.catalog import IndicatorError, parse_spec
+from algo.jobs import history as job_history
+from algo.portal import kite_vault
 
 Adjust = Literal["none", "split", "total_return"]
 Timeframe = Literal[
@@ -92,6 +97,13 @@ def create_app(
 ) -> FastAPI:
     clock = clock or SystemClock()
     sessions_path = sessions_file or docs_root.parent / "config" / "exchange_sessions.json"
+    gate_path = docs_root.parent / "config" / "benchmark_gate.json"
+
+    def gate_state() -> str:
+        return (
+            "enabled" if benchmark_gate.is_enabled(gate_path) else "disabled"
+        )  # re-read: a change shows without a restart
+
     app = FastAPI(
         title="Vinayak Trading Research Console API",
         version="0.1",
@@ -105,6 +117,7 @@ def create_app(
     app.include_router(users_routes.router)
     app.include_router(kite_routes.router)
     app.include_router(market_routes.router)
+    app.include_router(screener_routes.router)
     app.include_router(live_routes.router)
     app.include_router(paper_routes.router)
     app.include_router(strategy_routes.router)
@@ -158,16 +171,22 @@ def create_app(
                 "benchmark_gate_eligible": bool(e and e["uses"]["BENCHMARK_GATE"]["eligible"]),
                 "eligibility_state": e["state"] if e else "UNKNOWN (no release artifacts)",
             })  # fmt: skip
+        data = {**queries.data_health(c), "freshness": fresh(c)}
+        jobs = job_history.status(c)
+        feed = kite_vault.system_feed(c, now=clock.now())
         return {
-            "platform": {
-                "state": "UNKNOWN",
-                "reason": "the platform state machine is not persisted",
-            },
-            "data": {**queries.data_health(c), "freshness": fresh(c)},
+            "platform": platform_health.assess(
+                now=clock.now(),
+                freshness=data["freshness"],
+                jobs=jobs,
+                quarantined=data["quarantined_partitions"],
+                kite_state=None if feed is None else feed["state"],
+            ),
+            "data": data,
             "benchmarks": {
                 "release": a.version if a else None,
                 "series": series,
-                "gate": "disabled",
+                "gate": gate_state(),
             },  # fmt: skip
             "corporate_actions": queries.corporate_action_health(c),
             "research": queries.research_health(c),
@@ -181,6 +200,7 @@ def create_app(
                 "api": "ok",
                 "recent_ingestion": queries.ingestion_activity(c, 5)["items"],
             },  # fmt: skip
+            "jobs": jobs,
         }
 
     @app.get("/api/instruments")
@@ -283,7 +303,7 @@ def create_app(
         out = []
         for b in queries.benchmarks(c):
             out.append({**b, "eligibility": a.eligibility_of(b["id"]) if a else None})
-        return {"release": a.version if a else None, "gate": "disabled", "benchmarks": out}
+        return {"release": a.version if a else None, "gate": gate_state(), "benchmarks": out}
 
     @app.get("/api/benchmarks/{benchmark_id}")
     def benchmark(c: Conn, benchmark_id: int) -> dict[str, Any]:
@@ -292,7 +312,7 @@ def create_app(
             raise HTTPException(404, f"no benchmark {benchmark_id}")
         a = arts()
         return {
-            **found[0], "release": a.version if a else None, "gate": "disabled",
+            **found[0], "release": a.version if a else None, "gate": gate_state(),
             "eligibility": a.eligibility_of(benchmark_id) if a else None,
             "findings": a.findings_for(benchmark_id) if a else [],
             "validations": queries.benchmark_validations(c, benchmark_id),

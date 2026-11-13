@@ -52,6 +52,15 @@ ap.add_argument(
     type=Path,
     default=Path("docs/calendar-evidence/historical_calendar_evidence.json"),
 )
+ap.add_argument(
+    "--extra-ids",
+    default="",
+    help="series assessed on their own validation and the findings that apply to every series; no cross-series audit",
+)
+ap.add_argument("--evidence", type=Path, default=Path("docs/benchmark-evidence"))
+ap.add_argument(
+    "--hours-scan", type=Path, default=Path("docs/session-evidence/minute_hours_scan.json")
+)
 a = ap.parse_args()
 if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
@@ -268,7 +277,58 @@ hours = {
     "statement": "no historical session hours are held as evidence; every intraday bar visibility "
                  "decision relies on the current 09:15-15:30 schedule, and special sessions on "
                  "assumed regular hours. Daily benchmark levels do not depend on hours.",
+    "minute_scan": None,
 }  # fmt: skip
+
+# the minute history shows when the market really traded (scripts/scan_session_hours.py, scripts/observe_sessions.py)
+HOURS_EVIDENCED = False
+if a.hours_scan.exists():
+    scan = json.loads(a.hours_scan.read_text())
+    HOURS_EVIDENCED = (
+        scan["sessions_file_sha256"] == calendar_version["sessions_file_sha256"]
+        and not scan["unexplained"]
+    )
+    hours["minute_scan"] = {k: scan[k] for k in ("scanned", "regular_days")} | {
+        "special_sessions": len(scan["special_sessions_listed_in_config"]),
+        "one_extra_bar_at_15_30": len(scan["one_extra_bar_at_15_30"]),
+        "file": str(a.hours_scan), "file_sha256": sha(a.hours_scan.read_bytes()),
+        "matches_current_sessions_file": scan["sessions_file_sha256"] == calendar_version["sessions_file_sha256"]}  # fmt: skip
+    if HOURS_EVIDENCED:
+        sc = scan["scanned"]
+        hours["statement"] = (
+            f"every one of the {sc['days']} days in the stored 1-minute history ({sc['first_day']} to {sc['last_day']}) was read: "
+            f"{scan['regular_days']} ran 09:15-15:30, {len(scan['special_sessions_listed_in_config'])} are listed special sessions "
+            f"and {len(scan['one_extra_bar_at_15_30'])} have one extra closing-price bar; none is unexplained. Before {sc['first_day']} "
+            "only daily data exists, so no intraday research can depend on those hours. Daily benchmark levels do not depend on hours.")  # fmt: skip
+# listed sessions inside the minute history and whether each has hours; earlier ones are marked SPECIAL (owner decision, 2026-11-13)
+in_minutes = [
+    d for d in listed if HOURS_EVIDENCED and d >= hours["minute_scan"]["scanned"]["first_day"]
+]
+unknown_in_minutes = [d for d in in_minutes if listed[d]["hours_status"].split(" ")[0] not in ("VERIFIED", "OBSERVED")
+                      and not listed[d].get("intervals")]  # fmt: skip
+before_minutes = len(listed) - len(in_minutes)
+
+# U09: has NSE revised history? (scripts/check_revisions.py), U10: earlier methodology editions (scripts/capture_methodology_history.py)
+rev_files = sorted(a.evidence.glob("revision_check_*.json"))
+revision = json.loads(rev_files[-1].read_text()) if rev_files else None
+REVISION_OK = bool(revision and revision["windows"] > 0 and revision["different"] == 0)
+meth_file = a.evidence / "methodology_history.json"
+meth = json.loads(meth_file.read_text()) if meth_file.exists() else None
+meth_n = sum(len(v) for v in meth["editions"].values()) if meth else 0
+meth_changed = (
+    sum(bool(r.get("tri_text_changed_from_previous")) for v in meth["editions"].values() for r in v)
+    if meth
+    else 0
+)
+meth_unreadable = (
+    sum(r["tri_dividend_lines"] == 0 for v in meth["editions"].values() for r in v) if meth else 0
+)
+meth_span = sorted(r["captured"] for v in meth["editions"].values() for r in v) if meth else []
+# U04: every observed weekday has an exchange file; closures are inferred from the PREVCLOSE chain, not from holiday lists
+CALENDAR_EVIDENCED = (
+    rec.observed_counts.get("WEEKDAY_RULE_PROVISIONAL", 0) == 0
+    and sum(len(m.get(UNCONFIRMED_NO_VALUE, [])) for m in rec.missing.values()) == 0
+)
 
 # ---------------------------------------------------------------- outputs
 exceptions = {
@@ -356,9 +416,11 @@ findings = [
     ),
     item(
         "U02",
-        "Historical session hours are not verified",
-        "HIGH",
-        "UNRESOLVED",
+        "Regular session hours observed on every day of the minute history"
+        if HOURS_EVIDENCED
+        else "Historical session hours are not verified",
+        "HIGH" if not HOURS_EVIDENCED else "INFO",
+        "RESOLVED" if HOURS_EVIDENCED else "UNRESOLVED",
         "session-hours",
         hours["statement"],
         [f"{refs_['S']}#historical_session_hours"],
@@ -371,34 +433,56 @@ findings = [
             "; some are evidenced only by the benchmark"
             if exceptions[BENCHMARK_ONLY_SESSION]
             else ""
-        ),
+        )
+        if not (HOURS_EVIDENCED and not unknown_in_minutes)
+        else "Special sessions: every one inside the minute history has its hours; earlier ones are marked SPECIAL",
         "MEDIUM",
-        "UNRESOLVED",
+        "ACCEPTED_WITH_EVIDENCE" if HOURS_EVIDENCED and not unknown_in_minutes else "UNRESOLVED",
         "session-evidence",
-        f"{len(listed)} listed sessions; existence is confirmed by an exchange bhavcopy for "
-        f"{len(listed) - len(exceptions[BENCHMARK_ONLY_SESSION])} of them "
-        f"({len([d for d in listed if date.fromisoformat(d) in legacy_confirmed])} via the legacy archive), but every kind is UNCONFIRMED and every "
-        f"opening and closing time UNKNOWN. {len(secondary)} have secondary (broker bulletin) "
-        "claims about purpose and hours, recorded but not promoted.",
+        (
+            f"{len(listed)} listed sessions. {len(in_minutes)} fall inside the 1-minute history: each has its kind and hours from an NSE "
+            f"circular ({sum(listed[d]['hours_status'].startswith('VERIFIED') or listed[d]['kind_status'].startswith('CONFIRMED') for d in in_minutes)} "
+            "of them) and/or from the stored minute bars, and every circular agrees with the bars. "
+            f"The other {before_minutes} (1999 to 2015) are marked SPECIAL with kind and hours unknown, by the owner's decision on 2026-11-13: "
+            "no intraday data exists for them, so no intraday research can depend on them; their existence is confirmed by an exchange bhavcopy or the benchmark. "
+            "Two sessions of 2015-2016 have secondary (broker bulletin) claims recorded, not promoted."
+            if HOURS_EVIDENCED and not unknown_in_minutes
+            else f"{len(listed)} listed sessions; existence is confirmed by an exchange bhavcopy for "
+            f"{len(listed) - len(exceptions[BENCHMARK_ONLY_SESSION])} of them "
+            f"({len([d for d in listed if date.fromisoformat(d) in legacy_confirmed])} via the legacy archive), but not every kind and "
+            f"opening and closing time is known. {len(secondary)} have secondary (broker bulletin) "
+            "claims about purpose and hours, recorded but not promoted."
+        ),
         [
             f"{refs_['S']}#evidence",
             "config/exchange_sessions.json",
             "config/session_secondary_evidence.json",
             "docs/session-evidence/legacy_bhavcopy_check.json",
+            "docs/session-evidence/minute_hours_scan.json",
         ],
         False,
     ),
     item(
         "U04",
-        "Weekday sessions before the bhavcopy history rest on the calendar rule",
-        "MEDIUM",
-        "UNRESOLVED",
+        "Weekday closures before 2026 are inferred from exchange files, not holiday lists"
+        if CALENDAR_EVIDENCED
+        else "Weekday sessions before the bhavcopy history rest on the calendar rule",
+        "MEDIUM" if not CALENDAR_EVIDENCED else "LOW",
+        "ACCEPTED_WITH_EVIDENCE" if CALENDAR_EVIDENCED else "UNRESOLVED",
         "session-evidence",
-        f"{rec.observed_counts.get('WEEKDAY_RULE_PROVISIONAL', 0)} observed weekdays are provisional;"
-        f" {sum(unconf.values())} weekday no-value dates across the series are unconfirmed (no "
-        "historical holiday list is held; the feed covers "
-        f"{calendar_version['holiday_feed_years']} only).",
-        [f"{refs_['S']}#observed_counts"],
+        (
+            f"every observed weekday has an exchange file ({rec.observed_counts.get('CONFIRMED_REGULAR', 0)} regular sessions, "
+            f"{rec.observed_counts.get('CONFIRMED_SPECIAL', 0)} special) and no weekday without a value is unconfirmed; weekday closures are inferred "
+            f"from the PREVCLOSE chain of the exchange files ({max(m.get('EXPECTED_CLOSED_INFERRED', 0) for m in rec.missing_counts.values())} dates "
+            f"in the longest series), not from holiday lists (the NSE holiday feed holds {calendar_version['holiday_feed_years']} only). "
+            "Two PREVCLOSE chain breaks (1999-10-25, 2001-07-02) are unexplained and do not affect any inference (docs/calendar-evidence/chain_break_investigation.md)."
+            if CALENDAR_EVIDENCED
+            else f"{rec.observed_counts.get('WEEKDAY_RULE_PROVISIONAL', 0)} observed weekdays are provisional;"
+            f" {sum(unconf.values())} weekday no-value dates across the series are unconfirmed (no "
+            "historical holiday list is held; the feed covers "
+            f"{calendar_version['holiday_feed_years']} only)."
+        ),
+        [f"{refs_['S']}#observed_counts", "docs/calendar-evidence/chain_break_investigation.md"],
         False,
     ),
     item(
@@ -448,22 +532,41 @@ findings = [
     ),
     item(
         "U09",
-        "Revision behaviour of the endpoints untested",
-        "MEDIUM",
-        "UNRESOLVED",
+        "Revision behaviour of the endpoints: history re-fetched and unchanged"
+        if REVISION_OK
+        else "Revision behaviour of the endpoints untested",
+        "MEDIUM" if not REVISION_OK else "INFO",
+        "RESOLVED" if REVISION_OK else "UNRESOLVED",
         "provenance",
-        "only same-day repeats were compared (identical); a later re-fetch is needed.",
-        ["docs/tri-endpoint-report.md"],
+        (
+            f"on {revision['checked_on']} every stored window ({revision['windows']}, across {len(revision['datasets'])} datasets) was requested again with "
+            "its original request body and compared observation by observation with what was stored on 2026-11-07 or later: none differs. "
+            "Revision can still happen later; scripts/check_revisions.py repeats the check."
+            if REVISION_OK
+            else "only same-day repeats were compared (identical); a later re-fetch is needed."
+        ),
+        ["docs/tri-endpoint-report.md"] + [str(rev_files[-1])] * bool(rev_files),
         False,
     ),
     item(
         "U10",
-        "Only the Sep 2026 methodology document is held",
-        "MEDIUM",
-        "UNRESOLVED",
+        "Methodology documents: editions from 2018 to 2026 held"
+        if meth_n
+        else "Only the Sep 2026 methodology document is held",
+        "MEDIUM" if not meth_n else "LOW",
+        "ACCEPTED_WITH_EVIDENCE" if meth_n else "UNRESOLVED",
         "provenance",
-        "historical index methodology and dividend treatment cannot be checked.",
-        ["docs/tri-endpoint-report.md"],
+        (
+            f"{meth_n} distinct editions of NSE's methodology documents (Nifty equity indices and Nifty 50) from the Internet Archive's copies of the "
+            f"official URLs, captured {meth_span[0]} to {meth_span[-1]} and kept untouched in the lake; the text on total return indices and dividends "
+            f"differs between {meth_changed} consecutive editions (the documents grow as indices are added, so a difference is not by itself a change of method; "
+            f"{meth_unreadable} damaged archive copies gave no text; hashes in docs/benchmark-evidence/methodology_history.json). "
+            "Editions before 2018 could not be retrieved, so the treatment of dividends in the earliest years of each series rests on the later editions."
+            if meth_n
+            else "historical index methodology and dividend treatment cannot be checked."
+        ),
+        ["docs/tri-endpoint-report.md"]
+        + ["docs/benchmark-evidence/methodology_history.json"] * bool(meth_n),
         False,
     ),
     item(
@@ -549,30 +652,65 @@ SCOPE = {  # id -> (applies_to, blocks)
     "U01": (["ALL"], []), "U02": (["ALL"], [INTRADAY]), "U03": (["ALL"], [INTRADAY]),
     "U04": (["ALL"], []),
     "U05": ([short_of("TOTAL_RETURNNIFTY 200"), short_of("PRICENIFTY 200")], []),
-    "U06": ([short_of("TOTAL_RETURNNIFTY 50"), short_of("NET_TOTAL_RETURNNIFTY 50")], []),
+    "U06": ([short_of("NET_TOTAL_RETURNNIFTY 50")], []),  # about the net series; the gross series does not use it (owner, 2026-11-13)
     "U07": ([short_of("NET_TOTAL_RETURNNIFTY 50")], []),
-    "U08": ([short_of("TOTAL_RETURNNIFTY 50"), short_of("NET_TOTAL_RETURNNIFTY 50")], []),
+    "U08": ([short_of("NET_TOTAL_RETURNNIFTY 50")], []),  # likewise
     "U09": (["ALL"], []), "U10": (["ALL"], []), "U11": (["ALL"], []), "U12": (["ALL"], []),
     "U13": (["ALL"], [DAILY]), "U14": (["ALL"], [DAILY]), "U15": (["ALL"], [DAILY]),
     "U16": (["ALL"], []),
 }  # fmt: skip
+# findings the owner has reviewed and accepted, each with the evidence the decision rests on (decision of 2026-11-13)
+OWNER_ACCEPTED = {
+    "U05": "daily excess of at most 0.005% on 395 days, no overlap with the net/gross rises beyond chance, and the cumulative published returns "
+           "(QTD, YTD, 1y, 5y, since inception) of both the price index and the gross TRI reconcile to the factsheet within 0.011 pp (validations 9 and 10)",
+    "U11": "the factsheet's day-count convention is not stated; the differences are at most 0.0103 pp on a CAGR (tolerance 0.02 pp) and every factsheet check passes. "
+           "The Nifty 50 gross since-inception figure is not reproducible from our series, which starts 1999-06-30, not at the 1995 base date",
+    "U16": "two large daily moves, both in the Nifty 50 history before 2004; no other series covers those dates, so they can be neither confirmed nor refuted, "
+           "and no Nifty 200 series reaches that period",
+}  # fmt: skip
+for f_ in findings:
+    if f_["id"] in OWNER_ACCEPTED and f_["status"] == "UNRESOLVED":
+        f_["status"] = "ACCEPTED_WITH_EVIDENCE"
+        f_["detail"] += f" Accepted by the owner on 2026-11-13: {OWNER_ACCEPTED[f_['id']]}."
+        f_["accepted_by_owner"] = {"date": "2026-11-13", "evidence": OWNER_ACCEPTED[f_["id"]]}
 for f_ in findings:
     f_["applies_to"], f_["blocks"] = SCOPE[f_["id"]]
     f_["blocked_dates"] = [SPECIAL_DATE] if f_["id"] == "U01" and f_["status"] != "RESOLVED" else []
-unresolved_report = {"audit": "benchmark_unresolved_findings", "gate_activation": "NOT decided here",
+unresolved_report = {"audit": "benchmark_unresolved_findings", "gate_activation": "decided separately: config/benchmark_gate.json and the release",
                      "findings": findings}  # fmt: skip
 
 a.out.mkdir(parents=True, exist_ok=True)
 eligibility = {
     "audit": "benchmark_eligibility",
     "states": ["DATA_INGESTED", "RESEARCH_ELIGIBLE", "BENCHMARK_GATE_ELIGIBLE"],
-    "gate_activation": "NOT decided here; the gate stays disabled",
+    "gate_activation": "decided separately: config/benchmark_gate.json and the release",
     "instrument_level_blocked_dates": [] if SPECIAL_DATE in ev.traded else [SPECIAL_DATE],
     "benchmarks": {
         n: {"dataset_hash": hashes[n], **assess(short[n], vals[n], findings)}
         for n in sorted(series)
     },  # fmt: skip
 }
+# The other indices (sector, broad, thematic): no cross-series audit (the alignment and discontinuity checks compare series that should move together,
+# which a sector index need not), so they are judged on their own validation and the findings that apply to every series.
+extra_ids = [int(i) for i in a.extra_ids.split(",") if i]
+extra_vals: dict[str, dict[str, Any]] = {}
+with psycopg.connect(a.db) as conn:
+    for i in extra_ids:
+        ref, rep_row = references(conn, i), conn.execute(
+            "SELECT validation_id, passed, dataset_hash, report FROM benchmark_validation WHERE benchmark_id=%s ORDER BY validation_id DESC LIMIT 1", (i,)).fetchone()  # fmt: skip
+        name = f"B{i}_{ref['index_symbol'].replace(' ', '')}_{LABEL[ref['return_type']]}"
+        rep = rep_row[3]
+        extra_vals[name] = {
+            "validation_id": rep_row[0], "passed": rep_row[1], "report_version": rep.get("report_version", "legacy"),
+            "technical_validation_passed": rep.get("technical_validation_passed", rep_row[1]), "check_states": rep.get("check_states"),
+            "owner_accepted_findings": rep.get("owner_accepted_findings", []),
+            "covers_current_dataset": rep_row[2] == dataset_hash(conn, i),
+            "factsheet_all_passed": all(r["passed"] for r in rep.get("factsheet", [])),
+        }  # fmt: skip
+        eligibility["benchmarks"][name] = {
+            "dataset_hash": ref["dataset_hash"],
+            **assess(f"B{i}", extra_vals[name], findings),
+        }
 outs = {
     "benchmark_eligibility.json": eligibility,
     "benchmark_alignment_report.json": alignment_report,
@@ -660,7 +798,7 @@ md += [
     "",
     hours["statement"],
     "",
-    "## Eligibility (separate states; the gate stays disabled)",
+    "## Eligibility (separate states; whether the gate is on is decided in config/benchmark_gate.json)",
     "",
     "| series | state | daily research | intraday research | gate |",
     "|---|---|---|---|---|",

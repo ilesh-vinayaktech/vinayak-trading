@@ -34,7 +34,9 @@ export function SettingsForm({ data }: { data: PaperAccount }) {
   const create = useMutation({
     mutationFn: async () => {
       const s = saved.find((x) => x.config_id === chosen);
-      await api.createPaperAccount({ initial_cash: cash, universe: s?.universe ?? "nifty200", max_instruments: s?.max_instruments ?? null, timeframe: s?.timeframe ?? "1D", params: s?.params ?? DEFAULTS });
+      // an account always starts on the standard settings; a saved strategy (a screener too) is then put on it by `use`
+      const plain = !s || s.screen !== null;
+      await api.createPaperAccount({ initial_cash: cash, universe: plain ? "nifty200" : s.universe, max_instruments: plain ? null : s.max_instruments, timeframe: "1D", params: plain ? DEFAULTS : { ...DEFAULTS, ...s.params } });
       if (s) await api.useStrategy(s.config_id);
     },
     onSuccess: () => { toast.success("Paper account started."); refresh(); },
@@ -86,7 +88,7 @@ export function SettingsForm({ data }: { data: PaperAccount }) {
             </Field>
           </SettingsSection>
         )}
-        <SettingsSection title="What it runs" description={acct ? `Index: ${data.options.universes.find((u) => u.key === acct.universe)?.label ?? acct.universe}, ${acct.max_instruments ? `top ${acct.max_instruments} stocks` : "all stocks"}.` : "Pick a saved strategy, or start with the standard settings (Nifty 200, all stocks)."}>
+        <SettingsSection title="What it runs" description={acct ? (acct.screen ? `Screener: holds up to ${acct.params.max_positions} stocks that match the screen, from ${acct.screen.segments.join(" + ")} caps.` : `Index: ${data.options.universes.find((u) => u.key === acct.universe)?.label ?? acct.universe}, ${acct.max_instruments ? `top ${acct.max_instruments} stocks` : "all stocks"}.`) : "Pick a saved strategy, or start with the standard settings (Nifty 200, all stocks)."}>
           {picker || <p className="text-sm text-ink-soft">You have no saved strategies yet.</p>}
           <p className="mt-3 text-sm"><Link href="/strategies" className="font-medium text-brand underline">{saved.length > 0 ? "Manage strategies" : "Create a strategy"}</Link></p>
         </SettingsSection>

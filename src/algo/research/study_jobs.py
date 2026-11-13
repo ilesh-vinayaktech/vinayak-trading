@@ -76,14 +76,50 @@ def enqueue(
     return run_id
 
 
+# A worker holds a Postgres advisory lock on each run it is running, for as long as its connection lives.
+# That is how a starting worker tells a run another live worker is on from one whose worker died.
+_LOCK_CLASS = 8301
+
+
 def claim(conn: psycopg.Connection, now: datetime) -> int | None:
-    """Take the oldest queued run for this worker (None when there is none)."""
-    row = conn.execute(
-        "UPDATE study_run SET status='RUNNING', started_at=%s WHERE run_id = ("
-        "  SELECT run_id FROM study_run WHERE status='QUEUED' ORDER BY run_id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING run_id",
-        (now,),
-    ).fetchone()
-    return None if row is None else int(row[0])
+    """Take the oldest queued run for this worker (None when there is none). The lock is taken before the
+    run is marked RUNNING, so no other worker can ever see it RUNNING and unheld."""
+    with conn.transaction():
+        row = conn.execute(
+            "SELECT run_id FROM study_run WHERE status='QUEUED' ORDER BY run_id FOR UPDATE SKIP LOCKED LIMIT 1"
+        ).fetchone()
+        if row is None:
+            return None
+        run_id = int(row[0])
+        conn.execute("SELECT pg_advisory_lock(%s, %s)", (_LOCK_CLASS, run_id))
+        conn.execute(
+            "UPDATE study_run SET status='RUNNING', started_at=%s WHERE run_id=%s", (now, run_id)
+        )
+    return run_id
+
+
+def release(conn: psycopg.Connection, run_id: int) -> None:
+    """This worker is done with the run (finished, failed or cancelled)."""
+    conn.execute("SELECT pg_advisory_unlock(%s, %s)", (_LOCK_CLASS, run_id))
+
+
+def requeue_orphans(conn: psycopg.Connection) -> int:
+    """Put back in the queue every RUNNING run that no live worker holds (its worker died). Runs another
+    live worker is on are left alone, so several workers can start and stop independently."""
+    put_back = 0
+    for (run_id,) in conn.execute(
+        "SELECT run_id FROM study_run WHERE status='RUNNING' ORDER BY run_id"
+    ).fetchall():
+        got = conn.execute("SELECT pg_try_advisory_lock(%s, %s)", (_LOCK_CLASS, run_id)).fetchone()
+        if got is not None and got[0]:
+            try:
+                put_back += conn.execute(
+                    "UPDATE study_run SET status='QUEUED' WHERE run_id=%s AND status='RUNNING'",
+                    (run_id,),
+                ).rowcount
+            finally:
+                release(conn, run_id)
+    return put_back
 
 
 def get_run(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:

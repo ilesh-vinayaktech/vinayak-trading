@@ -15,9 +15,9 @@ from algo.core.clock import require_utc
 class SessionInfo:
     """What is known about one day's session, kept apart so nothing provisional reads as verified.
     existence: EVIDENCED (listed from data) | RULE (weekday, not a holiday) | NONE (closed).
-    kind_status: CONFIRMED | UNCONFIRMED | NOT_APPLICABLE.
-    hours_status: VERIFIED | RULE (the regular session) | UNKNOWN (not documented).
-    bar_visibility: RULE | ASSUMPTION (regular hours applied only so bars can be made visible)."""
+    kind_status: CONFIRMED (circular) | OBSERVED (seen in data) | UNCONFIRMED | NOT_APPLICABLE.
+    hours_status: VERIFIED (circular) | OBSERVED (minute bars) | RULE (regular session) | UNKNOWN.
+    bar_visibility: RULE | OBSERVED | ASSUMPTION (regular hours, only so bars show)."""
 
     day: date
     session_type: str
@@ -67,9 +67,10 @@ class SessionCalendar:
         kind = self.session_type(d)
         if d in self.special:
             ks, hs = self.special_status.get(d, ("UNCONFIRMED", "UNKNOWN"))
-            verified = hs == "VERIFIED"
-            return SessionInfo(d, kind, "EVIDENCED", ks, self.special[d] if verified else None,
-                               hs, "RULE" if verified else "ASSUMPTION")  # fmt: skip
+            known = hs in ("VERIFIED", "OBSERVED")
+            visibility = "RULE" if hs == "VERIFIED" else "OBSERVED" if known else "ASSUMPTION"
+            hours = self.special[d] if known else None
+            return SessionInfo(d, kind, "EVIDENCED", ks, hours, hs, visibility)
         if kind == "CLOSED":
             return SessionInfo(d, kind, "NONE", "NOT_APPLICABLE", None, "NOT_APPLICABLE", "RULE")
         return SessionInfo(d, kind, "RULE", "NOT_APPLICABLE", (self.open_t, self.close_t), "RULE",

@@ -19,6 +19,8 @@ import {
   costSchedulesSchema,
   kiteConnectionSchema,
   marketCalendarSchema,
+  screenerMetaSchema,
+  screenerRunSchema,
   paperAccountSchema,
   paperOrdersSchema,
   paperRunsSchema,
@@ -66,6 +68,7 @@ import {
   reviewHistorySchema,
   reviewListSchema,
   type ReviewDraft,
+  type ScreenerCondition,
   type Adjust,
   type Timeframe,
 } from "@/lib/schemas";
@@ -150,7 +153,7 @@ export async function post(path: string, body: unknown, fetcher: typeof fetch = 
 
 export type { StudySpec } from "@/lib/schemas";
 import type { StudySpec } from "@/lib/schemas";
-export type StrategyBody = { name: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number> };
+export type StrategyBody = { name: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number>; screen?: { conditions: { field: string; op: string; value?: unknown }[]; match: string; sort: string; descending: boolean; segments: string[] } };
 
 export const api = {
   login: (email: string, password: string, totpCode?: string) => send("POST", "/api/auth/login", { email, password, totp_code: totpCode || undefined }, loginSchema),
@@ -175,6 +178,8 @@ export const api = {
   resetUserMfa: (id: string) => send("POST", `/api/users/${encodeURIComponent(id)}/reset-mfa`, undefined, okSchema),
   endUserSessions: (id: string) => send("POST", `/api/users/${encodeURIComponent(id)}/end-sessions`, undefined, endedSchema),
   audit: (p: { target_type?: string; target_id?: string; action?: string; limit?: number }) => get("/api/audit", auditSchema, p),
+  screenerMeta: () => get("/api/screener/meta", screenerMetaSchema),
+  runScreener: (b: { preset?: string; conditions: ScreenerCondition[]; match: "all" | "any"; sort?: string; descending?: boolean; limit?: number }) => send("POST", "/api/screener/run", b, screenerRunSchema),
   marketCalendar: () => get("/api/market/calendar", marketCalendarSchema),
   addMarketSession: (b: { day: string; start: string; end: string; note: string }) => send("POST", "/api/market/sessions", b, marketIdSchema),
   removeMarketSession: (id: number) => send("POST", `/api/market/sessions/${id}/remove`, undefined, okSchema),

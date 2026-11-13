@@ -5,7 +5,7 @@ Resumable: re-run to continue; filings already stored are not downloaded again. 
 seconds through the repo's NseClient (cookies refreshed every 40 symbols), and a 401/403 stops the whole run.
 Raw listings and XBRL files are kept untouched in the lake. Nothing outside the fundamental_* tables is written.
 usage: ingest_fundamentals.py --db URL [--lake data/lake] [--since 2016-04-01] [--basis CONSOLIDATED|STANDALONE|BOTH]
-       [--integrated] [--symbols A,B] [--offset N] [--limit N] [--interval 1.0]"""
+       [--integrated] [--all] [--symbols A,B] [--offset N] [--limit N] [--interval 1.0]"""
 
 import argparse
 import csv
@@ -36,6 +36,11 @@ ap.add_argument(
     action="store_true",
     help="read the SEBI integrated-filing feed (results from 2025 on)",
 )
+ap.add_argument(
+    "--all",
+    action="store_true",
+    help="every listed stock with a recent price and no results stored yet (instead of the Nifty 500)",
+)
 ap.add_argument("--interval", type=float, default=1.0)
 a = ap.parse_args()
 if not a.db:
@@ -48,6 +53,16 @@ WARM = (
 
 if a.symbols:
     universe = [s.strip() for s in a.symbols.split(",") if s.strip()]
+elif a.all:
+    with psycopg.connect(a.db) as c:
+        universe = [
+            r[0]
+            for r in c.execute(
+                "SELECT DISTINCT i.symbol FROM instrument i JOIN bar_1d b USING (instrument_id)"
+                " WHERE i.asset_class='equity' AND i.delisted_on IS NULL AND b.source='nse' AND b.ts > now() - interval '10 days'"
+                " AND NOT EXISTS (SELECT 1 FROM fundamental_filing f WHERE f.instrument_id=i.instrument_id) ORDER BY 1"
+            )
+        ]
 else:
     latest = sorted((a.lake / "raw/niftyindices/nifty500_list").glob("dt=*/v*.bin"))[-1]
     universe = [

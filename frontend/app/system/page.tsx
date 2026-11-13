@@ -8,15 +8,13 @@ import { Card, ErrorBox, Loading } from "@/components/status/LoadState";
 import { DataTable } from "@/components/tables/DataTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { api } from "@/lib/api/client";
-import { fmtDateTime, fmtInt, humanize } from "@/lib/formatting";
+import { fmtDateTime, fmtInt, partitionStatus } from "@/lib/formatting";
 import type { IngestionRow } from "@/lib/schemas";
 
 const PAGE = 25;
 
 /** noop = the same file was loaded again and nothing changed. */
-function statusLabel(s: string): string {
-  return s === "noop" ? "loaded again, unchanged" : humanize(s);
-}
+const statusLabel = partitionStatus;
 
 function statusTone(s: string) {
   return s === "loaded" || s === "noop" ? "good" : s === "quarantined" ? "bad" : "neutral";
@@ -28,20 +26,7 @@ const COLUMNS: ColumnDef<IngestionRow, unknown>[] = [
   { header: "Partition", accessorKey: "partition" },
   {
     header: "Result",
-    cell: ({ row }) => (
-      <span className={row.original.superseded ? "opacity-60" : ""}>
-        <Badge tone={row.original.superseded ? "neutral" : statusTone(row.original.status)}>{statusLabel(row.original.status)}</Badge>
-      </span>
-    ),
-  },
-  {
-    header: "Now",
-    cell: ({ row }) =>
-      row.original.superseded ? (
-        <span className="text-xs text-ink-soft">superseded: partition is now {statusLabel(row.original.current_status)}</span>
-      ) : (
-        <span className="text-xs text-ink-soft">latest event for this partition</span>
-      ),
+    cell: ({ row }) => <Badge tone={statusTone(row.original.status)}>{statusLabel(row.original.status)}</Badge>,
   },
 ];
 
@@ -51,14 +36,14 @@ export default function SystemPage() {
   if (isLoading) return <Loading what="activity" />;
   if (error || !data) return <ErrorBox error={error} what="system activity" />;
   const ing = data.ingestion;
-  const live = ing.items.filter((r) => !r.superseded && r.status === "quarantined");
+  const live = ing.items.filter((r) => r.status === "quarantined");
   const last = Math.min(ing.offset + ing.items.length, ing.total);
   return (
     <div className="space-y-6">
       <PageHeader title="System Activity" subtitle="What the stores record today. Job runtime and resource use are not recorded, and this page says so instead of guessing." />
       <Card
         title="Ingestion events (newest first)"
-        note="An old failure that a later load fixed is shown muted as superseded: history, not a current problem. Current quarantines are listed on the dashboard."
+        note="One row per date, showing its latest load. Earlier attempts for the same date (a file that was not out yet, a failure a later load fixed) are not listed. Current quarantines are also on the dashboard."
       >
         {live.length > 0 ? (
           <p className="mb-3 text-sm text-red-700" role="alert">

@@ -1,0 +1,50 @@
+{
+ "index": "NIFTY_CAPITAL_MARKETS",
+ "as_of": "2024-09-30",
+ "source": {
+  "dataset": "factsheet_nifty_capital_markets",
+  "sha256": "d1ed7654dbeeca90858bb16d9b0a7bbcdc52a0886e6356bf49691d9ad3a7cbb9",
+  "url": "https://www.niftyindices.com/Factsheet/Factsheet_Nifty_Capital_Markets.pdf",
+  "document_date": "2024-09-30"
+ },
+ "tolerance_notes": "cumulative returns are published to 2 decimals (+/-0.005 pp); CAGR also depends on the unstated day-count convention (+/-0.02 pp); the difference is always reported. The since-inception figure is not checked: our series starts later than the index.",
+ "checks": [
+  {
+   "label": "QTD",
+   "base": "2024-06-28",
+   "end": "2024-09-30",
+   "kind": "cumulative",
+   "total_return_pct": "20.99",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "YTD",
+   "base": "2023-12-29",
+   "end": "2024-09-30",
+   "kind": "cumulative",
+   "total_return_pct": "47.50",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "1 year",
+   "base": "2023-09-29",
+   "end": "2024-09-30",
+   "kind": "cumulative",
+   "total_return_pct": "104.78",
+   "tolerance_pp": "0.005",
+   "series": "gross"
+  },
+  {
+   "label": "5 years (CAGR)",
+   "base": "2019-09-30",
+   "end": "2024-09-30",
+   "kind": "cagr",
+   "total_return_pct": "34.80",
+   "tolerance_pp": "0.02",
+   "series": "gross"
+  }
+ ],
+ "not_reproducible": []
+}

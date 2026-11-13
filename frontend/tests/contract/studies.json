@@ -137,6 +137,7 @@
     "min_order_value": "0",
     "name": "Pullback, large and mid caps",
     "product": "DELIVERY",
+    "screen": null,
     "slippage": {
      "base_bps": "5",
      "participation_bps_per_pct": "5",

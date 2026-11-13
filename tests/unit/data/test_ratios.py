@@ -161,6 +161,24 @@ def test_valuation_is_withheld_after_a_split_without_a_price_or_a_share_count():
     assert compute(no_shares, Market(price=D(200)))["pe"].note == "share count not in the filing"
 
 
+def test_a_filing_reporting_zero_paid_up_capital_withholds_valuation_instead_of_dividing_by_zero():
+    q = company()
+    zero = [
+        Quarter(
+            q[0].period_end,
+            q[0].filed_at,
+            False,
+            {**q[0].quarter, "PaidUpValueOfEquityShareCapital": D(0)},
+            q[0].ytd,
+            q[0].instant,
+        ),
+        *q[1:],
+    ]
+    r = compute(zero, Market(price=D(200)))
+    assert (r["pb"].value, r["market_cap"].value) == (None, None)
+    assert r["pb"].note == "share count not in the filing"
+
+
 def test_a_loss_making_company_has_no_pe_but_still_a_book_value():
     q = company()
     loss = [

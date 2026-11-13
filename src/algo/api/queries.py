@@ -11,6 +11,7 @@ from typing import Any
 import psycopg
 
 from algo.backtest.report import build_report, no_comparison
+from algo.backtest.store import run_splits
 from algo.data import ratios as fr
 from algo.data.bars import Bar
 from algo.data.benchmark import DEFAULT_BENCHMARK, dataset_hash, levels, validated
@@ -133,21 +134,24 @@ def research_health(conn: psycopg.Connection) -> dict[str, Any]:
 def ingestion_activity(
     conn: psycopg.Connection, limit: int = 25, offset: int = 0
 ) -> dict[str, Any]:
-    """Load events newest first. A row is `superseded` when a later load of the same partition
-    exists, and carries that partition's CURRENT status, so an old quarantine that was resolved
-    never reads as a live problem."""
-    total = _one(conn, "SELECT count(*) FROM partition_load")[0]
+    """One row per partition: its latest load event, newest first. Earlier events for the same
+    date (a "no file yet" before the file came out, a quarantine that was later fixed) stay in the
+    log but are not listed, so nothing stale reads as a current problem."""
+    latest = (
+        "WITH latest AS (SELECT DISTINCT ON (source, dataset, partition)"
+        " id, source, dataset, partition, status, at FROM partition_load"
+        " ORDER BY source, dataset, partition, id DESC)"
+    )
+    total = _one(conn, f"{latest} SELECT count(*) FROM latest")[0]
     rows = _rows(
         conn,
-        "SELECT p.id, p.source, p.dataset, p.partition, p.status, p.at, c.status, c.id"
-        " FROM partition_load p JOIN LATERAL (SELECT status, id FROM partition_load q"
-        " WHERE q.source=p.source AND q.dataset=p.dataset AND q.partition=p.partition"
-        " ORDER BY q.id DESC LIMIT 1) c ON true ORDER BY p.id DESC LIMIT %s OFFSET %s",
+        f"{latest} SELECT id, source, dataset, partition, status, at FROM latest"
+        " ORDER BY id DESC LIMIT %s OFFSET %s",
         (limit, offset),
     )
     items = [
         {"id": r[0], "source": r[1], "dataset": r[2], "partition": _iso(r[3]), "status": r[4],
-         "at": _iso(r[5]), "current_status": r[6], "superseded": r[7] != r[0]} for r in rows
+         "at": _iso(r[5])} for r in rows
     ]  # fmt: skip
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
@@ -458,8 +462,8 @@ def backtest_report(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | N
     """The run explained: buys paired with sells, the equity curve, results per stock."""
     run = _rows(
         conn,
-        "SELECT strategy_id, strategy_version, params, config, created_at, label"
-        " FROM backtest_run WHERE run_id=%s",
+        "SELECT strategy_id, strategy_version, params, config, created_at, label, pnl,"
+        " dividends_received FROM backtest_run WHERE run_id=%s",
         (run_id,),
     )
     if not run:
@@ -487,14 +491,23 @@ def backtest_report(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | N
             (sorted({f[2] for f in fills}),),
         )
     }
-    sid, ver, params, cfg, created, label = run[0]
+    sid, ver, params, cfg, created, label, pnl, dividends = run[0]
     bench: tuple[str, Any] | None = None
     row = conn.execute(
         "SELECT benchmark_id FROM benchmark WHERE name=%s", (DEFAULT_BENCHMARK,)
     ).fetchone()
     if row is not None and validated(conn, row[0]) and equity:
         bench = (DEFAULT_BENCHMARK, levels(conn, row[0], equity[0][0], equity[-1][0]))
-    report = build_report(fills, equity, Decimal(str(cfg["initial_cash"])), names, bench)
+    report = build_report(
+        fills,
+        equity,
+        Decimal(str(cfg["initial_cash"])),
+        names,
+        bench,
+        run_splits(conn, run_id),
+        total_charges=Decimal(pnl["fees"]) if "fees" in pnl else None,
+        dividends=Decimal(dividends),
+    )
     if bench is None:
         why = "is not loaded" if row is None else "has no passing validation for its stored data"
         report["benchmark"] = no_comparison(DEFAULT_BENCHMARK, f"{DEFAULT_BENCHMARK} {why}")

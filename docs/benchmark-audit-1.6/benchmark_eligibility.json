@@ -1,0 +1,1445 @@
+{
+ "audit": "benchmark_eligibility",
+ "benchmarks": {
+  "B10_NIFTYMIDCAP100_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "7fc7e625a0dd53eb8fd4ee7e03e861901ab1b7943dd88fe521a105b1e8b72e24",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B11_NIFTYMIDCAP150_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "a2ab56be1a8633642f7a507059d21d0845dfd0156d08b5d2118c35c65a56cbfd",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B12_NIFTYSMALLCAP50_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "36f1a4ea1a1279f9a360e368f8023d4520db5cac50c1100b666e54585af47e44",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B13_NIFTYSMALLCAP100_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "29d91715a34557ae8f82d8dbafc5eb5ac25da94136750161e1f735d9f55cb6d8",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B14_NIFTYSMALLCAP250_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "0a849cd4a4d412b2d165fd19c92bd780b5dc16265aecf9c5e4a75623d012c59f",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B15_NIFTYLARGEMIDCAP250_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "2ce87429b7d1d7c986d9021288422cb547f9ab14656a732417290516a82348ff",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B16_NIFTYMIDSMALLCAP400_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "656178aa78d49c0d78a3afc8ed52b350991242aed63d8fa44e16d2ae0c347f9c",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B17_NIFTYMICROCAP250_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "f4790043749f2dc9d7c3266f9db67fd169011ba6d5dbedfe923bee022f89ef20",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B18_NIFTYTOTALMARKET_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "8fca949db97652f82528597249a5ac4e20c7d90771bff041cf42aaf8bc5edeb8",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B19_NIFTYAUTO_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "721402e96485450daf0a3a87df642e1f80b4d90b472dc5f6b396e29c80ae903b",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B1_NIFTY200_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B20_NIFTYBANK_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "df69bef24a3932abd85447d290e976596680f68fb005557761121ba002e044e7",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B21_NIFTYFINANCIALSERVICES_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "19b318ed19cded03289e030167389d10f022a8eab03758ce8e3d9e0533110d65",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B22_NIFTYFINANCIALSERVICESEX-BANK_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "a253dcc355479438a70c3f8d3f200e7151dcff3547db6898019902d6dde54d00",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B23_NIFTYFMCG_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "962baec4a01c46c672122adc0fa5b926b54f8bb9d6aa6ad4b9b65f9f5d5aa0d9",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B24_NIFTYMEDIA_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "cc4bbaf942f9fef660771b9dd229932fb8d21ed0b37fbb1a37e0dc2ad94c5ab2",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B25_NIFTYMETAL_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "2bbd6502128b6f5f34d3273298c8a001d23224fb6ee5f75e28585e1e17d8340a",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B26_NIFTYPHARMA_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "a82f61ad17014b534d253c79ec380b2b221c039a6c8847c91a79105083f19d86",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B27_NIFTYPSUBANK_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "953a609f57747e72e61c11147962b2dce9e49fe73f4b2206afeb7b46fc10c7cc",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B28_NIFTYPRIVATEBANK_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "d39b1b1bafde7a87c1e886204eeddc0405346a58b7d37df907f15cbc09b2a744",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B29_NIFTYREALTY_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "7cf380921822e4fab1214d31afb91d28265b86d8827c11bb8bbd77d56975b21d",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B30_NIFTYHEALTHCARE_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "edb2e4e3ba17af8a1f15b813a66770868552d40956bb020e696de1119e540d03",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B31_NIFTYCONSUMERDURABLES_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "abe0c60f60942d8f153e49d9d221e88c7caf8ac81fe3a1be9406e394fbbdd756",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B32_NIFTYOIL&GAS_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "845e42f3678d156f5d883f9ad0daff24503724d98c08cbf44686a229d5f41733",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B33_NIFTYCHEMICALS_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "f0a66d9a52b398c53d09de2d57b157c3ac17d1a6b0d3e89f87124dd2e2facbbc",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B34_NIFTYCOMMODITIES_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "6b197b7a57f70c126f3efdf72ecbff5f4c7be6173384e4c857954bdd761f1b5b",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B35_NIFTYINDIACONSUMPTION_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "9c323a7a72d45e7f8032ca0ee3d77f6bfe6d7e2201788520d4f15f82bf77fb9e",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B36_NIFTYCPSE_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "59c30b7659ecb99329a99247e11759d2a3a76006cb95e3bf1804a9c1b76b27d0",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B37_NIFTYENERGY_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "8a8da143b34d962f7f50ab6e5f10eaf9a0865a90409ada127ec2c06dbddea4ee",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B38_NIFTYMNC_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "f5281f842e664af68b063656cf15ea5f8a7390e1b41624af92e0fc9ed9fa265d",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B39_NIFTYPSE_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "d6d676f599f91ca9d5582083f7a3bad821fe2716984510622ac0697ae1238398",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U06",
+    "U07",
+    "U08",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+   "disclosed_check_findings": {
+    "net_never_gains_on_gross": "UNRESOLVED",
+    "no_abrupt_net_gross_jump": "ACCEPTED_WITH_EVIDENCE"
+   },
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [
+      "technical validation did not pass (an accepted exception is not a pass)",
+      "U06: Net TRI gains on gross TRI on 41 days (0.002-0.006%)",
+      "U08: Gross and net independence unknown; net is a non-resident institutional measure"
+     ],
+     "eligible": false
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B40_NIFTYSERVICESSECTOR_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "f64ff0fad99867bfdeacb66ac8e7f7f3f0b93452541516f54b167be77bb72af5",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B41_NIFTYINDIAMANUFACTURING_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "914c99cf4bdb4482e40fed3dc4ddd0ba7a739140ac998f60996b34e4f84f81f1",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B42_NIFTYINDIADIGITAL_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "c3fb2930d0ace73944c91961cc37a967136a26cd3ae50a03f71560ab17463921",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B43_NIFTYINDIADEFENCE_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "6f8010e000a45e3d407630548edd14dac0fec2ad9f97408fe48a8ea36e2bf0da",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B44_NIFTYINDIATOURISM_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "bad79f08c75c4fcfd6cea000f77be136ba2a602b129a96c306504690a7bad7bb",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B45_NIFTYHOUSING_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "1a67c82897e894304b65bb92ec9295566e9dea1c5ee8d0f28116f0fb408fbf33",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B46_NIFTYCAPITALMARKETS_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "067b1660ea994f2cf06752f2cc19db8bb14628d5c734b6b589132796d6d8b13b",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B47_NIFTYTRANSPORTATION&LOGISTICS_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "bc1614bb5ed076f2edd3d2fc99d297dcbbf6ee4b9762a0a143f8fc3b435da884",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B48_NIFTYRURAL_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "cd1fbc60ff9d38069f9fce971b930c945ad8590afc8f690673c2818c3f0becd4",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B49_NIFTYNON-CYCLICALCONSUMER_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "ef69cc90b63eea0f9f7e2ac93c356a6106b6a84f2b476c3323ad806d494483f7",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B5_NIFTYIT_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "88822e840e58571bea88277658637df3e3d86905ecb76b4e4a4595c3ef9cf727",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B6_NIFTY100_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "6ad92b829541f3c7fb9cb260383dee31db51935921c4c6a61955dc17c2d852ca",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B7_NIFTYNEXT50_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "760b0ebae9c3e16e424a47bc5946d0f2585b0477e4404f656cd531f1bdc3bbcf",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B8_NIFTY500_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "cdc2b7f47cab59bfa2e71453f02a8021d5fc751794ccb61ddc9e8e3f5d8b1a09",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  },
+  "B9_NIFTYMIDCAP50_GROSS_TRI": {
+   "applicable_findings": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U09",
+    "U10",
+    "U11",
+    "U16"
+   ],
+   "dataset_hash": "edae448e50663adfff3f1749825ad2be670677a117b1099d3d6aa81841079240",
+   "disclosed_check_findings": {},
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": {
+     "blockers": [],
+     "eligible": true
+    },
+    "DAILY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    },
+    "INTRADAY_RESEARCH": {
+     "blockers": [],
+     "eligible": true
+    }
+   }
+  }
+ },
+ "gate_activation": "decided separately: config/benchmark_gate.json and the release",
+ "instrument_level_blocked_dates": [],
+ "states": [
+  "DATA_INGESTED",
+  "RESEARCH_ELIGIBLE",
+  "BENCHMARK_GATE_ELIGIBLE"
+ ]
+}

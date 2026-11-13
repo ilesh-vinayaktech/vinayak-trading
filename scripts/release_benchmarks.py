@@ -37,6 +37,16 @@ FILES = ["benchmark_alignment_report.json", "session_reconciliation_report.json"
          "benchmark_evidence_report.md", "audit_manifest.json"]  # fmt: skip
 
 
+def gate_activation() -> str:
+    cfg = Path("config/benchmark_gate.json")
+    g = json.loads(cfg.read_text()) if cfg.exists() else {}
+    return (
+        f"ENABLED (decided {g.get('decided')} by {g.get('by')})"
+        if g.get("enabled") is True
+        else "NOT enabled; a separate decision"
+    )
+
+
 def current() -> dict:
     with psycopg.connect(a.db) as conn:
         bms = {}
@@ -61,7 +71,7 @@ def current() -> dict:
     elig = json.loads((a.audit / "benchmark_eligibility.json").read_text())
     unres = json.loads((a.audit / "benchmark_unresolved_findings.json").read_text())
     return {
-        "release": a.version, "gate_activation": "NOT enabled; a separate decision",
+        "release": a.version, "gate_activation": gate_activation(),
         "code_commit": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
                                       check=True).stdout.strip(),
         "benchmarks": bms,

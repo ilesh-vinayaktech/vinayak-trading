@@ -33,6 +33,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/dashboard", label: "Data health", icon: "benchmark", need: "research:read" },
       { href: "/data/instruments", label: "Data Explorer", icon: "chart" },
+      { href: "/screener", label: "Screener", icon: "chart", need: "research:read" },
       { href: "/data/benchmarks", label: "Benchmarks", icon: "benchmark" },
       { href: "/costs", label: "Trading costs", icon: "scroll", need: "research:read" },
       { href: "/research/studies", label: "Backtest studies", icon: "flask", need: "research:read" },

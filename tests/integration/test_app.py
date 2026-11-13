@@ -108,6 +108,31 @@ def test_health_says_so_when_the_database_is_unreachable(docs):
     assert bad.get("/api/health").json()["database"].startswith("error")
 
 
+def test_a_failed_job_shows_up_in_the_platform_verdict(api, conn):
+    conn.execute(
+        "INSERT INTO job_run (job, started_at, finished_at, status, attempts, detail)"
+        " VALUES ('bhavcopy-daily', %s, %s, 'failed', 3, 'backfill_nse.py exited 1')", (NOW, NOW))  # fmt: skip
+    texts = [r["text"] for r in api[0].get("/api/dashboard").json()["platform"]["reasons"]]
+    assert any(
+        t.startswith("bhavcopy-daily failed") and "backfill_nse.py exited 1" in t for t in texts
+    )
+
+
+def test_the_dashboard_lists_every_scheduled_job_with_when_it_last_ran(api, conn):
+    from algo.jobs.registry import JOBS
+
+    jobs = api[0].get("/api/dashboard").json()["jobs"]
+    assert [j["name"] for j in jobs] == [j.name for j in JOBS]
+    assert all(j["last_run"] is None for j in jobs)  # nothing has run yet: said as it is
+    conn.execute(
+        "INSERT INTO job_run (job, started_at, finished_at, status, attempts, detail)"
+        " VALUES ('bhavcopy-daily', %s, %s, 'ok', 1, '')", (NOW, NOW))  # fmt: skip
+    first = next(
+        j for j in api[0].get("/api/dashboard").json()["jobs"] if j["name"] == "bhavcopy-daily"
+    )
+    assert first["last_run"]["status"] == "ok" and first["last_success_at"] == NOW.isoformat()
+
+
 def test_the_dashboard_keeps_ingested_validated_and_eligible_apart(api):
     d = api[0].get("/api/dashboard").json()
     s = d["benchmarks"]["series"][0]
@@ -115,7 +140,18 @@ def test_the_dashboard_keeps_ingested_validated_and_eligible_apart(api):
     assert (s["ingested"], s["technically_validated"], s["research_eligible_daily"],
             s["research_eligible_intraday"], s["benchmark_gate_eligible"]) == (True, True, True, False, False)  # fmt: skip
     assert s["eligibility_state"] == "RESEARCH_ELIGIBLE"
-    assert d["platform"]["state"] == "UNKNOWN" and d["strategies"]["persisted"] is False
+    assert d["strategies"]["persisted"] is False
+    p = d["platform"]  # the verdict is computed from real signals, and says why
+    assert p["status"] == "DOWN" and [r["level"] for r in p["reasons"]] == [
+        "down",
+        "attention",
+        "attention",
+    ]
+    assert (
+        p["reasons"][0]["text"].startswith("Price data is ") and "behind" in p["reasons"][0]["text"]
+    )
+    assert "No Kite data feed is connected" in p["reasons"][1]["text"]
+    assert "scheduled jobs have never run" in p["reasons"][2]["text"]
     assert d["data"]["bars"] == 2 and d["research"]["backtests"] == 0
     assert d["system"]["redis"] == "not configured"
 
@@ -437,17 +473,19 @@ def test_a_wildcard_search_does_not_dump_the_universe(api):
     assert c.get("/api/instruments", params={"q": "%"}).json() == []
 
 
-def test_activity_is_paged_and_marks_superseded_rows(api, conn):
+def test_activity_is_paged_and_lists_only_each_partitions_latest_load(api, conn):
     c = api[0]
-    for status in ("quarantined", "loaded"):
+    for day, status in (
+        ("2022-08-08", "quarantined"),
+        ("2022-08-08", "loaded"),
+        ("2022-08-09", "loaded"),
+    ):
         conn.execute("INSERT INTO partition_load (source,dataset,partition,status,at) VALUES"
-                     " ('nse','bhav','2022-08-08',%s,%s)", (status, NOW))  # fmt: skip
+                     " ('nse','bhav',%s,%s,%s)", (day, status, NOW))  # fmt: skip
     page = c.get("/api/system/activity", params={"limit": 1}).json()["ingestion"]
-    assert (
-        page["total"] == 2 and len(page["items"]) == 1 and page["items"][0]["superseded"] is False
-    )
+    assert page["total"] == 2 and [r["partition"] for r in page["items"]] == ["2022-08-09"]
     rest = c.get("/api/system/activity", params={"limit": 1, "offset": 1}).json()["ingestion"]
-    assert rest["items"][0]["superseded"] is True and rest["items"][0]["current_status"] == "loaded"
+    assert [(r["partition"], r["status"]) for r in rest["items"]] == [("2022-08-08", "loaded")]
 
 
 def test_the_activity_page_names_each_benchmark_and_starts_with_an_empty_paged_log(api):

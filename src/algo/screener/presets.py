@@ -1,0 +1,248 @@
+# ruff: noqa: E501
+"""Ready-made screens. Thresholds are common rules of thumb, not advice; a screen finds candidates to research, nothing more."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from algo.screener.engine import Condition as C
+
+
+@dataclass(frozen=True)
+class Preset:
+    id: str
+    name: str
+    category: str  # fundamental | technical | combined
+    description: str
+    conditions: tuple[C, ...]
+    sort: str
+    descending: bool = True
+
+
+def _p(
+    id: str,
+    name: str,
+    category: str,
+    description: str,
+    sort: str,
+    *conds: C,
+    descending: bool = True,
+) -> Preset:
+    return Preset(id, name, category, description, conds, sort, descending)
+
+
+PRESETS: tuple[Preset, ...] = (
+    _p(
+        "quality-compounders",
+        "Quality compounders",
+        "fundamental",
+        "High returns on capital, low debt, profits still growing.",
+        "roce",
+        C("roce", "gte", 18),
+        C("roe", "gte", 15),
+        C("debt_to_equity", "lte", 0.5),
+        C("profit_growth_ttm", "gte", 10),
+    ),
+    _p(
+        "value-picks",
+        "Value picks",
+        "fundamental",
+        "Cheap on earnings and book value, yet earning a decent return.",
+        "pe",
+        C("pe", "between", [1, 15]),
+        C("pb", "lte", 2),
+        C("roe", "gte", 12),
+        descending=False,
+    ),
+    _p(
+        "growth-at-reasonable-price",
+        "Growth at a reasonable price",
+        "fundamental",
+        "Sales and profit both growing fast without a rich P/E.",
+        "profit_growth_ttm",
+        C("pe", "between", [1, 30]),
+        C("profit_growth_ttm", "gte", 20),
+        C("revenue_growth_ttm", "gte", 15),
+    ),
+    _p(
+        "dividend-payers",
+        "Dividend payers",
+        "fundamental",
+        "A real dividend yield from a profitable, not over-borrowed company.",
+        "dividend_yield",
+        C("dividend_yield", "gte", 2.5),
+        C("roe", "gte", 10),
+        C("debt_to_equity", "lte", 1),
+    ),
+    _p(
+        "debt-free",
+        "Almost debt-free",
+        "fundamental",
+        "Very little borrowing and interest easily covered.",
+        "interest_coverage",
+        C("debt_to_equity", "lte", 0.1),
+        C("interest_coverage", "gte", 10),
+    ),
+    _p(
+        "cash-generators",
+        "Cash generators",
+        "fundamental",
+        "Profits that turn into free cash.",
+        "fcf_margin",
+        C("fcf_margin", "gte", 10),
+        C("cfo_to_profit", "gte", 0.8),
+    ),
+    _p(
+        "strong-banks",
+        "Strong banks and lenders",
+        "fundamental",
+        "Good return on assets with few bad loans (banks report these ratios).",
+        "roa",
+        C("roa", "gte", 1),
+        C("gross_npa", "lte", 3),
+        C("net_npa", "lte", 1),
+    ),
+    _p(
+        "large-cap-value",
+        "Large-cap value",
+        "fundamental",
+        "AMFI large caps that are not expensive.",
+        "pe",
+        C("segment", "eq", "large"),
+        C("pe", "between", [1, 20]),
+        C("roe", "gte", 12),
+        descending=False,
+    ),
+    _p(
+        "oversold",
+        "Oversold (RSI below 30)",
+        "technical",
+        "Sold hard recently; candidates for a bounce, or for further falls.",
+        "rsi_14",
+        C("rsi_14", "lte", 30),
+        C("turnover_cr", "gte", 1),
+        descending=False,
+    ),
+    _p(
+        "overbought",
+        "Overbought (RSI above 70)",
+        "technical",
+        "Run up fast; stretched in the short term.",
+        "rsi_14",
+        C("rsi_14", "gte", 70),
+        C("turnover_cr", "gte", 1),
+    ),
+    _p(
+        "golden-cross-zone",
+        "Golden-cross zone",
+        "technical",
+        "50-day average just above the 200-day (within 3%), price above both.",
+        "sma50_vs_sma200",
+        C("sma50_vs_sma200", "between", [0, 3]),
+        C("price_vs_sma200", "gt", 0),
+        C("turnover_cr", "gte", 1),
+        descending=False,
+    ),
+    _p(
+        "near-52w-high",
+        "Near 52-week high",
+        "technical",
+        "Within 3% of the year's high with decent volume.",
+        "pct_from_52w_high",
+        C("pct_from_52w_high", "gte", -3),
+        C("turnover_cr", "gte", 1),
+    ),
+    _p(
+        "near-52w-low",
+        "Near 52-week low",
+        "technical",
+        "Within 10% of the year's low.",
+        "pct_from_52w_low",
+        C("pct_from_52w_low", "lte", 10),
+        C("turnover_cr", "gte", 1),
+        descending=False,
+    ),
+    _p(
+        "volume-breakout",
+        "Volume breakout",
+        "technical",
+        "Up 2%+ today on at least twice the usual volume.",
+        "volume_ratio",
+        C("volume_ratio", "gte", 2),
+        C("chg_1d", "gte", 2),
+        C("turnover_cr", "gte", 1),
+    ),
+    _p(
+        "strong-trend",
+        "Strong uptrend",
+        "technical",
+        "ADX above 25 with price above its 50- and 200-day averages.",
+        "adx_14",
+        C("adx_14", "gte", 25),
+        C("price_vs_sma50", "gt", 0),
+        C("price_vs_sma200", "gt", 0),
+    ),
+    _p(
+        "momentum-leaders",
+        "Momentum leaders",
+        "technical",
+        "Up 20%+ in 3 months, above the 200-day average, RSI healthy but not stretched.",
+        "chg_3m",
+        C("chg_3m", "gte", 20),
+        C("price_vs_sma200", "gt", 0),
+        C("rsi_14", "between", [55, 75]),
+    ),
+    _p(
+        "bullish-macd",
+        "Bullish MACD",
+        "technical",
+        "MACD histogram positive while price is above the 50-day average.",
+        "macd_hist",
+        C("macd_hist", "gt", 0),
+        C("price_vs_sma50", "gt", 0),
+        C("turnover_cr", "gte", 1),
+    ),
+    _p(
+        "quality-in-uptrend",
+        "Quality in an uptrend",
+        "combined",
+        "Good business (high ROCE, growing profit) whose price is also trending up.",
+        "roce",
+        C("roce", "gte", 15),
+        C("profit_growth_ttm", "gte", 10),
+        C("price_vs_sma200", "gt", 0),
+        C("rsi_14", "between", [45, 70]),
+    ),
+    _p(
+        "value-oversold",
+        "Value on a dip",
+        "combined",
+        "Cheap, decent returns, and the price has been sold down.",
+        "rsi_14",
+        C("pe", "between", [1, 20]),
+        C("roe", "gte", 12),
+        C("rsi_14", "lte", 40),
+        descending=False,
+    ),
+    _p(
+        "growth-momentum",
+        "Growth with momentum",
+        "combined",
+        "Fast profit growth and a price near its high.",
+        "profit_growth_ttm",
+        C("profit_growth_ttm", "gte", 20),
+        C("chg_3m", "gte", 10),
+        C("pct_from_52w_high", "gte", -10),
+    ),
+    _p(
+        "dividend-dip",
+        "Dividend stocks on a dip",
+        "combined",
+        "A solid yield, price below the 50-day average and RSI soft.",
+        "dividend_yield",
+        C("dividend_yield", "gte", 2),
+        C("price_vs_sma50", "lt", 0),
+        C("rsi_14", "lte", 45),
+    ),
+)
+BY_ID = {p.id: p for p in PRESETS}

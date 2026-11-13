@@ -28,6 +28,7 @@ const S = {
   max_instruments: 20,
   timeframe: "1D",
   params: { trend_sma: 200, entry_rsi: 30, exit_rsi: 60, max_positions: 10 },
+  screen: null,
   in_use: false,
   stage: "RESEARCH",
   created_at: "2026-11-11T10:00:00+00:00",
@@ -60,6 +61,21 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("the strategies list", () => {
+  it("shows a saved screener by its rules and classes, and offers no change to its rules but can give it to the paper account", async () => {
+    const screener = {
+      ...S, config_id: "c9", name: "Dip buyer", strategy_id: "screener", universe: "segments", max_instruments: null, params: { max_positions: 10 },
+      screen: { screen: { conditions: [{ field: "rsi_14", op: "lte", value: "40" }], match: "all", sort: "rsi_14", descending: false }, segments: ["large", "mid"] },
+    };
+    backend(ready([screener]));
+    mount();
+    expect(await screen.findByText("large + mid caps")).toBeInTheDocument();
+    expect(screen.getByText("Screener: 1 condition, ranked by rsi_14, up to 10 stocks")).toBeInTheDocument();
+    const row = screen.getByText("Dip buyer").closest("tr") as HTMLElement;
+    expect(within(row).queryByRole("button", { name: "Change" })).not.toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Use for paper trading" })).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
   it("says it is unvalidated and shows each strategy's index, number of stocks, rules and whether the paper account uses it", async () => {
     backend(ready([S, { ...S, config_id: "c2", name: "Bolder", universe: "nifty200", max_instruments: null, in_use: true }]));
     mount();

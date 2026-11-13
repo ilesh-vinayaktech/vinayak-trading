@@ -3,6 +3,8 @@ after charges, and where the money ended up. Pure: takes the stored fills and eq
 returns strings ready to show.
 
 Buys are matched to sells first-in-first-out per stock; buy and sell charges are split by quantity.
+Splits and bonuses (the extra shares the engine's ledger added on the ex-date) rescale the open lots
+first, keeping their cost, so a sale of the extra shares pairs instead of vanishing.
 Closed-trade P&L (round_trips, summary) is realised only; the headline uses the equity curve, which
 also holds open positions at market and dividends, so the two can differ by design."""
 
@@ -20,8 +22,11 @@ from algo.backtest.validation.stats import annualised_sharpe, max_drawdown
 
 # seq, day, instrument_id, side, qty, price, charges
 Fill = tuple[int, date, int, str, Decimal, Decimal, Decimal]
+# ex-date, instrument_id, extra shares the engine's ledger added (backtest_ledger kind SPLIT)
+Split = tuple[date, int, Decimal]
 _Q4 = Decimal("0.0001")
 _ZERO = Decimal(0)
+_QTY = Decimal("0.00000001")
 
 
 @dataclass(frozen=True)
@@ -56,13 +61,30 @@ def _ratio(a: Decimal, b: Decimal) -> str | None:
     return None if not b else format((a / b).quantize(_Q4), "f")
 
 
+def _rescale(lots: deque[list[Any]], extra: Decimal) -> None:
+    """A split or bonus: each lot holds more shares, each at a proportionally lower cost."""
+    held = sum((lot[0] for lot in lots), _ZERO)
+    if held <= 0:
+        return
+    f = (held + extra) / held
+    for lot in lots:
+        lot[0] = (lot[0] * f).quantize(_QTY)
+        lot[1] = lot[1] * f
+        lot[2] = lot[2] / f
+
+
 def _pair(
-    fills: Sequence[Fill], names: Mapping[int, str]
+    fills: Sequence[Fill], names: Mapping[int, str], splits: Sequence[Split] = ()
 ) -> tuple[list[Trip], list[dict[str, Any]]]:
     # instrument -> lots of [qty left, original qty, price, day, buy charges]
     lots: dict[int, deque[list[Any]]] = {}
     trips: list[Trip] = []
+    pending = deque(sorted(splits, key=lambda x: x[0]))
     for _seq, day, iid, side, qty, price, charges in sorted(fills, key=lambda f: f[0]):
+        while pending and pending[0][0] <= day:  # the ex-date comes before that day's trades
+            _d, sid, extra = pending.popleft()
+            if sid in lots:
+                _rescale(lots[sid], extra)
         if side == "BUY":
             lots.setdefault(iid, deque()).append([qty, qty, price, day, charges])
             continue
@@ -78,6 +100,9 @@ def _pair(
             left -= take
             if lot[0] == 0:
                 q.popleft()
+    for _d, sid, extra in pending:  # after the last trade: the shares still held
+        if sid in lots:
+            _rescale(lots[sid], extra)
     open_ = []
     for i, q in lots.items():
         qty = sum((lot[0] for lot in q), _ZERO)
@@ -95,9 +120,9 @@ def _pair(
     return trips, sorted(open_, key=lambda o: (o["entry_day"], o["symbol"]))
 
 
-def round_trips(fills: Sequence[Fill]) -> list[Trip]:
+def round_trips(fills: Sequence[Fill], splits: Sequence[Split] = ()) -> list[Trip]:
     """Buys paired with sells, first in first out per stock (the closed trades only)."""
-    return _pair(fills, {})[0]
+    return _pair(fills, {}, splits)[0]
 
 
 def _stats(trips: Sequence[Trip]) -> dict[str, Any]:
@@ -225,8 +250,13 @@ def build_report(
     initial_cash: Decimal,
     names: Mapping[int, str],
     benchmark: tuple[str, Mapping[date, Decimal]] | None = None,
+    splits: Sequence[Split] = (),
+    total_charges: Decimal | None = None,
+    dividends: Decimal = _ZERO,
 ) -> dict[str, Any]:
-    trips, open_ = _pair(fills, names)
+    """total_charges: everything the run paid (the run's own fee total, which also holds charges
+    that belong to no trade); default: the charges of every fill, open buys included."""
+    trips, open_ = _pair(fills, names, splits)
     curve, worst = _curve(equity)
     final = equity[-1][1] if equity else None
 
@@ -252,6 +282,10 @@ def build_report(
             "change": None if final is None else _s(final - initial_cash),
             "return": None if final is None else _ratio(final - initial_cash, initial_cash),
             "max_drawdown": format(worst.quantize(_Q4), "f"),
+            "charges": _s(
+                sum((f[6] for f in fills), _ZERO) if total_charges is None else total_charges
+            ),
+            "dividends": _s(dividends),
         },
         "summary": _stats(trips),
         "curve": curve,

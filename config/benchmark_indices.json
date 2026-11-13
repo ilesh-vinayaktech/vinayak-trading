@@ -1,0 +1,285 @@
+{
+ "note": "Series synced daily by scripts/sync_benchmarks.py. 'legacy' = the four hand-loaded benchmarks (their factsheets were transcribed by hand and are fixed). 'indices' = every other index: total-return (gross) from `start`, reconciled against the factsheet PDF named by `factsheet`. Net-series acceptances are pinned to the findings the owner reviewed: a different finding fails the sync.",
+ "start": "2015-01-01",
+ "legacy": [
+  {
+   "dataset": "tri_nifty200",
+   "index": "Nifty 200",
+   "kind": "tri",
+   "series": "gross",
+   "symbol": "NIFTY 200",
+   "name": "Nifty 200 Total Return Index (gross)",
+   "factsheet": "config/factsheet_checks/nifty200_2026-10-30.json",
+   "base": [
+    "2004-01-01",
+    "1000"
+   ]
+  },
+  {
+   "dataset": "price_nifty200",
+   "index": "Nifty 200",
+   "kind": "price",
+   "series": "price",
+   "symbol": "NIFTY 200",
+   "name": "Nifty 200 Price Index",
+   "factsheet": "config/factsheet_checks/nifty200_2026-10-30.json",
+   "base": [
+    "2004-01-01",
+    "1000"
+   ]
+  },
+  {
+   "dataset": "tri_nifty50",
+   "index": "Nifty 50",
+   "kind": "tri",
+   "series": "gross",
+   "symbol": "NIFTY 50",
+   "name": "Nifty 50 Total Return Index (gross)",
+   "factsheet": "config/factsheet_checks/nifty50_2026-10-30.json"
+  },
+  {
+   "dataset": "tri_nifty50",
+   "index": "Nifty 50",
+   "kind": "tri",
+   "series": "net",
+   "symbol": "NIFTY 50",
+   "name": "Nifty 50 Net Total Return Index",
+   "factsheet": "config/factsheet_checks/nifty50_2026-10-30.json",
+   "accept": [
+    "no_abrupt_net_gross_jump=ACCEPTED_WITH_EVIDENCE:EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED:all 11 flagged dates are ex-dates of a bonus issue by a large Nifty 50 member (RELIANCE, ITC, INFY, TCS, BAJFINANCE, HDFCBANK) and the methodology taxes bonus-share income in net only; the tax amount per date was not recomputed, so this is plausible, not independently validated",
+    "net_never_gains_on_gross=UNRESOLVED:UNRESOLVED_DIVIDEND_ASSOCIATED_ANOMALY:41 rises of 0.002-0.006% in net/gross, above the ~0.0003% 2-decimal rounding bound; 38 of 41 fall on a dividend ex-date versus 34% of all days; the mechanism is not established"
+   ],
+   "pinned": {
+    "no_abrupt_net_gross_jump": "c9f9d88beb7fd44b1b8278f5570ecf52c36b3d1505e5cb6995eb987c9a078d61",
+    "net_never_gains_on_gross": "311265a70d801f3df05ae4ba95f7dd6db13c5846e31f744fd64623796b3e175f"
+   }
+  }
+ ],
+ "indices": [
+  {
+   "index": "Nifty 100",
+   "key": "nifty_100",
+   "factsheet": "ind_nifty_100"
+  },
+  {
+   "index": "Nifty Next 50",
+   "key": "nifty_next_50",
+   "factsheet": "ind_next50"
+  },
+  {
+   "index": "Nifty 500",
+   "key": "nifty_500",
+   "factsheet": "ind_nifty_500"
+  },
+  {
+   "index": "Nifty Midcap 50",
+   "key": "nifty_midcap_50",
+   "factsheet": "ind_nifty_midcap50"
+  },
+  {
+   "index": "Nifty Midcap 100",
+   "key": "nifty_midcap_100",
+   "factsheet": "ind_niftymidcap100"
+  },
+  {
+   "index": "Nifty Midcap 150",
+   "key": "nifty_midcap_150",
+   "factsheet": "ind_nifty_midcap_150"
+  },
+  {
+   "index": "Nifty Smallcap 50",
+   "key": "nifty_smallcap_50",
+   "factsheet": "ind_niftysmallcap_50"
+  },
+  {
+   "index": "Nifty Smallcap 100",
+   "key": "nifty_smallcap_100",
+   "factsheet": "ind_niftysmallcap100"
+  },
+  {
+   "index": "Nifty Smallcap 250",
+   "key": "nifty_smallcap_250",
+   "factsheet": "ind_nifty_smallcap_250"
+  },
+  {
+   "index": "Nifty LargeMidcap 250",
+   "key": "nifty_largemidcap_250",
+   "factsheet": "Factsheet_NIFTY_LargeMidcap_250_Index"
+  },
+  {
+   "index": "Nifty MidSmallcap 400",
+   "key": "nifty_midsmallcap_400",
+   "factsheet": "ind_nifty_midsmallcap_400"
+  },
+  {
+   "index": "Nifty Microcap 250",
+   "key": "nifty_microcap_250",
+   "factsheet": "Factsheet_Nifty_Microcap_250_Index"
+  },
+  {
+   "index": "Nifty Total Market",
+   "key": "nifty_total_market",
+   "factsheet": "Factsheet_NiftyTotalMarket"
+  },
+  {
+   "index": "Nifty Auto",
+   "key": "nifty_auto",
+   "factsheet": "ind_nifty_auto"
+  },
+  {
+   "index": "Nifty Bank",
+   "key": "nifty_bank",
+   "factsheet": "ind_nifty_bank"
+  },
+  {
+   "index": "Nifty Financial Services",
+   "key": "nifty_financial_services",
+   "factsheet": "ind_nifty_financial_services"
+  },
+  {
+   "index": "Nifty Financial Services Ex-Bank",
+   "key": "nifty_financial_services_ex_bank",
+   "factsheet": "Factsheet_NiftyFinancialServicesExBank"
+  },
+  {
+   "index": "Nifty FMCG",
+   "key": "nifty_fmcg",
+   "factsheet": "ind_nifty_fmcg"
+  },
+  {
+   "index": "Nifty IT",
+   "key": "nifty_it",
+   "factsheet": "ind_nifty_it"
+  },
+  {
+   "index": "Nifty Media",
+   "key": "nifty_media",
+   "factsheet": "ind_nifty_media"
+  },
+  {
+   "index": "Nifty Metal",
+   "key": "nifty_metal",
+   "factsheet": "ind_nifty_metal"
+  },
+  {
+   "index": "Nifty Pharma",
+   "key": "nifty_pharma",
+   "factsheet": "ind_nifty_pharma"
+  },
+  {
+   "index": "Nifty PSU Bank",
+   "key": "nifty_psu_bank",
+   "factsheet": "ind_nifty_psu_bank"
+  },
+  {
+   "index": "Nifty Private Bank",
+   "key": "nifty_private_bank",
+   "factsheet": "ind_nifty_private_bank"
+  },
+  {
+   "index": "Nifty Realty",
+   "key": "nifty_realty",
+   "factsheet": "ind_nifty_realty"
+  },
+  {
+   "index": "Nifty Healthcare",
+   "key": "nifty_healthcare_index",
+   "factsheet": "Factsheet_Nifty_Healthcare_Index"
+  },
+  {
+   "index": "Nifty Consumer Durables",
+   "key": "nifty_consumer_durables",
+   "factsheet": "Factsheet_Nifty_Consumer_Durables"
+  },
+  {
+   "index": "Nifty Oil & Gas",
+   "key": "nifty_oil_and_gas",
+   "factsheet": "Factsheet_nifty_oil_and_gas"
+  },
+  {
+   "index": "Nifty Chemicals",
+   "key": "nifty_chemicals",
+   "factsheet": "Factsheet_Nifty_Chemicals"
+  },
+  {
+   "index": "Nifty Commodities",
+   "key": "nifty_commodities",
+   "factsheet": "ind_nifty_commodities"
+  },
+  {
+   "index": "Nifty India Consumption",
+   "key": "nifty_india_consumption",
+   "factsheet": "ind_nifty_india_consumption"
+  },
+  {
+   "index": "Nifty CPSE",
+   "key": "nifty_cpse",
+   "factsheet": "ind_nifty_cpse"
+  },
+  {
+   "index": "Nifty Energy",
+   "key": "nifty_energy",
+   "factsheet": "ind_nifty_energy"
+  },
+  {
+   "index": "Nifty MNC",
+   "key": "nifty_mnc",
+   "factsheet": "ind_nifty_mnc"
+  },
+  {
+   "index": "Nifty PSE",
+   "key": "nifty_pse",
+   "factsheet": "ind_nifty_pse"
+  },
+  {
+   "index": "Nifty Services Sector",
+   "key": "nifty_services_sector",
+   "factsheet": "ind_nifty_services_sector"
+  },
+  {
+   "index": "Nifty India Manufacturing",
+   "key": "nifty_india_manufacturing",
+   "factsheet": "Factsheet_Nifty_India_Manufacturing_Index"
+  },
+  {
+   "index": "Nifty India Digital",
+   "key": "nifty_india_digital",
+   "factsheet": "Factsheet_NiftyIndiaDigital"
+  },
+  {
+   "index": "Nifty India Defence",
+   "key": "nifty_india_defence",
+   "factsheet": "Factsheet_NiftyIndiaDefence"
+  },
+  {
+   "index": "Nifty India Tourism",
+   "key": "nifty_india_tourism",
+   "factsheet": "Factsheet_NiftyIndiaTourism"
+  },
+  {
+   "index": "Nifty Housing",
+   "key": "nifty_housing",
+   "factsheet": "Factsheet_NiftyHousing"
+  },
+  {
+   "index": "Nifty Capital Markets",
+   "key": "nifty_capital_markets",
+   "factsheet": "Factsheet_Nifty_Capital_Markets"
+  },
+  {
+   "index": "Nifty Transportation & Logistics",
+   "key": "nifty_transportation_and_logistics",
+   "factsheet": "Factsheet_NiftyTransportationandLogistics"
+  },
+  {
+   "index": "Nifty Rural",
+   "key": "nifty_rural",
+   "factsheet": "Factsheet_NiftyRural"
+  },
+  {
+   "index": "Nifty Non-Cyclical Consumer",
+   "key": "nifty_non_cyclical_consumer",
+   "factsheet": "Factsheet_NiftyNonCyclicalConsumer"
+  }
+ ]
+}

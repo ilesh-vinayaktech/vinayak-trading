@@ -19,6 +19,8 @@ const csp = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // the screener's first run after a data change builds its table in ~30-50 s; Next's default proxy timeout is 30 s
+  experimental: { proxyTimeout: 180_000 },
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
   },

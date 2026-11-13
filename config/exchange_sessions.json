@@ -223,112 +223,610 @@
   {
    "date": "2016-10-30",
    "weekday": "Sunday",
+   "kind": "MUHURAT",
+   "kind_status": "OBSERVED (Diwali Muhurat session (Zerodha bulletin 53006 and press: 6.30-7.30 pm; no NSE circular found). All instruments trade 18:30-19:16, 17 instruments to 19:30)",
+   "hours": [
+    "18:30",
+    "19:30"
+   ],
+   "hours_status": "OBSERVED (stored minute bars: first bar 18:30, last bar ends 19:30)",
+   "evidence": "stored 1-minute bars (see `observed`); Diwali Muhurat session (Zerodha bulletin 53006 and press: 6.30-7.30 pm; no NSE circular found). All instruments trade 18:30-19:16, 17 instruments to 19:30",
+   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f",
+   "observed": {
+    "intervals": [
+     [
+      "18:30",
+      "19:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:30",
+      "19:16"
+     ]
+    ],
+    "instruments_at_peak": 325,
+    "thin_minutes_ignored": 14,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2017-07-10",
+   "weekday": "Monday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind_status": "OBSERVED (NSE technical outage: trading halted in the morning and resumed 12:30 (press; no NSE circular found))",
+   "evidence": "stored 1-minute bars (see `observed`); NSE technical outage: trading halted in the morning and resumed 12:30 (press; no NSE circular found)",
+   "observed": {
+    "intervals": [
+     [
+      "12:30",
+      "15:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "12:30",
+      "15:30"
+     ]
+    ],
+    "instruments_at_peak": 332,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   },
+   "hours": [
+    "12:30",
+    "15:30"
+   ],
+   "hours_status": "OBSERVED (stored minute bars: first bar 12:30, last bar ends 15:30)"
+  },
+  {
+   "date": "2017-10-19",
+   "weekday": "Thursday",
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/35993: Diwali Muhurat session)",
+   "hours": [
+    "18:30",
+    "19:30"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/35993: normal market 18:30-19:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR35993.pdf (NSE circular NSE/CMTR/35993, kept untouched in the lake: nse/session_circulars/dt=2017-10-19)",
+   "evidence_sha256": "1419ab5d8070a2cd9896859d7ad8bebee69fedc2bb0200b1260a0eb41db5804c",
+   "observed": {
+    "intervals": [
+     [
+      "18:30",
+      "19:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:30",
+      "19:16"
+     ]
+    ],
+    "instruments_at_peak": 337,
+    "thin_minutes_ignored": 14,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2018-11-07",
+   "weekday": "Wednesday",
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/39216: Diwali Muhurat session)",
+   "hours": [
+    "17:30",
+    "18:30"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/39216: normal market 17:30-18:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR39216.pdf (NSE circular NSE/CMTR/39216, kept untouched in the lake: nse/session_circulars/dt=2018-11-07)",
+   "evidence_sha256": "d68c2e0d4c6160c5ed75533dceb48a4084ecd8d2dea71b6dadee73a07ccb6438",
+   "observed": {
+    "intervals": [
+     [
+      "17:30",
+      "18:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "17:30",
+      "18:30"
+     ]
+    ],
+    "instruments_at_peak": 357,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2019-10-27",
    "weekday": "Sunday",
-   "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/42483: Diwali Muhurat session (revised timings))",
+   "hours": [
+    "18:15",
+    "19:15"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/42483: normal market 18:15-19:15)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR42483.pdf (NSE circular NSE/CMTR/42483, kept untouched in the lake: nse/session_circulars/dt=2019-10-27)",
+   "evidence_sha256": "933768f41a67a216b04531374751afeb79af0f53b025685328b166dd6c33ef23",
+   "observed": {
+    "intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "instruments_at_peak": 368,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2020-02-01",
    "weekday": "Saturday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind_status": "CONFIRMED (NSE/CMTR/43290: live trading session, Union Budget day)",
+   "hours": [
+    "09:15",
+    "15:30"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/43290: normal market 09:15-15:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR43290.pdf (NSE circular NSE/CMTR/43290, kept untouched in the lake: nse/session_circulars/dt=2020-02-01)",
+   "evidence_sha256": "2f667503047c3399bc7c013271dd64b3119bc532b0cbb6d988d4d9a6998da4a9",
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "instruments_at_peak": 369,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2020-11-14",
    "weekday": "Saturday",
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/46230: Diwali Muhurat session)",
+   "hours": [
+    "18:15",
+    "19:15"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/46230: normal market 18:15-19:15)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR46230.pdf (NSE circular NSE/CMTR/46230, kept untouched in the lake: nse/session_circulars/dt=2020-11-14)",
+   "evidence_sha256": "dc545416272a0da2d7465e66b879f884fa6c49bdead5b9e0cc5ae15d1e5672be",
+   "observed": {
+    "intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "instruments_at_peak": 379,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2021-02-24",
+   "weekday": "Wednesday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "kind_status": "OBSERVED (NSE outage: halted 11:40, resumed in the afternoon, trading hours extended to 17:00 (SEBI press release 8/2021))",
+   "evidence": "stored 1-minute bars (see `observed`); NSE outage: halted 11:40, resumed in the afternoon, trading hours extended to 17:00 (SEBI press release 8/2021)",
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "11:44"
+     ],
+     [
+      "15:45",
+      "17:00"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "11:44"
+     ]
+    ],
+    "instruments_at_peak": 382,
+    "thin_minutes_ignored": 75,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   },
    "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "intervals": [
+    [
+     "09:15",
+     "11:44"
+    ],
+    [
+     "15:45",
+     "17:00"
+    ]
+   ],
+   "hours_status": "UNKNOWN (observed in several intervals: 09:15-11:44, 15:45-17:00; the calendar holds one interval per day)"
   },
   {
    "date": "2021-11-04",
    "weekday": "Thursday",
-   "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekday, TRI value, no bhavcopy: probably Muhurat)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: value on a weekday with no bhavcopy",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/50050: Diwali Muhurat session)",
+   "hours": [
+    "18:15",
+    "19:15"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/50050: normal market 18:15-19:15)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR50050.pdf (NSE circular NSE/CMTR/50050, kept untouched in the lake: nse/session_circulars/dt=2021-11-04)",
+   "evidence_sha256": "5ac9d2034e5dc3bb22632fd1b0e46a2acfae49f71e1126897e7e13bcd52d6803",
+   "observed": {
+    "intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "instruments_at_peak": 402,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2022-10-24",
+   "weekday": "Monday",
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/54023: Diwali Muhurat session)",
+   "hours": [
+    "18:15",
+    "19:15"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/54023: normal market 18:15-19:15)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR54023.pdf (NSE circular NSE/CMTR/54023, kept untouched in the lake: nse/session_circulars/dt=2022-10-24)",
+   "evidence_sha256": "01e579eac8e2dd4a870a9ebc9f08d60bc26fae28d0d35cf58891bf2a2964e0c7",
+   "observed": {
+    "intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "instruments_at_peak": 419,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2023-11-12",
    "weekday": "Sunday",
-   "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/59124: Diwali Muhurat session)",
+   "hours": [
+    "18:15",
+    "19:15"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/59124: normal market 18:15-19:15)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR59124.pdf (NSE circular NSE/CMTR/59124, kept untouched in the lake: nse/session_circulars/dt=2023-11-12)",
+   "evidence_sha256": "09f80430f3ec95aeaeeb98938124273892abccc38a7aaa440b38a6426b428c21",
+   "observed": {
+    "intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:15",
+      "19:15"
+     ]
+    ],
+    "instruments_at_peak": 434,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2024-01-20",
    "weekday": "Saturday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind_status": "CONFIRMED (NSE/MSD/60340: regular trading session on a Saturday (the planned DR-site drill, NSE/MSD/59999, was withdrawn))",
+   "hours": [
+    "09:15",
+    "15:30"
+   ],
+   "hours_status": "VERIFIED (NSE/MSD/60340: normal market 09:15-15:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/MSD60340.pdf (NSE circular NSE/MSD/60340, kept untouched in the lake: nse/session_circulars/dt=2024-01-20)",
+   "evidence_sha256": "6d165b8d132b7b430ae79032356ea331fab3d852192b74df4bc9e56722f54cdd",
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "instruments_at_peak": 440,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2024-03-02",
    "weekday": "Saturday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "kind_status": "CONFIRMED (NSE/MSD/60677: special live session with intra-day switch to the DR site)",
    "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "hours_status": "UNKNOWN (two normal-market intervals 09:15-10:00 and 11:30-12:30 per NSE/MSD/60677; the calendar holds one interval per day)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/MSD60677.pdf (NSE circular NSE/MSD/60677, kept untouched in the lake: nse/session_circulars/dt=2024-03-02)",
+   "evidence_sha256": "04b67f39314bae95672d86497c28cbed6cea698ad6f029ba47ef74feb9f6da91",
+   "intervals": [
+    [
+     "09:15",
+     "10:00"
+    ],
+    [
+     "11:30",
+     "12:30"
+    ]
+   ],
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "10:00"
+     ],
+     [
+      "11:30",
+      "12:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "10:00"
+     ],
+     [
+      "11:30",
+      "12:30"
+     ]
+    ],
+    "instruments_at_peak": 441,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2024-05-18",
    "weekday": "Saturday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
+   "kind_status": "CONFIRMED (NSE/MSD/61893: special live session with intra-day switch to the DR site)",
    "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "hours_status": "UNKNOWN (two normal-market intervals 09:15-10:00 and 11:30-12:30 per NSE/MSD/61893; the calendar holds one interval per day)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/MSD61893.pdf (NSE circular NSE/MSD/61893, kept untouched in the lake: nse/session_circulars/dt=2024-05-18)",
+   "evidence_sha256": "2483f60d67c34231d6fd25024cf5767c031b234196a7a475535d434cd4e758c8",
+   "intervals": [
+    [
+     "09:15",
+     "10:00"
+    ],
+    [
+     "11:30",
+     "12:30"
+    ]
+   ],
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "10:00"
+     ],
+     [
+      "11:30",
+      "12:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "10:00"
+     ],
+     [
+      "11:30",
+      "12:30"
+     ]
+    ],
+    "instruments_at_peak": 360,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2024-11-01",
+   "weekday": "Friday",
+   "kind": "MUHURAT",
+   "kind_status": "OBSERVED (Diwali Muhurat session, 18:00-19:00 (NSE notification as reported by AIR News and brokers; no NSE circular found))",
+   "evidence": "stored 1-minute bars (see `observed`); Diwali Muhurat session, 18:00-19:00 (NSE notification as reported by AIR News and brokers; no NSE circular found)",
+   "observed": {
+    "intervals": [
+     [
+      "18:00",
+      "19:00"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "18:00",
+      "19:00"
+     ]
+    ],
+    "instruments_at_peak": 453,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   },
+   "hours": [
+    "18:00",
+    "19:00"
+   ],
+   "hours_status": "OBSERVED (stored minute bars: first bar 18:00, last bar ends 19:00)"
   },
   {
    "date": "2025-02-01",
    "weekday": "Saturday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind_status": "CONFIRMED (NSE/CMTR/65729: live trading session, Union Budget day)",
+   "hours": [
+    "09:15",
+    "15:30"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/65729: normal market 09:15-15:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR65729.pdf (NSE circular NSE/CMTR/65729, kept untouched in the lake: nse/session_circulars/dt=2025-02-01)",
+   "evidence_sha256": "84d12e29654e75f77baa0b9064a26f6d0e4c3ff58e64df14e01247a0c15a91be",
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "instruments_at_peak": 464,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2025-10-21",
+   "weekday": "Tuesday",
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/70319: Diwali Muhurat session)",
+   "hours": [
+    "13:45",
+    "14:45"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/70319: normal market 13:45-14:45)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR70319.pdf (NSE circular NSE/CMTR/70319, kept untouched in the lake: nse/session_circulars/dt=2025-10-21)",
+   "evidence_sha256": "19b7d88003cb05eb8c6abdc8d1bfad5df821a17e4f9ae36f75e327a68a48d258",
+   "observed": {
+    "intervals": [
+     [
+      "13:45",
+      "14:45"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "13:45",
+      "14:45"
+     ]
+    ],
+    "instruments_at_peak": 479,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   },
   {
    "date": "2026-02-01",
    "weekday": "Sunday",
    "kind": "SPECIAL",
-   "kind_status": "UNCONFIRMED (weekend: Budget day, Muhurat or an exchange drill)",
-   "hours": null,
-   "hours_status": "UNKNOWN (regular hours assumed for bar visibility)",
-   "evidence": "tri_nifty200: the index has a value on this date (it is computed on every day the capital market segment is open - Nifty Indices methodology, Sep 2026)",
-   "evidence_sha256": "8a418b716305b935a0c40be0dac36d213d9cb5a5048e72cf9aa2392db699c71f"
+   "kind_status": "CONFIRMED (NSE/CMTR/72349: live trading session, Union Budget day)",
+   "hours": [
+    "09:15",
+    "15:30"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/72349: normal market 09:15-15:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR72349.pdf (NSE circular NSE/CMTR/72349, kept untouched in the lake: nse/session_circulars/dt=2026-02-01)",
+   "evidence_sha256": "70458f7b8126f47584d4bc402a78dde357e42dbebaa5d53cfce0c70c82dabfc3",
+   "observed": {
+    "intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "09:15",
+      "15:30"
+     ]
+    ],
+    "instruments_at_peak": 490,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
+  },
+  {
+   "date": "2026-11-08",
+   "weekday": "Sunday",
+   "kind": "MUHURAT",
+   "kind_status": "CONFIRMED (NSE/CMTR/76941: Diwali Muhurat session: continuous trading opens 14:20; closes 15:30 (15:15 for closing-auction securities, then the auction))",
+   "hours": [
+    "14:20",
+    "15:30"
+   ],
+   "hours_status": "VERIFIED (NSE/CMTR/76941: normal market 14:20-15:30)",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CMTR76941.pdf (NSE circular NSE/CMTR/76941, kept untouched in the lake: nse/session_circulars/dt=2026-11-08)",
+   "evidence_sha256": "ce94ee1c54d98eccdf3c30fa0673ae2b6a49ea4ed4a72fb83d826f4359f71d58",
+   "observed": {
+    "intervals": [
+     [
+      "14:20",
+      "15:30"
+     ]
+    ],
+    "core_intervals": [
+     [
+      "14:20",
+      "15:30"
+     ]
+    ],
+    "instruments_at_peak": 497,
+    "thin_minutes_ignored": 0,
+    "source": "stored 1-minute bars (Kite). intervals = minutes with any bar; core_intervals = minutes where at least 20% of the busiest minute's instruments have a bar"
+   }
   }
  ]
 }

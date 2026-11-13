@@ -19,6 +19,22 @@ export function humanize(code: string): string {
   return code.toLowerCase().replace(/_/g, " ");
 }
 
+/** A data-load status for people: a day the exchange published no file is a holiday (or not out yet), not a fault. */
+export function partitionStatus(code: string): string {
+  if (code === "noop") return "loaded again, unchanged";
+  if (code === "not_published") return "holiday / no file";
+  return humanize(code);
+}
+
+/** A job's systemd calendar ("Mon..Fri *-*-* 18:30 Asia/Kolkata") the way a person reads it. */
+export function schedule(calendar: string): string {
+  const m = /^(?:(\S+) )?\*-\*-(\*|\d{2}) (\d{2}:\d{2}) Asia\/Kolkata$/.exec(calendar);
+  if (!m) return calendar;
+  const [, days, day, time] = m;
+  if (day !== "*") return `Day ${Number(day)} of the month, ${time} IST`;
+  return days ? `${days} ${time} IST` : `Daily ${time} IST`;
+}
+
 /** Chart libraries need numbers; this is for plotting only and never for displayed figures. */
 export function plotNumber(s: string): number {
   return Number.parseFloat(s);

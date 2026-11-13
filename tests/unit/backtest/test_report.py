@@ -186,3 +186,68 @@ def test_cost_drag_is_undefined_when_nothing_was_made_before_charges():
     s = rep(losing)["summary"]
     assert s["pre_charge_pnl"] == "-100" and s["cost_drag"] is None
     assert rep([])["summary"]["cost_drag"] is None
+
+
+# --- bonus / split: the engine adds shares at the ex-date; the report must pair the sells against them ---
+B100 = (1, date(2024, 1, 1), 7, "BUY", D(100), D(100), D(2))
+BONUS = (date(2024, 1, 15), 7, D(100))  # 1:1 bonus, 100 extra shares
+
+
+def test_sell_after_a_bonus_pairs_the_extra_shares_at_the_diluted_cost():
+    s = (2, date(2024, 2, 1), 7, "SELL", D(200), D(80), D(3))
+    r = build_report([B100, s], [(date(2024, 1, 1), D(1000))], D(1000), NAMES, splits=[BONUS])
+    (t,) = r["round_trips"]
+    # cost per share is now 50, so 200 shares sold at 80 make 6000 (not -2000 on 100 shares), charges 2 + 3
+    assert (t["qty"], t["entry_price"], t["gross"], t["charges"], t["net"]) == (
+        "200",
+        "50",
+        "6000",
+        "5",
+        "5995",
+    )
+    assert r["open_positions"] == []
+
+
+def test_partial_sell_after_a_bonus_leaves_the_rest_open_at_the_diluted_cost():
+    s = (2, date(2024, 2, 1), 7, "SELL", D(50), D(80), D(0))
+    r = build_report([B100, s], [(date(2024, 1, 1), D(1000))], D(1000), NAMES, splits=[BONUS])
+    assert r["round_trips"][0]["gross"] == "1500"  # 50 x (80 - 50)
+    assert (r["open_positions"][0]["qty"], r["open_positions"][0]["entry_price"]) == ("150", "50")
+
+
+def test_a_split_on_the_sell_day_applies_before_that_days_sell():
+    s = (2, date(2024, 1, 15), 7, "SELL", D(200), D(80), D(0))
+    r = build_report([B100, s], [(date(2024, 1, 1), D(1000))], D(1000), NAMES, splits=[BONUS])
+    assert r["round_trips"][0]["qty"] == "200"
+
+
+def test_a_split_for_a_stock_not_held_or_after_the_last_sale_changes_nothing():
+    other = (date(2024, 1, 15), 8, D(100))
+    sell_all = (2, date(2024, 1, 10), 7, "SELL", D(100), D(120), D(0))
+    late = (date(2024, 3, 1), 7, D(100))
+    r = build_report(
+        [B100, sell_all], [(date(2024, 1, 1), D(1000))], D(1000), NAMES, splits=[other, late]
+    )
+    assert (r["round_trips"][0]["qty"], r["round_trips"][0]["gross"]) == ("100", "2000")
+    assert r["open_positions"] == []
+
+
+# --- the headline carries what the whole run paid and received, so the page can add up ---
+def test_headline_charges_default_to_every_fills_charges_open_buys_included():
+    r = rep([BUY1, BUY2, SELL])  # 2 + 2 + 3; the closed trades only carry 4 + 2 = 6 of it
+    assert r["headline"]["charges"] == "7"
+    assert r["summary"]["charges"] == "6"
+    assert r["headline"]["dividends"] == "0"
+
+
+def test_headline_uses_the_runs_own_fee_total_when_it_has_charges_outside_trades():
+    # the engine posts a per-contract-note brokerage minimum that belongs to no single trade
+    r = build_report(
+        [BUY1, BUY2, SELL],
+        [(date(2024, 1, 1), D(10000)), (date(2024, 3, 1), D(10500))],
+        D(10000),
+        NAMES,
+        total_charges=D("7.5"),
+        dividends=D(40),
+    )
+    assert (r["headline"]["charges"], r["headline"]["dividends"]) == ("7.5", "40")

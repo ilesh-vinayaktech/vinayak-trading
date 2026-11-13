@@ -90,9 +90,9 @@ def test_a_session_without_status_data_defaults_to_unconfirmed_and_unknown():
 
 
 def test_provisional_hours_cannot_pass_as_verified(tmp_path):
-    with pytest.raises(ValueError, match="exactly when hours_status is VERIFIED"):
+    with pytest.raises(ValueError, match="exactly when hours_status is VERIFIED or OBSERVED"):
         load(write(tmp_path, [ent("2026-02-01", hours=["10:00", "11:00"])]))
-    with pytest.raises(ValueError, match="exactly when hours_status is VERIFIED"):
+    with pytest.raises(ValueError, match="exactly when hours_status is VERIFIED or OBSERVED"):
         load(write(tmp_path, [ent("2026-02-01", hs="VERIFIED (q)")]))
     with pytest.raises(ValueError, match="hours_status must start with"):
         load(write(tmp_path, [ent("2026-02-01", hs="PROBABLY")]))
@@ -105,3 +105,42 @@ def test_a_bad_or_duplicated_entry_is_refused(tmp_path):
         load(write(tmp_path, [ent("2026-02-01", "REGULAR")]))
     with pytest.raises(ValueError, match="listed twice"):
         load(write(tmp_path, [ent("2026-02-01"), ent("2026-02-01")]))
+
+
+def test_observed_intervals_join_busy_minutes_drop_a_thin_tail_and_keep_a_gap():
+    from datetime import time
+
+    from algo.data.sessions import observed_intervals
+
+    def run(a, b, n):  # one bar per minute from a to b (exclusive), n instruments each
+        return {time(m // 60, m % 60): n for m in range(a * 60, b * 60)}
+
+    assert observed_intervals({}) == []
+    muhurat = run(18, 19, 300) | {
+        time(19, m): 17 for m in range(0, 15)
+    }  # 17 stragglers after 19:00
+    assert observed_intervals(muhurat) == [(time(18, 0), time(19, 0))]
+    split = {time(9, m): 400 for m in range(15, 60)}
+    split |= {time(11, m): 400 for m in range(30, 60)} | {time(12, m): 400 for m in range(30)}
+    assert observed_intervals(split) == [(time(9, 15), time(10, 0)), (time(11, 30), time(12, 30))]
+    assert observed_intervals({time(23, 59): 5}) == [
+        (time(23, 59), time(0, 0))
+    ]  # closes at midnight
+
+
+def test_observed_hours_are_used_for_bars_but_are_not_called_verified(tmp_path):
+    f = write(
+        tmp_path,
+        [
+            ent(
+                "2024-11-01",
+                "MUHURAT",
+                "OBSERVED (no circular)",
+                "OBSERVED (bars)",
+                ["18:00", "19:00"],
+            )
+        ],
+    )
+    i = calendar(f).session_info(date(2024, 11, 1))
+    assert (i.kind_status, i.hours, i.hours_status, i.bar_visibility) == (
+        "OBSERVED", (time(18, 0), time(19, 0)), "OBSERVED", "OBSERVED")  # fmt: skip

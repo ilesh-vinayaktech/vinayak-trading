@@ -1,0 +1,1290 @@
+{
+ "audit_file_sha256": {
+  "audit_manifest.json": "bd298db21a5d838d6c7c43562bf79ba8b5cf1bb10fd173eb6619cafdb779d95f",
+  "benchmark_alignment_report.json": "79342d859dfa09cc16eb6a989604412be677de27b0d6efc0af0ccb5305ec4307",
+  "benchmark_eligibility.json": "250f0b84439add7b01c6405fec91296665cf8891ffd083a4a046296528d3dc26",
+  "benchmark_evidence_report.md": "ebaf02a742ed594c8adadb3ba7ae2c09d41bdd1bb3ca577b955a862e5b065961",
+  "benchmark_unresolved_findings.json": "e97fdad66a036d2436457e328a1c36a2cfc43caf30670be6d1ff75bbae06a52e",
+  "session_reconciliation_report.json": "e0f5ad9913139ba5d709b63b5e14911490068899c1b31ea62500fa32499130d0"
+ },
+ "benchmarks": {
+  "1": {
+   "dataset_hash": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+   "index_symbol": "NIFTY 200",
+   "name": "Nifty 200 Total Return Index (gross)",
+   "observations": 5677,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T05:28:24.541523+00:00",
+    "dataset_hash": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 9
+   }
+  },
+  "10": {
+   "dataset_hash": "7fc7e625a0dd53eb8fd4ee7e03e861901ab1b7943dd88fe521a105b1e8b72e24",
+   "index_symbol": "NIFTY MIDCAP 100",
+   "name": "Nifty Midcap 100 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:02:52.413648+00:00",
+    "dataset_hash": "7fc7e625a0dd53eb8fd4ee7e03e861901ab1b7943dd88fe521a105b1e8b72e24",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 18
+   }
+  },
+  "11": {
+   "dataset_hash": "a2ab56be1a8633642f7a507059d21d0845dfd0156d08b5d2118c35c65a56cbfd",
+   "index_symbol": "NIFTY MIDCAP 150",
+   "name": "Nifty Midcap 150 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:04:08.515072+00:00",
+    "dataset_hash": "a2ab56be1a8633642f7a507059d21d0845dfd0156d08b5d2118c35c65a56cbfd",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 19
+   }
+  },
+  "12": {
+   "dataset_hash": "36f1a4ea1a1279f9a360e368f8023d4520db5cac50c1100b666e54585af47e44",
+   "index_symbol": "NIFTY SMALLCAP 50",
+   "name": "Nifty Smallcap 50 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:05:24.570372+00:00",
+    "dataset_hash": "36f1a4ea1a1279f9a360e368f8023d4520db5cac50c1100b666e54585af47e44",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 20
+   }
+  },
+  "13": {
+   "dataset_hash": "29d91715a34557ae8f82d8dbafc5eb5ac25da94136750161e1f735d9f55cb6d8",
+   "index_symbol": "NIFTY SMALLCAP 100",
+   "name": "Nifty Smallcap 100 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:06:40.556262+00:00",
+    "dataset_hash": "29d91715a34557ae8f82d8dbafc5eb5ac25da94136750161e1f735d9f55cb6d8",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 21
+   }
+  },
+  "14": {
+   "dataset_hash": "0a849cd4a4d412b2d165fd19c92bd780b5dc16265aecf9c5e4a75623d012c59f",
+   "index_symbol": "NIFTY SMALLCAP 250",
+   "name": "Nifty Smallcap 250 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:07:56.817722+00:00",
+    "dataset_hash": "0a849cd4a4d412b2d165fd19c92bd780b5dc16265aecf9c5e4a75623d012c59f",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 22
+   }
+  },
+  "15": {
+   "dataset_hash": "2ce87429b7d1d7c986d9021288422cb547f9ab14656a732417290516a82348ff",
+   "index_symbol": "NIFTY LARGEMIDCAP 250",
+   "name": "Nifty LargeMidcap 250 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:09:13.006290+00:00",
+    "dataset_hash": "2ce87429b7d1d7c986d9021288422cb547f9ab14656a732417290516a82348ff",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 23
+   }
+  },
+  "16": {
+   "dataset_hash": "656178aa78d49c0d78a3afc8ed52b350991242aed63d8fa44e16d2ae0c347f9c",
+   "index_symbol": "NIFTY MIDSMALLCAP 400",
+   "name": "Nifty MidSmallcap 400 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:10:29.558305+00:00",
+    "dataset_hash": "656178aa78d49c0d78a3afc8ed52b350991242aed63d8fa44e16d2ae0c347f9c",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 24
+   }
+  },
+  "17": {
+   "dataset_hash": "f4790043749f2dc9d7c3266f9db67fd169011ba6d5dbedfe923bee022f89ef20",
+   "index_symbol": "NIFTY MICROCAP 250",
+   "name": "Nifty Microcap 250 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:11:45.643463+00:00",
+    "dataset_hash": "f4790043749f2dc9d7c3266f9db67fd169011ba6d5dbedfe923bee022f89ef20",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 25
+   }
+  },
+  "18": {
+   "dataset_hash": "8fca949db97652f82528597249a5ac4e20c7d90771bff041cf42aaf8bc5edeb8",
+   "index_symbol": "NIFTY TOTAL MARKET",
+   "name": "Nifty Total Market Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:13:01.937963+00:00",
+    "dataset_hash": "8fca949db97652f82528597249a5ac4e20c7d90771bff041cf42aaf8bc5edeb8",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 26
+   }
+  },
+  "19": {
+   "dataset_hash": "721402e96485450daf0a3a87df642e1f80b4d90b472dc5f6b396e29c80ae903b",
+   "index_symbol": "NIFTY AUTO",
+   "name": "Nifty Auto Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:14:18.726174+00:00",
+    "dataset_hash": "721402e96485450daf0a3a87df642e1f80b4d90b472dc5f6b396e29c80ae903b",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 27
+   }
+  },
+  "2": {
+   "dataset_hash": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+   "index_symbol": "NIFTY 50",
+   "name": "Nifty 50 Total Return Index (gross)",
+   "observations": 6809,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T05:28:25.666740+00:00",
+    "dataset_hash": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 11
+   }
+  },
+  "20": {
+   "dataset_hash": "df69bef24a3932abd85447d290e976596680f68fb005557761121ba002e044e7",
+   "index_symbol": "NIFTY BANK",
+   "name": "Nifty Bank Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:15:35.124999+00:00",
+    "dataset_hash": "df69bef24a3932abd85447d290e976596680f68fb005557761121ba002e044e7",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 28
+   }
+  },
+  "21": {
+   "dataset_hash": "19b318ed19cded03289e030167389d10f022a8eab03758ce8e3d9e0533110d65",
+   "index_symbol": "NIFTY FINANCIAL SERVICES",
+   "name": "Nifty Financial Services Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:16:51.229820+00:00",
+    "dataset_hash": "19b318ed19cded03289e030167389d10f022a8eab03758ce8e3d9e0533110d65",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 29
+   }
+  },
+  "22": {
+   "dataset_hash": "a253dcc355479438a70c3f8d3f200e7151dcff3547db6898019902d6dde54d00",
+   "index_symbol": "NIFTY FINANCIAL SERVICES EX-BANK",
+   "name": "Nifty Financial Services Ex-Bank Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:18:07.422474+00:00",
+    "dataset_hash": "a253dcc355479438a70c3f8d3f200e7151dcff3547db6898019902d6dde54d00",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 30
+   }
+  },
+  "23": {
+   "dataset_hash": "962baec4a01c46c672122adc0fa5b926b54f8bb9d6aa6ad4b9b65f9f5d5aa0d9",
+   "index_symbol": "NIFTY FMCG",
+   "name": "Nifty FMCG Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:19:23.456712+00:00",
+    "dataset_hash": "962baec4a01c46c672122adc0fa5b926b54f8bb9d6aa6ad4b9b65f9f5d5aa0d9",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 31
+   }
+  },
+  "24": {
+   "dataset_hash": "cc4bbaf942f9fef660771b9dd229932fb8d21ed0b37fbb1a37e0dc2ad94c5ab2",
+   "index_symbol": "NIFTY MEDIA",
+   "name": "Nifty Media Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:20:39.346040+00:00",
+    "dataset_hash": "cc4bbaf942f9fef660771b9dd229932fb8d21ed0b37fbb1a37e0dc2ad94c5ab2",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 32
+   }
+  },
+  "25": {
+   "dataset_hash": "2bbd6502128b6f5f34d3273298c8a001d23224fb6ee5f75e28585e1e17d8340a",
+   "index_symbol": "NIFTY METAL",
+   "name": "Nifty Metal Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:21:55.371428+00:00",
+    "dataset_hash": "2bbd6502128b6f5f34d3273298c8a001d23224fb6ee5f75e28585e1e17d8340a",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 33
+   }
+  },
+  "26": {
+   "dataset_hash": "a82f61ad17014b534d253c79ec380b2b221c039a6c8847c91a79105083f19d86",
+   "index_symbol": "NIFTY PHARMA",
+   "name": "Nifty Pharma Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:23:12.071158+00:00",
+    "dataset_hash": "a82f61ad17014b534d253c79ec380b2b221c039a6c8847c91a79105083f19d86",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 34
+   }
+  },
+  "27": {
+   "dataset_hash": "953a609f57747e72e61c11147962b2dce9e49fe73f4b2206afeb7b46fc10c7cc",
+   "index_symbol": "NIFTY PSU BANK",
+   "name": "Nifty PSU Bank Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:24:27.972190+00:00",
+    "dataset_hash": "953a609f57747e72e61c11147962b2dce9e49fe73f4b2206afeb7b46fc10c7cc",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 35
+   }
+  },
+  "28": {
+   "dataset_hash": "d39b1b1bafde7a87c1e886204eeddc0405346a58b7d37df907f15cbc09b2a744",
+   "index_symbol": "NIFTY PRIVATE BANK",
+   "name": "Nifty Private Bank Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:25:44.359662+00:00",
+    "dataset_hash": "d39b1b1bafde7a87c1e886204eeddc0405346a58b7d37df907f15cbc09b2a744",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 36
+   }
+  },
+  "29": {
+   "dataset_hash": "7cf380921822e4fab1214d31afb91d28265b86d8827c11bb8bbd77d56975b21d",
+   "index_symbol": "NIFTY REALTY",
+   "name": "Nifty Realty Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:27:00.209534+00:00",
+    "dataset_hash": "7cf380921822e4fab1214d31afb91d28265b86d8827c11bb8bbd77d56975b21d",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 37
+   }
+  },
+  "3": {
+   "dataset_hash": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+   "index_symbol": "NIFTY 50",
+   "name": "Nifty 50 Net Total Return Index",
+   "observations": 6680,
+   "return_type": "NET_TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T05:28:48.407056+00:00",
+    "dataset_hash": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+    "owner_accepted_findings": [
+     {
+      "check": "no_abrupt_net_gross_jump",
+      "detail_sha256": "c9f9d88beb7fd44b1b8278f5570ecf52c36b3d1505e5cb6995eb987c9a078d61",
+      "label": "EXPLAINED_BY_METHODOLOGY_NOT_NUMERICALLY_RECONCILED",
+      "reason": "all 11 flagged dates are ex-dates of a bonus issue by a large Nifty 50 member (RELIANCE, ITC, INFY, TCS, BAJFINANCE, HDFCBANK) and the methodology taxes bonus-share income in net only; the tax amount per date was not recomputed, so this is plausible, not independently validated",
+      "state": "ACCEPTED_WITH_EVIDENCE"
+     },
+     {
+      "check": "net_never_gains_on_gross",
+      "detail_sha256": "311265a70d801f3df05ae4ba95f7dd6db13c5846e31f744fd64623796b3e175f",
+      "label": "UNRESOLVED_DIVIDEND_ASSOCIATED_ANOMALY",
+      "reason": "41 rises of 0.002-0.006% in net/gross, above the ~0.0003% 2-decimal rounding bound; 38 of 41 fall on a dividend ex-date versus 34% of all days; the mechanism is not established",
+      "state": "UNRESOLVED"
+     }
+    ],
+    "passed": false,
+    "report_version": "2",
+    "technical_validation_passed": false,
+    "validation_id": 12
+   }
+  },
+  "30": {
+   "dataset_hash": "edb2e4e3ba17af8a1f15b813a66770868552d40956bb020e696de1119e540d03",
+   "index_symbol": "NIFTY HEALTHCARE",
+   "name": "Nifty Healthcare Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:28:16.178944+00:00",
+    "dataset_hash": "edb2e4e3ba17af8a1f15b813a66770868552d40956bb020e696de1119e540d03",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 38
+   }
+  },
+  "31": {
+   "dataset_hash": "abe0c60f60942d8f153e49d9d221e88c7caf8ac81fe3a1be9406e394fbbdd756",
+   "index_symbol": "NIFTY CONSUMER DURABLES",
+   "name": "Nifty Consumer Durables Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:29:32.286432+00:00",
+    "dataset_hash": "abe0c60f60942d8f153e49d9d221e88c7caf8ac81fe3a1be9406e394fbbdd756",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 39
+   }
+  },
+  "32": {
+   "dataset_hash": "845e42f3678d156f5d883f9ad0daff24503724d98c08cbf44686a229d5f41733",
+   "index_symbol": "NIFTY OIL & GAS",
+   "name": "Nifty Oil & Gas Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:30:48.195025+00:00",
+    "dataset_hash": "845e42f3678d156f5d883f9ad0daff24503724d98c08cbf44686a229d5f41733",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 40
+   }
+  },
+  "33": {
+   "dataset_hash": "f0a66d9a52b398c53d09de2d57b157c3ac17d1a6b0d3e89f87124dd2e2facbbc",
+   "index_symbol": "NIFTY CHEMICALS",
+   "name": "Nifty Chemicals Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:32:03.891223+00:00",
+    "dataset_hash": "f0a66d9a52b398c53d09de2d57b157c3ac17d1a6b0d3e89f87124dd2e2facbbc",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 41
+   }
+  },
+  "34": {
+   "dataset_hash": "6b197b7a57f70c126f3efdf72ecbff5f4c7be6173384e4c857954bdd761f1b5b",
+   "index_symbol": "NIFTY COMMODITIES",
+   "name": "Nifty Commodities Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:33:20.251254+00:00",
+    "dataset_hash": "6b197b7a57f70c126f3efdf72ecbff5f4c7be6173384e4c857954bdd761f1b5b",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 42
+   }
+  },
+  "35": {
+   "dataset_hash": "9c323a7a72d45e7f8032ca0ee3d77f6bfe6d7e2201788520d4f15f82bf77fb9e",
+   "index_symbol": "NIFTY INDIA CONSUMPTION",
+   "name": "Nifty India Consumption Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:34:36.184384+00:00",
+    "dataset_hash": "9c323a7a72d45e7f8032ca0ee3d77f6bfe6d7e2201788520d4f15f82bf77fb9e",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 43
+   }
+  },
+  "36": {
+   "dataset_hash": "59c30b7659ecb99329a99247e11759d2a3a76006cb95e3bf1804a9c1b76b27d0",
+   "index_symbol": "NIFTY CPSE",
+   "name": "Nifty CPSE Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:35:51.912161+00:00",
+    "dataset_hash": "59c30b7659ecb99329a99247e11759d2a3a76006cb95e3bf1804a9c1b76b27d0",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 44
+   }
+  },
+  "37": {
+   "dataset_hash": "8a8da143b34d962f7f50ab6e5f10eaf9a0865a90409ada127ec2c06dbddea4ee",
+   "index_symbol": "NIFTY ENERGY",
+   "name": "Nifty Energy Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:37:08.546552+00:00",
+    "dataset_hash": "8a8da143b34d962f7f50ab6e5f10eaf9a0865a90409ada127ec2c06dbddea4ee",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 45
+   }
+  },
+  "38": {
+   "dataset_hash": "f5281f842e664af68b063656cf15ea5f8a7390e1b41624af92e0fc9ed9fa265d",
+   "index_symbol": "NIFTY MNC",
+   "name": "Nifty MNC Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:38:24.454323+00:00",
+    "dataset_hash": "f5281f842e664af68b063656cf15ea5f8a7390e1b41624af92e0fc9ed9fa265d",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 46
+   }
+  },
+  "39": {
+   "dataset_hash": "d6d676f599f91ca9d5582083f7a3bad821fe2716984510622ac0697ae1238398",
+   "index_symbol": "NIFTY PSE",
+   "name": "Nifty PSE Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:39:40.569985+00:00",
+    "dataset_hash": "d6d676f599f91ca9d5582083f7a3bad821fe2716984510622ac0697ae1238398",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 47
+   }
+  },
+  "4": {
+   "dataset_hash": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae",
+   "index_symbol": "NIFTY 200",
+   "name": "Nifty 200 Price Index",
+   "observations": 5677,
+   "return_type": "PRICE",
+   "validation": {
+    "created_at": "2026-11-13T05:28:25.094260+00:00",
+    "dataset_hash": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 10
+   }
+  },
+  "40": {
+   "dataset_hash": "f64ff0fad99867bfdeacb66ac8e7f7f3f0b93452541516f54b167be77bb72af5",
+   "index_symbol": "NIFTY SERVICES SECTOR",
+   "name": "Nifty Services Sector Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:40:56.641434+00:00",
+    "dataset_hash": "f64ff0fad99867bfdeacb66ac8e7f7f3f0b93452541516f54b167be77bb72af5",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 48
+   }
+  },
+  "41": {
+   "dataset_hash": "914c99cf4bdb4482e40fed3dc4ddd0ba7a739140ac998f60996b34e4f84f81f1",
+   "index_symbol": "NIFTY INDIA MANUFACTURING",
+   "name": "Nifty India Manufacturing Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:42:12.991669+00:00",
+    "dataset_hash": "914c99cf4bdb4482e40fed3dc4ddd0ba7a739140ac998f60996b34e4f84f81f1",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 49
+   }
+  },
+  "42": {
+   "dataset_hash": "c3fb2930d0ace73944c91961cc37a967136a26cd3ae50a03f71560ab17463921",
+   "index_symbol": "NIFTY INDIA DIGITAL",
+   "name": "Nifty India Digital Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:43:29.297206+00:00",
+    "dataset_hash": "c3fb2930d0ace73944c91961cc37a967136a26cd3ae50a03f71560ab17463921",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 50
+   }
+  },
+  "43": {
+   "dataset_hash": "6f8010e000a45e3d407630548edd14dac0fec2ad9f97408fe48a8ea36e2bf0da",
+   "index_symbol": "NIFTY INDIA DEFENCE",
+   "name": "Nifty India Defence Total Return Index (gross)",
+   "observations": 2137,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:44:44.978935+00:00",
+    "dataset_hash": "6f8010e000a45e3d407630548edd14dac0fec2ad9f97408fe48a8ea36e2bf0da",
+    "owner_accepted_findings": [],
+    "passed": false,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 51
+   }
+  },
+  "44": {
+   "dataset_hash": "bad79f08c75c4fcfd6cea000f77be136ba2a602b129a96c306504690a7bad7bb",
+   "index_symbol": "NIFTY INDIA TOURISM",
+   "name": "Nifty India Tourism Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:46:01.191516+00:00",
+    "dataset_hash": "bad79f08c75c4fcfd6cea000f77be136ba2a602b129a96c306504690a7bad7bb",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 52
+   }
+  },
+  "45": {
+   "dataset_hash": "1a67c82897e894304b65bb92ec9295566e9dea1c5ee8d0f28116f0fb408fbf33",
+   "index_symbol": "NIFTY HOUSING",
+   "name": "Nifty Housing Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:47:29.288699+00:00",
+    "dataset_hash": "1a67c82897e894304b65bb92ec9295566e9dea1c5ee8d0f28116f0fb408fbf33",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 53
+   }
+  },
+  "46": {
+   "dataset_hash": "067b1660ea994f2cf06752f2cc19db8bb14628d5c734b6b589132796d6d8b13b",
+   "index_symbol": "NIFTY CAPITAL MARKETS",
+   "name": "Nifty Capital Markets Total Return Index (gross)",
+   "observations": 1889,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:48:44.864506+00:00",
+    "dataset_hash": "067b1660ea994f2cf06752f2cc19db8bb14628d5c734b6b589132796d6d8b13b",
+    "owner_accepted_findings": [],
+    "passed": false,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 54
+   }
+  },
+  "47": {
+   "dataset_hash": "bc1614bb5ed076f2edd3d2fc99d297dcbbf6ee4b9762a0a143f8fc3b435da884",
+   "index_symbol": "NIFTY TRANSPORTATION & LOGISTICS",
+   "name": "Nifty Transportation & Logistics Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:50:00.853621+00:00",
+    "dataset_hash": "bc1614bb5ed076f2edd3d2fc99d297dcbbf6ee4b9762a0a143f8fc3b435da884",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 55
+   }
+  },
+  "48": {
+   "dataset_hash": "cd1fbc60ff9d38069f9fce971b930c945ad8590afc8f690673c2818c3f0becd4",
+   "index_symbol": "NIFTY RURAL",
+   "name": "Nifty Rural Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:51:16.785785+00:00",
+    "dataset_hash": "cd1fbc60ff9d38069f9fce971b930c945ad8590afc8f690673c2818c3f0becd4",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 56
+   }
+  },
+  "49": {
+   "dataset_hash": "ef69cc90b63eea0f9f7e2ac93c356a6106b6a84f2b476c3323ad806d494483f7",
+   "index_symbol": "NIFTY NON-CYCLICAL CONSUMER",
+   "name": "Nifty Non-Cyclical Consumer Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:52:32.804930+00:00",
+    "dataset_hash": "ef69cc90b63eea0f9f7e2ac93c356a6106b6a84f2b476c3323ad806d494483f7",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 57
+   }
+  },
+  "5": {
+   "dataset_hash": "88822e840e58571bea88277658637df3e3d86905ecb76b4e4a4595c3ef9cf727",
+   "index_symbol": "NIFTY IT",
+   "name": "Nifty IT Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T05:48:33.853076+00:00",
+    "dataset_hash": "88822e840e58571bea88277658637df3e3d86905ecb76b4e4a4595c3ef9cf727",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 13
+   }
+  },
+  "6": {
+   "dataset_hash": "6ad92b829541f3c7fb9cb260383dee31db51935921c4c6a61955dc17c2d852ca",
+   "index_symbol": "NIFTY 100",
+   "name": "Nifty 100 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T05:57:46.601878+00:00",
+    "dataset_hash": "6ad92b829541f3c7fb9cb260383dee31db51935921c4c6a61955dc17c2d852ca",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 14
+   }
+  },
+  "7": {
+   "dataset_hash": "760b0ebae9c3e16e424a47bc5946d0f2585b0477e4404f656cd531f1bdc3bbcf",
+   "index_symbol": "NIFTY NEXT 50",
+   "name": "Nifty Next 50 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T05:59:02.875990+00:00",
+    "dataset_hash": "760b0ebae9c3e16e424a47bc5946d0f2585b0477e4404f656cd531f1bdc3bbcf",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 15
+   }
+  },
+  "8": {
+   "dataset_hash": "cdc2b7f47cab59bfa2e71453f02a8021d5fc751794ccb61ddc9e8e3f5d8b1a09",
+   "index_symbol": "NIFTY 500",
+   "name": "Nifty 500 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:00:19.641949+00:00",
+    "dataset_hash": "cdc2b7f47cab59bfa2e71453f02a8021d5fc751794ccb61ddc9e8e3f5d8b1a09",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 16
+   }
+  },
+  "9": {
+   "dataset_hash": "edae448e50663adfff3f1749825ad2be670677a117b1099d3d6aa81841079240",
+   "index_symbol": "NIFTY MIDCAP 50",
+   "name": "Nifty Midcap 50 Total Return Index (gross)",
+   "observations": 2940,
+   "return_type": "TOTAL_RETURN",
+   "validation": {
+    "created_at": "2026-11-13T06:01:36.177905+00:00",
+    "dataset_hash": "edae448e50663adfff3f1749825ad2be670677a117b1099d3d6aa81841079240",
+    "owner_accepted_findings": [],
+    "passed": true,
+    "report_version": "2",
+    "technical_validation_passed": true,
+    "validation_id": 17
+   }
+  }
+ },
+ "calendar_inputs": {
+  "bhavcopy_2022-08-08.json_sha256": "63e83dda1381125da7d73ed1566f66ce487855b3371980829a27c71c851feb68",
+  "evidence_manifest_sha256": "977731a25dbeccf07d679f675c7789e1574e1925465af0757a2df313253ab551",
+  "legacy_bhavcopy_check.json_sha256": "5487fc0a603dc6c8bc8e0d4a4be3582f8e502ac8ffcd0ec8ac773b20336d09e8",
+  "session_secondary_evidence.json_sha256": "c05f3a2e65cd5d778ed643b7489916ef14efe16aaf8c66aa4f07565afb178387",
+  "sessions_file_sha256": "b531e9079a227daf5afe25da3ae9b3e1cd8844ad804581dbd0187086bcee2608"
+ },
+ "code_commit": "aca6942380024ec8d586581098f8bea915c1c8b2",
+ "eligibility": {
+  "B10_NIFTYMIDCAP100_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B11_NIFTYMIDCAP150_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B12_NIFTYSMALLCAP50_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B13_NIFTYSMALLCAP100_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B14_NIFTYSMALLCAP250_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B15_NIFTYLARGEMIDCAP250_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B16_NIFTYMIDSMALLCAP400_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B17_NIFTYMICROCAP250_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B18_NIFTYTOTALMARKET_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B19_NIFTYAUTO_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B1_NIFTY200_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B20_NIFTYBANK_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B21_NIFTYFINANCIALSERVICES_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B22_NIFTYFINANCIALSERVICESEX-BANK_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B23_NIFTYFMCG_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B24_NIFTYMEDIA_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B25_NIFTYMETAL_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B26_NIFTYPHARMA_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B27_NIFTYPSUBANK_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B28_NIFTYPRIVATEBANK_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B29_NIFTYREALTY_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B2_NIFTY50_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B30_NIFTYHEALTHCARE_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B31_NIFTYCONSUMERDURABLES_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B32_NIFTYOIL&GAS_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B33_NIFTYCHEMICALS_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B34_NIFTYCOMMODITIES_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B35_NIFTYINDIACONSUMPTION_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B36_NIFTYCPSE_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B37_NIFTYENERGY_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B38_NIFTYMNC_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B39_NIFTYPSE_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B3_NIFTY50_NET_TRI": {
+   "state": "RESEARCH_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B40_NIFTYSERVICESSECTOR_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B41_NIFTYINDIAMANUFACTURING_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B42_NIFTYINDIADIGITAL_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B43_NIFTYINDIADEFENCE_GROSS_TRI": {
+   "state": "DATA_INGESTED",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": false,
+    "INTRADAY_RESEARCH": false
+   }
+  },
+  "B44_NIFTYINDIATOURISM_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B45_NIFTYHOUSING_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B46_NIFTYCAPITALMARKETS_GROSS_TRI": {
+   "state": "DATA_INGESTED",
+   "uses": {
+    "BENCHMARK_GATE": false,
+    "DAILY_RESEARCH": false,
+    "INTRADAY_RESEARCH": false
+   }
+  },
+  "B47_NIFTYTRANSPORTATION&LOGISTICS_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B48_NIFTYRURAL_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B49_NIFTYNON-CYCLICALCONSUMER_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B4_NIFTY200_PRICE_RETURN": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B5_NIFTYIT_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B6_NIFTY100_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B7_NIFTYNEXT50_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B8_NIFTY500_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  },
+  "B9_NIFTYMIDCAP50_GROSS_TRI": {
+   "state": "BENCHMARK_GATE_ELIGIBLE",
+   "uses": {
+    "BENCHMARK_GATE": true,
+    "DAILY_RESEARCH": true,
+    "INTRADAY_RESEARCH": true
+   }
+  }
+ },
+ "gate_activation": "ENABLED (decided 2026-11-13 by owner)",
+ "instrument_level_blocked_dates": [],
+ "release": "1.5",
+ "unresolved_findings": [
+  {
+   "id": "U01",
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "2022-08-08 bhavcopy recovered from the spreadsheet NSE served"
+  },
+  {
+   "id": "U02",
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "Regular session hours observed on every day of the minute history"
+  },
+  {
+   "id": "U03",
+   "severity": "MEDIUM",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Special sessions: every one inside the minute history has its hours; earlier ones are marked SPECIAL"
+  },
+  {
+   "id": "U04",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Weekday closures before 2026 are inferred from exchange files, not holiday lists"
+  },
+  {
+   "id": "U05",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Price return exceeds gross TRI by up to 0.005% on some days"
+  },
+  {
+   "id": "U06",
+   "severity": "LOW",
+   "status": "UNRESOLVED",
+   "title": "Net TRI gains on gross TRI on 41 days (0.002-0.006%)"
+  },
+  {
+   "id": "U07",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "11 net/gross jumps on bonus ex-dates: explained, not numerically reconciled"
+  },
+  {
+   "id": "U08",
+   "severity": "MEDIUM",
+   "status": "UNRESOLVED",
+   "title": "Gross and net independence unknown; net is a non-resident institutional measure"
+  },
+  {
+   "id": "U09",
+   "severity": "INFO",
+   "status": "RESOLVED",
+   "title": "Revision behaviour of the endpoints: history re-fetched and unchanged"
+  },
+  {
+   "id": "U10",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Methodology documents: editions from 2018 to 2026 held"
+  },
+  {
+   "id": "U11",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Factsheet CAGR convention unidentified; Nifty 50 gross since-inception not reproducible"
+  },
+  {
+   "id": "U16",
+   "severity": "LOW",
+   "status": "ACCEPTED_WITH_EVIDENCE",
+   "title": "Large daily moves seen by one series only"
+  }
+ ]
+}

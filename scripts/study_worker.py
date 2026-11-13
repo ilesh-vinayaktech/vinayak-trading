@@ -2,8 +2,10 @@
 """Run queued backtest studies. Polls the queue (study_run) and executes each claimed run to the end, one at a time.
 
 A run can take hours (every parameter combination is a full backtest), so this is its own long-running process, not part of
-the web server: start it and leave it running. Run exactly ONE worker: on start it puts back in the queue any run a worker that
-died left RUNNING (trials already done are kept and skipped, the rest are run), which a second live worker would also do.
+the web server: start it and leave it running. Start as many workers as you want to run studies side by side (each is about 2 GB
+of memory): every worker takes its own run, and different studies run in parallel (one study never runs twice at once). On start
+a worker puts back in the queue any run whose worker died and left it RUNNING (trials already done are kept and skipped, the
+rest are run); a run another live worker is on is left alone.
 usage: study_worker.py [--db URL] [--once] [--interval 5]
   --once   process what is queued now, then exit"""
 
@@ -40,7 +42,7 @@ signal.signal(signal.SIGTERM, _stop)
 signal.signal(signal.SIGINT, _stop)
 
 with psycopg.connect(a.db, autocommit=True) as conn:
-    conn.execute("UPDATE study_run SET status='QUEUED' WHERE status='RUNNING'")
+    study_jobs.requeue_orphans(conn)
     while not stop:
         run_id = study_jobs.claim(conn, datetime.now(UTC))
         if run_id is None:
@@ -49,7 +51,10 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             time.sleep(a.interval)
             continue
         print(f"{datetime.now(UTC):%H:%M:%S} run {run_id}: started", flush=True)
-        execute(conn, run_id, datetime.now(UTC))
+        try:
+            execute(conn, run_id, datetime.now(UTC))
+        finally:
+            study_jobs.release(conn, run_id)
         run = study_jobs.get_run(conn, run_id)
         print(
             f"{datetime.now(UTC):%H:%M:%S} run {run_id}: {run['status'] if run else '?'} {(run or {}).get('error') or ''}",

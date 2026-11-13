@@ -30,6 +30,11 @@ from algo.data.providers.kite_session import load_env, load_token, urllib_http
 IST = ZoneInfo("Asia/Kolkata")
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
+ap.add_argument(
+    "--all",
+    action="store_true",
+    help="every active equity in our instrument master, not only the Nifty 500",
+)
 ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2016, 1, 1))
 ap.add_argument("--to", dest="end", type=date.fromisoformat, default=None)
 ap.add_argument("--symbols", default="")
@@ -50,8 +55,20 @@ if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
 now = datetime.now(UTC)
 env, tok = load_env(a.env), load_token(a.token_file, now)
+if (
+    tok is None
+):  # no token file: use the connected data feed from the portal (stored encrypted in the database)
+    from algo.portal.crypto import KeyRing
+    from algo.portal.kite_vault import system_feed_credentials
+
+    with psycopg.connect(a.db) as _c:
+        _feed = system_feed_credentials(_c, KeyRing.from_env(os.environ), now=now)
+    if _feed is not None:
+        env["ZERODHA_API_KEY"], tok = _feed[0], (_feed[1], "portal feed")
 if tok is None:
-    sys.exit("no valid Kite session: run scripts/kite_login.py first")
+    sys.exit(
+        "no valid Kite session: connect on the portal (data feed on) or run scripts/kite_login.py"
+    )
 client = KiteClient(
     env["ZERODHA_API_KEY"], tok[0], urllib_http, min_interval=a.interval, retries=6
 )  # waits 1..32 s: rides out a short network drop
@@ -66,6 +83,10 @@ if a.symbols:
     want = {s.strip() for s in a.symbols.split(",")}
     universe = [u for u in universe if u[0] in want]
 with psycopg.connect(a.db, autocommit=True) as conn:
+    if a.all:
+        from algo.data.kite_ingest import master_universe
+
+        universe = master_universe(conn)
     lake = LocalLake(a.lake)
     listing: list[bytes] = []
     instruments = client.instruments("NSE", raw_sink=listing.append)

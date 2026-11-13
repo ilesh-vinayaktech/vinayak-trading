@@ -1,7 +1,10 @@
 // Typed fixtures shaped exactly like the API responses (copied from a real response).
 
 export const dashboard = {
-  platform: { state: "UNKNOWN", reason: "the platform state machine is not persisted" },
+  platform: { status: "ATTENTION", reasons: [
+    { level: "attention", text: "No Kite data feed is connected: the loaders and the live feed cannot run." },
+    { level: "attention", text: "11 scheduled jobs have never run: kite-login-reminder, gap-nightly, gap-weekly and 8 more." },
+  ] },
   data: {
     bars: 3188251,
     instruments_with_bars: 2648,
@@ -35,7 +38,14 @@ export const dashboard = {
   },
   research: { backtests: 0, experiments: 0, validation_reports: 0, validation_reports_passed: 0, latest_run: null },
   strategies: { persisted: false, note: "strategy lifecycle states are not stored yet" },
-  system: { database: "ok", redis: "not configured", api: "ok", recent_ingestion: [{ id: 1, source: "nse", dataset: "bhav", partition: "2026-11-06", status: "loaded", at: "2026-11-06T18:09:57+00:00", current_status: "loaded", superseded: false }] },
+  jobs: [
+    { name: "bhavcopy-daily", description: "Load the daily bhavcopy", calendar: "Mon..Fri *-*-* 18:30 Asia/Kolkata",
+      last_run: { started_at: "2026-11-13T12:45:00+00:00", finished_at: "2026-11-13T12:45:30+00:00", status: "ok", attempts: 1, detail: "" }, last_success_at: "2026-11-13T12:45:30+00:00" },
+    { name: "kite-reconcile", description: "Compare Kite daily candles with bhavcopy", calendar: "Mon..Fri *-*-* 20:00 Asia/Kolkata",
+      last_run: { started_at: "2026-11-13T14:30:00+00:00", finished_at: "2026-11-13T14:31:00+00:00", status: "failed", attempts: 3, detail: "reconcile_kite_prices.py exited 3" }, last_success_at: "2026-11-12T14:31:00+00:00" },
+    { name: "fundamentals-daily", description: "Latest results", calendar: "Mon..Fri *-*-* 21:00 Asia/Kolkata", last_run: null, last_success_at: null },
+  ],
+  system: { database: "ok", redis: "not configured", api: "ok", recent_ingestion: [{ id: 1, source: "nse", dataset: "bhav", partition: "2026-11-06", status: "loaded", at: "2026-11-06T18:09:57+00:00" }] },
 };
 
 export const benchmarkDetail = {

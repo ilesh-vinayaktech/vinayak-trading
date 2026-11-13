@@ -36,6 +36,7 @@ export default function StudyPage() {
             <div className="px-5 py-4">
               <DefinitionList items={[
                 { label: "Strategy", value: s.strategy_id },
+                ...(s.spec.screen ? [{ label: "Screen", value: `${s.spec.screen.match === "all" ? "All" : "Any"} of ${s.spec.screen.conditions.map((c) => `${c.field} ${c.op} ${JSON.stringify(c.value)}`).join("; ")}; best first by ${s.spec.screen.sort} (${s.spec.screen.descending ? "highest" : "lowest"})` }] : []),
                 { label: "Settings tried", value: Object.entries(s.spec.grid).map(([k, v]) => `${k}: ${v.join(", ")}`).join(" · ") },
                 { label: "Stocks", value: `${s.spec.universe.segments.join(", ")}; at least ${s.spec.universe.min_history_sessions} sessions of history` },
                 { label: "Period", value: `${s.spec.start} to ${s.spec.end}, ${s.spec.timeframe}` },

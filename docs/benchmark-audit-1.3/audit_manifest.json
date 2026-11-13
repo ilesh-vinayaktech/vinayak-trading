@@ -1,0 +1,13 @@
+{
+ "benchmark_alignment_report.json": "79342d859dfa09cc16eb6a989604412be677de27b0d6efc0af0ccb5305ec4307",
+ "benchmark_eligibility.json": "b22cb63bdc0add641f08c1fb18f7f94c00a2fa97ba0f63851971772deeb59275",
+ "benchmark_evidence_report.md": "f7f00385f16cab798b958f29efe0aa69cb1d103fcf74264a87a09900f6e5315b",
+ "benchmark_unresolved_findings.json": "0f74c6c15b6bbeeda8df4d8425b3a8336b3b1b841dae3beea8a65555e4884024",
+ "dataset_hashes": {
+  "B1_NIFTY200_GROSS_TRI": "b22029030d91b3cb8eed568929f9647650661bf28ea1a84bf0f2b4afc7be6f25",
+  "B2_NIFTY50_GROSS_TRI": "6a5cdc34ac24c21c37d22855e2906ad6a54551950167564e068de190666e1751",
+  "B3_NIFTY50_NET_TRI": "18667ecc208e36e90d1f637d9379945932fced3a32da419296e3b71349049d8f",
+  "B4_NIFTY200_PRICE_RETURN": "01da8ae2bdb770f54b2d70d4ad029c2fcc9723e3463c04b278e899848b5ad9ae"
+ },
+ "session_reconciliation_report.json": "e0f5ad9913139ba5d709b63b5e14911490068899c1b31ea62500fa32499130d0"
+}

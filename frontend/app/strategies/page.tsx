@@ -15,7 +15,12 @@ import { ApiError, api } from "@/lib/api/client";
 import type { Strategies, StrategyConfig } from "@/lib/schemas";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong. Try again.");
-const rules = (p: StrategyConfig["params"]) => `Uptrend ${p.trend_sma} days · buy RSI < ${p.entry_rsi} · sell RSI > ${p.exit_rsi} · up to ${p.max_positions} stocks`;
+const rules = (s: StrategyConfig) => {
+  const p = s.params;
+  return s.screen
+    ? `Screener: ${s.screen.screen.conditions.length} condition${s.screen.screen.conditions.length === 1 ? "" : "s"}, ranked by ${s.screen.screen.sort}, up to ${p.max_positions} stocks`
+    : `Uptrend ${p.trend_sma} days · buy RSI < ${p.entry_rsi} · sell RSI > ${p.exit_rsi} · up to ${p.max_positions} stocks`;
+};
 
 export default function StrategiesPage() {
   const qc = useQueryClient();
@@ -34,8 +39,8 @@ export default function StrategiesPage() {
   const err = use.error ?? remove.error;
   const columns: Column<StrategyConfig>[] = [
     { key: "name", header: "Name", cell: (s) => <span className="font-medium">{s.name}</span> },
-    { key: "on", header: "Trades", cell: (s) => `${options?.universes.find((u) => u.key === s.universe)?.label ?? s.universe}, ${s.max_instruments ? `top ${s.max_instruments} stocks` : "all stocks"}` },
-    { key: "rules", header: "Rules", hideBelow: "md", cell: (s) => <span className="text-ink-soft">{rules(s.params)}</span> },
+    { key: "on", header: "Trades", cell: (s) => s.screen ? `${s.screen.segments.join(" + ")} caps` : `${options?.universes.find((u) => u.key === s.universe)?.label ?? s.universe}, ${s.max_instruments ? `top ${s.max_instruments} stocks` : "all stocks"}` },
+    { key: "rules", header: "Rules", hideBelow: "md", cell: (s) => <span className="text-ink-soft">{rules(s)}</span> },
     { key: "stage", header: "Stage", cell: (s) => <StatusPill tone={s.stage === "LIVE" ? "bad" : s.stage === "PAPER" ? "info" : "neutral"}>{STAGE_LABEL[s.stage]}</StatusPill> },
     { key: "used", header: "Paper account", cell: (s) => (s.in_use ? <StatusPill tone="good">In use</StatusPill> : <span className="text-ink-soft">Not used</span>) },
     {
@@ -44,7 +49,7 @@ export default function StrategiesPage() {
       className: "text-right",
       cell: (s) => (
         <span className="inline-flex flex-wrap justify-end gap-2">
-          <button type="button" onClick={() => setEditing(s)} className={buttonClass("secondary")}>Change</button>
+          {!s.screen ? <button type="button" onClick={() => setEditing(s)} className={buttonClass("secondary")}>Change</button> : null}
           <button type="button" onClick={() => setStaging(s)} className={buttonClass("secondary")}>Stage</button>
           {!s.in_use ? <button type="button" onClick={() => use.mutate(s.config_id)} disabled={use.isPending} className={buttonClass("secondary")}>Use for paper trading</button> : null}
           {!s.in_use ? <ConfirmButton tone="danger" question={`Delete ${s.name}?`} confirmLabel="Delete" onConfirm={() => remove.mutate(s.config_id)}>Delete</ConfirmButton> : null}

@@ -17,10 +17,15 @@ from psycopg.types.json import Jsonb
 
 from algo.paper.book import PaperError, _check_settings
 
-COLUMNS = "config_id, name, strategy_id, universe, max_instruments, timeframe, params, created_at, EXISTS (SELECT 1 FROM paper_account a WHERE a.config_id = c.config_id) AS in_use"
+COLUMNS = "config_id, name, strategy_id, universe, max_instruments, timeframe, params, screen, created_at, EXISTS (SELECT 1 FROM paper_account a WHERE a.config_id = c.config_id) AS in_use"
 KEYS = [
-    "config_id", "name", "strategy_id", "universe", "max_instruments", "timeframe", "params", "created_at", "in_use",
+    "config_id", "name", "strategy_id", "universe", "max_instruments", "timeframe", "params", "screen", "created_at", "in_use",
 ]  # fmt: skip
+
+
+SEGMENTS = (
+    "segments"  # the universe of a screener strategy: its market-cap classes live in `screen`
+)
 
 
 class ConfigError(ValueError):
@@ -32,7 +37,7 @@ def _check(name: str, universe: str, max_instruments: int | None, timeframe: str
     if not 1 <= len(name) <= 60:
         raise ConfigError("the name must be 1 to 60 characters")
     try:
-        _check_settings(universe, max_instruments, timeframe)
+        _check_settings("nifty50" if universe == SEGMENTS else universe, max_instruments, timeframe)
     except PaperError as e:
         raise ConfigError(str(e)) from e
     return name
@@ -76,12 +81,13 @@ def create(
     params: dict[str, Any],
     now: datetime,
     strategy_id: str = "trend_pullback",
+    screen: dict[str, Any] | None = None,
 ) -> UUID:
     name = _check(name, universe, max_instruments, timeframe)
     try:
         with conn.transaction():
             row = conn.execute(
-                "INSERT INTO strategy_config (owner_user_id, name, strategy_id, universe, max_instruments, timeframe, params, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING config_id",
+                "INSERT INTO strategy_config (owner_user_id, name, strategy_id, universe, max_instruments, timeframe, params, screen, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING config_id",
                 (
                     owner,
                     name,
@@ -90,6 +96,7 @@ def create(
                     max_instruments,
                     timeframe,
                     Jsonb(params),
+                    None if screen is None else Jsonb(screen),
                     now,
                 ),
             ).fetchone()
@@ -110,18 +117,35 @@ def update(
     max_instruments: int | None,
     timeframe: str,
     params: dict[str, Any],
+    screen: dict[str, Any] | None = None,
 ) -> None:
-    _need(conn, owner, config_id)
+    if (_need(conn, owner, config_id)["screen"] is None) != (screen is None):
+        raise ConfigError("a screener strategy stays a screener, and any other stays what it is")
     name = _check(name, universe, max_instruments, timeframe)
     try:
         with conn.transaction():
             conn.execute(
-                "UPDATE strategy_config SET name=%s, universe=%s, max_instruments=%s, timeframe=%s, params=%s WHERE config_id=%s",
-                (name, universe, max_instruments, timeframe, Jsonb(params), config_id),
+                "UPDATE strategy_config SET name=%s, universe=%s, max_instruments=%s, timeframe=%s, params=%s, screen=%s WHERE config_id=%s",
+                (
+                    name,
+                    universe,
+                    max_instruments,
+                    timeframe,
+                    Jsonb(params),
+                    None if screen is None else Jsonb(screen),
+                    config_id,
+                ),
             )
             conn.execute(
-                "UPDATE paper_account SET universe=%s, max_instruments=%s, timeframe=%s, params=%s WHERE config_id=%s",
-                (universe, max_instruments, timeframe, Jsonb(params), config_id),
+                "UPDATE paper_account SET universe=%s, max_instruments=%s, timeframe=%s, params=%s, screen=%s WHERE config_id=%s",
+                (
+                    universe,
+                    max_instruments,
+                    timeframe,
+                    Jsonb(params),
+                    None if screen is None else Jsonb(screen),
+                    config_id,
+                ),
             )
     except psycopg.errors.UniqueViolation as e:
         raise _taken() from e
@@ -130,8 +154,17 @@ def update(
 def use(conn: psycopg.Connection, owner: UUID, config_id: UUID) -> None:
     c = _need(conn, owner, config_id)
     done = conn.execute(
-        "UPDATE paper_account SET universe=%s, max_instruments=%s, timeframe=%s, params=%s, config_id=%s WHERE user_id=%s",
-        (c["universe"], c["max_instruments"], c["timeframe"], Jsonb(c["params"]), config_id, owner),
+        "UPDATE paper_account SET strategy_id=%s, universe=%s, max_instruments=%s, timeframe=%s, params=%s, screen=%s, config_id=%s WHERE user_id=%s",
+        (
+            c["strategy_id"],
+            c["universe"],
+            c["max_instruments"],
+            c["timeframe"],
+            Jsonb(c["params"]),
+            None if c["screen"] is None else Jsonb(c["screen"]),
+            config_id,
+            owner,
+        ),
     )
     if done.rowcount == 0:
         raise ConfigError("no paper account yet")
