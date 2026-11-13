@@ -12,6 +12,8 @@ from algo.core.clock import SystemClock
 from algo.jobs import history
 from algo.jobs.registry import JOBS
 from algo.jobs.runner import JobRun, run_job, telegram_alert
+from algo.portal.crypto import KeyRing
+from algo.portal.kite_vault import system_feed_credentials
 
 by_name = {j.name: j for j in JOBS}
 if len(sys.argv) != 2 or sys.argv[1] not in {*by_name, "--list"}:
@@ -30,6 +32,15 @@ def record(run: JobRun) -> None:
             history.record(conn, run)
 
 
+def session_ok(now) -> bool:
+    """A valid Kite session also exists when the portal's data feed is connected (the loaders use it)."""
+    url = os.environ.get("ALGO_DB_URL")
+    if not url:
+        return False
+    with psycopg.connect(url) as conn:
+        return system_feed_credentials(conn, KeyRing.from_env(os.environ), now=now) is not None
+
+
 sys.exit(
     run_job(
         by_name[sys.argv[1]],
@@ -38,5 +49,6 @@ sys.exit(
         lock_dir=Path("data/locks"),
         log_dir=Path("data/logs"),
         record=record,
+        session_ok=session_ok,
     )
 )

@@ -11,7 +11,8 @@ the exact schedule version and source behind it. **No rate is written in code.**
 2. `scripts/build_cost_schedules.py` writes the JSON schedules from them and **fails if any quote is
    not literally present** in its document. To change a rate, change the cited document and re-run.
 3. A PERSON verifies each quote against its document, then sets `status: verified`, `verified_by`,
-   `verified_at`. Until then every schedule is `extracted_unverified` (or `assumed_backfill`).
+   `verified_at` (since 2026-11-12 on the Costs page, with the assumptions below accepted by name).
+   Until then every schedule is `extracted_unverified` (or `assumed_backfill`).
 
 ## Schedule status and where it may be used
 | status | meaning | usable |
@@ -23,7 +24,30 @@ the exact schedule version and source behind it. **No rate is written in code.**
 A run's `ScheduleBook` is built with the statuses it allows. No schedule in force on a trade date =>
 `NoScheduleForDate`: the run stops rather than guessing.
 
+## Status (2026-11-13)
+Schedules live in the database (migration 039): provider, effective dates, owner verification, a price
+change is a new version, admin-only audited changes, a calculator preview. Every run records the
+schedules it used.
+
+| product | period | status |
+|---|---|---|
+| delivery | 2016-01-01 to 2017-06-30 | verified, 4 assumptions accepted by name |
+| delivery | 2017-07-01 to 2020-06-30 | verified, 4 assumptions accepted by name |
+| delivery | 2020-07-01 to 2022-07-17 | verified, 3 assumptions accepted by name |
+| delivery | 2022-07-18 to 2023-03-31, 2023-04-01 to 2024-03-31, 2024-04-01 to 2024-09-30, 2024-10-01 to 2026-02-28, 2026-03-01 on | verified, fully evidenced |
+| intraday | 2026-03-01 on | verified |
+| intraday | 2020-07-01 to 2026-02-28 | `assumed_backfill` (today's rates extended; research only) |
+
+Delivery rates as they were on each trade date: NSE transaction charge 0.00345% -> 0.00325% (Apr 2023) ->
+0.00322% (Apr 2024) -> 0.00297% (Oct 2024) -> 0.00307% (Mar 2026); no GST before 1 Jul 2017; GST on the
+SEBI fee from 18 Jul 2022; DP fee Rs 13 + GST. Every rate cites a literal quote from a stored document
+(Zerodha bulletins, the 2015 zero-brokerage post, NSE circulars). The assumptions the three early periods
+take on trust are the stamp duty before Jul 2020, service tax, the start of the old exchange fee, the
+depository fee and the SEBI-fee GST date. A schedule lists them (`Schedule.assumptions`); `verify` refuses
+until each is accepted by name and records who accepted.
+
 ## What is evidenced (fetched 2026-11-07) and what is not
+(Written on 2026-11-07, before the dated delivery schedules above; the delivery history there is superseded.)
 | component | rate | evidence | dated? |
 |---|---|---|---|
 | STT delivery | 0.1% buy and sell | NSE circulars 2016, 2023, 2024, 2026 (all "No Change") | continuous across the window |
@@ -66,8 +90,10 @@ lists the schedules used; unverified/assumed schedules, a placeholder model and 
 block promotion.
 
 ## Not built yet
-* Verification of the schedules by a person; historical broker schedules / contract notes.
+* Evidence for the INTRADAY history 2020-07 to 2026-02 (still the assumed extension).
 * Reconciliation against a REAL contract note and against Zerodha's brokerage calculator (the tool
-  `reconcile_note` exists and is tested on hand-built notes).
+  `reconcile_note` exists and is tested on hand-built notes). Needs sample contract notes from the owner.
+* Open questions from the published page: the footnote "SEBI charges will be reduced to Rs 15 per crore"
+  (recorded verbatim, not applied), and whether IPFT is inside the 0.00307%.
 * Intraday product in the engine (the schedules exist; the engine is daily and holds overnight).
 * Equity futures (STT 0.01% -> 0.0125% -> 0.02% -> 0.05% history is in the fetched circulars).

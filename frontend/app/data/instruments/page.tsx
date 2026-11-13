@@ -200,6 +200,7 @@ function Explorer() {
     }
   };
   const actions = useMemo(() => detail.data?.actions ?? [], [detail.data]);
+  const actionsNewestFirst = useMemo(() => [...actions].reverse(), [actions]); // the API sends oldest first; the chart markers keep that order
   const mode = BASES.find((m) => m.value === adjust) ?? BASES[0];
 
   return (
@@ -305,13 +306,18 @@ function Explorer() {
             title="Corporate actions"
             note="Markers on the chart: blue = verified, amber = under review."
           >
-            <div className="max-h-96 overflow-y-auto">
+            <div data-testid="actions-scroll" tabIndex={0} className="max-h-96 overflow-y-auto rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/40">
               <DataTable
-                data={actions}
+                data={actionsNewestFirst}
                 columns={ACTION_COLUMNS}
                 empty="No corporate actions recorded."
               />
             </div>
+            {actions.length > 0 ? (
+              <p className="mt-2 text-xs text-ink-soft">
+                {actions.length} {actions.length === 1 ? "action" : "actions"}, newest first.
+              </p>
+            ) : null}
           </Card>
         </>
       ) : null}

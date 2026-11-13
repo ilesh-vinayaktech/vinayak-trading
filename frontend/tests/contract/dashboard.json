@@ -104,8 +104,22 @@
    "name": "universe-daily"
   },
   {
+   "calendar": "Mon..Fri *-*-* 19:15 Asia/Kolkata",
+   "description": "Re-fetch corporate actions for the Nifty 200 (about 5 minutes); new ones that need a person are reported",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "corporate-actions-daily"
+  },
+  {
+   "calendar": "Sat *-*-* 05:00 Asia/Kolkata",
+   "description": "Re-fetch corporate actions for every active equity (about 2 hours at a polite pace); resumes after a throttle; new ones that need a person are reported",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "corporate-actions-weekly"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 19:30 Asia/Kolkata",
-   "description": "Kite daily candles for the mapped instruments (exit 3 = session expired, alerted)",
+   "description": "Kite daily candles for the mapped instruments (exit 3 = session expired, 1 = some stock failed; alerted)",
    "last_run": null,
    "last_success_at": null,
    "name": "kite-daily-candles"
@@ -186,7 +200,7 @@
    },
    {
     "level": "attention",
-    "text": "17 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, kite-reconcile and 14 more."
+    "text": "19 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, kite-reconcile and 16 more."
    }
   ],
   "status": "DOWN"

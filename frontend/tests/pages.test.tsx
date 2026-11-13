@@ -229,6 +229,22 @@ describe("Data Explorer", () => {
     provisional: [],
   };
 
+  it("lists corporate actions newest first in a list whose scrollbar is always visible", async () => {
+    const action = (ex_date: string, kind: string) => ({ ex_date, kind, status: "ok", num: null, den: null, amount: "5", subject: `${kind} ${ex_date}` });
+    const long = { ...detail, actions: [action("2005-07-11", "dividend"), action("2015-03-02", "dividend"), action("2026-10-14", "dividend")] }; // the API sends oldest first
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": long, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+    fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+    fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+    const area = await screen.findByTestId("actions-scroll");
+    const dates = within(area).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[0]?.textContent);
+    expect(dates).toEqual(["2026-10-14", "2015-03-02", "2005-07-11"]);
+    expect(area).toHaveClass("overflow-y-auto"); // it scrolls, so the user must be able to see that
+    expect(area.className).not.toMatch(/scrollbar-width:none|webkit-scrollbar/); // nothing hides the scrollbar
+    expect(area).toHaveAttribute("tabindex", "0"); // and the keyboard can scroll it
+    expect(screen.getByText("3 actions, newest first.")).toBeInTheDocument();
+  });
+
   it("labels the price basis, shows the adjustment version and surfaces data-quality warnings", async () => {
     vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);

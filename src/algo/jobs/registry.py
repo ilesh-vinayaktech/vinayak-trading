@@ -69,10 +69,64 @@ JOBS: tuple[Job, ...] = (
         "Security master, new listings, symbol changes and the Nifty 200 snapshot",
     ),
     Job(
+        "corporate-actions-daily",
+        f"{WEEKDAYS} *-*-* 19:15 Asia/Kolkata",
+        (
+            (
+                *_PY,
+                "scripts/backfill_nse.py",
+                "--db",
+                "{db}",
+                "--lake",
+                "data/lake",
+                "--stage",
+                "actions",
+            ),
+        ),
+        "Re-fetch corporate actions for the Nifty 200 (about 5 minutes); new ones that need a person are reported",
+        retries=1,
+        retry_wait_s=600,
+    ),
+    Job(
+        "corporate-actions-weekly",
+        "Sat *-*-* 05:00 Asia/Kolkata",
+        (
+            (
+                *_PY,
+                "scripts/backfill_nse.py",
+                "--db",
+                "{db}",
+                "--lake",
+                "data/lake",
+                "--stage",
+                "actionsrefresh",
+                "--interval",
+                "3.0",
+            ),
+        ),  # fmt: skip
+        "Re-fetch corporate actions for every active equity (about 2 hours at a polite pace); resumes after a throttle; new ones that need a person are reported",
+        timeout_s=4 * 3600,
+        retries=6,  # NSE throttles a client after about 330 requests in 10 minutes; the stage resumes where it stopped
+        retry_wait_s=900,
+    ),
+    Job(
         "kite-daily-candles",
         f"{WEEKDAYS} *-*-* 19:30 Asia/Kolkata",
-        ((*_PY, "scripts/kite_load_days.py", "--db", "{db}", "--from", "{d7}"),),
-        "Kite daily candles for the mapped instruments (exit 3 = session expired, alerted)",
+        (
+            (
+                *_PY,
+                "scripts/kite_load_days.py",
+                "--db",
+                "{db}",
+                "--from",
+                "{d7}",
+                "--interval",
+                "0.5",
+            ),
+        ),  # fmt: skip
+        "Kite daily candles for the mapped instruments (exit 3 = session expired, 1 = some stock failed; alerted)",
+        timeout_s=2
+        * 3600,  # about 2,600 stocks at 2 requests a second is 25 minutes; the default 2 s spacing would be 87
         needs_kite=True,
     ),
     Job(

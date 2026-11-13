@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 import psycopg
 
-from algo.data.kite_ingest import load_days
+from algo.data.kite_ingest import day_work, load_days
 from algo.data.lake import LocalLake
 from algo.data.providers.kite import KiteClient, KiteTokenExpired
 from algo.data.providers.kite_session import load_env, load_token, urllib_http
@@ -57,9 +57,7 @@ client = KiteClient(env["ZERODHA_API_KEY"], tok[0], urllib_http, min_interval=a.
 end = a.end or now.astimezone(IST).date()
 lake = LocalLake(a.lake)
 with psycopg.connect(a.db, autocommit=True) as conn:
-    work = conn.execute(
-        "SELECT instrument_token, tradingsymbol, instrument_id FROM kite_instrument WHERE instrument_id IS NOT NULL ORDER BY tradingsymbol"
-    ).fetchall()
+    work = day_work(conn)
 if a.symbols:
     work = [w for w in work if w[1] in set(a.symbols.split(","))]
 work = work[: a.limit or None]
@@ -74,14 +72,25 @@ def one(token: int, symbol: str, iid: int):
         return symbol, load_days(c, client, token, iid, a.start, end, now, lake=lake)
 
 
+failed: list[str] = []
 try:
     with ThreadPoolExecutor(max_workers=a.workers) as pool:
-        for f in as_completed([pool.submit(one, *w) for w in work]):
+        futures = {pool.submit(one, *w): w[1] for w in work}
+        for f in as_completed(futures):
             try:
                 out = f.result()
             except KiteTokenExpired:
                 stop.set()
                 raise
+            except Exception as e:  # one stock failing must not end the run, or leave it silently draining the queue
+                with lock:
+                    done += 1
+                    failed.append(futures[f])
+                    print(
+                        f"{done}/{len(work)} {futures[f]}: FAILED {type(e).__name__}: {str(e)[:200]}",
+                        flush=True,
+                    )
+                continue
             if out is None:
                 continue
             symbol, r = out
@@ -98,4 +107,7 @@ except KiteTokenExpired:
         flush=True,
     )
     sys.exit(3)
-print(f"DONE rows loaded this run: {total:,}", flush=True)
+print(f"DONE rows loaded this run: {total:,}; {len(failed)} stock(s) failed", flush=True)
+if failed:
+    print(f"failed: {', '.join(failed[:50])}", flush=True)
+    sys.exit(1)

@@ -74,6 +74,45 @@ def load_actions(
     return res
 
 
+def refreshed_on(lake: LocalLake, symbol: str, day: date) -> bool:
+    """Was this symbol's action history already downloaded on `day` (its newest raw partition is
+    that day)? A whole-market refresh skips these, so a stopped run can simply be run again."""
+    m = lake.latest("nse", f"corporate_actions_{symbol}")
+    return m is not None and m.partition == day.isoformat()
+
+
+ReviewKey = tuple[int, date, str]
+
+
+def review_keys(conn: psycopg.Connection) -> set[ReviewKey]:
+    """(instrument_id, ex_date, kind) of every action waiting for a person: the identity a human
+    decision is kept under. A refresh rebuilds an issuer's rows, so ids change but these do not."""
+    return {
+        (int(r[0]), r[1], str(r[2]))
+        for r in conn.execute(
+            "SELECT instrument_id, ex_date, kind FROM corporate_action WHERE status='review'"
+        )
+    }
+
+
+def new_unresolved(
+    conn: psycopg.Connection, before: set[ReviewKey]
+) -> list[tuple[str, date, str, str]]:
+    """(symbol, ex_date, kind, subject) of actions in review that were not in `before` and have no
+    decision yet, newest first: what a refresh brought that a person needs to look at."""
+    rows = conn.execute(
+        "SELECT i.symbol, c.instrument_id, c.ex_date, c.kind, c.subject FROM corporate_action c"
+        " JOIN instrument i USING (instrument_id) WHERE c.status='review' AND NOT EXISTS"
+        " (SELECT 1 FROM action_resolution r WHERE r.instrument_id=c.instrument_id"
+        "  AND r.ex_date=c.ex_date AND r.kind=c.kind) ORDER BY c.ex_date DESC, i.symbol"
+    )
+    return [
+        (str(sym), ex, str(kind), str(subject))
+        for sym, iid, ex, kind, subject in rows
+        if (int(iid), ex, str(kind)) not in before
+    ]
+
+
 def records_for(
     conn: psycopg.Connection,
     instrument_id: int,

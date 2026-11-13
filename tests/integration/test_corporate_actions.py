@@ -5,7 +5,14 @@ from pathlib import Path
 import pytest
 
 from algo.data.adjust.factors import build_adjustments, factor_on
-from algo.data.corporate_actions import PROXY, knowledge_time_for, load_actions, records_for
+from algo.data.corporate_actions import (
+    PROXY,
+    knowledge_time_for,
+    load_actions,
+    new_unresolved,
+    records_for,
+    review_keys,
+)
 from algo.data.providers.nse_corporate_actions import parse_actions
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
@@ -175,3 +182,47 @@ def test_replace_is_scoped_to_one_issuer(env, tmp_path):
     before = conn.execute(q, (ids["RELIANCE"],)).fetchone()[0]
     ingest_symbol(conn, lake, _fake_api, "BAJFINANCE", NOW)
     assert conn.execute(q, (ids["RELIANCE"],)).fetchone()[0] == before
+
+
+# --- a refresh tells you about NEW items that need a person, and only those ---
+def test_only_review_items_that_are_new_and_unresolved_are_reported(env):
+    from algo.data.review import resolve
+
+    conn, ids = env
+    acts, _ = parse_actions(RAW)
+    early = [a for a in acts if a.ex_date < date(2020, 1, 1)]
+    load_actions(conn, early, "sum", NOW)
+    before = review_keys(conn)
+    assert before  # the old dividends in percent are already waiting for a person
+    load_actions(conn, acts, "sum", NOW)  # the refresh brings the later actions
+    found = {(sym, str(ex), kind) for sym, ex, kind, _subject in new_unresolved(conn, before)}
+    assert found == {  # the old items were already waiting; these three are what the refresh added
+        ("RELIANCE", "2020-05-13", "rights"),
+        ("RELIANCE", "2023-07-20", "demerger"),
+        ("ITC", "2025-01-06", "demerger"),
+    }
+    # a person decides one: it stops being reported
+    resolve(
+        conn,
+        symbol="ITC",
+        ex_date=date(2025, 1, 6),
+        kind="demerger",
+        method="ignore",
+        note="test",
+        by="t",
+        now=NOW,
+    )
+    left = {(sym, kind) for sym, _ex, kind, _s in new_unresolved(conn, before)}
+    assert ("ITC", "demerger") not in left and ("RELIANCE", "demerger") in left
+
+
+def test_rebuilding_an_issuers_rows_does_not_make_old_items_look_new(env):
+    conn, _ = env
+    acts, _ = parse_actions(RAW)
+    load_actions(conn, acts, "sum", NOW)
+    before = review_keys(conn)
+    conn.execute(
+        "DELETE FROM corporate_action"
+    )  # what a refresh does per issuer: the ids all change
+    load_actions(conn, acts, "sum", NOW)
+    assert new_unresolved(conn, before) == []

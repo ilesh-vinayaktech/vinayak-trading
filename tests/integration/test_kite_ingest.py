@@ -396,3 +396,59 @@ def test_kites_all_zero_placeholder_day_candles_before_a_listing_are_dropped_not
         load_days(conn, FakeDayKite(bad), 6, iid, date(2026, 2, 1), date(2026, 2, 28), NOW).failed
         == 1
     )
+
+
+def test_a_routine_day_load_leaves_frozen_days_alone_and_still_adds_the_days_after_the_freeze(env):
+    from algo.data import freeze
+    from algo.data.kite_ingest import load_days
+
+    conn, iid = env
+    d1, d2, d3 = date(2026, 11, 5), date(2026, 11, 6), date(2026, 11, 9)
+    row = ("100", "105", "99", "104", "5000")
+    load_days(
+        conn, FakeDayKite({d1: row, d2: row}), 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW
+    )
+    frozen = freeze.take(conn, "kite", d2, NOW, "history frozen")
+    # the daily job asks for the last week again, so the window holds the frozen days and one new day
+    r = load_days(
+        conn,
+        FakeDayKite({d1: row, d2: row, d3: row}),
+        1,
+        iid,
+        date(2026, 11, 1),
+        date(2026, 11, 11),
+        NOW,
+    )
+    assert (r.failed, r.rows) == (0, 1)  # only the day after the freeze is new
+    assert [x[1] for x in day_rows(conn, iid)] == [d1, d2, d3]
+    assert freeze.verify(conn, frozen) == []  # the frozen rows are exactly as they were
+
+
+def test_a_superseded_token_is_not_asked_for_but_a_history_only_stock_still_is(env):
+    from algo.data.kite_ingest import day_work
+
+    conn, iid = env  # RELIANCE
+    repo = InstrumentRepo(conn)
+    x = repo.add_exchange("XBSE", "IN", "Asia/Kolkata", "INR", "BSE")
+    other = repo.add_instrument(x, "HISTONLY", isin="INE000000001")
+    for token, symbol, instrument, active in (
+        (1, "RELIANCE-OLD", iid, False),  # the stock moved series: the old token is dead at Kite
+        (2, "RELIANCE", iid, True),
+        (
+            3,
+            "HISTONLY",
+            other,
+            False,
+        ),  # mapped for history only, never followed by the feed: still valid
+    ):
+        conn.execute(
+            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id,"
+            " refreshed_at, active) VALUES (%s,%s,%s,'n',%s,%s,%s)",
+            (token, token, symbol, instrument, NOW, active),
+        )
+    conn.execute(
+        "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id,"
+        " refreshed_at, active) VALUES (4, 4, 'UNMAPPED', 'n', NULL, %s, true)",
+        (NOW,),
+    )
+    assert day_work(conn) == [(3, "HISTONLY", other), (2, "RELIANCE", iid)]

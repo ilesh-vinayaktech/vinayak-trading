@@ -3,6 +3,8 @@
   actions   corporate actions for every Nifty 200 symbol (full history)
   actions500  as actions, for the Nifty 500 list in the lake; skips symbols with raw actions stored
   actionsall  as actions500, for every active equity in our instrument master (the whole market)
+  actionsrefresh  every active equity again (new actions, any never downloaded); a failed symbol
+              makes the run exit 1, and new actions that need a person are reported
   reparse   rebuild corporate_action from raw JSON already in the lake (no network)
   bars      daily bars (sec_bhavdata_full, available from 2019-10) over --from/--to
 usage: backfill_nse.py --db URL --lake DIR --stage universe|actions|bars [--from D --to D]"""
@@ -10,6 +12,7 @@ usage: backfill_nse.py --db URL --lake DIR --stage universe|actions|bars [--from
 import argparse
 import csv
 import io
+import os
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -17,7 +20,14 @@ from pathlib import Path
 import psycopg
 
 from algo.core.calendar import nse
-from algo.data.corporate_actions import ingest_symbol, reparse_symbol
+from algo.data.corporate_actions import (
+    ReviewKey,
+    ingest_symbol,
+    new_unresolved,
+    refreshed_on,
+    reparse_symbol,
+    review_keys,
+)
 from algo.data.instrument_sync import apply_symbol_changes, load_index_snapshot, sync_equities
 from algo.data.lake import LocalLake
 from algo.data.pipeline import backfill
@@ -28,6 +38,7 @@ from algo.data.providers.nse_security_master import URL as MASTER_URL
 from algo.data.providers.nse_security_master import parse_security_master
 from algo.data.providers.nse_symbol_changes import parse_index_list, parse_symbol_changes
 from algo.data.store.migrate import migrate
+from algo.jobs.runner import telegram_alert
 
 ARCH = "https://nsearchives.nseindia.com"
 N200 = f"{ARCH}/content/indices/ind_nifty200list.csv"
@@ -41,18 +52,52 @@ ap.add_argument("--lake", required=True, type=Path)
 ap.add_argument(
     "--stage",
     required=True,
-    choices=["universe", "actions", "actions500", "actionsall", "reparse", "bars"],
+    choices=[
+        "universe",
+        "actions",
+        "actions500",
+        "actionsall",
+        "actionsrefresh",
+        "reparse",
+        "bars",
+    ],
 )
 ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 10, 1))
 ap.add_argument("--to", dest="end", type=date.fromisoformat, default=datetime.now(UTC).date())
+ap.add_argument(
+    "--interval",
+    type=float,
+    default=1.5,
+    help="seconds between NSE requests (NSE drops a client sending over ~330 in 10 minutes)",
+)
 a = ap.parse_args()
 
 now, lake = datetime.now(UTC), LocalLake(a.lake)
-client = NseClient(min_interval=1.5)
+client = NseClient(min_interval=a.interval)
+
+
+# NSE's session cookies go stale: visit the page again regularly, and right after a failure.
+WARM_EVERY = 40
+# Symbols failing one after another mean NSE is not answering: stop instead of hammering it.
+MAX_IN_A_ROW = 5
 
 
 def log(*m: object) -> None:
     print(datetime.now(UTC).strftime("%H:%M:%S"), *m, flush=True)
+
+
+def finish_actions(conn: psycopg.Connection, before: set[ReviewKey], failed: int) -> None:
+    """Say which NEW actions need a person (to Telegram when set up, else the log) and fail the run
+    if any symbol failed, so the scheduler records it instead of calling it ok."""
+    found = new_unresolved(conn, before)
+    log(f"new actions that need review: {len(found)}")
+    if found:
+        shown = "; ".join(f"{sym} {kind} ex {ex}" for sym, ex, kind, _subject in found[:10])
+        more = f" and {len(found) - 10} more" if len(found) > 10 else ""
+        telegram_alert(os.environ)(f"corporate actions: {len(found)} new to review: {shown}{more}")
+    if failed:
+        log(f"{failed} symbol(s) FAILED: re-run to retry them")
+        sys.exit(1)
 
 
 with psycopg.connect(a.db, autocommit=True) as conn:
@@ -88,15 +133,25 @@ with psycopg.connect(a.db, autocommit=True) as conn:
     elif a.stage == "actions":
         client.warm(WARM)
         syms = n200_symbols()
-        tot_ins = tot_unch = 0
+        tot_ins = tot_unch = failed = in_a_row = 0
+        before = review_keys(conn)
         for i, sym in enumerate(syms, 1):
+            if i > 1 and (i - 1) % WARM_EVERY == 0:
+                client.warm(WARM)
             try:
                 r = ingest_symbol(
                     conn, lake, lambda u: client.get(u, accept="application/json"), sym, now
                 )
             except Exception as e:  # keep going; failures are listed in the log
+                failed += 1
+                in_a_row += 1
+                client.warm(WARM)  # a stale session is the usual cause: refresh it
                 log(f"[{i}/{len(syms)}] {sym} FAILED {type(e).__name__}: {e}")
+                if in_a_row >= MAX_IN_A_ROW:
+                    log(f"{in_a_row} in a row failed: NSE is not answering, stopping")
+                    break
                 continue
+            in_a_row = 0
             if r is None:
                 log(f"[{i}/{len(syms)}] {sym} not in instrument master")
                 continue
@@ -107,9 +162,13 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         q = "SELECT count(*) FROM corporate_action WHERE status='review'"
         n_review = conn.execute(q).fetchone()[0]
         log(f"actions done: inserted={tot_ins} unchanged={tot_unch} review={n_review}")
+        finish_actions(conn, before, failed)
 
-    elif a.stage in ("actions500", "actionsall"):
-        if a.stage == "actionsall":  # the whole market: every active equity in our own master
+    elif a.stage in ("actions500", "actionsall", "actionsrefresh"):
+        if a.stage in (
+            "actionsall",
+            "actionsrefresh",
+        ):  # the whole market: every active equity in our own master
             from algo.data.kite_ingest import master_universe
 
             listed = [s for s, _, _ in master_universe(conn)]
@@ -123,12 +182,19 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             x
             for x in listed
             if not x.startswith("DUMMY")
-            and not (a.lake / f"raw/nse/corporate_actions_{x}").exists()
+            and (
+                not refreshed_on(lake, x, now.date())  # a refresh asks for everyone not done today
+                if a.stage == "actionsrefresh"
+                else not (a.lake / f"raw/nse/corporate_actions_{x}").exists()
+            )
         ]
-        log(f"{a.stage}: {len(listed)} symbols, still without raw actions: {len(syms)}")
+        log(f"{a.stage}: {len(listed)} symbols, to fetch: {len(syms)}")
         client.warm(WARM)
-        tot_ins = failed = 0
+        tot_ins = failed = in_a_row = 0
+        before = review_keys(conn)
         for i, sym in enumerate(syms, 1):
+            if i > 1 and (i - 1) % WARM_EVERY == 0:
+                client.warm(WARM)
             try:
                 r = ingest_symbol(
                     conn, lake, lambda u: client.get(u, accept="application/json"), sym, now
@@ -137,8 +203,14 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                 Exception
             ) as e:  # keep going; a re-run picks up the failures (nothing was stored for them)
                 failed += 1
+                in_a_row += 1
+                client.warm(WARM)  # a stale session is the usual cause: refresh it
                 log(f"[{i}/{len(syms)}] {sym} FAILED {type(e).__name__}: {e}")
+                if in_a_row >= MAX_IN_A_ROW:
+                    log(f"{in_a_row} in a row failed: NSE is not answering, stopping")
+                    break
                 continue
+            in_a_row = 0
             if r is None:
                 log(f"[{i}/{len(syms)}] {sym} not in instrument master")
                 continue
@@ -148,7 +220,8 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         n_review = conn.execute(
             "SELECT count(*) FROM corporate_action WHERE status='review'"
         ).fetchone()[0]
-        log(f"actions500 done: inserted={tot_ins} failed={failed} review={n_review}")
+        log(f"{a.stage} done: inserted={tot_ins} failed={failed} review={n_review}")
+        finish_actions(conn, before, failed)
 
     elif a.stage == "reparse":
         q = (

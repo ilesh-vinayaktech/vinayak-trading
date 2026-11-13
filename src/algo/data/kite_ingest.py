@@ -92,6 +92,21 @@ def map_universe(
     return out
 
 
+def day_work(conn: psycopg.Connection) -> list[tuple[int, str, int]]:
+    """(token, symbol, instrument_id) to ask Kite for, by symbol. A token that is inactive AND whose instrument has
+    another active token is superseded (the stock moved series, e.g. to -BE): Kite no longer serves it ("invalid
+    token") and the history comes with the new one. A history-only stock (inactive, nothing else) is still asked for."""
+    return [
+        (int(r[0]), str(r[1]), int(r[2]))
+        for r in conn.execute(
+            "SELECT k.instrument_token, k.tradingsymbol, k.instrument_id FROM kite_instrument k"
+            " WHERE k.instrument_id IS NOT NULL AND NOT (NOT k.active AND EXISTS"
+            "  (SELECT 1 FROM kite_instrument o WHERE o.instrument_id = k.instrument_id AND o.active))"
+            " ORDER BY k.tradingsymbol"
+        )
+    ]
+
+
 def upsert_kite_instruments(
     conn: psycopg.Connection,
     mapped: Sequence[tuple[KiteInstrument, int]],
@@ -306,6 +321,12 @@ def load_days(
     an expired session raises, the raw response is archived. The day candle carries the full day's volume."""
     res = MinuteLoad()
     today = now.astimezone(IST).date()
+    frozen_row = conn.execute(
+        "SELECT max(f.through_date) FROM data_freeze f JOIN data_freeze_item i USING (freeze_id)"
+        " WHERE f.source=%s AND f.dataset='bar_1d' AND i.instrument_id=%s",
+        (SOURCE, instrument_id),
+    ).fetchone()
+    frozen_through = None if frozen_row is None else frozen_row[0]
     for ws, we in windows(start, end, window_days):
         done = conn.execute(
             "SELECT 1 FROM kite_day_fetch WHERE instrument_id=%s AND window_start=%s AND window_end=%s AND status IN ('loaded','empty')",
@@ -365,6 +386,8 @@ def load_days(
                 continue
             n = 0
             for c in candles:
+                if frozen_through is not None and c.ts.astimezone(IST).date() <= frozen_through:
+                    continue  # frozen history is never written by a routine load (the database refuses it)
                 opened = datetime.combine(c.ts.astimezone(IST).date(), time(9, 15), IST)
                 n += conn.execute(
                     "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, source, dataset_version, ingested_at,"

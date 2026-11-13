@@ -145,3 +145,33 @@ def test_a_recorder_that_breaks_never_hides_the_job_result(tmp_path):
 
     rc, alerts, _, _ = go(Job("j", "x", (("a.py",),), "d"), [0], tmp_path, record=broken)
     assert (rc, alerts) == (0, [])
+
+
+# --- a Kite session may be the portal's data feed in the database, not only the token file ---
+def test_a_kite_job_runs_when_the_portal_feed_is_valid_even_without_a_token_file(tmp_path):
+    runs = []
+    job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
+    rc, alerts, calls, _ = go(job, [0], tmp_path, record=runs.append, session_ok=lambda _now: True)
+    assert (rc, alerts, len(calls)) == (0, [], 1) and runs[0].status == "ok"
+
+
+def test_a_kite_job_is_skipped_when_neither_the_file_nor_the_feed_has_a_session(tmp_path):
+    job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
+    rc, alerts, calls, _ = go(job, [], tmp_path, session_ok=lambda _now: False)
+    assert (rc, len(calls)) == (EX_SKIP, 0) and "no valid Kite session" in alerts[0]
+
+
+def test_a_feed_check_that_breaks_counts_as_no_session_not_as_a_crash(tmp_path):
+    def broken(_now):
+        raise OSError("database is down")
+
+    job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
+    rc, alerts, _, _ = go(job, [], tmp_path, session_ok=broken)
+    assert rc == EX_SKIP and "no valid Kite session" in alerts[0]
+
+
+def test_the_feed_is_not_asked_when_the_token_file_is_already_good(tmp_path):
+    asked = []
+    job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
+    rc, *_ = go(job, [0], tmp_path, token=True, session_ok=lambda now: asked.append(now) or False)
+    assert rc == 0 and asked == []

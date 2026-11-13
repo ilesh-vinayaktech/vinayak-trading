@@ -55,6 +55,16 @@ class Job:
     needs_kite: bool = False
 
 
+def _feed_ok(session_ok: Callable[[datetime], bool] | None, now: datetime) -> bool:
+    """The portal's data feed counts as a Kite session; a check that cannot be made is "no session"."""
+    if session_ok is None:
+        return False
+    try:
+        return session_ok(now)
+    except Exception:  # noqa: BLE001  the database being down must skip the job, not crash the runner
+        return False
+
+
 def telegram_alert(env: Mapping[str, str]) -> Alert:
     """Telegram if ALGO_TELEGRAM_TOKEN and ALGO_TELEGRAM_CHAT are set; otherwise the text goes to stderr (journal)."""
     token, chat = env.get("ALGO_TELEGRAM_TOKEN"), env.get("ALGO_TELEGRAM_CHAT")
@@ -89,6 +99,7 @@ def run_job(
     run: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
     sleep: Callable[[float], None] = time.sleep,
     record: Record = lambda _run: None,
+    session_ok: Callable[[datetime], bool] | None = None,
 ) -> int:
     """0 = ok, 1 = failed, EX_SKIP = skipped, 0 with no work = another run holds the lock."""
     env = os.environ if env is None else env
@@ -114,7 +125,7 @@ def run_job(
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return 0  # the previous run is still going; do not stack a second one
-        if job.needs_kite and load_token(token_file, now) is None:
+        if job.needs_kite and load_token(token_file, now) is None and not _feed_ok(session_ok, now):
             alert(
                 f"{job.name}: SKIPPED, no valid Kite session (log in via the portal; tokens expire 06:00 IST)"
             )
