@@ -27,13 +27,15 @@ from algo.data.adjust.factors import (
     Built,
     build_adjustments,
     factor_on,
+    vendor_applied_dividends,
 )
 from algo.data.corporate_actions import records_for
 from algo.data.issuer_series import Link, chain, stitch
-from algo.data.price_source import price_source
+from algo.data.price_source import price_cutoff, price_source
 from algo.data.snapshot import snapshot_hash as _snapshot_hash
 
 IST = ZoneInfo("Asia/Kolkata")
+Row = tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]
 MODES = ("none", "split", "total_return")
 
 
@@ -91,9 +93,12 @@ class Loaded:
         visible_after: timedelta,
         strict: bool,
         owners: list[int] | None = None,
-        through: list[date] | None = None,
+        through: list[date | None] | list[date] | None = None,
+        vendor_dividends: frozenset[date] = frozenset(),
     ) -> None:
         self.rows, self.recs, self.visible_after, self.strict = rows, recs, visible_after, strict
+        # ex-dates whose dividend Kite already took out of its bars (measured on NSE's raw ones)
+        self.vendor_dividends = vendor_dividends
         # Kite only: the day each bar's vendor adjustment runs through (None = raw bhavcopy)
         self.through = through
         self.owners = owners if owners is not None else [0] * len(rows)  # 0: owner not tracked
@@ -103,7 +108,10 @@ class Loaded:
     def lenient(self) -> Loaded:
         """The same bars and action records without strict refusal: unresolved actions are then
         reported in `History.unapplied` instead of raising. For audit and preflight reporting."""
-        return Loaded(self.rows, self.recs, self.visible_after, False, self.owners, self.through)
+        return Loaded(
+            self.rows, self.recs, self.visible_after, False, self.owners, self.through,
+            self.vendor_dividends,
+        )  # fmt: skip
 
     def _build(self, adjust: str) -> Built:
         if adjust not in self._built:
@@ -168,8 +176,9 @@ class Loaded:
             r, d = self.rows[i], self.days[i]
             through = self.through[i] if self.through else None
             f = factor_on(
-                built.adjustments, d, total_return=total, as_of=as_of, applied_through=through
-            )
+                built.adjustments, d, total_return=total, as_of=as_of, applied_through=through,
+                vendor_dividends=self.vendor_dividends,
+            )  # fmt: skip
             fs = factor_on(built.adjustments, d, volume=True, as_of=as_of, applied_through=through)
             bars.append(
                 AdjBar(r[0], r[1] * f, r[2] * f, r[3] * f, r[4] * f, r[5] / fs, f, self.owners[i])
@@ -186,20 +195,48 @@ class BarReader:
         session_length: timedelta = timedelta(hours=6, minutes=15),
         publish_lag: timedelta = timedelta(hours=3),  # bhavcopy appears ~18:30 IST
         known_at: datetime | None = None,
+        cutoff: date | None = None,
     ) -> None:
         """`known_at` pins every read to what the database held at that moment: bars, corporate
         actions and decisions ingested later are invisible, so a later correction cannot change
-        a rerun."""
-        self.conn, self.source = conn, source
+        a rerun. `cutoff` (NSE source only): bars up to and including that day are Kite's, later
+        ones NSE's; our factors then apply to Kite bars only for actions after their
+        adjusted_through day, and to every NSE bar before an ex-date. Bars use the NSE publish lag
+        throughout."""
+        self.conn, self.source, self.cutoff = conn, source, cutoff
         self.known_at = require_utc(known_at) if known_at is not None else None
         self.visible_after = session_length + publish_lag
 
     @classmethod
     def for_env(cls, conn: psycopg.Connection, **kw: Any) -> BarReader:
         """The reader the `.env` setting ALGO_PRICE_SOURCE selects (see price_source)."""
+        cutoff = price_cutoff()
         if price_source() == "kite":
+            if cutoff is not None:
+                raise ValueError("ALGO_PRICE_CUTOFF only applies with ALGO_PRICE_SOURCE=bhavcopy")
             return cls(conn, source="kite", publish_lag=timedelta(0), **kw)
-        return cls(conn, **kw)
+        return cls(conn, cutoff=cutoff, **kw)
+
+    def _stitched(
+        self,
+        instrument_id: int,
+        nse: list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]],
+        owners: list[int],
+    ) -> tuple[
+        list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]],
+        list[int],
+        list[date | None],
+    ]:
+        """Kite's bars up to the cutoff day followed by the NSE bars after it."""
+        assert self.cutoff is not None
+        krows, kthrough = self._kite_days(instrument_id)
+        keep = [i for i, r in enumerate(krows) if r[0].astimezone(IST).date() <= self.cutoff]
+        later = [i for i, r in enumerate(nse) if r[0].astimezone(IST).date() > self.cutoff]
+        return (
+            [krows[i] for i in keep] + [nse[i] for i in later],
+            [instrument_id] * len(keep) + [owners[i] for i in later],
+            [kthrough[i] for i in keep] + [None] * len(later),
+        )
 
     def _kite_days(
         self, instrument_id: int
@@ -214,16 +251,26 @@ class BarReader:
         ).fetchall()
         return [tuple(r[:6]) for r in rows], [r[6] for r in rows]
 
-    def _raw(
-        self, instrument_id: int
-    ) -> list[tuple[datetime, Decimal, Decimal, Decimal, Decimal, Decimal]]:
+    def _raw(self, instrument_id: int, source: str | None = None) -> list[Row]:
         return self.conn.execute(
             "SELECT DISTINCT ON (ts) ts,open,high,low,close,volume FROM bar_1d "
             "WHERE instrument_id=%s AND source=%s "
             "AND (%s::timestamptz IS NULL OR ingested_at <= %s) "
             "ORDER BY ts, dataset_version DESC",
-            (instrument_id, self.source, self.known_at, self.known_at),
+            (instrument_id, source or self.source, self.known_at, self.known_at),
         ).fetchall()
+
+    def _vendor_dividends(self, instrument_id: int, recs: list[ActionRecord]) -> frozenset[date]:
+        amounts: dict[date, Decimal] = {}
+        for r in recs:
+            if r.kind == "dividend" and r.status == "ok" and r.amount:
+                amounts[r.ex_date] = amounts.get(r.ex_date, Decimal(0)) + r.amount
+        if not amounts:
+            return frozenset()
+        # ponytail: two extra queries per load that has dividends; cache if loads get hot
+        kite = {r[0].astimezone(IST).date(): r[4] for r in self._kite_days(instrument_id)[0]}
+        raw = {r[0].astimezone(IST).date(): r[4] for r in self._raw(instrument_id, "nse")}
+        return vendor_applied_dividends(amounts, kite, raw)
 
     def load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
         """ONE instrument's own bars and actions (execution, audit). Another ISIN of the same issuer
@@ -232,16 +279,28 @@ class BarReader:
         if self.source == "kite":
             rows, through = self._kite_days(instrument_id)
             return Loaded(
-                rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through
-            )
+                rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through,
+                self._vendor_dividends(instrument_id, recs),
+            )  # fmt: skip
         rows = self._raw(instrument_id)
-        return Loaded(rows, recs, self.visible_after, strict, [instrument_id] * len(rows))
+        owners = [instrument_id] * len(rows)
+        if self.cutoff is not None:
+            rows, owners, mixed = self._stitched(instrument_id, rows, owners)
+            return Loaded(
+                rows, recs, self.visible_after, strict, owners, mixed,
+                self._vendor_dividends(instrument_id, recs),
+            )  # fmt: skip
+        return Loaded(rows, recs, self.visible_after, strict, owners)
 
     def snapshot_hash(self, instrument_ids: list[int]) -> str | None:
         """Fingerprint of what this pinned reader sees for these instruments (None if unpinned)."""
         if self.known_at is None:
             return None
-        return _snapshot_hash(self.conn, self.source, instrument_ids, self.known_at)
+        h = _snapshot_hash(self.conn, self.source, instrument_ids, self.known_at)
+        if self.cutoff is None:
+            return h
+        kite = _snapshot_hash(self.conn, "kite", instrument_ids, self.known_at)
+        return hashlib.sha256(f"{self.cutoff}|{kite}|{h}".encode()).hexdigest()
 
     def isin_links(self) -> list[Link]:
         """SAME_ISSUER_ISIN_CHANGE links between instruments (none before migration 024)."""
@@ -274,13 +333,20 @@ class BarReader:
                 {i: records_for(self.conn, i, strict=strict, known_at=self.known_at) for i in ids},
             )
             return Loaded(
-                rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through
-            )
+                rows, recs, self.visible_after, strict, [instrument_id] * len(rows), through,
+                self._vendor_dividends(instrument_id, recs),
+            )  # fmt: skip
         rows, owners, recs = stitch(
             segs,
             {i: self._raw(i) for i in ids},
             {i: records_for(self.conn, i, strict=strict, known_at=self.known_at) for i in ids},
         )
+        if self.cutoff is not None:
+            rows, owners, mixed = self._stitched(instrument_id, rows, owners)
+            return Loaded(
+                rows, recs, self.visible_after, strict, owners, mixed,
+                self._vendor_dividends(instrument_id, recs),
+            )  # fmt: skip
         return Loaded(rows, recs, self.visible_after, strict, owners)
 
     def issuer_history(
@@ -310,3 +376,21 @@ class BarReader:
         return self.load(instrument_id, strict=strict).history(
             start, end, adjust=adjust, as_of=as_of
         )
+
+
+def seam_mismatches(
+    conn: psycopg.Connection, day: date, *, tolerance: Decimal = Decimal("0.011")
+) -> list[tuple[int, Decimal, Decimal]]:
+    """(instrument, Kite close, NSE close) for stocks whose two closes differ on `day`. Run it for
+    the cutoff day before switching: a differing stock had an action Kite already adjusted for."""
+    latest = (
+        "SELECT DISTINCT ON (instrument_id) instrument_id, close FROM bar_1d"
+        " WHERE source=%s AND (ts AT TIME ZONE 'Asia/Kolkata')::date=%s"
+        " ORDER BY instrument_id, dataset_version DESC"
+    )
+    rows = conn.execute(
+        f"SELECT k.instrument_id, k.close, n.close FROM ({latest}) k JOIN ({latest}) n"
+        " USING (instrument_id) WHERE abs(k.close - n.close) > %s ORDER BY 1",
+        ("kite", day, "nse", day, tolerance),
+    ).fetchall()
+    return [(int(i), Decimal(k), Decimal(n)) for i, k, n in rows]

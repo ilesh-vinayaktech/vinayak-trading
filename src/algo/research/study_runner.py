@@ -141,6 +141,9 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         max(start, first),  # nothing can be decided before anyone is a member
         research_end,
         cost_policy(conn, spec),
+        # Studies read the FROZEN Kite history on purpose (locked by freeze and hash, Kite
+        # visibility lag): they do not follow ALGO_PRICE_CUTOFF. Studying past the cutoff needs a
+        # new freeze that includes the NSE bars, decided then.
         BarReader(conn, source="kite", publish_lag=timedelta(0)),
         fundamentals_book.load(conn, membership.ever(), start, research_end)
         if spec.screen is not None and spec.screen.needs_fundamentals()

@@ -59,6 +59,13 @@ def test_a_freeze_records_each_stocks_rows_up_to_the_date_and_nothing_after(env)
     assert len(items[a]["sha256"]) == 64 and items[a]["sha256"] != items[b]["sha256"]
 
 
+def tamper(conn, sql, params):
+    """Change frozen history the way only a deliberate, explicit operation may (the delete guard)."""
+    with conn.transaction():
+        conn.execute("SELECT set_config('algo.allow_frozen_write', 'on', true)")
+        conn.execute(sql, params)
+
+
 def test_a_clean_history_verifies_and_a_changed_or_missing_row_is_named_by_stock(env):
     conn, a, b, _ = env
     fid = freeze.take(conn, "kite", THROUGH, NOW, "n")
@@ -69,8 +76,10 @@ def test_a_clean_history_verifies_and_a_changed_or_missing_row_is_named_by_stock
         "UPDATE bar_1d SET close=777 WHERE instrument_id=%s AND ts=%s AND source='kite'",
         (a, ts(D0)),
     )
-    conn.execute(
-        "DELETE FROM bar_1d WHERE instrument_id=%s AND ts=%s AND source='kite'", (b, ts(THROUGH))
+    tamper(
+        conn,
+        "DELETE FROM bar_1d WHERE instrument_id=%s AND ts=%s AND source='kite'",
+        (b, ts(THROUGH)),
     )
     problems = {p["instrument_id"]: p for p in freeze.verify(conn, fid)}
     assert set(problems) == {a, b}
@@ -82,7 +91,7 @@ def test_a_clean_history_verifies_and_a_changed_or_missing_row_is_named_by_stock
 def test_a_stock_that_disappeared_entirely_is_reported_too(env):
     conn, a, _, _ = env
     fid = freeze.take(conn, "kite", THROUGH, NOW, "n")
-    conn.execute("DELETE FROM bar_1d WHERE instrument_id=%s AND source='kite'", (a,))
+    tamper(conn, "DELETE FROM bar_1d WHERE instrument_id=%s AND source='kite'", (a,))
     assert [(p["instrument_id"], p["why"]) for p in freeze.verify(conn, fid)] == [
         (a, "3 rows were frozen, 0 now")
     ]
@@ -116,8 +125,10 @@ def test_the_record_itself_cannot_be_edited_or_deleted(env):
 def test_the_guard_refuses_new_frozen_history_but_not_later_days_other_stocks_or_other_sources(env):
     conn, a, b, c = env
     freeze.take(conn, "kite", THROUGH, NOW, "n")
-    conn.execute(
-        "DELETE FROM bar_1d WHERE instrument_id=%s AND ts=%s AND source='kite'", (a, ts(D0))
+    tamper(
+        conn,
+        "DELETE FROM bar_1d WHERE instrument_id=%s AND ts=%s AND source='kite'",
+        (a, ts(D0)),
     )  # a gap in frozen history
     with pytest.raises(psycopg.errors.RaiseException, match="frozen"):
         put(conn, a, D0, 10)  # refilling it would change frozen history
@@ -130,3 +141,23 @@ def test_the_guard_refuses_new_frozen_history_but_not_later_days_other_stocks_or
     assert conn.execute(
         "SELECT count(*) FROM bar_1d WHERE instrument_id=%s AND source='kite'", (a,)
     ).fetchone() == (6,)  # 4 original + the later day + the refilled gap
+
+
+def test_the_guard_also_refuses_deleting_frozen_history_unless_explicitly_allowed(env):
+    conn, a, b, c = env
+    freeze.take(conn, "kite", THROUGH, NOW, "n")
+    one = "DELETE FROM bar_1d WHERE instrument_id=%s AND ts=%s AND source='kite'"
+    with pytest.raises(psycopg.errors.RaiseException, match="frozen"):
+        conn.execute(
+            one, (a, ts(D0))
+        )  # inside the freeze: refused (this is how 2,586 rows went missing)
+    assert conn.execute(
+        "SELECT count(*) FROM bar_1d WHERE instrument_id=%s AND source='kite'", (a,)
+    ).fetchone() == (5,)
+    put(conn, a, date(2026, 11, 10), 15)
+    conn.execute(one, (a, ts(date(2026, 11, 10))))  # after the freeze date: fine
+    conn.execute(one, (c, ts(D0)))  # a stock that was not in the freeze: fine
+    tamper(conn, one, (b, ts(D0)))  # the deliberate, explicit switch
+    assert conn.execute(
+        "SELECT count(*) FROM bar_1d WHERE instrument_id=%s AND source='kite'", (b,)
+    ).fetchone() == (4,)

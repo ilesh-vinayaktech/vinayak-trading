@@ -7,7 +7,7 @@ Series: 'split' (split/bonus only: signals, charts) and 'total_return' (adds cas
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -122,9 +122,12 @@ def factor_on(
     volume: bool = False,
     as_of: datetime | None = None,
     applied_through: date | None = None,
+    vendor_dividends: frozenset[date] = frozenset(),
 ) -> Decimal:
-    """applied_through: the vendor (Kite) already applied every split/bonus with ex_date <= this
-    day, so those are skipped; price-only actions and dividends are never vendor-applied."""
+    """applied_through: the vendor (Kite) adjusted its history through this day. Measured against
+    the raw NSE bars it applied every split and bonus, and rights and demergers by its own factor
+    (the Kite series is the truth there), so all of those with ex_date <= this day are skipped.
+    Dividends only when `vendor_dividends` lists their ex-date (see vendor_applied_dividends)."""
     f = Decimal(1)
     for a in adjustments:
         if a.ex_date <= d or (a.kind == "dividend" and not total_return):
@@ -133,7 +136,32 @@ def factor_on(
             continue
         if as_of is not None and a.knowledge_time > as_of:
             continue
-        if applied_through is not None and a.kind == "split" and a.ex_date <= applied_through:
+        if applied_through is not None and a.kind != "dividend" and a.ex_date <= applied_through:
+            continue
+        if a.kind == "dividend" and a.ex_date in vendor_dividends:
             continue
         f *= a.factor
     return f
+
+
+def vendor_applied_dividends(
+    amounts: Mapping[date, Decimal], kite: Mapping[date, Decimal], raw: Mapping[date, Decimal]
+) -> frozenset[date]:
+    """Ex-dates whose cash dividend the vendor already took out of its history. The Kite/NSE close
+    ratio steps across an ex-date by exactly the factor the vendor applied there, so a step of
+    at least half the dividend yield below 1 means "applied". Not measurable (no common bar just
+    before and just after) counts as not applied: true for 96% of dividends before 2025."""
+    days = sorted(d for d in kite if d in raw)
+    out = set()
+    for ex, amount in amounts.items():
+        before = [d for d in days if d < ex]
+        after = [d for d in days if d >= ex]
+        if not before or not after:
+            continue
+        b, a = before[-1], after[0]
+        if (ex - b).days > 6 or (a - ex).days > 4:
+            continue
+        step = (kite[b] / raw[b]) / (kite[a] / raw[a])
+        if step <= 1 - amount / raw[b] / 2:
+            out.add(ex)
+    return frozenset(out)

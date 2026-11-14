@@ -12,6 +12,7 @@ from algo.data.adjust.factors import (
     dividend_factor,
     factor_on,
     split_factor,
+    vendor_applied_dividends,
 )
 
 TOL = D("1e-20")  # factors are 28-digit decimals; order of multiplication moves the last digit
@@ -301,16 +302,48 @@ def test_a_malformed_record_does_not_stop_later_actions_from_being_processed():
     assert b.unapplied == [bad]
 
 
-def test_splits_the_vendor_already_applied_are_skipped_but_price_only_actions_and_later_splits_still_count():
+def test_everything_the_vendor_already_applied_is_skipped_but_later_actions_still_count():
     adj = [
         Adjustment(date(2025, 3, 1), "split", D("0.5"), KT),  # inside Kite's basis
-        Adjustment(date(2025, 4, 1), "price", D("0.9"), KT),  # Kite never applies these
+        Adjustment(date(2025, 4, 1), "price", D("0.9"), KT),  # Kite's own number is the series
         Adjustment(date(2025, 8, 1), "split", D("0.1"), KT),  # after the basis date
+        Adjustment(date(2025, 9, 1), "price", D("0.8"), KT),  # after the basis date
     ]
     through = date(2025, 6, 1)
-    assert factor_on(adj, date(2025, 1, 1), applied_through=through) == D("0.9") * D("0.1")
+    assert factor_on(adj, date(2025, 1, 1), applied_through=through) == D("0.1") * D("0.8")
     assert factor_on(adj, date(2025, 1, 1), volume=True, applied_through=through) == D("0.1")
-    assert factor_on(adj, date(2025, 1, 1)) == D("0.5") * D("0.9") * D("0.1")  # raw bars: unchanged
-    assert factor_on(adj, date(2025, 3, 1), applied_through=date(2025, 3, 1)) == D("0.9") * D(
-        "0.1"
-    )  # ex-date == basis day: applied by the vendor
+    assert factor_on(adj, date(2025, 1, 1)) == D("0.5") * D("0.9") * D("0.1") * D("0.8")  # raw bars
+    assert factor_on(adj, date(2025, 3, 1), applied_through=date(2025, 3, 1)) == D("0.1") * D(
+        "0.8"
+    ) * D("0.9")  # split on the basis day: vendor; the later price action on 04-01 still counts
+    assert factor_on(adj, date(2025, 3, 1), applied_through=date(2025, 4, 1)) == D("0.1") * D("0.8")
+
+
+def test_a_dividend_is_skipped_only_when_the_vendor_is_known_to_have_taken_it_out():
+    adj = [
+        Adjustment(date(2025, 3, 1), "dividend", D("0.98"), KT),
+        Adjustment(date(2025, 4, 1), "dividend", D("0.97"), KT),
+    ]
+    kw = dict(total_return=True, applied_through=date(2025, 6, 1))
+    assert factor_on(adj, date(2025, 1, 1), **kw) == D("0.98") * D("0.97")  # nothing known: apply
+    assert factor_on(
+        adj, date(2025, 1, 1), vendor_dividends=frozenset({date(2025, 3, 1)}), **kw
+    ) == D("0.97")
+
+
+def test_the_vendor_step_across_an_ex_date_says_whether_it_took_the_dividend_out():
+    d = date
+    amounts = {d(2025, 3, 5): D(10)}
+    raw = {d(2025, 3, 4): D(100), d(2025, 3, 5): D(95), d(2025, 3, 6): D(96)}
+    kite_applied = {d(2025, 3, 4): D(90) * D(1), d(2025, 3, 5): D(95), d(2025, 3, 6): D(96)}
+    assert vendor_applied_dividends(amounts, kite_applied, raw) == {d(2025, 3, 5)}  # 0.90 step
+    kite_untouched = {d(2025, 3, 4): D(100), d(2025, 3, 5): D(95), d(2025, 3, 6): D(96)}
+    assert vendor_applied_dividends(amounts, kite_untouched, raw) == frozenset()
+    # not measurable -> assumed not applied: no bar before, no bar after, or too far from the date
+    assert vendor_applied_dividends({d(2025, 3, 4): D(10)}, kite_applied, raw) == frozenset()
+    assert vendor_applied_dividends({d(2025, 3, 9): D(10)}, kite_applied, raw) == frozenset()
+    assert vendor_applied_dividends({d(2025, 3, 20): D(10)}, kite_applied, raw) == frozenset()
+    gap = {d(2025, 2, 1): D(100), d(2025, 3, 20): D(95)}
+    assert vendor_applied_dividends({d(2025, 3, 5): D(10)}, gap, gap) == frozenset()
+    # a bar only one source has is not used
+    assert vendor_applied_dividends(amounts, kite_applied, {d(2025, 3, 6): D(96)}) == frozenset()
