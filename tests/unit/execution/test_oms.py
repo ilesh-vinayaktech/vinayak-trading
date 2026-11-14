@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 from decimal import Decimal as D
 
 import pytest
-from tests.support.fake_broker import FakeBroker
 
 from algo.core.clock import SimClock
 from algo.execution.broker import BrokerOrder
@@ -12,6 +11,7 @@ from algo.risk.engine import RiskEngine
 from algo.risk.killswitch import FailurePolicy, KillSwitch, Mode
 from algo.risk.limits import Limits
 from algo.risk.model import Book, Day, Market, OrderRequest, Side
+from tests.support.fake_broker import FakeBroker
 
 NOW = datetime(2026, 11, 16, 5, 0, tzinfo=UTC)
 MKT, BOOK0, DAY0 = Market(ltp=D(100)), Book(), Day()

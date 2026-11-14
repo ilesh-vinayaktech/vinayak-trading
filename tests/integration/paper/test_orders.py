@@ -27,6 +27,7 @@ def env(conn):
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     iid = repo.add_instrument(x, "AAA")
+    repo.add_terms(iid, date(2000, 1, 1), None, D(1), D("0.05"), D(1))
     jane = add_user(conn, SimClock(EVENING), "TRADER", "jane@example.com")
     bob = add_user(conn, SimClock(EVENING), "TRADER", "bob@example.com")
     for u in (jane, bob):
@@ -287,3 +288,37 @@ def test_the_limit_is_checked_and_stored_when_approving(env):
     orders.approve(conn, oid, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D("199.5"))
     row = conn.execute("SELECT order_type, limit_price FROM paper_order WHERE order_id=%s", (oid,))
     assert row.fetchone() == ("LIMIT", D("199.5"))
+
+
+def test_a_limit_is_rounded_to_the_stocks_price_step_and_kites_step_wins(env):
+    conn, jane, _, iid = env  # the master says 0.05
+    a, b, c = (propose(conn, jane, iid) for _ in range(3))  # ref 200
+    orders.approve(conn, a, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D("199.52"))
+
+    def limit(o):
+        return conn.execute(
+            "SELECT limit_price FROM paper_order WHERE order_id=%s", (o,)
+        ).fetchone()[0]
+
+    assert limit(a) == D("199.50")  # nearest 0.05
+    conn.execute(
+        "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id, refreshed_at, active, tick_size)"
+        " VALUES (1, 1, 'AAA', 'AAA', %s, %s, true, 0.01)",
+        (iid, EVENING),
+    )
+    orders.approve(conn, b, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D("199.52"))
+    assert limit(b) == D("199.52")  # Kite's 0.01 applies, not the master's 0.05
+    conn.execute("UPDATE kite_instrument SET tick_size=0.5")
+    orders.approve(conn, c, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D("199.75"))
+    assert limit(c) == D("200.0")  # a half step rounds up
+    assert orders.tick_size(conn, iid) == D("0.5")
+
+
+def test_a_limit_cannot_be_set_when_the_price_step_is_unknown(env):
+    conn, jane, _, iid = env
+    conn.execute("DELETE FROM instrument_terms")
+    oid = propose(conn, jane, iid)
+    with pytest.raises(orders.OrderError, match="price step"):
+        orders.approve(conn, oid, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D(199))
+    assert orders.tick_size(conn, iid) is None
+    orders.approve(conn, oid, user_id=jane, now=EVENING)  # a market order needs no step

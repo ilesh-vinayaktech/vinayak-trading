@@ -26,7 +26,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   const toast = useToast();
   const q = useQuery({ queryKey: ["paper", "orders"], queryFn: () => api.paperOrders(), refetchInterval: 30_000 });
   const done = () => void qc.invalidateQueries({ queryKey: ["paper"] });
-  const approve = useMutation({ mutationFn: ({ id, how }: { id: string; how?: { order_type: "MARKET" | "LIMIT"; limit_price?: string } }) => api.approvePaperOrder(id, how), onSuccess: (_r, v) => { toast.success(v.how?.order_type === "LIMIT" ? `Approved. It fills only at ₹${v.how.limit_price} or better.` : "Approved. It fills at the next live price."); done(); } });
+  const approve = useMutation({ mutationFn: ({ id, how }: { id: string; how?: { order_type: "MARKET" | "LIMIT"; limit_price?: string } }) => api.approvePaperOrder(id, how), onSuccess: (_r, v) => { toast.success(v.how?.order_type === "LIMIT" ? `Approved. It fills only at the limit (₹${v.how.limit_price}, rounded to the price step) or better.` : "Approved. It fills at the next live price."); done(); } });
   const reject = useMutation({ mutationFn: (id: string) => api.rejectPaperOrder(id), onSuccess: () => { toast.success("Rejected."); done(); } });
   const all = q.data?.orders ?? [];
   const pending = all.filter((o) => o.status === "PENDING");
@@ -53,7 +53,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
               <option value="MARKET">Market</option>
               <option value="LIMIT">Limit</option>
             </select>
-            {how[o.order_id]?.type === "LIMIT" ? <input aria-label={`Limit price for ${o.symbol}`} inputMode="decimal" value={how[o.order_id]?.price ?? ""} onChange={(e) => setHow((h) => ({ ...h, [o.order_id]: { type: "LIMIT", price: e.target.value } }))} className="w-24 rounded border border-line px-2 py-1 text-right text-sm" /> : null}
+            {how[o.order_id]?.type === "LIMIT" ? <input aria-label={`Limit price for ${o.symbol}`} title={o.tick_size ? `Price step ₹${o.tick_size}: the limit is rounded to the nearest step` : "The limit is rounded to the nearest price step"} placeholder={o.tick_size ? `step ${o.tick_size}` : undefined} inputMode="decimal" value={how[o.order_id]?.price ?? ""} onChange={(e) => setHow((h) => ({ ...h, [o.order_id]: { type: "LIMIT", price: e.target.value } }))} className="w-24 rounded border border-line px-2 py-1 text-right text-sm" /> : null}
           </span>
           <button type="button" disabled={busy || (how[o.order_id]?.type === "LIMIT" && !(Number(how[o.order_id]?.price) > 0))} onClick={() => approve.mutate({ id: o.order_id, how: how[o.order_id]?.type === "LIMIT" ? { order_type: "LIMIT", limit_price: how[o.order_id]?.price } : undefined })} className={buttonClass("primary", true)} aria-label={`Approve ${o.side} ${o.symbol}`}>Approve</button>
           <button type="button" disabled={busy} onClick={() => reject.mutate(o.order_id)} className={buttonClass("secondary", true)} aria-label={`Reject ${o.side} ${o.symbol}`}>Reject</button>

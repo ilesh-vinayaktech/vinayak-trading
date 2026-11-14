@@ -670,6 +670,7 @@ export const paperOrderSchema = z.object({
   failure: z.string().nullable(),
   order_type: z.enum(["MARKET", "LIMIT"]),
   limit_price: decimal.nullable(),
+  tick_size: decimal.nullable(), // the exchange price step of an open order's stock (a limit is rounded to it by the server)
   upcoming: z.array(actionSchema), // announced actions within days of an order that is still open
 });
 export const paperOrdersSchema = z.object({ orders: z.array(paperOrderSchema) });

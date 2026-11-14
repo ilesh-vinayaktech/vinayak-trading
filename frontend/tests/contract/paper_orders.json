@@ -17,6 +17,7 @@
    "side": "SELL",
    "status": "FAILED",
    "symbol": "TCS",
+   "tick_size": null,
    "upcoming": []
   },
   {
@@ -36,6 +37,7 @@
    "side": "BUY",
    "status": "FILLED",
    "symbol": "RELIANCE",
+   "tick_size": null,
    "upcoming": []
   },
   {
@@ -55,6 +57,7 @@
    "side": "BUY",
    "status": "PENDING",
    "symbol": "TCS",
+   "tick_size": null,
    "upcoming": []
   }
  ]

@@ -31,6 +31,8 @@ def env(conn, pg_url, tmp_path):
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     ids = {s: repo.add_instrument(x, s) for s in ("AAA", "BBB")}
+    for i in ids.values():
+        repo.add_terms(i, date(2000, 1, 1), None, D(1), D("0.05"), D(1))
     put_bars(conn, ids["AAA"], {TODAY - timedelta(days=1): D("200"), TODAY: D("210")})
     return conn, make_app(pg_url, tmp_path, portal=settings(clock)), clock, ids
 
@@ -314,7 +316,7 @@ def test_orders_are_listed_filtered_and_answered_by_their_owner_only(env):
         "order_id": str(keep), "symbol": "AAA", "side": "BUY", "qty": "10", "ref_price": "200",
         "reason": "entry: oversold in an uptrend", "status": "PENDING", "decision_day": "2026-11-11",
         "created_at": START.isoformat(), "expires_at": (START + timedelta(hours=20)).isoformat(),
-        "fill_price": None, "fill_commission": None, "fill_day": None, "failure": None, "order_type": "MARKET", "limit_price": None,
+        "fill_price": None, "fill_commission": None, "fill_day": None, "failure": None, "order_type": "MARKET", "limit_price": None, "tick_size": "0.05",
         "upcoming": [],
     }  # fmt: skip
     assert c.get("/api/paper/orders?status=FILLED,REJECTED").json()["orders"] == []

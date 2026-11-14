@@ -100,6 +100,7 @@ const order = (over: Record<string, unknown>) => ({
   failure: null,
   order_type: "MARKET",
   limit_price: null,
+  tick_size: "0.05",
   upcoming: [],
   ...over,
 });
@@ -592,6 +593,7 @@ describe("answering orders", () => {
     });
     const price = screen.getByLabelText("Limit price for TCS");
     expect(price).toHaveValue("3500"); // starts at the reference price
+    expect(price).toHaveAttribute("placeholder", "step 0.05"); // the stock's exchange price step
     fireEvent.change(price, { target: { value: "1490.5" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve BUY TCS" }));
     await waitFor(() =>
@@ -600,7 +602,9 @@ describe("answering orders", () => {
       ).toEqual({ order_type: "LIMIT", limit_price: "1490.5" }),
     );
     expect(
-      await screen.findByText(/fills only at ₹1490\.5 or better/),
+      await screen.findByText(
+        /fills only at the limit \(₹1490\.5, rounded to the price step\) or better/,
+      ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Approve SELL INFY" }));
     await waitFor(() =>

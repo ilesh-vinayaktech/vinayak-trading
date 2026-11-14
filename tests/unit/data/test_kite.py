@@ -291,3 +291,16 @@ def test_a_dropped_connection_is_retried_like_a_server_error():
     )  # status 0 = no HTTP answer
     assert len(client(http, sleeps).instruments("NSE")) == 2
     assert len(http.calls) == 2 and [x for x in sleeps if x >= 1.0] == [1.0]
+
+
+def test_the_price_step_comes_from_the_dump_and_is_none_when_the_dump_has_none():
+    assert {i.tradingsymbol: i.tick_size for i in parse_instruments(INSTRUMENTS)} == {
+        "RELIANCE": D("0.05"),
+        "ACC": D("0.05"),
+    }
+    etf = INSTRUMENTS.replace(b"0.05,1,EQ,NSE,NSE", b"0.01,1,EQ,NSE,NSE")
+    assert {i.tick_size for i in parse_instruments(etf)} == {D("0.01")}
+    old = b"instrument_token,exchange_token,tradingsymbol,name,instrument_type,segment,exchange\n5633,22,ACC,ACC LIMITED,EQ,NSE,NSE\n"
+    assert parse_instruments(old)[0].tick_size is None
+    with pytest.raises(KiteError, match="instrument list"):
+        parse_instruments(INSTRUMENTS.replace(b"0.05,1,EQ,NSE,NSE", b"x,1,EQ,NSE,NSE"))

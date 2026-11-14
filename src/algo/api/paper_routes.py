@@ -227,12 +227,17 @@ def summary(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
     }  # fmt: skip
 
 
-def _order(o: dict[str, Any], heads_up: dict[int, list[dict[str, Any]]]) -> dict[str, Any]:
+def _order(
+    o: dict[str, Any],
+    heads_up: dict[int, list[dict[str, Any]]],
+    ticks: dict[int, Decimal | None],
+) -> dict[str, Any]:
     return {
         "order_id": str(o["order_id"]), "symbol": o["symbol"], "side": o["side"], "qty": _s(o["qty"]), "ref_price": _s(o["ref_price"]),
         "reason": o["reason"], "status": o["status"], "decision_day": o["decision_day"].isoformat(), "created_at": o["created_at"].isoformat(),
         "expires_at": o["expires_at"].isoformat(), "fill_price": _opt(o["fill_price"]), "fill_commission": _opt(o["fill_commission"]),
         "fill_day": None if o["fill_day"] is None else o["fill_day"].isoformat(), "failure": o["failure"], "order_type": o["order_type"], "limit_price": _opt(o["limit_price"]),
+        "tick_size": _opt(ticks.get(o["instrument_id"])),
         "upcoming": heads_up.get(o["instrument_id"], []) if o["status"] in OPEN else [],  # nothing left to warn about once decided
     }  # fmt: skip
 
@@ -249,7 +254,11 @@ def list_orders(
         return {"orders": []}
     rows = orders.list_orders(conn, who.session.user_id, statuses=wanted)
     heads_up = _heads_up(request, conn, [o["instrument_id"] for o in rows if o["status"] in OPEN])
-    return {"orders": [_order(o, heads_up) for o in rows]}
+    ticks = {
+        i: orders.tick_size(conn, i)
+        for i in {o["instrument_id"] for o in rows if o["status"] in OPEN}
+    }
+    return {"orders": [_order(o, heads_up, ticks) for o in rows]}
 
 
 class ApproveBody(BaseModel):

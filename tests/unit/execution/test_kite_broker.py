@@ -1,7 +1,6 @@
 from decimal import Decimal as D
 
 import pytest
-from tests.support.fake_kite import FakeKite
 
 from algo.core.clock import SimClock
 from algo.execution.broker import BrokerError, BrokerRejected, BrokerTimeout
@@ -13,6 +12,7 @@ from algo.risk.engine import RiskEngine
 from algo.risk.killswitch import KillSwitch
 from algo.risk.limits import Limits
 from algo.risk.model import Book, Day, Market, OrderRequest, Side
+from tests.support.fake_kite import FakeKite
 
 GATE = open_gate({"ALGO_LIVE": "1"}, "LIVE", True)
 SYMBOLS = {7: "INFY", 8: "TCS"}

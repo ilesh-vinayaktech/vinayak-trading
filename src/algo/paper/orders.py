@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -97,6 +97,22 @@ def _decide(
     )
 
 
+def tick_size(conn: psycopg.Connection, instrument_id: int) -> Decimal | None:
+    """The exchange's price step for a stock: Kite's own value when we have it, else the master's (a default for stocks Kite does not list)."""
+    row = conn.execute(
+        "SELECT coalesce((SELECT tick_size FROM kite_instrument WHERE instrument_id=%s AND tick_size IS NOT NULL"
+        " ORDER BY active DESC, refreshed_at DESC LIMIT 1),"
+        " (SELECT tick_size FROM instrument_terms WHERE instrument_id=%s AND valid_to IS NULL))",
+        (instrument_id, instrument_id),
+    ).fetchone()
+    return None if row is None else row[0]
+
+
+def snap_to_tick(price: Decimal, tick: Decimal) -> Decimal:
+    """The nearest allowed price (a half step rounds up)."""
+    return (price / tick).to_integral_value(ROUND_HALF_UP) * tick
+
+
 def _how_sent(
     conn: psycopg.Connection,
     order_id: UUID,
@@ -111,9 +127,15 @@ def _how_sent(
         if limit_price is None or not limit_price.is_finite() or limit_price <= 0:
             raise OrderError("a limit order needs a limit price above zero")
         ref = conn.execute(
-            "SELECT ref_price FROM paper_order WHERE order_id=%s", (order_id,)
+            "SELECT ref_price, instrument_id FROM paper_order WHERE order_id=%s", (order_id,)
         ).fetchone()
         assert ref is not None
+        tick = tick_size(conn, ref[1])
+        if tick is None:
+            raise OrderError("the price step of this stock is not known, so a limit cannot be set")
+        limit_price = snap_to_tick(limit_price, tick)  # only multiples of the tick are valid prices
+        if limit_price <= 0:
+            raise OrderError(f"the limit rounds to zero at this stock's price step {tick}")
         if abs(limit_price - ref[0]) > ref[0] * LIMIT_BAND:
             raise OrderError(
                 f"the limit {limit_price} is more than {LIMIT_BAND:.0%} from the reference price {ref[0]}"

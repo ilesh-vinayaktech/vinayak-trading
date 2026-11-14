@@ -51,6 +51,7 @@ class KiteInstrument:
     exchange: str
     segment: str
     instrument_type: str
+    tick_size: Decimal | None = None  # the price step; absent from older dumps
 
 
 @dataclass(frozen=True)
@@ -79,11 +80,11 @@ def parse_instruments(raw: bytes) -> list[KiteInstrument]:
         if not rows or "instrument_token" not in rows[0]:
             raise ValueError
         return [
-            KiteInstrument(int(r["instrument_token"]), int(r["exchange_token"]), r["tradingsymbol"], r["name"], r["exchange"], r["segment"], r["instrument_type"])
+            KiteInstrument(int(r["instrument_token"]), int(r["exchange_token"]), r["tradingsymbol"], r["name"], r["exchange"], r["segment"], r["instrument_type"], Decimal(r["tick_size"]) if r.get("tick_size") else None)
             for r in rows
             if r["exchange"] == "NSE" and r["segment"] == "NSE" and r["instrument_type"] == "EQ"
         ]  # fmt: skip
-    except (ValueError, KeyError, UnicodeDecodeError) as e:
+    except (ValueError, KeyError, UnicodeDecodeError, ArithmeticError) as e:
         raise KiteError("not a Kite instrument list") from e
 
 

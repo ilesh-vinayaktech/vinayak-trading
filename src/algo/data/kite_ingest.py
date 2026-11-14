@@ -118,11 +118,20 @@ def upsert_kite_instruments(
     stored keeps its flag, so adding history-only stocks never switches anything on or off for the feed."""
     for k, iid in mapped:
         conn.execute(
-            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id, refreshed_at, active)"
-            " VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_token) DO UPDATE SET exchange_token=EXCLUDED.exchange_token,"
+            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id, refreshed_at, active, tick_size)"
+            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (instrument_token) DO UPDATE SET exchange_token=EXCLUDED.exchange_token,"
             " tradingsymbol=EXCLUDED.tradingsymbol, name=EXCLUDED.name, instrument_id=EXCLUDED.instrument_id,"
-            " refreshed_at=EXCLUDED.refreshed_at",
-            (k.instrument_token, k.exchange_token, k.tradingsymbol, k.name, iid, now, active),
+            " refreshed_at=EXCLUDED.refreshed_at, tick_size=COALESCE(EXCLUDED.tick_size, kite_instrument.tick_size)",
+            (
+                k.instrument_token,
+                k.exchange_token,
+                k.tradingsymbol,
+                k.name,
+                iid,
+                now,
+                active,
+                k.tick_size,
+            ),
         )
     return len(mapped)
 
