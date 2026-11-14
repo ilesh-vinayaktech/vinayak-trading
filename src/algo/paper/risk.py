@@ -24,7 +24,7 @@ from algo.risk.limits import Limits
 from algo.risk.model import Book, Day, Decision, Market, OrderRequest, Rejection, Side
 
 IST = ZoneInfo("Asia/Kolkata")
-__all__ = ["Limits", "check_approval", "get_limits", "load_switch", "set_limits", "why"]
+__all__ = ["Limits", "check_approval", "get_limits", "inputs", "load_switch", "set_limits", "why"]
 
 
 def get_limits(conn: psycopg.Connection, user_id: UUID) -> Limits:
@@ -58,9 +58,10 @@ def load_switch(conn: psycopg.Connection) -> KillSwitch:
     return store.load(conn)
 
 
-def check_approval(
+def inputs(
     conn: psycopg.Connection, user_id: UUID, order_id: UUID, now: datetime
-) -> Decision:
+) -> tuple[OrderRequest, Market, Book, Day]:
+    """What the risk engine looks at for this order: the request, the market, the account's book and today's activity."""
     acct = book.get_account(conn, user_id)
     assert acct is not None
     order = conn.execute(
@@ -69,7 +70,7 @@ def check_approval(
     assert order is not None
     iid, side, qty, ref = order
     if qty != qty.to_integral_value():
-        return Decision((Rejection("BAD_QTY", f"quantity {qty} is not a whole number"),))
+        raise ValueError(f"quantity {qty} is not a whole number")
     ledger = book.load(conn, user_id)
     held = {i: q for i, q in ledger.quantities().items() if q != 0}
     values = {i: ledger.cost_basis(i) for i in held}
@@ -85,19 +86,27 @@ def check_approval(
         "SELECT count(*) FROM paper_order WHERE user_id=%s AND status='APPROVED'", (user_id,)
     ).fetchone()
     assert open_row is not None
-    open_orders = open_row[0]
     request = OrderRequest(
         acct["strategy_id"], iid, Side(side), int(qty), None, reduce_only=side == "SELL"
     )
-    market = Market(ltp=Decimal(ref))
     state = Book(
         position_qty=int(held.get(iid, 0)),
         instrument_value=values.get(iid, Decimal(0)),
         gross_value=sum(values.values(), Decimal(0)),
         net_value=sum(values.values(), Decimal(0)),
         margin_available=ledger.cash,
-        open_orders=open_orders,
+        open_orders=open_row[0],
     )
+    return request, Market(ltp=Decimal(ref)), state, Day(orders=count, turnover=Decimal(turnover))
+
+
+def check_approval(
+    conn: psycopg.Connection, user_id: UUID, order_id: UUID, now: datetime
+) -> Decision:
+    try:
+        request, market, state, day = inputs(conn, user_id, order_id, now)
+    except ValueError as e:
+        return Decision((Rejection("BAD_QTY", str(e)),))
     return RiskEngine(get_limits(conn, user_id), store.load(conn)).approve(
-        request, market, state, Day(orders=count, turnover=Decimal(turnover)), now
+        request, market, state, day, now
     )

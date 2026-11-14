@@ -30,6 +30,7 @@ class BrokerOrder:
     status: str  # OPEN | PARTIAL | COMPLETE | CANCELLED | REJECTED | EXPIRED
     filled_qty: int = 0
     avg_price: Decimal | None = None
+    reason: str = ""  # why, when the broker says (a rejection)
 
 
 class Broker(Protocol):

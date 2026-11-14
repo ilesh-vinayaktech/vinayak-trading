@@ -16,6 +16,7 @@ from algo.risk.model import Book, Day, Market, OrderRequest, Side
 NOW = datetime(2026, 11, 16, 5, 0, tzinfo=UTC)
 MKT, BOOK0, DAY0 = Market(ltp=D(100)), Book(), Day()
 REQ = OrderRequest("s1", 7, Side.BUY, 10)
+REQ_ID = client_order_id("s1", "k1")
 
 
 def build(script=(), limits=None, policy=None):
@@ -257,3 +258,66 @@ def test_the_failure_policy_decides_how_hard_an_ambiguous_order_is_answered():
     submit(oms)
     submit(oms)  # the lookup finds nothing
     assert switch.mode("s1") is Mode.CANCEL
+
+
+class ListStore:
+    """Keeps every event the OMS appends, like a table would."""
+
+    def __init__(self):
+        self.rows = []
+
+    def append(self, ev):
+        self.rows.append(ev)
+
+    def load(self):
+        out = {}
+        for e in self.rows:
+            out.setdefault(e.order_id, []).append(e)
+        return out
+
+
+def build_with(store, script=()):
+    broker, switch = FakeBroker(script), KillSwitch()
+    return Oms(broker, RiskEngine(Limits(), switch), SimClock(NOW), store=store), broker
+
+
+def test_every_event_is_appended_to_the_store_and_a_new_oms_replays_the_same_orders():
+    store = ListStore()
+    oms, broker = build_with(store)
+    a, b = submit(oms, "a"), submit(oms, "b")
+    oms.on_update(broker.move(a.order_id, "PARTIAL", 4, D(100)))
+    oms.cancel_open("s1")
+    assert len(store.rows) == sum(len(v) for v in oms.events.values())
+    restarted, broker2 = build_with(store)
+    broker2.book = broker.book
+    assert restarted.orders == oms.orders and restarted.events == oms.events
+    assert (
+        restarted.on_update(broker.move(a.order_id, "COMPLETE", 10, D(100))).state is State.FILLED
+    )  # carries on from where it was
+    assert (
+        submit(restarted, "b") == restarted.orders[b.order_id] and broker2.place_calls == 0
+    )  # the same intent: no second order
+
+
+def test_an_order_the_broker_already_has_can_be_adopted_without_sending_anything():
+    oms, broker = build_with(ListStore())
+    placed = broker.book[REQ_ID] = BrokerOrder("B7", REQ_ID, "PARTIAL", 3, D(100))
+    o = oms.adopt("k1", REQ, placed)
+    assert (o.state, o.filled_qty, o.broker_order_id) == (
+        State.PARTIALLY_FILLED,
+        3,
+        "B7",
+    ) and broker.place_calls == 0
+    assert oms.adopt("k1", REQ, placed) == o  # idempotent
+    with pytest.raises(OrderError, match="not the tag"):
+        oms.adopt(
+            "other", REQ, placed
+        )  # the broker order is not the one this intent would have sent
+    assert replay(oms.events[o.order_id]) == o
+
+
+def test_a_broker_reason_is_kept_on_the_order():
+    oms, broker = build_with(ListStore())
+    o = submit(oms)
+    done = oms.on_update(BrokerOrder("B1", o.order_id, "REJECTED", reason="not enough cash"))
+    assert done.state is State.REJECTED and done.reason == "not enough cash"

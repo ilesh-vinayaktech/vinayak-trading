@@ -24,6 +24,7 @@ from psycopg.types.json import Jsonb
 from algo.backtest.costs.policy import CostPolicy
 from algo.backtest.costs.slippage import fill_price
 from algo.paper import book
+from algo.paper import oms as paper_oms
 from algo.paper import risk as paper_risk
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -105,7 +106,11 @@ def approve(conn: psycopg.Connection, order_id: UUID, *, user_id: UUID, now: dat
             + " - "
             + "; ".join(r.detail for r in decision.rejections)
         )
-    _decide(conn, order_id, user_id, now, "APPROVED")
+    sent = paper_oms.submit_approved(
+        conn, user_id, order_id, now
+    )  # through the OMS to the paper broker
+    if sent.is_terminal:  # the OMS refused it (the risk checks again, with the book as it is now)
+        raise OrderError(sent.reason)
 
 
 def reject(conn: psycopg.Connection, order_id: UUID, *, user_id: UUID, now: datetime) -> None:
@@ -123,6 +128,7 @@ def expire_due(conn: psycopg.Connection, now: datetime) -> tuple[int, int]:
         "UPDATE paper_order SET status='FAILED', failure='not filled before the order expired' WHERE status='APPROVED' AND expires_at <= %s",
         (now,),
     ).rowcount
+    paper_oms.sync(conn, now)
     return expired, failed
 
 
@@ -199,4 +205,5 @@ def fill_due(
             (day, price, ch.amount("COMMISSION"), Jsonb(detail), now, order_id),
         )
         filled += 1
+    paper_oms.sync(conn, now)  # hand the fills, refusals and cancellations to the OMS
     return FillReport(filled, failed, waiting)

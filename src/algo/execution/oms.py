@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from algo.core.clock import Clock
 from algo.execution.broker import Broker, BrokerError, BrokerOrder, BrokerRejected, BrokerTimeout
+from algo.execution.event_store import EventStore, MemoryStore
 from algo.execution.orders import (
     ALLOWED,
     Order,
@@ -23,6 +24,7 @@ from algo.execution.orders import (
     State,
     apply,
     client_order_id,
+    replay,
 )
 from algo.risk.engine import RiskEngine
 from algo.risk.killswitch import Failure, FailurePolicy
@@ -47,12 +49,20 @@ class Mismatch:
 
 class Oms:
     def __init__(
-        self, broker: Broker, risk: RiskEngine, clock: Clock, policy: FailurePolicy | None = None
+        self,
+        broker: Broker,
+        risk: RiskEngine,
+        clock: Clock,
+        policy: FailurePolicy | None = None,
+        store: EventStore | None = None,
     ) -> None:
         self.broker, self.risk, self.clock = broker, risk, clock
         self.policy = policy or FailurePolicy()
-        self.events: dict[str, list[OrderEvent]] = {}
-        self.orders: dict[str, Order] = {}
+        self.store: EventStore = store or MemoryStore()
+        self.events: dict[str, list[OrderEvent]] = (
+            self.store.load()
+        )  # a restart replays every order
+        self.orders: dict[str, Order] = {oid: replay(evs) for oid, evs in self.events.items()}
         self.alerts: list[str] = []
         self.orphans: list[BrokerOrder] = []
         self.ignored = 0
@@ -61,6 +71,7 @@ class Oms:
         log = self.events.setdefault(oid, [])
         ev = OrderEvent(oid, len(log), self.clock.now(), state, kind, dict(data))
         self.orders[oid] = apply(self.orders.get(oid), ev)
+        self.store.append(ev)
         log.append(ev)
         return self.orders[oid]
 
@@ -107,13 +118,40 @@ class Oms:
         if stale or duplicate or target not in ALLOWED[o.state]:
             self.ignored += 1
             return None
+        extra = {"reason": u.reason} if u.reason else {}
         return self._emit(
             o.order_id,
             target,
             filled_qty=u.filled_qty,
             avg_price=u.avg_price,
             broker_order_id=u.broker_order_id,
+            **extra,
         )
+
+    def adopt(self, intent_key: str, req: OrderRequest, sent: BrokerOrder) -> Order:
+        """Record an order that was already sent to the broker (before the OMS kept this log) without sending anything: it enters
+        as NEW, SUBMITTING, SUBMITTED and is then brought to the broker's current state."""
+        oid = client_order_id(req.strategy_id, intent_key)
+        if sent.client_order_id != oid:
+            raise OrderError(
+                f"the broker order {sent.client_order_id} is not the tag {oid} this intent would have sent"
+            )
+        if oid in self.orders:
+            return self.orders[oid]
+        self._emit(
+            oid,
+            None,
+            "NEW",
+            strategy_id=req.strategy_id,
+            instrument_id=req.instrument_id,
+            side=req.side.value,
+            qty=req.qty,
+            price=req.price,
+        )
+        self._emit(oid, State.SUBMITTING)
+        self._emit(oid, State.SUBMITTED, broker_order_id=sent.broker_order_id)
+        self.on_update(sent)
+        return self.orders[oid]
 
     def _escalate(self, o: Order, why: str) -> Order:
         self._emit(o.order_id, None, "NOTE", text=why)
