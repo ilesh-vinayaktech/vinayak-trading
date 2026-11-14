@@ -4,7 +4,7 @@
   * an answer that says "not placed" (400, 403, 429) is a BrokerRejected with Kite's reason; NO answer, or a server error, is a
     BrokerTimeout (the order may exist) and is never retried here: the OMS looks the order up by its tag instead
   * every order carries the client_order_id as Kite's `tag`, so an order can always be found again
-Product is CNC (delivery) like the cost schedules; market orders are MARKET, priced ones LIMIT; validity DAY. Not exercised against the real
+Product is CNC (delivery) like the cost schedules; market orders are MARKET with market_protection=1 (1% band; required on the API per kite.trade/docs/connect/v3/orders), priced ones LIMIT; validity DAY. Not exercised against the real
 exchange: it is tested against a fake with Kite's response shapes, and real use needs a person to read Kite's current terms first."""
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from algo.execution.live_gate import LiveGate, LiveRefused
 from algo.risk.model import OrderRequest
 
 BASE = "https://api.kite.trade"
+MARKET_PROTECTION_PCT = "1"  # a market order may fill at most 1% away from the price when placed (owner choice 2026-11-14)
 Http = Callable[..., tuple[int, bytes]]
 
 
@@ -66,7 +67,11 @@ class KiteBroker:
             "validity": "DAY",
             "tag": client_order_id,
         }
-        if req.price is not None:
+        if req.price is None:
+            data["market_protection"] = (
+                MARKET_PROTECTION_PCT  # API market orders without it are rejected
+            )
+        else:
             data["price"] = str(req.price)
         status, body = self._http("POST", f"{BASE}/orders/regular", self._headers, data)
         if status == 200:

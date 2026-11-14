@@ -43,6 +43,7 @@ def test_a_market_order_is_sent_as_a_delivery_order_tagged_with_the_client_order
         "quantity": "10",
         "product": "CNC",
         "order_type": "MARKET",
+        "market_protection": "1",  # Kite rejects API market orders without it; 1% band
         "validity": "DAY",
         "tag": TAG,
     }
@@ -59,6 +60,7 @@ def test_a_priced_order_is_a_limit_order_and_a_sale_says_sell():
         "SELL",
         "TCS",
     )
+    assert "market_protection" not in data  # it only applies to MARKET and SL-M
 
 
 @pytest.mark.parametrize("behaviour", ["timeout_before", "timeout_after", "http500"])
