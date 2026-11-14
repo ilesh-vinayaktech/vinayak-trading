@@ -1,0 +1,112 @@
+{
+ "account": {
+  "strategy_id": "trend_pullback"
+ },
+ "can_global": false,
+ "events": [
+  {
+   "by": "jane@example.com",
+   "mode": "PAUSE",
+   "reason": "looking at the data",
+   "scope": "trend_pullback",
+   "ts": "2026-11-11T10:00:00+00:00"
+  }
+ ],
+ "label": "UNVALIDATED",
+ "limit_keys": [
+  {
+   "help": "Only these instrument ids may be traded",
+   "key": "allowed",
+   "kind": "list"
+  },
+  {
+   "help": "Instrument ids that may never be traded",
+   "key": "restricted",
+   "kind": "list"
+  },
+  {
+   "help": "Largest order, in shares",
+   "key": "max_order_qty",
+   "kind": "integer"
+  },
+  {
+   "help": "Largest order, in rupees",
+   "key": "max_order_value",
+   "kind": "number"
+  },
+  {
+   "help": "Order size as a fraction of average daily volume",
+   "key": "max_adv_fraction",
+   "kind": "number"
+  },
+  {
+   "help": "A limit price may differ from the last price by at most this fraction",
+   "key": "fat_finger_band",
+   "kind": "number"
+  },
+  {
+   "help": "Largest position in one stock after the order, at cost",
+   "key": "max_instrument_value",
+   "kind": "number"
+  },
+  {
+   "help": "Largest total of all positions after the order, at cost",
+   "key": "max_gross_value",
+   "kind": "number"
+  },
+  {
+   "help": "Largest net exposure after the order, at cost",
+   "key": "max_net_value",
+   "kind": "number"
+  },
+  {
+   "help": "A buy must fit in the cash available",
+   "key": "check_margin",
+   "kind": "bool"
+  },
+  {
+   "help": "Approved orders waiting to fill",
+   "key": "max_open_orders",
+   "kind": "integer"
+  },
+  {
+   "help": "Orders only between these Indian times, e.g. [\"09:15\", \"15:30\"]",
+   "key": "trading_hours",
+   "kind": "hours"
+  },
+  {
+   "help": "Orders approved today",
+   "key": "max_daily_orders",
+   "kind": "integer"
+  },
+  {
+   "help": "Rupees approved today",
+   "key": "max_daily_turnover",
+   "kind": "number"
+  },
+  {
+   "help": "Not tracked on paper yet",
+   "key": "max_daily_loss",
+   "kind": "number"
+  },
+  {
+   "help": "Failed orders in a row",
+   "key": "max_consecutive_failures",
+   "kind": "integer"
+  }
+ ],
+ "limits": {
+  "max_open_orders": 5,
+  "max_order_value": "50000"
+ },
+ "switch": {
+  "effective": "PAUSE",
+  "global": null,
+  "strategy": {
+   "by": "jane@example.com",
+   "mode": "PAUSE",
+   "reason": "looking at the data",
+   "ts": "2026-11-11T10:00:00+00:00"
+  }
+ }
+}

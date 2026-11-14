@@ -67,6 +67,7 @@ import {
   sessionListSchema,
   reviewHistorySchema,
   actionWorklistSchema,
+  riskStateSchema,
   reviewListSchema,
   type ReviewDraft,
   type ScreenerCondition,
@@ -128,7 +129,7 @@ async function failure(res: Response): Promise<ApiError> {
 
 /** Send a JSON body with the CSRF header and validate the answer. A refusal's reason is shown as-is. */
 export async function send<T>(
-  method: "POST" | "DELETE",
+  method: "POST" | "PUT" | "DELETE",
   path: string,
   body: unknown,
   schema: z.ZodType<T>,
@@ -153,7 +154,7 @@ export async function post(path: string, body: unknown, fetcher: typeof fetch = 
 }
 
 export type { StudySpec } from "@/lib/schemas";
-import type { StudySpec } from "@/lib/schemas";
+import type { StudySpec, SwitchAction } from "@/lib/schemas";
 export type StrategyBody = { name: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number>; screen?: { conditions: { field: string; op: string; value?: unknown }[]; match: string; sort: string; descending: boolean; segments: string[] } };
 
 export const api = {
@@ -252,6 +253,9 @@ export const api = {
   fundamentals: (id: number, basis?: string) => get(`/api/instruments/${id}/fundamentals`, fundamentalsSchema, { quarters: 12, ...(basis ? { basis } : {}) }),
   bars: (id: number, start: string, end: string, adjust: Adjust, timeframe: Timeframe = "1d") =>
     get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust, ...(timeframe === "1d" ? {} : { timeframe }) }),
+  riskState: () => get("/api/risk", riskStateSchema),
+  riskSwitch: (scope: "own" | "global", action: SwitchAction, reason: string, emergencyOverride = false) => send("POST", scope === "global" ? "/api/risk/switch/global" : "/api/risk/switch", { action, reason, emergency_override: emergencyOverride }, z.object({ effective: z.string() })),
+  setRiskLimits: (limits: Record<string, unknown>) => send("PUT", "/api/risk/limits", { limits }, z.object({ limits: z.record(z.unknown()) })),
   actionWorklist: (limit: number, kind?: string) => get("/api/corporate-actions/review", actionWorklistSchema, { limit, kind }),
   reviews: () => get("/api/reviews", reviewListSchema),
   reviewHistory: (id: string) => get(`/api/reviews/${encodeURIComponent(id)}/history`, reviewHistorySchema),

@@ -701,6 +701,10 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     shots["paper_summary"] = c.get("/api/paper/summary")
     shots["paper_orders"] = c.get("/api/paper/orders")
     shots["paper_runs"] = c.get("/api/paper/runs")
+    shots["risk_state"] = c.get("/api/risk")
+    c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})
+    c.post("/api/risk/switch", json={"action": "pause", "reason": "looking at the data"})
+    shots["risk_state_paused"] = c.get("/api/risk")
 
     def scrub(v, key=""):
         if isinstance(v, dict):

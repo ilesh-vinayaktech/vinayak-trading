@@ -982,3 +982,17 @@ export const actionWorklistSchema = z.object({
   ),
 });
 export type ActionWorklist = z.infer<typeof actionWorklistSchema>;
+
+const riskEvent = z.object({ ts: z.string(), scope: z.string().nullable(), mode: z.string(), by: z.string(), reason: z.string() });
+const riskScope = z.object({ mode: z.string(), by: z.string(), reason: z.string(), ts: z.string() });
+export const riskStateSchema = z.object({
+  label: z.string(),
+  account: z.object({ strategy_id: z.string() }).nullable(),
+  switch: z.object({ effective: z.enum(["RUNNING", "PAUSE", "CANCEL", "FLATTEN"]), global: riskScope.nullable(), strategy: riskScope.nullable() }),
+  events: z.array(riskEvent),
+  limits: z.record(z.unknown()).nullable(),
+  limit_keys: z.array(z.object({ key: z.string(), kind: z.string(), help: z.string() })),
+  can_global: z.boolean(),
+});
+export type RiskState = z.infer<typeof riskStateSchema>;
+export type SwitchAction = "pause" | "cancel" | "resume" | "flatten";

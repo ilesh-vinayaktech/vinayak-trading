@@ -61,6 +61,13 @@ ROUTE_PERMISSIONS = {
     ("GET", "/api/paper/account"): "strategy:own",
     ("POST", "/api/paper/account"): "strategy:own",
     ("POST", "/api/paper/account/settings"): "strategy:own",
+    (
+        "GET",
+        "/api/risk",
+    ): "research:read",  # anyone may look; changing needs strategy:own (own strategy) or ops:write (everyone)
+    ("PUT", "/api/risk/limits"): "strategy:own",
+    ("POST", "/api/risk/switch"): "strategy:own",
+    ("POST", "/api/risk/switch/global"): "ops:write",
     ("GET", "/api/paper/summary"): "strategy:own",
     ("GET", "/api/paper/orders"): "strategy:own",
     ("POST", "/api/paper/orders/{order_id}/approve"): "strategy:own",

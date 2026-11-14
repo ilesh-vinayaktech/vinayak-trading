@@ -29,6 +29,7 @@ from algo.api import (
     platform_health,
     queries,
     reviews,
+    risk_routes,
     screener_routes,
     strategy_routes,
     study_routes,
@@ -121,6 +122,7 @@ def create_app(
     app.include_router(screener_routes.router)
     app.include_router(live_routes.router)
     app.include_router(paper_routes.router)
+    app.include_router(risk_routes.router)
     app.include_router(strategy_routes.router)
     app.include_router(study_routes.router)
     app.include_router(costs_routes.router)
