@@ -34,7 +34,7 @@ vi.mock("lightweight-charts", () => {
       panes: () => [{ getHeight: () => 400, setHeight: vi.fn(), getHTMLElement: () => document.createElement("div") }],
       takeScreenshot: vi.fn(),
       priceScale: () => ({ applyOptions: vi.fn() }),
-      timeScale: () => ({ fitContent: scale.fit, getVisibleLogicalRange: () => scale.range, setVisibleLogicalRange: scale.set, subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
+      timeScale: () => ({ fitContent: scale.fit, getVisibleLogicalRange: () => scale.range, setVisibleLogicalRange: scale.set, getVisibleRange: () => null, setVisibleRange: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
       applyOptions: vi.fn(),
       subscribeCrosshairMove: vi.fn(),
       unsubscribeCrosshairMove: vi.fn(),
@@ -570,6 +570,21 @@ describe("Data Explorer", () => {
       fireEvent.change(pick, { target: { value: "" } }); // choosing none takes them off again
       await waitFor(() => expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument());
       await waitFor(() => expect((vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string }[]).some((m) => m.text === "BUY")).toBe(false));
+    });
+
+    it("keeps corporate-action arrows off the chart until Events is switched on, then draws them", async () => {
+      (table as Record<string, unknown>)["/api/instruments/7"] = { ...detail, actions: [{ ...detail.actions[0], ex_date: "2024-06-11" }] }; // on the one bar there is
+      await open();
+      const events = await screen.findByRole("button", { name: "Events" });
+      const arrows = () => (vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string }[] | undefined) ?? [];
+      await waitFor(() => expect(vi.mocked(createSeriesMarkers)).toHaveBeenCalled());
+      expect(arrows().some((m) => m.text === "bonus")).toBe(false); // the bonus on 2024-06-12 is not drawn by default
+      expect(events).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(events);
+      await waitFor(() => expect(arrows().some((m) => m.text === "bonus")).toBe(true));
+      expect(screen.getByRole("button", { name: "Events" })).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(screen.getByRole("button", { name: "Events" }));
+      await waitFor(() => expect(arrows().some((m) => m.text === "bonus")).toBe(false));
     });
 
     it("is switched off on timeframes other than daily, because the decisions are daily", async () => {

@@ -11,12 +11,14 @@ import {
   createChart,
   createSeriesMarkers,
   type ISeriesApi,
+  type LogicalRange,
   type MouseEventParams,
   type SeriesMarker,
   type SeriesType,
   type Time,
 } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { reachedLeftEdge, viewToRestore, type SavedView } from "@/lib/chartView";
 import { plotNumber } from "@/lib/formatting";
 import { toPoints, type Active } from "@/lib/indicators";
 import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail, Timeframe } from "@/lib/schemas";
@@ -56,12 +58,27 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null, compare }: { compare?: { name: string; points: { date: string; level: string }[] }; live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ showEvents = false, bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null, compare }: { showEvents?: boolean; compare?: { name: string; points: { date: string; level: string }[] }; live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
   const [ready, setReady] = useState(0); // bumps each time a fresh chart exists
   const [tick, setTick] = useState(0); // bumps when the view moves or resizes, so overlays re-project
+  const movedByUser = useRef(false); // set by the mouse (wheel or drag): the library also reports moves we make ourselves
+  const extending = useRef(false); // earlier history was just asked for: keep the user's place when it arrives
+  const savedView = useRef<SavedView<Time> | null>(null);
+  const lastExtend = useRef(0);
+  const onExtendRef = useRef(onExtend);
+  onExtendRef.current = onExtend;
+  const askEarlier = useRef(() => {
+    const ask = onExtendRef.current;
+    if (!ask) return;
+    extending.current = true;
+    window.setTimeout(() => {
+      extending.current = false; // nothing arrived (already at the first bar): the next rebuild fits the data
+    }, 4000);
+    ask();
+  });
 
   useEffect(() => {
     const el = ref.current;
@@ -72,8 +89,8 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
       layout: { background: { type: ColorType.Solid, color: "#ffffff" }, textColor: "#475569", fontSize: 12, panes: { separatorColor: "#e2e8f0", separatorHoverColor: "#cbd5e1", enableResize: true } },
       grid: { vertLines: { color: "#f1f5f9" }, horzLines: { color: "#f1f5f9" } },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: "#e2e8f0", scaleMargins: { top: 0.14, bottom: 0.27 }, minimumWidth: 64 },
-      timeScale: { borderColor: "#e2e8f0", fixLeftEdge: true, fixRightEdge: true, timeVisible: isIntraday(timeframe), secondsVisible: false },
+      rightPriceScale: { borderColor: "#e2e8f0", scaleMargins: { top: 0.1, bottom: 0.2 }, minimumWidth: 64 },
+      timeScale: { borderColor: "#e2e8f0", rightOffset: 6, minBarSpacing: 0.4, timeVisible: isIntraday(timeframe), secondsVisible: false }, // edges are free: wheel zooms either way and you can drag past the loaded history
     });
     const series: ISeriesApi<SeriesType> =
       chartType === "candles"
@@ -84,16 +101,27 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     if (chartType === "candles") (series as ISeriesApi<"Candlestick">).setData(bars.map((b) => ({ time: barTime(b) as Time, open: plotNumber(b.open), high: plotNumber(b.high), low: plotNumber(b.low), close: plotNumber(b.close) })));
     else (series as ISeriesApi<"Line">).setData(bars.map((b) => ({ time: barTime(b) as Time, value: plotNumber(b.close) })));
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "vol", lastValueVisible: false, priceLineVisible: false });
-    chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
-    volume.setData(bars.map((b, i) => ({ time: barTime(b) as Time, value: plotNumber(b.volume), color: plotNumber(b.close) >= plotNumber(bars[Math.max(0, i - 1)]?.close ?? b.close) ? "rgba(8,153,129,0.45)" : "rgba(242,54,69,0.45)" })));
+    chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.9, bottom: 0 } });
+    volume.setData(bars.map((b, i) => ({ time: barTime(b) as Time, value: plotNumber(b.volume), color: plotNumber(b.close) >= plotNumber(bars[Math.max(0, i - 1)]?.close ?? b.close) ? "rgba(8,153,129,0.28)" : "rgba(242,54,69,0.28)" })));
     const byTime = new Map<string | number, Bar>(bars.map((b) => [barTime(b), b]));
     const onMove = (p: MouseEventParams<Time>) => setHover(typeof p.time === "string" || typeof p.time === "number" ? (byTime.get(p.time) ?? null) : null);
     chart.subscribeCrosshairMove(onMove);
-    const onRange = () => setTick((n) => n + 1);
+    const onRange = (r: LogicalRange | null) => {
+      setTick((n) => n + 1);
+      if (reachedLeftEdge(r, movedByUser.current) && Date.now() - lastExtend.current > 1000) {
+        lastExtend.current = Date.now();
+        askEarlier.current(); // the user has panned or zoomed out to the first loaded bar: load more behind it
+      }
+    };
+    const markMoved = () => {
+      movedByUser.current = true;
+    };
+    el.addEventListener("wheel", markMoved, { passive: true });
+    el.addEventListener("pointerdown", markMoved);
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
     const days = bars.map((b) => b.date);
     const markers: SeriesMarker<Time>[] = [];
-    for (const a of isIntraday(timeframe) ? [] : actions) { // action markers sit on date-axis bars
+    for (const a of isIntraday(timeframe) || !showEvents ? [] : actions) { // action markers sit on date-axis bars
       const day = days.find((d) => d >= a.ex_date);
       if (!day || a.ex_date < (days[0] ?? "")) continue;
       markers.push({ time: day as Time, position: "aboveBar", color: a.status === "ok" ? "#2563eb" : "#d97706", shape: "arrowDown", text: a.kind });
@@ -106,7 +134,17 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     }
     markers.sort((x, y) => String(x.time).localeCompare(String(y.time)));
     createSeriesMarkers(series, markers);
-    chart.timeScale().fitContent();
+    const viewKey = `${instrumentId}|${adjust}|${timeframe}`;
+    const keep = viewToRestore(savedView.current, viewKey, extending.current);
+    extending.current = false;
+    movedByUser.current = keep !== null;
+    if (keep) {
+      try {
+        chart.timeScale().setVisibleRange(keep);
+      } catch {
+        chart.timeScale().fitContent();
+      }
+    } else chart.timeScale().fitContent();
     const fit = () => {
       chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
       setTick((n) => n + 1);
@@ -122,10 +160,18 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
       ro.disconnect();
       chart.unsubscribeCrosshairMove(onMove);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRange);
+      el.removeEventListener("wheel", markMoved);
+      el.removeEventListener("pointerdown", markMoved);
+      try {
+        const r = chart.timeScale().getVisibleRange();
+        savedView.current = r ? { key: viewKey, range: { from: r.from as Time, to: r.to as Time } } : null;
+      } catch {
+        savedView.current = null; // the chart could not say where it was: the next one fits the data
+      }
       handles.current = null;
       chart.remove();
     };
-  }, [bars, actions, signals, chartType, timeframe]);
+  }, [bars, actions, signals, chartType, timeframe, showEvents]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // indicators: overlays on the price pane, oscillators one pane each below it
   const { active, data, catalog } = indicators;
@@ -291,11 +337,11 @@ export function PriceChart({ bars, actions, instrumentId, adjust, timeframe, sym
     else if (action === "in") {
       if (width > 10) scale.setVisibleLogicalRange({ from: mid - width / 4, to: mid + width / 4 });
     } else if (action === "out") {
-      if (atStart) onExtend?.();
+      if (atStart) askEarlier.current();
       scale.setVisibleLogicalRange({ from: mid - width, to: mid + width });
     } else {
       const step = (action === "left" ? -1 : 1) * width * 0.25;
-      if (action === "left" && atStart) onExtend?.();
+      if (action === "left" && atStart) askEarlier.current();
       scale.setVisibleLogicalRange({ from: r.from + step, to: r.to + step });
     }
     setTick((n) => n + 1);

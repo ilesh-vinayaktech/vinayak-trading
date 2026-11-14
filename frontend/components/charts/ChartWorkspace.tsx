@@ -62,6 +62,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   const [active, setActive] = useState<Active[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [dialog, setDialog] = useState(false);
+  const [events, setEvents] = useState(false); // dividend / split arrows are off until asked for: they crowd the candles
   useEffect(() => {
     setActive(loadActive());
     setLoaded(true);
@@ -131,6 +132,9 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
       <button type="button" title={timeframe !== "1d" ? "Indicators are available on the 1D timeframe" : "Indicators"} aria-label="Indicators" disabled={timeframe !== "1d"} onClick={() => setDialog(true)} className={tbBtn(active.length > 0 && timeframe === "1d")}>
         <Icon name="line" size={18} />
         <span>Indicators</span>
+      </button>
+      <button type="button" title="Show dividends, splits and other corporate actions on the chart" aria-label="Events" aria-pressed={events} disabled={isIntraday(timeframe)} onClick={() => setEvents((v) => !v)} className={tbBtn(events)}>
+        <span>Events</span>
       </button>
       <Sep />
       <label className="sr-only" htmlFor="adjust">
@@ -246,7 +250,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   return (
     <div ref={box} className={`flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm ${full ? "h-screen" : "h-[calc(100vh-15rem)] min-h-[560px]"}`} data-testid="chart-workspace">
       {bars && bars.bars.length > 0 && picked ? (
-        <PriceChart bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} live={live} compare={benchmark.value && benchmark.points.length > 0 ? { name: benchmark.name, points: benchmark.points } : undefined} />
+        <PriceChart showEvents={events} bars={bars.bars} actions={instrument?.actions ?? []} instrumentId={picked.id} adjust={adjust} timeframe={bars.timeframe} symbol={picked.symbol} exchange="NSE" chartType={chartType} indicators={controls} topbar={topbar} signals={signals} onExtend={extend} live={live} compare={benchmark.value && benchmark.points.length > 0 ? { name: benchmark.name, points: benchmark.points } : undefined} />
       ) : (
         <>
           {topbar({ undo: () => {}, redo: () => {}, canUndo: false, canRedo: false, count: 0, listOpen: false, toggleList: () => {}, screenshot: () => {} })}
