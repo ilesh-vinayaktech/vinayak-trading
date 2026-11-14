@@ -10,7 +10,7 @@ autonomous live trading; that comes much later and behind the regulatory gate be
 | # | Area | Decision |
 |---|---|---|
 | 1 | Universe | **Nifty 200 only** for the first research dataset (point-in-time membership), not the 2,100+ stocks and not the AMFI universe. Widen only when historical membership, delisted-stock coverage and instrument identity are reliable. |
-| 2 | Holdout | **One globally locked, frozen holdout (2025-01-01 to 2026-11-13), evaluated ONCE, by one preregistered batch for the whole research family. It is consumed by that evaluation.** No discovery worker, researcher or LLM can read it. See section 3. |
+| 2 | Holdout | **One globally locked, frozen holdout (2025-01-01 to 2026-11-13), evaluated ONCE, by one preregistered batch for the whole research programme (every family together). It is consumed by that evaluation.** No discovery worker, researcher or LLM can read it. See section 3. |
 | 3 | Compute | **One concurrent study worker.** Other experiments queue. Live ingestion first, then paper trading, then research. No separate worker pools yet. |
 | 4 | Reuse | **Extend the existing studies, trials, verdict, holdout, trial counter, stage lifecycle, `backtest_run` and audit log.** No parallel `vti_*` tables, no second promotion state machine. Code stays under `algo`. |
 | 5 | LLM | Optional and provider-isolated. Everything works without it. 250,000 tokens and Rs 1,000 a month, both enforced. Initial provider, if enabled: OpenAI. Never receives raw market data or holdout results. |
@@ -42,25 +42,42 @@ Checked on 2026-11-14 against the dev database and `pyproject.toml`.
 | Dataset | Dates | Purpose |
 |---|---|---|
 | Research / development | 2016-01-04 to 2024-12-31 | features, discovery, experiments, walk-forward |
-| Global final holdout | **2025-01-01 to 2026-11-13, frozen** | **one** evaluation batch for the whole research family, then consumed |
+| Global final holdout | **2025-01-01 to 2026-11-13, frozen** | **one** evaluation batch for the whole research programme, then consumed |
 | Forward evidence | after 2026-11-13, and paper trading | never appended to the holdout; a larger holdout would need explicit evaluation vintages and its own access policy |
 
 Rules: (1) discovery and experiment workers cannot query holdout days; (2) the LLM never receives holdout data or detailed holdout
 results; (3) a candidate must first pass development validation and walk-forward; (4) candidates are frozen, then evaluated in
-**one preregistered global batch** by a separate evaluator, with the multiple-testing correction applied across the batch and the
-family's whole trial count; (5) the evaluator returns a controlled verdict, never metrics, equity curves or trades that could be
+**one preregistered global batch** by a separate evaluator, with the multiple-testing correction applied across the whole batch and
+each family's accumulated trial count; (5) the evaluator returns a controlled verdict, never metrics, equity curves or trades that could be
 used to tune a candidate; (6) **the holdout is consumed globally when that batch is evaluated.** After it there is no second
 evaluation against these dates and no further candidate submission against them, even for new candidates: repeated pass/fail
 feedback is itself an optimisation signal. New strategies are judged on forward evidence after 2026-11-13. A later historical
 evaluation needs a genuinely new, independently governed evaluation period.
 
-**The batch manifest and its states.** Before any holdout data is read, the evaluator validates and freezes a manifest: candidate
-ids and immutable strategy versions, parameter hashes, `dataset_sha256` and `study_sha256` for each, the development validation
-reports, the family id and its trial count, the evaluation date range, the multiple-testing procedure and version, and the
-evaluation code version. An accepted manifest is immutable. The batch has a unique immutable id and moves only forward:
-`REGISTERED -> FROZEN -> EVALUATING -> CONSUMED`, each transition atomic and audited. An interrupted evaluation stays
-`EVALUATING`; recovery may only re-run the same frozen manifest with the same evaluation code version, and any difference is
-refused. Nothing can return a batch to an earlier state or start a second batch once one is `CONSUMED`.
+**The holdout is global across families.** Independent research families do not each get their own evaluation: one holdout, one
+batch, for the whole programme. The manifest lists **every** eligible candidate with its family id, each family's trial count, the
+total number of candidates and the multiple-testing correction across all of them, and it is the complete frozen candidate set at
+the evaluation cutoff.
+
+**The batch manifest and its states.** Before any holdout data is read, the evaluator validates and freezes a manifest: batch id,
+candidate ids and immutable strategy versions, parameter hashes, `dataset_sha256` and `study_sha256` for each, the development
+validation reports, every candidate's family id and each family's trial count, the evaluation date range (it must equal the global
+holdout), the multiple-testing procedure and version, and the evaluation code version. An accepted manifest is immutable. The
+batch has a unique immutable id and moves only forward: `REGISTERED -> FROZEN -> EVALUATING -> CONSUMED`, or to the terminal
+`EVALUATION_FAILED`, each transition atomic and audited.
+
+**Invariant: at most one global holdout batch, ever.** The database enforces it (a uniqueness constraint over all batches). From
+the moment a batch is `FROZEN`, no other batch can be registered, and this stays true if the evaluation is interrupted, fails or
+remains `EVALUATING`. Recovery acts only on the original batch and its immutable manifest. The move to `EVALUATING` is atomic with
+the durable record that holdout access has begun, and **the holdout counts as consumed from that moment**, whatever the outcome.
+The evaluator rejects a modified manifest, a candidate not in the frozen manifest, a candidate without its required development
+evidence, a second batch, and a resume with changed candidate definitions.
+
+**Interrupted evaluation.** No partial candidate verdicts are ever exposed, and intermediate results stay inaccessible to
+researchers and agents. Recovery uses the exact same manifest, evaluator version, data snapshot and statistical procedure, and
+verdicts are committed atomically only after the whole batch finishes (`CONSUMED`). If deterministic recovery is impossible the
+batch becomes `EVALUATION_FAILED`: the holdout stays consumed, no further attempt is allowed with modified inputs, and a crash can
+never become a way to query the holdout again.
 
 **Verdict values.** A candidate's gate and batch results are one of `PASS`, `FAIL`, `INSUFFICIENT_EVIDENCE`, `NOT_APPLICABLE`.
 Missing evidence is never a weak pass, and neither the platform nor a future research agent may read it as one. A candidate with
@@ -184,7 +201,7 @@ blocked until the owner records the four rules.
 3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched) under one family id carrying their trial counts, and enforce the lock at the reader.
 4. Define the research family id and the audited classification procedure for a new family (section 3).
 5. Add the distinct validation states `PASS / FAIL / INSUFFICIENT_EVIDENCE / NOT_APPLICABLE` to gate results.
-6. Holdout batch policy: one global batch, consumed on evaluation; manifest, states and recovery as in section 3.
+6. Holdout batch policy: one global batch across all families, at most one ever, consumed when `EVALUATING` is recorded; manifest, states, `EVALUATION_FAILED` and recovery as in section 3.
 7. Data history: 336M minute bars are not proof of coverage; completeness reports by instrument, session and expected minute count before any intraday research.
 8. Frontend and portal work for research (queue view, controlled holdout verdict display) is not specified yet.
 9. Optional hardening: a read-only research database role limited to development-window views.

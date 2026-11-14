@@ -83,12 +83,19 @@ solely for a registered, frozen batch. Honest limit: inside one Python process t
 someone with database credentials; the stronger boundary (research jobs connecting with a read role limited to development-window
 views) is recorded as a hardening option, not a Phase 1 requirement.
 
-**Evaluation is one global preregistered batch, and it consumes the holdout.**
+**Evaluation is one global preregistered batch across all research families, and it consumes the holdout.** The database allows
+at most one holdout batch ever (a uniqueness constraint over all batches): from `FROZEN` onward no other batch can be registered,
+even if evaluation is interrupted, fails or stays `EVALUATING`.
 1. Freeze each candidate (strategy config, parameters, `dataset_sha256`, `study_sha256`, development validation reports) before evaluation.
 2. Register the batch: the frozen candidates, the family id and its trial count, the date range, the multiple-testing procedure and
    version and the evaluation code version. The evaluator validates this manifest **before reading any holdout data**; an accepted
-   manifest is immutable. States move only forward and atomically, each audited: `REGISTERED -> FROZEN -> EVALUATING -> CONSUMED`.
-   An interrupted run stays `EVALUATING` and can only be re-run with the same manifest and evaluation code version.
+   manifest is immutable and lists every candidate with its family id, each family's trial count, the candidate total and the
+   correction across all of them. States move only forward and atomically, each audited:
+   `REGISTERED -> FROZEN -> EVALUATING -> CONSUMED` or the terminal `EVALUATION_FAILED`. The move to `EVALUATING` is atomic with the
+   durable record that holdout access began, and the holdout counts as consumed from then. An interrupted run stays `EVALUATING` and
+   can only be re-run with the same manifest, evaluator version, data snapshot and statistical procedure; no partial verdicts are
+   exposed and results are committed atomically at the end; if deterministic recovery is impossible the batch is `EVALUATION_FAILED`
+   and no further attempt is allowed.
 3. A separate evaluator runs the whole batch once; the correction is applied across the batch and the family's full trial count.
    When it completes the holdout is **consumed globally**: no second batch, no further candidate against these dates.
 4. The result for research code is a **controlled verdict**: `PASS`, `FAIL`, `INSUFFICIENT_EVIDENCE` or `NOT_APPLICABLE` per
@@ -101,12 +108,15 @@ Acceptance:
 1. No ordinary API, CLI or research process can return holdout data (history, issuer history, minute reader, fundamentals, feature reads).
 2. Config file and database disagreeing, or a missing `research_lock` row, makes every research reader raise.
 3. A study ending after 2024-12-31 is refused; 2024-12-31 is accepted; 2025-01-01 is refused.
-4. The evaluator capability cannot be obtained without a `FROZEN` batch; a modified manifest, a second batch after `CONSUMED`, or
-   a re-run with a different manifest or evaluation code version is refused; no transition goes backwards.
+4. The evaluator capability cannot be obtained without a `FROZEN` batch; a modified manifest, a candidate outside it, a candidate
+   without development evidence, a second batch registered at any time after the first is `FROZEN` (including while `EVALUATING`
+   or after `EVALUATION_FAILED`), or a re-run with a different manifest, evaluator version or snapshot is refused; no transition
+   goes backwards; two concurrent registrations leave exactly one batch.
 5. The research-facing result contains no figure beyond the four verdict values and gate names.
 6. A lock change after a batch has run is refused; every lock change and batch is audited.
 
-Tests: boundary-exact (2024-12-31 / 2025-01-01) on every reader entry point; file/DB mismatch fail-closed; capability tests
+Tests: concurrent batch registration (two processes, one wins); a crash injected after partial holdout reads exposes no verdict and
+resumes deterministically, or ends `EVALUATION_FAILED`; boundary-exact (2024-12-31 / 2025-01-01) on every reader entry point; file/DB mismatch fail-closed; capability tests
 (forged token, reused token, unregistered batch); verdict redaction; a property test that no as-of or lookback argument reaches a
 holdout date; existing holdout tests migrated to the batch path.
 
@@ -133,6 +143,10 @@ Two hashes, kept separate:
 `study_sha256` additionally includes: feature ids, versions and definition hashes; strategy definition and parameters; the
 execution assumptions (a versioned reference); the **git commit** and a `dirty` flag (a run from a dirty working tree is marked
 non-reproducible and cannot support a holdout batch).
+
+`dataset_sha256` resolves to an immutable dataset manifest stored append-only under that hash (snapshot, universe revision, price
+source, adjustment mode and version, date range, cost schedule); `study_sha256` covers the strategy **implementation** (module
+source hash and declared helpers), the feature definitions, the parameters and the code commit, not only the study specification.
 
 Acceptance:
 1. Same inputs give the same hashes in a fresh process; changing any single component changes the relevant hash.
@@ -262,7 +276,8 @@ bypass is found early.
   machine.
 
 Acceptance: two research jobs started together run one after the other; every entry point on the scan list takes the slot; a
-request during market hours waits or pauses at the next checkpoint.
+request during market hours waits or pauses at the next checkpoint. The static scan is not the only proof: a multi-process test
+launches every entry point concurrently and shows that only one runs at a time.
 
 Tests: contention with fake jobs, the static scan, the market-hours guard on an injected clock, pause at a checkpoint.
 
