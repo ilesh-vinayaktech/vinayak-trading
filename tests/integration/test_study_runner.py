@@ -20,6 +20,7 @@ from algo.research import study_jobs, study_runner
 from algo.research.study_runner import StudyRunError, run_study
 from algo.research.study_store import register_study
 from tests.support.portal import add_user
+from tests.support.research_lock import anchor_open_lock
 from tests.unit.research.test_study import spec
 
 pytestmark = pytest.mark.integration
@@ -51,6 +52,7 @@ def sawtooth(k, days=DAYS):
 
 def build_env(conn, days, list_date=date(2023, 6, 30)):
     migrate(conn)
+    anchor_open_lock(conn)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     ids = []
@@ -620,3 +622,26 @@ def test_a_screener_study_runs_through_the_real_engine_and_buys_what_the_screen_
     assert (run["status"], run["error"]) == ("DONE", None)
     (t,) = study_jobs.trials(conn, sid)
     assert t["status"] == "DONE" and t["metrics"]["trades"] > 0
+
+
+def test_a_study_that_reaches_into_the_global_holdout_is_not_run_and_the_reader_it_gets_is_the_guard(
+    env, monkeypatch, tmp_path
+):
+    from algo.research import holdout_lock
+    from algo.research.holdout_lock import Lock, ResearchReader
+    from tests.support.research_lock import write_lock_file
+
+    conn, owner = env
+    sid = registered(conn, owner)  # registered under the open test lock
+    spec_ = small_spec()
+    # the real window: development ends before this study's last day
+    narrow = Lock(DAYS[-3], DAYS[-2], DAYS[-1])
+    monkeypatch.setattr(
+        holdout_lock, "LOCK_FILE", write_lock_file(tmp_path / "narrow.json", narrow)
+    )
+    holdout_lock.anchor(conn, narrow, by="test", reason="narrow window", now=NOW)
+    with pytest.raises(StudyRunError, match="inside the global research holdout"):
+        study_runner.prepare(conn, spec_, sid)
+    # a study that ends in development gets the guard, not a bare BarReader
+    setup = study_runner.prepare(conn, small_spec(end=DAYS[-4].isoformat()), sid)
+    assert isinstance(setup.reader, ResearchReader)

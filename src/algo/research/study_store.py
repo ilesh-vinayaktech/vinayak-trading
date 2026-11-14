@@ -14,6 +14,7 @@ import psycopg
 from algo.backtest.validation import registry
 from algo.data.benchmark import DEFAULT_BENCHMARK
 from algo.live.market_calendar import IST
+from algo.research import holdout_lock
 from algo.research.study import StudyError, StudySpec, check, combinations
 
 COLUMNS = "e.experiment_id, e.name, e.strategy_id, e.hypothesis, e.registered_at, e.holdout_opened_at, e.study, e.study_sha256, e.owner_user_id"
@@ -32,7 +33,8 @@ def _frozen_through(conn: psycopg.Connection) -> tuple[str, Any]:
 
 def register_study(conn: psycopg.Connection, owner: UUID, spec: StudySpec, now: datetime) -> int:
     """Check the study, pin it to the frozen data and the cost schedules in force, and register it. Returns its id."""
-    check(spec, today=now.astimezone(IST).date())
+    lock = holdout_lock.require(conn)  # fails closed: no anchored lock, no registration
+    check(spec, today=now.astimezone(IST).date(), development_end=lock.development_end)
     freeze_id, through = _frozen_through(conn)
     if spec.end > through:
         raise StudyError(

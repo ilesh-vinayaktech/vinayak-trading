@@ -15,6 +15,7 @@ from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data.benchmark import DEFAULT_BENCHMARK, validated
 from algo.portal import audit
 from algo.research import study_jobs
+from algo.research.holdout_lock import HoldoutError
 from algo.research.study import (
     HOLDOUT_SHARE,
     MAX_TRIALS,
@@ -93,6 +94,10 @@ def register(body: StudySpec, request: Request, who: CurrentUser, conn: WConn) -
         sid = register_study(conn, who.session.user_id, body, now)
     except StudyError as e:
         raise HTTPException(400, str(e)) from e
+    except (
+        HoldoutError
+    ) as e:  # the research lock is not anchored, or the file and the database disagree
+        raise HTTPException(409, f"research is locked: {e}") from e
     audit.record(
         conn, now=now, action="study.registered", actor_user_id=who.session.user_id, target_type="experiment",
         target_id=str(sid), detail={"name": body.name, "strategy_id": body.strategy_id},

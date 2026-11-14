@@ -134,8 +134,15 @@ def _check_grid(s: StudySpec, max_trials: int) -> None:
         )
 
 
-def check(s: StudySpec, *, today: date, max_trials: int = MAX_TRIALS) -> None:
-    """Refuse a study that cannot be honoured, with the reason."""
+def check(
+    s: StudySpec, *, today: date, max_trials: int = MAX_TRIALS, development_end: date | None = None
+) -> None:
+    """Refuse a study that cannot be honoured, with the reason. `development_end` is the research lock's last development day: a
+    study may not reach past it (the global holdout begins after it)."""
+    if development_end is not None and s.end > development_end:
+        raise StudyError(
+            f"the study ends {s.end}, inside the global research holdout (development ends {development_end}): register it with an end on or before {development_end}"
+        )
     _check_grid(s, max_trials)
     if set(s.thresholds) != set(default_thresholds()):
         raise StudyError(

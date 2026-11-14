@@ -10,6 +10,7 @@ from algo.data import freeze
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 from tests.support.portal import add_user, make_app, settings, sign_in
+from tests.support.research_lock import anchor_open_lock
 from tests.unit.research.test_study import spec
 
 pytestmark = pytest.mark.integration
@@ -19,6 +20,7 @@ NOW = datetime(2026, 11, 12, 6, 0, tzinfo=UTC)
 @pytest.fixture
 def env(conn, pg_url, tmp_path):
     migrate(conn)
+    anchor_open_lock(conn)
     clock = SimClock(NOW)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
@@ -297,3 +299,12 @@ def test_the_holdout_can_be_requested_only_after_a_passing_verdict_and_only_by_s
     conn.execute("UPDATE study_run SET status='DONE' WHERE run_id=%s", (queued,))
     assert "already been opened" in jane.post(f"/api/studies/{sid}/holdout").json()["detail"]
     assert audit_actions_like(conn, "study.holdout%") == ["study.holdout_requested"]
+
+
+def test_a_registration_while_the_research_lock_is_not_anchored_is_a_409_not_a_crash(env):
+    conn, app = env
+    conn.execute("ALTER TABLE research_lock DISABLE TRIGGER research_lock_no_change")
+    conn.execute("DELETE FROM research_lock")  # the lock is not anchored
+    trader = sign_in(app, "jane@example.com")
+    r = trader.post("/api/studies", json=body())
+    assert r.status_code == 409 and "research is locked" in r.json()["detail"]

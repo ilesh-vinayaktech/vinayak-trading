@@ -198,7 +198,7 @@ blocked until the owner records the four rules.
 
 1. Verify and load the Nifty 200 membership (the 13 documented exceptions, PEL, GSPL, placeholders) so strict-eligible sessions exist; report membership and price-adjustment eligibility separately. **Highest priority, alongside the holdout enforcement. No Nifty 200 experiment before it is done.**
 2. Owner confirms the first feature formulas (`docs/vti-phase1-spec.md` section C) before they are implemented.
-3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched) under one family id carrying their trial counts, and enforce the lock at the reader.
+3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched) under one family id carrying their trial counts. The lock is enforced at the reader (built 2026-11-14, slice 1) but **not yet anchored in the dev database**: run `scripts/research_lock.py anchor` (owner), after which the 8 old studies are refused until re-registered.
 4. Define the research family id and the audited classification procedure for a new family (section 3).
 5. Add the distinct validation states `PASS / FAIL / INSUFFICIENT_EVIDENCE / NOT_APPLICABLE` to gate results.
 6. Holdout batch policy: one global batch across all families, at most one ever, consumed when `EVALUATING` is recorded; manifest, states, `EVALUATION_FAILED` and recovery as in section 3.

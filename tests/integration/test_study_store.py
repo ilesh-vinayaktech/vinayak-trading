@@ -15,6 +15,7 @@ from algo.data.store.migrate import migrate
 from algo.research.study import StudyError
 from algo.research.study_store import get_study, list_studies, register_study
 from tests.support.portal import add_user
+from tests.support.research_lock import anchor_open_lock
 from tests.unit.research.test_study import spec
 
 pytestmark = pytest.mark.integration
@@ -24,6 +25,7 @@ NOW = datetime(2026, 11, 12, 6, 0, tzinfo=UTC)
 @pytest.fixture
 def env(conn):
     migrate(conn)
+    anchor_open_lock(conn)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     iid = repo.add_instrument(x, "AAA")
@@ -103,6 +105,7 @@ def test_a_study_must_end_inside_the_frozen_history_have_costs_and_a_unique_name
 
 def test_without_a_frozen_history_nothing_can_be_registered(conn):
     migrate(conn)
+    anchor_open_lock(conn)
     owner = add_user(conn, SimClock(NOW), "TRADER", "jane@example.com")
     with pytest.raises(StudyError, match="freeze"):
         register_study(conn, owner, spec(), NOW)

@@ -11,6 +11,7 @@ from algo.core.clock import SimClock
 from algo.data.store.migrate import migrate
 from algo.research import study_jobs
 from tests.support.portal import add_user
+from tests.support.research_lock import anchor_open_lock
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 11, 12, 6, 0, tzinfo=UTC)
@@ -19,6 +20,7 @@ NOW = datetime(2026, 11, 12, 6, 0, tzinfo=UTC)
 @pytest.fixture
 def env(conn):
     migrate(conn)
+    anchor_open_lock(conn)
     owner = add_user(conn, SimClock(NOW), "TRADER", "jane@example.com")
     study = {"combinations": [{"a": 1}, {"a": 2}]}
     exp = registry.register(conn, name="S", strategy_id="s", hypothesis="h", style="long_only",

@@ -36,8 +36,9 @@ from algo.backtest.validation.gates import Thresholds, evaluate
 from algo.backtest.validation.stats import sharpe_per_period
 from algo.data import benchmark as benchmarks
 from algo.data import benchmark_gate
-from algo.data.reader import BarReader
-from algo.research import fundamentals_book, study_jobs, study_universe, verdict
+from algo.data.reader import BarReader, PriceReader
+from algo.research import fundamentals_book, holdout_lock, study_jobs, study_universe, verdict
+from algo.research.holdout_lock import ResearchReader
 from algo.research.study import THRESHOLDS_FILE, StudySpec
 from algo.research.study_store import get_study
 from algo.strategies.registry import STRATEGIES
@@ -117,12 +118,21 @@ class Setup:
     begin: date
     research_end: date
     policy: CostPolicy
-    reader: BarReader
+    reader: PriceReader
     fundamentals: Any = None  # the filings a screener strategy reads (a FundamentalsBook), only when its screen uses them
 
 
 def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: bool = False) -> Setup:
     """The shared setup. `holdout=True` is for the one-time test only: its window is the holdout (`research_end` is then its last day)."""
+    try:
+        lock = holdout_lock.require(conn)  # fails closed: no anchored lock, no study run
+    except holdout_lock.HoldoutError as e:
+        raise StudyRunError(f"research is locked: {e}") from e
+    if spec.end > lock.development_end:
+        raise StudyRunError(
+            f"this study ends {spec.end}, inside the global research holdout (development ends {lock.development_end}): "
+            "register a new version of it with an end on or before that day"
+        )
     start, research_end = spec.start, spec.holdout_start - timedelta(days=1)
     if holdout:
         start, research_end = spec.holdout_start, spec.end
@@ -144,7 +154,7 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         # Studies read the FROZEN Kite history on purpose (locked by freeze and hash, Kite
         # visibility lag): they do not follow ALGO_PRICE_CUTOFF. Studying past the cutoff needs a
         # new freeze that includes the NSE bars, decided then.
-        BarReader(conn, source="kite", publish_lag=timedelta(0)),
+        ResearchReader(BarReader(conn, source="kite", publish_lag=timedelta(0)), lock),
         fundamentals_book.load(conn, membership.ever(), start, research_end)
         if spec.screen is not None and spec.screen.needs_fundamentals()
         else None,

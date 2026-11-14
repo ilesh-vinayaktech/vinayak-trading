@@ -509,8 +509,10 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     from algo.paper import book
     from tests.support.bt import put_bars
     from tests.support.portal import add_user, make_app, settings, sign_in
+    from tests.support.research_lock import anchor_open_lock
 
     migrate(conn)
+    anchor_open_lock(conn)
     start = datetime(2026, 11, 11, 10, 0, tzinfo=UTC)
     today = start.date()
     clock = SimClock(start)

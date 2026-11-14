@@ -14,7 +14,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -184,6 +184,20 @@ class Loaded:
                 AdjBar(r[0], r[1] * f, r[2] * f, r[3] * f, r[4] * f, r[5] / fs, f, self.owners[i])
             )
         return History(bars, unapplied, provisional, _version(adjust, known))
+
+
+class PriceReader(Protocol):
+    """What the backtest engine needs from a price reader: a BarReader or the research guard."""
+
+    @property
+    def known_at(self) -> Any: ...
+    @property
+    def visible_after(self) -> Any: ...
+
+    def load(self, instrument_id: int, *, strict: bool = False) -> Loaded: ...
+    def issuer_load(self, instrument_id: int, *, strict: bool = False) -> Loaded: ...
+    def snapshot_hash(self, instrument_ids: list[int]) -> str | None: ...
+    def isin_links(self) -> list[Link]: ...
 
 
 class BarReader:

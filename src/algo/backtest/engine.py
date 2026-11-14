@@ -29,7 +29,7 @@ from algo.core.clock import SimClock
 from algo.core.money import snap_down
 from algo.data.adjust.factors import ActionRecord
 from algo.data.conversions import load_conversions
-from algo.data.reader import BarReader, UnadjustableError
+from algo.data.reader import BarReader, PriceReader, UnadjustableError
 from algo.data.store.instruments import InstrumentRepo, NotFoundError
 from algo.ledger.ledger import Ledger
 from algo.strategy.base import Mode, Strategy, Targets
@@ -201,7 +201,7 @@ def run_backtest(
     cfg: BacktestConfig,
     *,
     code_version: str = "unversioned",
-    reader: BarReader | None = None,
+    reader: PriceReader | None = None,
     on_day: Callable[[int, int, date], None] | None = None,
 ) -> RunResult:
     """`reader` pins the price source (a study uses frozen Kite data); default: the environment."""

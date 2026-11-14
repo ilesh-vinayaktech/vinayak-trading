@@ -195,3 +195,14 @@ def test_a_grid_without_the_trend_average_is_refused_with_a_reason_when_the_hist
         StudyError, match="at least 210 sessions"
     ):  # the default 200-day average plus warm-up
         check(spec(grid={"max_positions": [10]}, universe=short), today=TODAY)
+
+
+def test_a_study_may_not_reach_into_the_global_research_holdout():
+    check(spec(), today=TODAY)  # no lock given: only the other rules apply
+    late = spec(end="2025-01-02", holdout_start="2024-05-01")
+    with pytest.raises(StudyError, match="inside the global research holdout"):
+        check(late, today=TODAY, development_end=date(2024, 12, 31))
+    ok = spec(end="2024-12-31", holdout_start="2024-05-01")
+    check(
+        ok, today=TODAY, development_end=date(2024, 12, 31)
+    )  # the last development day itself is allowed
