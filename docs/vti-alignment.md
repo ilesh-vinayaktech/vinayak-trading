@@ -9,8 +9,8 @@ autonomous live trading; that comes much later and behind the regulatory gate be
 
 | # | Area | Decision |
 |---|---|---|
-| 1 | Universe | Start with the **historical Nifty 200** (point-in-time membership), not the 2,100+ stocks. Widen only when historical membership, delisted-stock coverage and instrument identity are reliable. |
-| 2 | Holdout | **One globally locked holdout.** No discovery worker, researcher or LLM can read it. See section 3. |
+| 1 | Universe | **Nifty 200 only** for the first research dataset (point-in-time membership), not the 2,100+ stocks and not the AMFI universe. Widen only when historical membership, delisted-stock coverage and instrument identity are reliable. |
+| 2 | Holdout | **One globally locked, frozen holdout (2025-01-01 to 2026-11-13), evaluated by preregistered batch.** No discovery worker, researcher or LLM can read it. See section 3. |
 | 3 | Compute | **One concurrent study worker.** Other experiments queue. Live ingestion first, then paper trading, then research. No separate worker pools yet. |
 | 4 | Reuse | **Extend the existing studies, trials, verdict, holdout, trial counter, stage lifecycle, `backtest_run` and audit log.** No parallel `vti_*` tables, no second promotion state machine. Code stays under `algo`. |
 | 5 | LLM | Optional and provider-isolated. Everything works without it. 250,000 tokens and Rs 1,000 a month, both enforced. Initial provider, if enabled: OpenAI. Never receives raw market data or holdout results. |
@@ -42,41 +42,58 @@ Checked on 2026-11-14 against the dev database and `pyproject.toml`.
 | Dataset | Dates | Purpose |
 |---|---|---|
 | Research / development | 2016-01-04 to 2024-12-31 | features, discovery, experiments, walk-forward |
-| Global final holdout | 2025-01-01 to 2026-11-13 | one controlled final evaluation per frozen strategy family |
-| Paper trading | from when the engineering gates pass | forward evidence |
+| Global final holdout | **2025-01-01 to 2026-11-13, frozen** | one controlled batch evaluation per frozen candidate set |
+| Forward evidence | after 2026-11-13, and paper trading | never appended to the holdout; a larger holdout would need explicit evaluation vintages and its own access policy |
 
 Rules: (1) discovery and experiment workers cannot query holdout days; (2) the LLM never receives holdout data or detailed holdout
-results; (3) a candidate must first pass development validation and walk-forward; (4) a frozen strategy family gets **one** final
-evaluation; (5) detailed holdout results never flow back into discovery; (6) a failed family cannot be modified and retested
-against the same holdout. The evaluator returns a controlled verdict, not a dataset. The trial counter spans the whole research
-family and is never reset per study.
+results; (3) a candidate must first pass development validation and walk-forward; (4) candidates are frozen, then evaluated in a
+**preregistered batch** by a separate evaluator, with the multiple-testing correction applied across the batch and the family's
+whole trial count; (5) the evaluator returns a controlled verdict (pass or fail and the names of failed gates), never metrics,
+equity curves or trades that could be used to tune a candidate; (6) a failed candidate cannot be modified and resubmitted against
+the same holdout; a changed candidate is a new family member. The trial counter spans the whole research family and is never reset
+per study or per re-registration.
+
+Enforcement: the lock configuration is anchored in the database (a hash in an append-only table); if the file and the database
+disagree every research reader fails closed; the unwrapped reader exists only behind an evaluator capability tied to a registered
+batch. This stops accidents and ordinary code paths; it is not a defence against someone holding database credentials (a read-only
+research database role limited to development-window views is a later hardening option).
 
 How it differs from what exists:
 
 - Today the holdout is **per study** (`experiment.holdout_start/holdout_end`, one `study_holdout` row per study). All 8 registered
-  studies use 2025-01-30 to 2026-11-11 and **none has been opened**, so no holdout has been consumed.
-- Those studies' research windows run to 2025-01-29, which is 29 days inside the new global holdout. They must be re-registered
-  with an end of 2024-12-31 (or clamped) before the lock is enforced.
+  studies use 2025-01-30 to 2026-11-11 and **none has been opened**, so no holdout has been consumed. Opening per study is replaced
+  by the batch evaluation above.
+- Those studies' research windows run to 2025-01-29, 29 days inside the global holdout. The originals are **preserved** (their
+  SHA-256, audit and trials stay); new registrations with a research end of 2024-12-31 supersede them, and the family's trial count
+  carries forward.
 - 2025-2026 prices are not pristine: the owner has seen charts and paper-run proposals on them. The lock stops the research loop
-  from using them, it cannot make them unseen. Record this when the first family is evaluated.
-- The lock must be enforced where data is read (a reader that refuses days on or after the holdout start), not by convention.
+  from using them, it cannot make them unseen. Record this when the first batch is evaluated.
 
 ## 4. The Nifty 200 reality (a consequence of decision 1)
 
 `docs/stage4/membership/MEMBERSHIP_COVERAGE.md` and the dev database show:
 
-- Reconstructed membership covers **2020-10-01 to 2026-11-07** (1,513 sessions), not 2016. Release evidence goes back to 2017 and
-  monthly snapshots to 2017-01..2022-03, but the loaded and reconciled window is the one above.
-- **0 of 1,513 sessions are strict-eligible** (nothing is person-verified). 337 would be eligible once verified. The blockers are
-  members with no instrument (PEL 831 sessions, GSPL 620, several demerger placeholders) and members not yet published on the
-  decision day.
-- `index_membership_event` and `index_membership_coverage` are **empty in the dev database**. The adopted revision 3 exists as
-  CSV files under `docs/stage4/membership/`. Whatever the studies read as Nifty 200 today does not come from verified rows.
+Membership eligibility and price-adjustment eligibility are different questions and are reported separately.
 
-So until membership is verified and loaded, a Nifty 200 development window is about 2020-10 to 2024-12 (roughly 4 years, 1,050
-sessions), not 2016 to 2024. **Open decision for the owner:** accept the shorter window, or also allow the AMFI market-cap
-segment universe (lists from 2018-08, which the study runner uses today) as a clearly labelled second universe with its known
-survivorship gap.
+**Membership** (`docs/stage4/membership/MEMBERSHIP_COVERAGE.md`, dev database):
+
+- Reconstructed membership covers **2020-10-01 to 2026-11-07** (1,513 sessions), not 2016. Release evidence goes back to 2017 and
+  monthly snapshots to 2017-01..2022-03, but the reconciled window is the one above.
+- "0 of 1,513 strict-eligible" has two causes: (a) **verification**: all 1,513 sessions are PROVISIONAL, none person-verified;
+  (b) **reconstruction**: only 356 sessions are COMPLETE (every member resolves to a tradable instrument with a bar), 1,157 are
+  INCOMPLETE (members with no instrument: PEL 831 sessions, GSPL 620, demerger placeholders; members not yet published on the
+  decision day). If verification were done now, 337 sessions would qualify.
+- `index_membership_event` and `index_membership_coverage` are **empty in the dev database**; revision 3 exists as CSV files under
+  `docs/stage4/membership/`.
+
+**Price adjustment**: whether each member's price history has an unresolved corporate action. The earlier "167 of 200 strict-clean"
+figure is superseded: on 2026-11-14 the review queue was closed under the Kite price source (0 open), valid for that series only;
+after the NSE cutoff rights, demergers and buy-backs need a person again. Track it per member and date, not inside the membership
+count.
+
+**Decision (owner, 2026-11-14):** Nifty 200 only for the first research dataset; the AMFI market-cap universe is not a second
+discovery universe in Phase 1. The development window is therefore the verified membership window (about 2020-10 to 2024-12)
+until earlier membership is reconstructed and verified.
 
 ## 5. Mapping `plan.md` onto what exists
 
@@ -103,14 +120,14 @@ monitoring exists. No second state machine.
 
 | Workload | Policy |
 |---|---|
-| Study workers | 1 at a time (today several may run, each about 2 GB: add a global limit) |
+| Study workers | 1 at a time (today several may run, each about 2 GB). One advisory-lock "research slot" taken by every research entry point: study worker, trial runner, verdict and holdout evaluation, research backtest scripts, feature jobs, backfills. A static scan test enforces it |
 | Experiments | queued, no limit on the queue |
 | Live ingestion | highest priority |
 | Paper trading | above research |
 | Feature generation | scheduled, resource-limited |
 | Large discovery jobs | off-peak only |
 
-Raise concurrency only after measuring CPU, memory, I/O and database contention.
+A lock serialises but does not yield: long jobs checkpoint (feature work monthly) and pause cleanly when paper trading, ingestion or the market-hours window needs the machine. Raise concurrency only after measuring CPU, memory, I/O and database contention.
 
 ## 7. Why the five validation reports failed
 
@@ -141,7 +158,8 @@ blocked until the owner records the four rules.
 
 ## 9. Open items
 
-1. Dev window: accept about 2020-10 to 2024-12 for the Nifty 200, or add the AMFI segment universe as a second labelled universe (section 4).
-2. Verify and load the Nifty 200 membership (28 exceptions, PEL, GSPL, placeholders) so strict-eligible sessions exist.
-3. Re-register the 8 studies against the 2024-12-31 research end and enforce the lock at the reader.
-4. Frontend and portal work for research (queue view, holdout verdict display) is not specified yet.
+1. Verify and load the Nifty 200 membership (the 13 documented exceptions, PEL, GSPL, placeholders) so strict-eligible sessions exist; report membership and price-adjustment eligibility separately.
+2. Owner confirms the first feature formulas (`docs/vti-phase1-spec.md` section C) before they are implemented.
+3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched, trial count carried forward) and enforce the lock at the reader.
+4. Frontend and portal work for research (queue view, controlled holdout verdict display) is not specified yet.
+5. Optional hardening: a read-only research database role limited to development-window views.

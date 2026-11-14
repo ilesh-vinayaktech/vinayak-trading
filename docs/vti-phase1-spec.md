@@ -1,169 +1,307 @@
-# VTI Phase 1: research foundation (specification)
+# VTI Phase 1: research foundation (specification, revision 2)
 
 Scope, decisions and limits are in `docs/vti-alignment.md`; this file turns Phase 1 of `plan.md` into work items with acceptance
-criteria and tests. Phase 1 may run during the paper period. It builds data and feature infrastructure only: it changes no live
-or paper behaviour, promotes nothing, raises no risk limit and runs nothing heavy while paper trading needs the machine.
+criteria and tests. Revision 2 (2026-11-14) incorporates the owner's review of revision 1: a stricter holdout, dataset identity
+that pins input versions, immutable feature materialisations per dataset, price/volume features only, exact feature formulas, a
+research slot on every entry point, and monthly checkpoints.
+
+**Success metric.** Phase 1 succeeds when the platform can produce a historically correct, point-in-time, reproducible research
+dataset and prove that the same inputs always give the same feature outputs. It does not succeed by finding a profitable strategy,
+and it must not quietly become an alpha-discovery project.
+
+Phase 1 may run during the paper period. It changes no live or paper behaviour, promotes nothing, raises no risk limit, writes to
+no paper or live table, and runs nothing heavy while paper trading needs the machine.
 
 Tests follow the project rule: written first, failing first, `make quick` while working, `make check` before a commit. New modules
-under `src/algo/` need a matching `tests/**/test_<module>.py`. Money-path floors are untouched; the feature code is not a money
-path but is held to 90% branch.
+under `src/algo/` need a matching `tests/**/test_<module>.py`. The 90% branch floor is a minimum, not proof of correctness: each
+feature also has a hand-computed reference fixture and property tests as independent checks.
 
-## 1. Prerequisites (not Phase 1 work, but Phase 1 results are not trustworthy without them)
+## 1. Prerequisites
 
-| # | Prerequisite | Why |
+| # | Prerequisite | Notes |
 |---|---|---|
-| P1 | Nifty 200 membership verified by a person and loaded (`index_membership_event`, declared `index_membership_coverage`); PEL, GSPL and the demerger placeholders resolved to instruments | Today 0 of 1,513 sessions are strict-eligible and the tables are empty (alignment section 4) |
-| P2 | Decide the development window: Nifty 200 only (about 2020-10 to 2024-12) or also the AMFI segment universe as a labelled second universe | Decides how many years the first features and studies cover |
-| P3 | Re-register the 8 existing studies with a research end of 2024-12-31 | Their research windows overlap the global holdout by 29 days |
+| P1 | Nifty 200 membership verified by a person and loaded (`index_membership_event`, declared `index_membership_coverage`); PEL, GSPL and the demerger placeholders resolved to instruments | Report two separate things, never one number (below) |
+| P2 | **Decided:** Nifty 200 only for the first research dataset. No AMFI universe in Phase 1. The development window is the verified membership window (about 2020-10 to 2024-12 until earlier membership is reconstructed and verified) | Owner, 2026-11-14 |
+| P3 | Register new versions of the 8 existing studies with a research end of 2024-12-31. **Never edit the originals** | See P3 below |
 
-Until P1 is done, features may be computed and validated (they do not depend on the membership), but no experiment may be
-registered on a "Nifty 200" universe and called point-in-time.
+**P1: two eligibility questions, reported separately.**
+
+- *Membership eligibility* (`MEMBERSHIP_COVERAGE.md`, 1,513 sessions 2020-10-01 to 2026-11-07): "0 strict-eligible" is the product of
+  two causes. (a) Verification: all 1,513 are PROVISIONAL, so none is person-verified. (b) Reconstruction: only 356 sessions are
+  COMPLETE (every member resolves to a tradable instrument with a bar); 1,157 are INCOMPLETE, mainly members with no instrument
+  (PEL 831 sessions, GSPL 620, demerger placeholders) and members not yet published on the decision day (32 sessions are
+  RETROSPECTIVE). If verification were done today, 337 sessions would qualify.
+- *Price-adjustment eligibility*: whether each member's price history has no unresolved corporate action. The older figure "167 of
+  200 strict-clean" in the TODO notes is superseded: on 2026-11-14 the review queue was closed under the Kite price source
+  (0 items open), which holds only for that series. After the NSE cutoff, rights, demergers and buy-backs need a person again.
+  Report this per member and per date, not folded into the membership count.
+
+**P3: new registrations.** Preserve each original study, its SHA-256, its audit history and its trials. Register a new study
+(`supersedes_experiment_id` records the link) with research end 2024-12-31. The strategy family and its **trial count carry
+forward**: the multiple-testing penalty is not reset.
+
+Until P1 is done, features may be computed and validated (they do not depend on membership), but no experiment may be registered
+on a "Nifty 200" universe and called point-in-time.
 
 ## 2. Existing tables and modules to extend (before anything new)
 
 | Need | Extend | How |
 |---|---|---|
-| Global holdout | `experiment` (`holdout_start`, `holdout_end`, `holdout_opened_at`), `study_holdout`, `research/study.py` validation | Keep the per-study one-time open. Add a global lock file `config/research_holdout.json` and refuse any study whose research window ends on or after its `holdout_start`, and any holdout window that starts before the global one |
-| Data access that cannot see the holdout | `data/reader.py` `BarReader` | A guarded reader (see work item A) rather than a new data path |
-| Family-wide trial counter | `backtest/validation/registry.py`, migration 010 | Add a `family` column to the trial counting, default the study's strategy family; never reset per study |
-| Dataset pin | `data_snapshot`, `DataAPI`, `data_freeze`, `experiment.study` JSON and `study_sha256` | Add `dataset_ref` and `features` to the study spec, so they enter the SHA-256 |
-| One study worker | `scripts/study_worker.py`, `research/study_jobs.py` (advisory locks per run) | Add one global advisory lock (the "research slot") every research job takes |
+| Global holdout and lock | `experiment` (`holdout_*`), `study_holdout`, `research/study.py` validation, `scripts/study_worker.py` | Global lock anchored in the database (A). The per-study holdout open becomes a batch evaluation (A) |
+| Data access that cannot see the holdout | `data/reader.py` `BarReader` | A guarded research reader; the unwrapped reader only through the evaluator capability |
+| Family-wide trial counter | `backtest/validation/registry.py`, migration 010 | Add a family key; never reset per study or per re-registration |
+| Dataset pin | `data_snapshot`, `snapshot_partition`, `DataAPI`, `data_freeze`, `experiment.study`, `study_sha256` | Add `dataset_sha256` and the feature pins to the study spec (B) |
+| Research slot | `scripts/study_worker.py`, `research/study_jobs.py`, `research/study_runner.py`, every script that runs a backtest or verdict | One common resource guard (G) |
 | Scheduling and history | `algo/jobs/registry.py`, `job_run` | The daily feature job is a registered job |
-| Audit | `portal_audit` | Holdout lock changes and feature definition changes are audited |
+| Audit | `portal_audit` | Lock changes, evaluation batches, feature definition changes |
 | Lifecycle | `strategy_config`, `strategy_stage_change` | No change in Phase 1 |
 
-New tables are justified only where nothing exists: a feature definition store, feature values, and a feature run record (work
-items C and F). Everything else is an extension.
+New tables only where nothing exists: `research_lock`, `holdout_batch` and its results (A), `feature_definition`, `feature_run`,
+`feature_value` (C, F).
 
 ## 3. Work items
 
-### A. Holdout lock
+### A. Holdout lock and controlled evaluation
 
-- `config/research_holdout.json`: `{"development_end": "2024-12-31", "holdout_start": "2025-01-01"}`. The holdout end is open
-  (today's data keeps arriving inside the holdout).
-- `algo/research/holdout_lock.py`: `ResearchReader` wraps `BarReader` and raises `HoldoutAccess` for any bar, fundamentals filing
-  or feature value dated on or after `holdout_start`. Only the verdict and holdout evaluator receive an unwrapped reader.
-- `research/study.py`: a study whose end is after `development_end` is refused with the reason.
+**Frozen window.** Development: 2016-01-04 to 2024-12-31. Global holdout: **2025-01-01 to 2026-11-13, fixed**. Observations after
+2026-11-13 are forward-validation evidence, never appended to this holdout. A later, larger holdout would need explicit
+evaluation vintages and a separate access policy; it is not part of Phase 1.
 
-Acceptance:
-1. A research reader cannot return a bar dated 2025-01-01 or later, through history, issuer history or the minute reader.
-2. A study registered with an end of 2025-01-02 is refused; one ending 2024-12-31 is accepted.
-3. The holdout evaluator still opens the holdout once per study (existing tests unchanged).
-4. Changing `config/research_holdout.json` is audited and is refused once any holdout has been opened.
+**Anchored in the database.** `research_lock` (append-only, migration 065): `config_sha256`, `development_end`, `holdout_start`,
+`holdout_end`, `set_at`, `set_by`. `config/research_holdout.json` must hash to the newest row; if the file and the database
+disagree, every research reader **fails closed**. Changing the lock is an audited, deliberate act and is refused once any batch
+has been evaluated.
 
-Tests: boundary-exact (2024-12-31 allowed, 2025-01-01 refused), each reader entry point, the evaluator path, the audit row, a
-property test that no date at or after the start can be reached by any lookback or as-of argument.
+**Guarded reader.** `ResearchReader` wraps `BarReader` and refuses any bar, filing or feature value dated on or after
+`holdout_start`. The unwrapped reader exists only behind an evaluator capability that `algo/research/evaluator.py` can obtain
+solely for a registered, frozen batch. Honest limit: inside one Python process this stops accidents and ordinary code paths, not
+someone with database credentials; the stronger boundary (research jobs connecting with a read role limited to development-window
+views) is recorded as a hardening option, not a Phase 1 requirement.
 
-### B. Research dataset definition
-
-A dataset reference is the tuple the alignment doc requires: data snapshot id, universe version (membership revision plus the
-coverage declaration), price source and cutoff, adjustment mode, window, cost schedule version. `algo/research/dataset.py`
-builds it and its SHA-256, and stores it in the study spec.
-
-Acceptance:
-1. The same inputs give the same hash; changing any one input changes it.
-2. A study cannot be registered without a dataset reference; the reference is inside `study_sha256`.
-3. A reference whose snapshot no longer verifies (`SnapshotChanged`) is refused.
-
-Tests: hash stability and sensitivity per field, registration refusal, a changed bar under a pinned snapshot is detected.
-
-### C. Feature registry (daily features only)
-
-New tables (migration 065 onward, append-only like the other logs):
-
-- `feature_definition(feature_id BIGSERIAL, name, version, kind, inputs JSONB, warmup_sessions, code_ref, definition_sha256, created_at)`,
-  unique on `(name, version)`. A definition is never updated: a change is a new version.
-- `feature_value(feature_id, instrument_id, day, value NUMERIC, available_at TIMESTAMPTZ, run_id)`, primary key
-  `(feature_id, instrument_id, day)`. Rows are never updated; a recompute under the same version must equal what is stored.
-
-`algo/features/` holds pure functions `compute(history_as_of, ...)` that take the same bounded history a strategy gets. First
-set, reusing the code that exists rather than rewriting it: returns and momentum windows, volatility, ATR, distance from moving
-averages, liquidity (traded value), and the screener's ratio fields from `data/ratios.py`. Intraday features are not stored; they
-are computed on demand from bars until measurement says otherwise.
+**Evaluation is by preregistered batch, not per study.**
+1. Freeze each candidate (strategy config, parameters, dataset_sha256, study_sha256) before evaluation.
+2. Register an evaluation batch: the frozen candidates, the family, and the multiple-testing correction, before any holdout data
+   is read (`holdout_batch`).
+3. A separate evaluator runs the whole batch once; the correction is applied across the batch and the family's full trial count.
+4. The result for research code is a **controlled verdict**: pass or fail per candidate and the names of failed gates. No metrics,
+   equity curves, trades or dates. The detailed report is stored where only the owner reads it through the portal.
+5. A failed candidate cannot be modified and resubmitted: a changed candidate is a new family member with its own trial count and
+   cannot be evaluated against the same holdout again.
+6. Nothing from a verdict feeds discovery; the LLM never sees the holdout or its detailed results.
 
 Acceptance:
-1. Each feature has a version and a definition hash; editing the function body without a version bump fails a test (the hash
-   of the code reference is checked against the stored definition).
-2. `available_at` is the bar's visible time (close plus the publish lag) for price features and the filing time for ratio
-   features; a value is never served before it.
-3. A value inside its warm-up is absent, never zero.
-4. Sizing check: 200 stocks, about 1,050 sessions, about 40 features is about 8M rows; the load completes inside the resource
-   limits of the daily job.
+1. No ordinary API, CLI or research process can return holdout data (history, issuer history, minute reader, fundamentals, feature reads).
+2. Config file and database disagreeing, or a missing `research_lock` row, makes every research reader raise.
+3. A study ending after 2024-12-31 is refused; 2024-12-31 is accepted; 2025-01-01 is refused.
+4. The evaluator capability cannot be obtained without a registered batch, cannot be reused for a second batch over the same
+   candidates, and a modified candidate is refused.
+5. The research-facing result contains no figure beyond pass/fail and gate names.
+6. A lock change after a batch has run is refused; every lock change and batch is audited.
 
-Tests: version/hash guard, warm-up (absent not zero), `available_at` rules, hand-computed values for each first feature,
-Hypothesis property: batch over a window equals incremental one day at a time.
+Tests: boundary-exact (2024-12-31 / 2025-01-01) on every reader entry point; file/DB mismatch fail-closed; capability tests
+(forged token, reused token, unregistered batch); verdict redaction; a property test that no as-of or lookback argument reaches a
+holdout date; existing holdout tests migrated to the batch path.
 
-### D. Daily feature job
+### B. Dataset identity and study manifest
 
-A registered job (after the evening data jobs and `paper-run`, off-peak), `scripts/compute_features.py`: computes the newest
-session's values for every registered feature and the Nifty 200 members of that day, resumable, and a `--from/--to` backfill that
-processes one month at a time. It takes the research slot lock, runs niced, and yields to paper trading and ingestion (it never
-starts while `paper-run` or `paper-orders` is running).
+Two hashes, kept separate:
 
-Acceptance:
-1. Re-running a day changes nothing (same hash).
-2. A stopped backfill resumes without recomputing finished months.
-3. The job fails (alert) when its input data is not ready per `ReadinessService`, instead of computing from stale bars.
-4. It never reads on or after the holdout start while in research mode (it uses the guarded reader), except for the explicit
-   evaluation path, which is separate.
+- `dataset_sha256` identifies the **data inputs** only.
+- `study_sha256` identifies the **complete study**: strategy and parameters, `dataset_sha256`, feature pins, cost and execution
+  assumptions and the code commit.
 
-Tests: idempotence, resume, readiness refusal, lock contention with a study worker (only one runs), holdout guard.
+`dataset_sha256` pins the versions actually read, not just a snapshot label:
 
-### E. Point-in-time availability checks
+| Component | Required identity |
+|---|---|
+| Data snapshot | Immutable snapshot id and its hash (`data_snapshot`) |
+| Bar data | Provider, source and the `dataset_version` actually read per partition (from `snapshot_partition`) |
+| Universe | Membership revision and the declared coverage (`index_membership_coverage`) |
+| Prices | Price source and cutoff |
+| Adjustments | Adjustment mode and `adjustment_version` |
+| Window | Exact start and end dates |
+| Costs | Cost schedule version(s) |
 
-Extend the look-ahead harness to features: truncating the data at day T must not change any value computed for T or earlier.
-
-Acceptance: for every registered feature, over a fixture with a split, a bonus, a late filing and a restated filing, truncated and
-full runs agree up to T; a filing dated after T never changes a ratio feature at T.
-
-Tests: the harness run over the registry (a new feature without it fails the registry test), a feature deliberately written with
-a look-ahead is shown to fail.
-
-### F. Historical feature validation and reproducibility
-
-`feature_run(run_id, feature_id, from_day, to_day, dataset_ref, rows, result_sha256, started_at, finished_at, status)` records each
-computation. `scripts/validate_features.py` writes a per-feature report: coverage (share of member-days with a value), warm-up
-behaviour, value ranges, share of absent values by reason, identical recomputation hash.
+`study_sha256` additionally includes: feature ids, versions and definition hashes; strategy definition and parameters; the
+execution assumptions (a versioned reference); the **git commit** and a `dirty` flag (a run from a dirty working tree is marked
+non-reproducible and cannot support a holdout batch).
 
 Acceptance:
-1. Recomputing a range from the same dataset reference gives the same `result_sha256`.
-2. A feature with coverage below an owner-set minimum (default 90% of eligible member-days after warm-up) is marked unusable and
-   cannot be named in a study.
-3. A study spec naming a feature version records the definition hash, so a changed definition is detected.
+1. Same inputs give the same hashes in a fresh process; changing any single component changes the relevant hash.
+2. A provider correction (a new `dataset_version`) creates a new `dataset_sha256` and leaves the old snapshot and its hash intact.
+3. A study cannot be registered without both hashes; `SnapshotChanged` on verification refuses registration.
+4. A dirty tree is recorded and blocks batch evaluation.
 
-Tests: reproducibility over two runs, coverage refusal, study spec pinning.
+Tests: sensitivity per component; correction scenario (extends `test_snapshot.py`); dirty-tree flag; fresh-process equality.
 
-### G. Resource limits
+### C. Feature registry (price and volume features only)
 
-`research slot`: one advisory lock shared by the study worker and the feature jobs, so at most one research job runs. Research
-jobs run niced and do not start in the market-hours window while the live feed and `paper-orders` run (09:00 to 15:55 IST).
+**Scope.** Phase 1 registers and materialises price/volume features only. The registry can describe fundamental features, but they
+are stored with status `BLOCKED` and cannot be named in a study until the fundamentals prerequisites pass (reporting lag,
+restatements, standalone vs consolidated; TODO 2.6). The screener's ratio fields are therefore not registered as usable.
 
-Acceptance: two research jobs started together run one after the other; a research job requested during market hours waits.
+**Tables** (migration 066 onward):
 
-Tests: lock contention with a fake job, the market-hours guard on an injected clock.
+- `feature_definition(feature_id, name, version, status, manifest JSONB, manifest_sha256, created_at)`, unique `(name, version)`,
+  append-only. `status` is `DRAFT`, `USABLE` or `BLOCKED` and moves only by new rows (a status history), never by update.
+- `feature_run(run_id, feature_id, month DATE, dataset_sha256, code_commit, status, rows, result_sha256, started_at, finished_at, error)`
+  with a unique constraint on `(feature_id, month, dataset_sha256)` for completed runs.
+- `feature_value(run_id, instrument_id, day, value NUMERIC, available_at TIMESTAMPTZ)`, primary key `(run_id, instrument_id, day)`.
+
+The same feature, instrument and day can therefore have several **immutable materialisations**, one per dataset. Nothing is
+overwritten. A study reads features only through `read_features(dataset_sha256, pins)`, which finds the completed run for exactly
+that dataset and **raises on a mismatch or a missing run; it never falls back** to another snapshot's values.
+
+**The definition manifest** (canonical JSON, hashed) for each feature holds: formula identifier and parameters, input columns,
+adjustment mode, window, warm-up, missing-data rule, availability rule, units and version. The implementation lives in one module
+per feature family under `algo/features/`; shared helpers sit in `algo/features/_shared.py` and are declared as dependencies of
+every feature that uses them. A feature's `manifest_sha256` covers the manifest, the module source and its declared
+dependencies, and the run records the git commit. Editing any of them without a new version fails a test.
+
+**Exact definitions for the first set** (proposed; the owner confirms or changes them before implementation). Common rules: all
+price inputs are the **split/bonus point-in-time adjusted** series as of the feature day (`BarReader`, mode `split`, `as_of` = the
+day's visible time), except traded value, which uses raw close and raw volume. A window that contains a missing session (no bar)
+gives an absent value; nothing is interpolated or filled. A halted or suspended instrument has no bar and no value that day. Days
+are sessions.
+
+| Feature (v1) | Formula | Warm-up | Unit |
+|---|---|---:|---|
+| `ret_{5,20,60,120,252}d` | `close[t] / close[t-n] - 1` | n+1 closes | fraction |
+| `vol_{20,60}d` | sample standard deviation (ddof = 1) of the last n daily simple returns `close[i]/close[i-1] - 1`, not annualised | n+1 closes | fraction |
+| `atr_14d` | Wilder: `TR[t] = max(high-low, abs(high-close[t-1]), abs(low-close[t-1]))`; first value = mean of the first 14 TR, then `ATR[t] = (ATR[t-1]*13 + TR[t]) / 14` | 15 bars | price |
+| `atr_pct_14d` | `atr_14d / close[t]` | 15 bars | fraction |
+| `dist_sma_{50,200}d` | `close[t] / mean(close[t-n+1..t]) - 1` | n closes | fraction |
+| `traded_value_20d` | mean over the last 20 sessions of `raw_close * raw_volume` | 20 bars | rupees |
+
+`momentum` is `ret_*d`; no second definition exists. Anything not in this table is not a feature in Phase 1.
+
+**Availability.** `available_at = max(available_at of every input observation)`, using the data layer's own visibility model
+(`BarReader.visible_after` and the publish lag it is built with), not a constant in the feature code. A feature is never served
+before it. (For later fundamental features the input time is the filing's knowledge time, not the period end.)
+
+Acceptance:
+1. Same feature and dataset reference give identical values and `result_sha256` across fresh processes.
+2. A changed formula, manifest, module or declared helper without a version bump fails a test.
+3. A value inside its warm-up, or with a missing session in its window, is absent, never zero.
+4. `available_at` equals the maximum input availability for every row; no row is served earlier.
+5. `read_features` raises for a dataset reference with no completed run and never substitutes.
+6. A `DRAFT` or `BLOCKED` feature cannot be named in a study; fundamental features stay `BLOCKED`.
+7. Sizing: about 200 members, about 1,050 sessions, about 15 features is under 3M rows for the development window; the load
+   fits the daily job's limits.
+
+Tests: one hand-computed reference fixture per feature (numbers worked out on paper); Hypothesis property: batch over a window
+equals incremental one day at a time; availability rule; absence rules; version guard; mismatched dataset raises; status gating.
+
+### D. Daily feature job and backfill
+
+A registered job (after the evening data jobs and `paper-run`, off-peak) running `scripts/compute_features.py`, which materialises
+only features whose validation status is `USABLE` (F).
+
+**Checkpointing.** One `feature_run` per feature and calendar month, completed atomically (one transaction: rows and the run
+marked `complete` with its hash). A failed month is recorded `failed` and invalidates nothing already complete. A restart or a
+rerun processes only months that are incomplete or failed. Completed months are never rewritten.
+
+**Yielding.** Between months the job checks whether higher-priority work needs the machine (`paper-run` or `paper-orders`
+running, or the market-hours window with the live feed) and, if so, stops cleanly with status `paused`, to resume later.
+
+Acceptance:
+1. Re-running a completed month changes nothing and writes nothing.
+2. Killing the job mid-month leaves no partial month; the next run redoes exactly that month.
+3. A pause request takes effect at the next month boundary, with the completed months intact.
+4. The job refuses (alerts) when `ReadinessService` says the input data is not ready.
+5. It uses the guarded reader and never touches holdout days.
+6. It writes only to the feature tables: no paper, live or lifecycle table (a test inspects every statement it issues).
+
+Tests: idempotence, kill-and-resume, pause at the boundary, readiness refusal, holdout guard, write-set check.
+
+### E. Point-in-time and look-ahead tests
+
+Extend the look-ahead harness to features. For every registered feature, truncating the data at T must not change any value for
+T or earlier. Specific scenarios, each its own test:
+
+1. **Future corporate action.** Compute a feature for T; introduce a split or bonus announced and effective after T; recompute for
+   T with point-in-time adjustment; the value is identical.
+2. A late filing and a restated filing do not change a price feature (they are not inputs) and, once fundamental features exist,
+   never change a value dated before their knowledge time.
+3. A symbol or ISIN transition: the issuer-scoped history gives one continuous series; the instrument-scoped one does not mix ISINs.
+4. A missing session gives an absent value and does not shift the window.
+5. A halted instrument (no bars) gives no value.
+6. A feature deliberately written with a look-ahead is shown to fail the harness.
+
+The harness runs over the whole registry; a new feature that is not covered fails the registry test.
+
+### F. Historical validation and reproducibility
+
+`scripts/validate_features.py` produces, per feature and dataset, a report: coverage (share of eligible member-days with a value
+after warm-up), absence by reason (warm-up, missing session, no bar), value ranges, an identical-recomputation check, and the
+look-ahead result. A feature is set `USABLE` (a new status row, audited) only when coverage meets the owner-set minimum (default
+90%), recomputation matches and the look-ahead tests pass.
+
+Acceptance: recomputing a month from the same dataset gives the same `result_sha256`; a feature below the coverage minimum stays
+`DRAFT`; the report is stored and referenced by the status change.
+
+### G. Research slot (resource control)
+
+One PostgreSQL advisory lock with a stable key, acquired through one resource-guard API (`algo/research/slot.py`), taken by **every**
+research entry point: the study worker, the trial runner, verdict and holdout evaluation, `scripts/*` that run a backtest for
+research, feature computation, historical backfills and validation. Build the guard alongside A and B and enforce it in D, so a
+bypass is found early.
+
+- A test lists the scripts and modules that call the backtest, study or feature APIs (static scan) and fails if any does not take
+  the slot.
+- A lock only serialises; it does not yield. Long jobs therefore checkpoint cooperatively (D) and honour a pause request.
+- Research jobs run niced and do not start while `paper-run`, `paper-orders` or the live feed's market-hours window needs the
+  machine.
+
+Acceptance: two research jobs started together run one after the other; every entry point on the scan list takes the slot; a
+request during market hours waits or pauses at the next checkpoint.
+
+Tests: contention with fake jobs, the static scan, the market-hours guard on an injected clock, pause at a checkpoint.
 
 ### H. Documentation
 
-`docs/features.md` (each feature: definition, inputs, warm-up, availability rule, version history), `docs/research-dataset.md`
-(what a dataset reference pins and how to reproduce a run). Kept current by a test that fails when a registered feature has no
-entry.
+`docs/features.md` (each feature: manifest, formula, warm-up, availability, version history) and `docs/research-dataset.md` (what the
+two hashes pin and how to reproduce a run). A test fails when a registered feature has no entry.
 
 ## 4. Order of work
 
-1. Prerequisites P1 to P3 (P1 needs the owner's verification; it can proceed in parallel with the rest).
-2. A (holdout lock), because nothing else may read data before it exists.
-3. B (dataset reference), then C (registry) and E (look-ahead harness) together.
-4. F (validation and reproducibility), then D (the daily job), then G.
-5. H as each item lands.
+| Order | Work | Reason |
+|---|---|---|
+| 1 | P1 to P3 | Valid universe and research windows |
+| 2 | A (lock, guarded reader, batch evaluation) and the slot API (G, core) | Nothing may read data before the lock exists; find bypasses early |
+| 3 | B (dataset identity) | Reproducibility before anything is materialised |
+| 4 | C (price feature registry) | Immutable feature contracts |
+| 5 | E (look-ahead harness) | Prove correctness |
+| 6 | F (validation) | Coverage and reproducibility |
+| 7 | D (daily job) | Materialise only validated features |
+| 8 | G (enforcement across all entry points) | Close every bypass |
+| 9 | H | Kept current throughout |
 
 ## 5. Not in Phase 1
 
-Alpha discovery, ML models, the strategy DSL, the experiment queue beyond the research slot, regime detection, the LLM gateway,
-intraday feature storage, new fundamentals handling (restatement, standalone vs consolidated: tracked in TODO 2.6 and needed
-before fundamental features are used in discovery), sector features (needs a dated sector load), and anything touching paper or
-live trading.
+Alpha discovery, ML models, the strategy DSL, experiment generation, regime detection, the LLM gateway, intraday feature storage,
+usable fundamental or sector features (need the fundamentals work in TODO 2.6 and a dated sector load), a second universe, a
+growing holdout, and anything touching paper or live trading.
 
-## 6. Definition of done
+## 6. Additional acceptance criteria (cross-cutting)
 
-`make check` green; the acceptance items above each have a test that failed first; a recorded feature run reproduces
-byte-for-byte; the holdout lock is enforced in code and tested at its boundary; `TODO.md` and `docs/vti-alignment.md` updated.
+| Area | Criterion |
+|---|---|
+| Holdout | No ordinary API, CLI or research process can access holdout data |
+| Holdout | A holdout configuration changed outside the authorised process fails closed |
+| Dataset | A historical provider correction creates a new dataset identity without changing the old snapshot |
+| Features | Same feature and dataset reference give identical values across fresh processes |
+| Features | Feature reads reject a mismatched dataset reference |
+| Features | A feature cannot be used until its validation status is `USABLE` |
+| Features | A future corporate action cannot change a past feature value |
+| Fundamentals | Fundamental features stay unavailable until the point-in-time fundamentals prerequisites pass |
+| Resource | Every research entry point takes the same research slot |
+| Resource | Feature computation pauses at a monthly checkpoint for higher-priority work |
+| Recovery | An interrupted job resumes without duplicating or modifying completed materialisations |
+| Isolation | Feature computation cannot write to paper or live tables or change strategy lifecycle state |
+
+## 7. Definition of done
+
+`make check` green; every acceptance item has a test that failed first; each feature has a hand-computed fixture; a recorded feature
+run reproduces byte-for-byte in a fresh process; the holdout lock is enforced in code, anchored in the database and tested at its
+boundary; the research slot scan passes; `TODO.md` and `docs/vti-alignment.md` are updated.
