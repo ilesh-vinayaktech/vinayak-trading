@@ -76,6 +76,20 @@
    "name": "data-completeness"
   },
   {
+   "calendar": "Mon..Fri *-*-* 21:30 Asia/Kolkata",
+   "description": "The evening decision for every enabled paper account on the newest session (after the data jobs and checks; a run that cannot decide, or errors, alerts); proposals wait for the owner's approval",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "paper-run"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 09..15:00/5:00 Asia/Kolkata",
+   "description": "Every five minutes in market hours: fill approved paper orders at the next live open (needs the live feed) and expire the ones that ran out of time",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "paper-orders"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 19:45 Asia/Kolkata",
    "description": "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
    "last_run": null,
@@ -221,7 +235,7 @@
    },
    {
     "level": "attention",
-    "text": "22 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 19 more."
+    "text": "24 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 21 more."
    }
   ],
   "status": "DOWN"

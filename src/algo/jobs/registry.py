@@ -33,6 +33,18 @@ JOBS: tuple[Job, ...] = (
         "Alert on a quarantined bhavcopy, an open weekday with no daily bars, or a session with under 90% of the usual number of bars (after the retries and the gap sweep have had their chance)",
     ),
     Job(
+        "paper-run",
+        f"{WEEKDAYS} *-*-* 21:30 Asia/Kolkata",
+        ((*_PY, "scripts/run_paper.py", "--db", "{db}"),),
+        "The evening decision for every enabled paper account on the newest session (after the data jobs and checks; a run that cannot decide, or errors, alerts); proposals wait for the owner's approval",
+    ),
+    Job(
+        "paper-orders",
+        f"{WEEKDAYS} *-*-* 09..15:00/5:00 Asia/Kolkata",
+        ((*_PY, "scripts/paper_orders.py", "--db", "{db}"),),
+        "Every five minutes in market hours: fill approved paper orders at the next live open (needs the live feed) and expire the ones that ran out of time",
+    ),
+    Job(
         "price-continuity",
         f"{WEEKDAYS} *-*-* 19:45 Asia/Kolkata",
         ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}"),),

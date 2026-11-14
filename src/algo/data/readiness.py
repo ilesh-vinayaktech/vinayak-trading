@@ -55,7 +55,7 @@ class Readiness:
         return "; ".join(f"{r.code}: {r.detail}" for r in self.reasons)
 
 
-def _holidays(conn: psycopg.Connection) -> set[date]:
+def holidays(conn: psycopg.Connection) -> set[date]:
     return {
         r[0]
         for r in conn.execute(
@@ -85,11 +85,11 @@ def assess(conn: psycopg.Connection, needs: Needs) -> Readiness:
     if newest is None:
         out.reasons.append(Reason("NO_DATA", f"no {bar_source} daily bars at all"))
         return out
-    holidays = _holidays(conn)
+    closed_days = holidays(conn)
     behind = sum(
         1
         for i in range(1, (needs.day - newest).days + 1)
-        if (d := newest + timedelta(days=i)).weekday() < 5 and d not in holidays
+        if (d := newest + timedelta(days=i)).weekday() < 5 and d not in closed_days
     )
     if behind > needs.max_sessions_behind:
         out.reasons.append(

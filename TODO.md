@@ -325,6 +325,8 @@ Use systemd user timers with `Persistent=true`, one job runner (lock, log, alert
 
 ### 5.6 End-to-end acceptance (the single journey)
 
+- [x] (2026-11-14, NOT committed) The paper cycle is scheduled. `paper/jobs.py`: `decision_day` (the newest session with NSE bars, only when that is the session whose file should be published by now, else nothing to decide), `run_accounts` (one `run_day` per enabled account not waiting on a person), `process_orders` (expire what ran out of time, then `fill_due` with the verified Zerodha delivery schedules and the studies' 5 bps base slippage as a flat figure), `cost_policy`. Scripts `scripts/run_paper.py [--sandbox]` (exit 1 when there is no current session or an account's run is an ERROR) and `scripts/paper_orders.py`; jobs `paper-run` (Mon-Fri 21:30 IST, after the data jobs and checks) and `paper-orders` (every 5 minutes 09:00-15:55 IST). Before this NOTHING called `run_day`, `fill_due` or `expire_due`: proposals and fills never happened outside tests. Tests: `tests/integration/paper/test_jobs.py`. Like every job, these only run once the timers are installed (`scripts/install_job_timers.py`; none are installed on this machine). The fill job needs the live feed's 1-minute bars.
+
 ```
 Historical data → validation → Timescale → strategy (sandboxed) → backtest → risk → paper OMS → ledger → dashboard
 ```
