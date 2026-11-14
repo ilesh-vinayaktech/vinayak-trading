@@ -14,7 +14,7 @@ from algo.risk.limits import Limits
 from algo.risk.model import Book, Day, Market, OrderRequest, Side
 from tests.support.fake_kite import FakeKite
 
-GATE = open_gate({"ALGO_LIVE": "1"}, "LIVE", True)
+GATE = open_gate({"ALGO_LIVE": "1"}, "LIVE", True, [])
 SYMBOLS = {7: "INFY", 8: "TCS"}
 TAG = client_order_id("s1", "k1")
 BUY = OrderRequest("s1", 7, Side.BUY, 10)

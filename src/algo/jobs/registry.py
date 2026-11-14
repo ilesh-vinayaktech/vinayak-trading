@@ -33,6 +33,12 @@ JOBS: tuple[Job, ...] = (
         "Alert on a quarantined bhavcopy, an open weekday with no daily bars, or a session with under 90% of the usual number of bars (after the retries and the gap sweep have had their chance)",
     ),
     Job(
+        "regulatory-check",
+        f"{WEEKDAYS} *-*-* 08:00 Asia/Kolkata",
+        ((*_PY, "scripts/regulatory.py", "--db", "{db}", "status"),),
+        "Alert when a regulatory rule live trading needs (order-rate limit, order types, tagging, static IP) is not recorded or was last verified over 30 days ago: live stays blocked until it is checked and recorded again",
+    ),
+    Job(
         "paper-run",
         f"{WEEKDAYS} *-*-* 21:30 Asia/Kolkata",
         ((*_PY, "scripts/run_paper.py", "--db", "{db}", "--sandbox"),),
