@@ -84,6 +84,8 @@ class StudySpec(BaseModel):
     )  # a total-return index, by name
     thresholds: dict[str, Decimal]
     accept_survivorship_bias: bool = False
+    # the research family this study's trials count toward (registration refuses a study without one)
+    family_id: int | None = None
 
     @model_validator(mode="after")
     def _order_sizes_agree(self) -> StudySpec:

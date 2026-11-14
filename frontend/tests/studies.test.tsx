@@ -22,6 +22,7 @@ const OPTIONS = {
   ] }],
   segments: ["large", "mid", "small", "micro"], timeframes: ["1D"], brokers: [{ broker: "zerodha", product: "DELIVERY" }], benchmarks: [{ name: "Nifty 200 Total Return Index (gross)", usable: true, default: true }, { name: "Nifty 50 Total Return Index (gross)", usable: true, default: false }],
   frozen_through: "2026-11-11", survivorship_safe_from: "2019-10-01", segment_lists_from: "2018-08-01", max_trials: 64, holdout_share: [0.05, 0.5], thresholds: THRESHOLDS,
+  families: [{ family_id: 1, name: "Studies registered before research families", hypothesis: "All the earlier studies, counted together.", studies: 8, trials: 112 }],
 };
 const SPEC = { name: "Pullback, large and mid caps", hypothesis: "Buying a 5-day RSI dip inside a 200-day uptrend beats buy-and-hold.", strategy_id: "trend_pullback",
   grid: { entry_rsi: [20, 25, 30], exit_rsi: [60, 65], max_positions: [10], trend_sma: [100, 200] }, universe: { segments: ["large", "mid"], before_segment_lists: "traded_value_rank", min_history_sessions: 252 },
@@ -127,6 +128,7 @@ describe("a new study", () => {
   const fillIdea = () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "  My study  " } });
     fireEvent.change(screen.getByLabelText("Hypothesis"), { target: { value: "Dips inside an uptrend recover within days." } });
+    fireEvent.change(screen.getByLabelText("Research family"), { target: { value: "1" } });
   };
   const register = () => screen.getByRole("button", { name: "Register study" });
 
@@ -228,6 +230,36 @@ describe("a new study", () => {
         universe: { segments: ["small"] },
       });
     });
+  });
+
+  it("will not register until a research family is chosen, and says what a family is for", async () => {
+    await open();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "My study" } });
+    fireEvent.change(screen.getByLabelText("Hypothesis"), { target: { value: "Dips inside an uptrend recover within days." } });
+    fireEvent.click(register());
+    expect(await screen.findByText(/Choose the research family this study belongs to/)).toBeInTheDocument();
+    expect(screen.getByText(/never resets the penalty for luck/)).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Studies registered before research families (112 tries so far)" })).toBeInTheDocument();
+    expect(posted()).toHaveLength(0);
+  });
+
+  it("starts a new family only with a name, its own hypothesis and a reason, records it first, then registers the study into it", async () => {
+    await open({ "POST /api/families": { family_id: 5 }, "POST /api/studies": { experiment_id: 9 } });
+    fillIdea();
+    fireEvent.change(screen.getByLabelText("Research family"), { target: { value: "new" } });
+    fireEvent.click(register());
+    expect(await screen.findByText(/A new family needs a name, its own hypothesis and a reason/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("New family: name"), { target: { value: "Value" } });
+    fireEvent.change(screen.getByLabelText("New family: its hypothesis"), { target: { value: "Cheap profitable companies beat the index." } });
+    fireEvent.change(screen.getByLabelText("Why it is genuinely different"), { target: { value: "Cross-sectional value, not trend or pullback." } });
+    fireEvent.click(register());
+    fireEvent.click(await screen.findByRole("button", { name: "Register and lock" }));
+    await waitFor(() => expect(posted()).toHaveLength(2));
+    const [family, study] = posted();
+    expect(family?.path).toBe("/api/families");
+    expect(family?.body).toEqual({ name: "Value", hypothesis: "Cheap profitable companies beat the index.", justification: "Cross-sectional value, not trend or pullback." });
+    expect(study?.path).toBe("/api/studies");
+    expect((study?.body as Record<string, unknown>).family_id).toBe(5);
   });
 
   it("asks before locking, then registers exactly what was chosen and opens the study", async () => {
@@ -463,7 +495,7 @@ describe("the verdict", () => {
     expect(within(dsr).getByText("0.612 < required 0.95")).toBeInTheDocument();
     expect(screen.getByText("no evidence")).toBeInTheDocument();
     expect(screen.getByText(/has no passing validation/)).toBeInTheDocument();
-    expect(screen.getByText(/Thresholds confirmed · 12 combinations tried/)).toBeInTheDocument();
+    expect(screen.getByText(/Thresholds confirmed · 12 combinations tried across the whole research family/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open that run" })).toHaveAttribute("href", "/research/backtests/5");
     expect(screen.getByRole("link", { name: "double-cost run" })).toHaveAttribute("href", "/research/backtests/6");
     expect(screen.getByText("2022-01-10 to 2022-07-01")).toBeInTheDocument();

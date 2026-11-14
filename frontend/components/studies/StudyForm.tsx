@@ -47,6 +47,10 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const start0 = options.survivorship_safe_from;
   const [name, setName] = useState("");
   const [hypothesis, setHypothesis] = useState("");
+  const [family, setFamily] = useState(""); // a family id, "new", or nothing chosen yet
+  const [famName, setFamName] = useState("");
+  const [famHypothesis, setFamHypothesis] = useState("");
+  const [famWhy, setFamWhy] = useState("");
   // arriving from "Backtest it" on a saved screener: its stock count and the caps it picks from come along with the screen
   const slots = Number(params.get("slots"));
   const [grid, setGrid] = useState<Record<string, number[]>>(() =>
@@ -81,6 +85,8 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     source === "screen" && !screen && "Pick a screen to trade: start from a ready-made one below, or build one on the Screener page.",
     !name.trim() && "Give the study a name.",
     hypothesis.trim().length < 20 && "Write the hypothesis (at least 20 characters): what you expect, and why.",
+    family === "" && "Choose the research family this study belongs to, or start a new one.",
+    family === "new" && (!famName.trim() || famHypothesis.trim().length < 20 || famWhy.trim().length < 20) && "A new family needs a name, its own hypothesis and a reason (at least 20 characters each) it is genuinely different from the others.",
     trials === 0 && "Pick at least one value for every parameter.",
     trials > options.max_trials && `${trials} trials is more than ${options.max_trials}: every combination counts against the strategy.`,
     segments.length === 0 && "Pick at least one market-cap segment.",
@@ -101,7 +107,13 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     slippage: slip, benchmark, min_order_value: minOrder.trim() || "0", max_order_value: maxOrder.trim() || null, thresholds, accept_survivorship_bias: acceptBias,
   };
   const register = useMutation({
-    mutationFn: () => api.registerStudy(body),
+    mutationFn: async () => {
+      // a new family is an explicit decision with its reason, recorded first; the study then joins it
+      const family_id = family === "new"
+        ? (await api.startFamily({ name: famName.trim(), hypothesis: famHypothesis.trim(), justification: famWhy.trim() })).family_id
+        : Number(family);
+      return api.registerStudy({ ...body, family_id });
+    },
     onSuccess: (r) => router.replace(`/research/studies/${r.experiment_id}`),
   });
   const defaults = (id: string) => Object.fromEntries((options.strategies.find((s) => s.id === id)?.params ?? []).map((p) => [p.name, [p.default]]));
@@ -132,6 +144,20 @@ export function StudyForm({ options }: { options: StudyOptions }) {
         <SettingsSection title="The idea" description="Written down before anything runs. It is what the result will be judged against.">
           <div className="space-y-4">
             <Field id="study-name" label="Name"><input id="study-name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} className={inputFull} /></Field>
+            <Field id="study-family" label="Research family" hint="Every combination tried counts against the whole family, so a new study never resets the penalty for luck. Start a new family only for a genuinely different idea.">
+              <select id="study-family" value={family} onChange={(e) => setFamily(e.target.value)} className={inputFull}>
+                <option value="">Choose...</option>
+                {options.families.map((f) => <option key={f.family_id} value={String(f.family_id)}>{f.name} ({f.trials} tries so far)</option>)}
+                <option value="new">Start a new family...</option>
+              </select>
+            </Field>
+            {family === "new" ? (
+              <div className="space-y-3 rounded-lg border border-line p-3">
+                <Field id="family-name" label="New family: name"><input id="family-name" maxLength={80} value={famName} onChange={(e) => setFamName(e.target.value)} className={inputFull} /></Field>
+                <Field id="family-hypothesis" label="New family: its hypothesis"><textarea id="family-hypothesis" rows={2} maxLength={4000} value={famHypothesis} onChange={(e) => setFamHypothesis(e.target.value)} className={inputFull} /></Field>
+                <Field id="family-why" label="Why it is genuinely different" hint="Recorded with your name. If it is only a variation of an existing idea, put the study in that family instead."><textarea id="family-why" rows={2} maxLength={4000} value={famWhy} onChange={(e) => setFamWhy(e.target.value)} className={inputFull} /></Field>
+              </div>
+            ) : null}
             <Field id="study-hypothesis" label="Hypothesis" hint="What you expect to happen and why, and how it could fail.">
               <textarea id="study-hypothesis" rows={3} maxLength={4000} value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} className={inputFull} />
             </Field>

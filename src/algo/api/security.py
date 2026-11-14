@@ -75,6 +75,7 @@ ROUTE_PERMISSIONS = {
     ("GET", "/api/paper/runs"): "strategy:own",
     ("GET", "/api/strategies"): "strategy:own",
     ("POST", "/api/studies"): "strategy:own",
+    ("POST", "/api/families"): "strategy:own",
     ("POST", "/api/studies/{experiment_id}/runs"): "strategy:own",
     ("POST", "/api/studies/{experiment_id}/verdicts"): "strategy:own",
     ("POST", "/api/studies/{experiment_id}/holdout"): "strategy:own",

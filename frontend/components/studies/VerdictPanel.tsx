@@ -87,7 +87,7 @@ export function VerdictPanel({ id }: { id: number }) {
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill tone={r.passed ? "good" : "bad"}>{r.passed ? "Passed every check" : `Failed ${r.gates.filter((g) => !g.passed).length} of ${r.gates.length} checks`}</StatusPill>
               {unmeasured > 0 ? <StatusPill tone="warn">{unmeasured} without evidence</StatusPill> : null}
-              <span className="text-xs text-ink-soft">Thresholds {r.thresholds_status} · {r.n_trials} combinations tried · <RelativeTime iso={r.created_at} /></span>
+              <span className="text-xs text-ink-soft">Thresholds {r.thresholds_status} · {r.n_trials} combinations tried across the whole research family · <RelativeTime iso={r.created_at} /></span>
             </div>
             <p className="text-xs text-ink-soft">
               Best settings over the whole research window: <strong>{settings(r.refs.chosen)}</strong>.{" "}

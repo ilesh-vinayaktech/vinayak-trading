@@ -38,6 +38,15 @@ def _frozen_through(conn: psycopg.Connection) -> tuple[str, Any]:
 def register_study(conn: psycopg.Connection, owner: UUID, spec: StudySpec, now: datetime) -> int:
     """Check the study, pin it to the frozen data and the cost schedules in force, and register it. Returns its id."""
     lock = holdout_lock.require(conn)  # fails closed: no anchored lock, no registration
+    if spec.family_id is None:
+        raise StudyError("choose the research family this study belongs to (or start a new one)")
+    if (
+        conn.execute(
+            "SELECT 1 FROM research_family WHERE family_id=%s", (spec.family_id,)
+        ).fetchone()
+        is None
+    ):
+        raise StudyError(f"there is no research family {spec.family_id}")
     check(spec, today=now.astimezone(IST).date(), development_end=lock.development_end)
     freeze_id, through = _frozen_through(conn)
     if spec.end > through:
@@ -84,7 +93,7 @@ def register_study(conn: psycopg.Connection, owner: UUID, spec: StudySpec, now: 
             return registry.register(
                 conn, name=spec.name, strategy_id=spec.strategy_id, hypothesis=spec.hypothesis, style="long_only",
                 param_ranges={k: [min(v), max(v)] for k, v in spec.grid.items()},
-                holdout=(spec.holdout_start, spec.end), now=now, study=study, owner_user_id=owner,
+                holdout=(spec.holdout_start, spec.end), now=now, study=study, owner_user_id=owner, family_id=spec.family_id,
             )  # fmt: skip
     except psycopg.errors.UniqueViolation as e:
         raise StudyError(f"there is already a study called {spec.name!r}") from e

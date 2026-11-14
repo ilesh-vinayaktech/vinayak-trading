@@ -378,11 +378,14 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
         r2, run_2x = stress("2x costs", ScaledCosts(setup.policy, Decimal(2)), spec.capital)
         r3, run_3x = stress("3x capital", setup.policy, spec.capital * spec.capacity_multiple)
         thresholds, status = _thresholds(spec)
+        n_trials, family_sharpes = registry.deflation_trials(
+            conn, exp
+        )  # the whole family's tries, not just this study's
         evidence = assemble(
             verdict.inputs(
                 a,
-                n_trials=registry.trial_count(conn, exp),
-                trial_sharpes=registry.trial_sharpes(conn, exp),
+                n_trials=n_trials,
+                trial_sharpes=family_sharpes,
                 trial_returns=[returns[registry.params_hash(c)] for c in combos],
                 plateau_tolerance=thresholds.plateau_tolerance,
                 returns_2x_costs=r2,
@@ -392,7 +395,7 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
         )
         registry.save_report(
             conn, exp, base_run, evaluate(evidence, thresholds, status), evidence,
-            registry.trial_count(conn, exp), now,
+            n_trials, now,
             refs={
                 "chosen": a.base, "benchmark": spec.benchmark, "benchmark_note": bench_note,
                 "windows": a.windows, "walk_forward": {"train": verdict.TRAIN, "test": verdict.TEST, "embargo": verdict.EMBARGO},

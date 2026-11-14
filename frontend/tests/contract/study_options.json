@@ -6,6 +6,15 @@
    "product": "DELIVERY"
   }
  ],
+ "families": [
+  {
+   "family_id": 1,
+   "hypothesis": "Every study registered before research families existed (2026-11-14), counted together.",
+   "name": "Studies registered before research families",
+   "studies": 0,
+   "trials": 0
+  }
+ ],
  "frozen_through": "2026-11-10",
  "holdout_share": [
   0.05,

@@ -71,7 +71,7 @@ capability, crash and resume, `EVALUATION_FAILED`, lock frozen once a batch exis
 the frozen candidates over the holdout and judges the gates, and replacing the per-study holdout open. Fundamentals and feature reads
 join the guard when they exist; the family id and the family-wide trial counter are still to be enforced in the registry.
 
-**Family.** A research family has a stable, immutable id; its trial count only grows. Re-registering, changing parameters or
+**Family (built 2026-11-14; the manifest still takes family ids and trial counts as given, to be read from the registry).** A research family has a stable, immutable id; its trial count only grows. Re-registering, changing parameters or
 features, or splitting a study never creates a family or resets the count; a new family needs an explicit, audited classification
 decision (who, why, what makes the hypothesis genuinely different).
 

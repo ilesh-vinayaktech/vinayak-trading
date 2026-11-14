@@ -323,6 +323,26 @@ def test_the_verdict_runs_every_gate_over_the_trials_and_keeps_the_report_and_th
     assert passed is False  # missing evidence fails
 
 
+def test_the_verdict_counts_every_trial_of_the_family_not_just_this_studys(long_env):
+    conn, owner = long_env
+    sibling = registry.register(
+        conn, name="an earlier idea in the same family", strategy_id="trend_pullback", hypothesis="x" * 30,
+        style="long_only", param_ranges={"a": [1, 100]}, holdout=(NOW.date(), NOW.date()), now=NOW, family_id=1,
+    )  # fmt: skip
+    for i, sharpe in enumerate((0.01, 0.02, 0.03)):
+        registry.record_trial(conn, sibling, {"a": i + 1}, sharpe, None, NOW)
+    sid = register_study(conn, owner, long_spec(), NOW)  # also family 1
+    run_study(conn, study_jobs.enqueue(conn, sid, owner, NOW), NOW)
+    assert judge(conn, owner, sid)["status"] == "DONE"
+    own = registry.trial_count(conn, sid)
+    n = conn.execute(
+        "SELECT n_trials FROM validation_report WHERE experiment_id=%s", (sid,)
+    ).fetchone()[0]
+    assert own == 2 and n == own + 3 == registry.family_trial_count(
+        conn, 1
+    )  # the deflation follows the whole family
+
+
 def study_jobs_params(conn, sid):
     return [t["params"] for t in study_jobs.trials(conn, sid)]
 

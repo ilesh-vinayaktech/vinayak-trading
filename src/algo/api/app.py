@@ -125,6 +125,7 @@ def create_app(
     app.include_router(risk_routes.router)
     app.include_router(strategy_routes.router)
     app.include_router(study_routes.router)
+    app.include_router(study_routes.families_router)
     app.include_router(costs_routes.router)
     app.include_router(crm_routes.router)
     app.include_router(dashboard_routes.router)

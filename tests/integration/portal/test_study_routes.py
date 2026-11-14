@@ -308,3 +308,43 @@ def test_a_registration_while_the_research_lock_is_not_anchored_is_a_409_not_a_c
     trader = sign_in(app, "jane@example.com")
     r = trader.post("/api/studies", json=body())
     assert r.status_code == 409 and "research is locked" in r.json()["detail"]
+
+
+def test_families_are_listed_for_research_and_started_only_by_an_explicit_audited_decision(env):
+    conn, app = env
+    viewer, trader = sign_in(app, "viewer@example.com"), sign_in(app, "jane@example.com")
+    got = viewer.get("/api/families").json()["families"]
+    assert [f["name"] for f in got] == ["Studies registered before research families"] and got[0][
+        "trials"
+    ] == 0
+    new = {"name": "Value", "hypothesis": "Cheap, profitable companies beat the index over three years.",
+           "justification": "Trades cross-sectional value, a different mechanism from the trend and pullback families."}  # fmt: skip
+    assert viewer.post("/api/families", json=new).status_code == 403
+    r = trader.post("/api/families", json=new)
+    assert r.status_code == 200 and r.json()["family_id"] > 1
+    assert trader.post("/api/families", json=new).status_code == 400  # the name is taken
+    assert (
+        trader.post(
+            "/api/families", json={**new, "name": "Thin", "justification": "short"}
+        ).status_code
+        == 400
+    )
+    assert [f["name"] for f in viewer.get("/api/families").json()["families"]] == [
+        "Studies registered before research families",
+        "Value",
+    ]
+    assert "family.created" in [a for a in audit_actions_all(conn)]
+    assert [f["name"] for f in viewer.get("/api/studies/options").json()["families"]][-1] == "Value"
+
+
+def test_a_study_without_a_family_or_with_an_unknown_one_is_a_400_that_says_so(env):
+    _, app = env
+    trader = sign_in(app, "jane@example.com")
+    assert trader.post("/api/studies", json=body(family_id=None)).status_code == 400
+    r = trader.post("/api/studies", json=body(family_id=9999))
+    assert r.status_code == 400 and "no research family 9999" in r.json()["detail"]
+    assert trader.post("/api/studies", json=body(family_id=1)).status_code == 200
+
+
+def audit_actions_all(conn):
+    return [r[0] for r in conn.execute("SELECT action FROM portal_audit ORDER BY audit_id")]

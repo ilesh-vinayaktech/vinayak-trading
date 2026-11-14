@@ -10,8 +10,10 @@ from datetime import datetime
 from typing import Any, get_args
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
+from algo.backtest.validation import registry
 from algo.data.benchmark import DEFAULT_BENCHMARK, validated
 from algo.portal import audit
 from algo.research import study_jobs
@@ -30,6 +32,7 @@ from algo.research.study_store import get_study, list_studies, register_study
 from algo.strategies.registry import STRATEGIES
 
 router = APIRouter(prefix="/api/studies", tags=["studies"])
+families_router = APIRouter(prefix="/api/families", tags=["research families"])
 
 
 def _params(params_cls: Any) -> list[dict[str, Any]]:
@@ -70,6 +73,16 @@ def options(conn: WConn) -> dict[str, Any]:
         "max_trials": MAX_TRIALS,
         "holdout_share": list(HOLDOUT_SHARE),
         "thresholds": default_thresholds(),
+        "families": [
+            {
+                "family_id": f["family_id"],
+                "name": f["name"],
+                "hypothesis": f["hypothesis"],
+                "studies": f["studies"],
+                "trials": f["trials"],
+            }
+            for f in registry.list_families(conn)
+        ],
     }
 
 
@@ -244,3 +257,36 @@ def cancel_run(run_id: int, request: Request, who: CurrentUser, conn: WConn) -> 
         target_id=str(run_id), detail={},
     )  # fmt: skip
     return {"ok": True}
+
+
+class FamilyBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=80)
+    hypothesis: str = Field(min_length=1, max_length=4000)
+    justification: str = Field(min_length=1, max_length=4000)
+
+
+@families_router.get("")
+def families(conn: WConn) -> dict[str, Any]:
+    return {"families": registry.list_families(conn)}
+
+
+@families_router.post("")
+def start_family(
+    body: FamilyBody, request: Request, who: CurrentUser, conn: WConn
+) -> dict[str, int]:
+    """Start a new research family: an explicit decision with its reason, audited. Registering a study never does this by itself."""
+    st: PortalSettings = request.app.state.portal
+    now = st.clock.now()
+    try:
+        fid = registry.create_family(
+            conn, name=body.name, hypothesis=body.hypothesis, justification=body.justification,
+            created_by=who.session.user_id, now=now,
+        )  # fmt: skip
+    except registry.RegistryError as e:
+        raise HTTPException(400, str(e)) from e
+    audit.record(
+        conn, now=now, action="family.created", actor_user_id=who.session.user_id, target_type="research_family",
+        target_id=str(fid), detail={"name": body.name, "justification": body.justification},
+    )  # fmt: skip
+    return {"family_id": fid}

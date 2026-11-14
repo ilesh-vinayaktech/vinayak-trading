@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Pre-registration and the trial counter. A hypothesis, its parameter ranges and a holdout window
 are written down BEFORE any trial; every distinct configuration tried is counted (that N feeds the
 Deflated Sharpe); the holdout can be opened exactly once."""
@@ -42,6 +43,7 @@ def register(
     now: datetime,
     study: Mapping[str, Any] | None = None,
     owner_user_id: UUID | None = None,
+    family_id: int | None = None,
 ) -> int:
     """`study`: the owner's full study settings (algo.research.study); stored with a checksum
     and locked with the rest of the row (migration 045)."""
@@ -52,8 +54,8 @@ def register(
             raise RegistryError(f"range for {k!r} must be [low, high] with low <= high")
     row = conn.execute(
         "INSERT INTO experiment (name,strategy_id,hypothesis,style,param_ranges,holdout_start,"
-        "holdout_end,registered_at,study,study_sha256,owner_user_id)"
-        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING experiment_id",
+        "holdout_end,registered_at,study,study_sha256,owner_user_id,family_id)"
+        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING experiment_id",
         (
             name,
             strategy_id,
@@ -65,6 +67,7 @@ def register(
             None if study is None else Jsonb(dict(study)),
             None if study is None else params_hash(study),
             owner_user_id,
+            family_id,
         ),  # fmt: skip
     ).fetchone()
     assert row is not None
@@ -111,6 +114,97 @@ def trial_count(conn: psycopg.Connection, exp_id: int) -> int:
     ).fetchone()
     assert row is not None
     return int(row[0])
+
+
+def create_family(
+    conn: psycopg.Connection,
+    *,
+    name: str,
+    hypothesis: str,
+    justification: str,
+    created_by: UUID | None,
+    now: datetime,
+) -> int:
+    """Start a research family: an explicit decision, never a side effect of registering a study. The justification says what makes
+    the hypothesis genuinely different from every existing family (otherwise it belongs in one of them)."""
+    if not name.strip():
+        raise RegistryError("a family needs a name")
+    if len(hypothesis.strip()) < 20:
+        raise RegistryError("the family's hypothesis needs at least 20 characters")
+    if len(justification.strip()) < 20:
+        raise RegistryError(
+            "the justification needs at least 20 characters: say what makes this genuinely different from every existing family"
+        )
+    try:
+        row = conn.execute(
+            "INSERT INTO research_family (name, hypothesis, justification, created_by, created_at)"
+            " VALUES (%s,%s,%s,%s,%s) RETURNING family_id",
+            (name.strip(), hypothesis.strip(), justification.strip(), created_by, require_utc(now)),
+        ).fetchone()
+    except psycopg.errors.UniqueViolation as e:
+        raise RegistryError(f"a family called {name.strip()!r} already exists") from e
+    assert row is not None
+    return int(row[0])
+
+
+def list_families(conn: psycopg.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT f.family_id, f.name, f.hypothesis, f.justification, f.created_at,"
+        " (SELECT count(*) FROM experiment e WHERE e.family_id = f.family_id),"
+        " (SELECT count(*) FROM experiment_trial t JOIN experiment e USING (experiment_id) WHERE e.family_id = f.family_id)"
+        " FROM research_family f ORDER BY f.family_id"
+    ).fetchall()
+    return [
+        {
+            "family_id": r[0],
+            "name": r[1],
+            "hypothesis": r[2],
+            "justification": r[3],
+            "created_at": r[4],
+            "studies": r[5],
+            "trials": r[6],
+        }
+        for r in rows
+    ]
+
+
+def experiment_family(conn: psycopg.Connection, exp_id: int) -> int | None:
+    row = conn.execute(
+        "SELECT family_id FROM experiment WHERE experiment_id=%s", (exp_id,)
+    ).fetchone()
+    return None if row is None or row[0] is None else int(row[0])
+
+
+def deflation_trials(conn: psycopg.Connection, exp_id: int) -> tuple[int, list[float]]:
+    """(N, per-trial Sharpes) the multiple-testing correction must use for this experiment: every trial of its research family, so a
+    new study or a re-registration never resets the penalty. An experiment outside any family counts only its own."""
+    family = experiment_family(conn, exp_id)
+    if family is None:
+        return trial_count(conn, exp_id), trial_sharpes(conn, exp_id)
+    return family_trial_count(conn, family), family_trial_sharpes(conn, family)
+
+
+def family_trial_count(conn: psycopg.Connection, family_id: int) -> int:
+    """Every trial of every study in the family. A re-registered study's trials add to the family's, never reset it (so the count is
+    deliberately on the high side: the same settings tried again are counted again)."""
+    row = conn.execute(
+        "SELECT count(*) FROM experiment_trial t JOIN experiment e USING (experiment_id) WHERE e.family_id=%s",
+        (family_id,),
+    ).fetchone()
+    assert row is not None
+    return int(row[0])
+
+
+def family_trial_sharpes(conn: psycopg.Connection, family_id: int) -> list[float]:
+    """Per-period Sharpe of every defined trial in the family (the deflated Sharpe's variance across all the tries)."""
+    return [
+        float(r[0])
+        for r in conn.execute(
+            "SELECT t.sharpe FROM experiment_trial t JOIN experiment e USING (experiment_id)"
+            " WHERE e.family_id=%s AND t.sharpe IS NOT NULL ORDER BY t.trial_id",
+            (family_id,),
+        )
+    ]
 
 
 def trial_sharpes(conn: psycopg.Connection, exp_id: int) -> list[float]:

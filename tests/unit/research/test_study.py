@@ -36,6 +36,7 @@ def spec(**over) -> StudySpec:
         "capital": "1000000",
         "broker": "zerodha",
         "thresholds": default_thresholds(),
+        "family_id": 1,  # the family every migrated database starts with
     }
     return StudySpec.model_validate({**base, **over})
 

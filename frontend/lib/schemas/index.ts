@@ -791,8 +791,11 @@ export const studyOptionsSchema = z.object({
   max_trials: z.number(),
   holdout_share: z.array(z.number()),
   thresholds: z.record(z.string(), z.string()),
+  families: z.array(z.object({ family_id: z.number(), name: z.string(), hypothesis: z.string(), studies: z.number(), trials: z.number() })),
 });
+export const familyCreatedSchema = z.object({ family_id: z.number() });
 export const studySpecSchema = z.object({
+  family_id: z.number().nullable().optional(),
   name: z.string(),
   hypothesis: z.string(),
   strategy_id: z.string(),
