@@ -691,3 +691,31 @@ def test_progress_is_reported_for_every_day_with_the_total(env):
     assert [d for _, _, d in seen] == [d for d, _ in r.equity]
     quiet = run_backtest(conn, hold((a, 1)), cfg())
     assert quiet.result_hash == r.result_hash  # watching progress changes nothing
+
+
+def test_the_same_run_in_the_sandbox_worker_gives_the_same_result(env):
+    from algo.sandbox.host import Limits, SandboxedStrategy
+    from algo.sandbox.proxy import SandboxedProxy
+    from tests.unit.sandbox.helpers import ROOT
+
+    conn, a, b = env
+    put_bars(conn, a, flat(100))
+    put_bars(conn, b, flat(50))
+    inproc = hold((a, "0.5"), (b, "0.5"))
+    expected = run_backtest(conn, inproc, cfg())
+    worker = SandboxedStrategy(
+        "tests.support.strategies:HoldWeights",
+        inproc.params.model_dump(),
+        import_roots=[ROOT],
+        read_roots=[ROOT / "src", ROOT / "tests"],
+        limits=Limits(call_timeout_s=30.0),
+    )
+    proxy = SandboxedProxy(hold((a, "0.5"), (b, "0.5")), worker)
+    try:
+        got = run_backtest(conn, proxy, cfg())  # type: ignore[arg-type]
+    finally:
+        proxy.close()
+    assert worker.identity  # the decisions really came from the worker process
+    assert got.trades == expected.trades and got.equity == expected.equity
+    assert (got.final_positions, got.final_cash) == (expected.final_positions, expected.final_cash)
+    assert got.params_hash == expected.params_hash
