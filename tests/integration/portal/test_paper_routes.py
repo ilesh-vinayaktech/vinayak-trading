@@ -314,7 +314,7 @@ def test_orders_are_listed_filtered_and_answered_by_their_owner_only(env):
         "order_id": str(keep), "symbol": "AAA", "side": "BUY", "qty": "10", "ref_price": "200",
         "reason": "entry: oversold in an uptrend", "status": "PENDING", "decision_day": "2026-11-11",
         "created_at": START.isoformat(), "expires_at": (START + timedelta(hours=20)).isoformat(),
-        "fill_price": None, "fill_commission": None, "fill_day": None, "failure": None,
+        "fill_price": None, "fill_commission": None, "fill_day": None, "failure": None, "order_type": "MARKET", "limit_price": None,
         "upcoming": [],
     }  # fmt: skip
     assert c.get("/api/paper/orders?status=FILLED,REJECTED").json()["orders"] == []
@@ -354,3 +354,30 @@ def test_the_decision_log_lists_recent_runs_with_the_reason_and_how_many_orders(
         {"decision_day": "2026-11-11", "status": "PROPOSED", "reason": None, "orders": 2, "universe": "nifty200", "strategy_version": "1", "created_at": START.isoformat()},
         {"decision_day": "2026-11-10", "status": "ERROR", "reason": "no nifty200_list in the lake", "orders": 0, "universe": None, "strategy_version": "1", "created_at": START.isoformat()},
     ]  # fmt: skip
+
+
+def test_approving_with_a_limit_price_stores_it_and_a_bad_limit_is_a_400(env):
+    conn, app, clock, ids = env
+    uid, c = trader(conn, app, clock)
+    accounts(conn, uid)
+    bad, good = order(conn, uid, ids["AAA"]), order(conn, uid, ids["BBB"])  # ref 200
+    for body, text in [
+        ({"order_type": "LIMIT"}, "needs a limit price"),
+        ({"order_type": "LIMIT", "limit_price": "100"}, "more than 20%"),
+        ({"order_type": "MARKET", "limit_price": "200"}, "no limit price"),
+    ]:
+        r = c.post(f"/api/paper/orders/{bad}/approve", json=body)
+        assert r.status_code == 400 and text in r.json()["detail"]
+    assert (
+        c.post(f"/api/paper/orders/{bad}/approve", json={"order_type": "STOP"}).status_code == 422
+    )
+    assert (
+        c.post(
+            f"/api/paper/orders/{good}/approve",
+            json={"order_type": "LIMIT", "limit_price": "199.5"},
+        ).status_code
+        == 200
+    )
+    got = {r["order_id"]: r for r in c.get("/api/paper/orders").json()["orders"]}
+    assert (got[str(good)]["order_type"], got[str(good)]["limit_price"]) == ("LIMIT", "199.5")
+    assert c.post(f"/api/paper/orders/{bad}/approve").status_code == 200  # no body: a market order

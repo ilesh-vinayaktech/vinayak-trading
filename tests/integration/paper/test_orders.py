@@ -215,3 +215,75 @@ def test_the_list_shows_a_users_own_orders_and_can_filter_by_status(env):
     assert [r["order_id"] for r in orders.list_orders(conn, jane, statuses=["PENDING"])] == [second]
     assert orders.get_order(conn, first, user_id=jane)["status"] == "REJECTED"
     assert orders.get_order(conn, first, user_id=bob) is None
+
+
+def live_bar_hl(conn, iid, n, open_, high, low):
+    conn.execute(
+        "INSERT INTO live_bar_1m (instrument_id, ts, open, high, low, close, volume, ticks, partial, built_at) VALUES (%s,%s,%s,%s,%s,%s,1000,5,false,%s)",
+        (iid, minute(n), open_, high, low, open_, minute(n)),
+    )
+
+
+def fill_price_of(conn, oid):
+    return conn.execute("SELECT fill_price FROM paper_order WHERE order_id=%s", (oid,)).fetchone()[
+        0
+    ]
+
+
+def test_a_buy_limit_waits_for_the_price_and_fills_at_the_limit_with_no_slippage(env):
+    conn, jane, _, iid = env
+    oid = propose(conn, jane, iid)  # ref 200
+    orders.approve(conn, oid, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D(195))
+    live_bar_hl(conn, iid, 0, 200, 201, 198)  # never down to 195
+    assert fill(conn, minute(1), slippage=50).waiting == 1 and status(conn, oid)[0] == "APPROVED"
+    live_bar_hl(conn, iid, 1, 199, 199, 194)  # trades through 195 from above: filled AT the limit
+    assert fill(conn, minute(2), slippage=50).filled == 1
+    assert fill_price_of(conn, oid) == D(195)
+
+
+def test_a_buy_limit_above_the_open_fills_at_the_better_open_and_a_sell_limit_mirrors_it(env):
+    conn, jane, _, iid = env
+    buy = propose(conn, jane, iid)
+    orders.approve(conn, buy, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D(205))
+    live_bar_hl(conn, iid, 0, 200, 202, 199)  # opens at 200, better than the 205 we would pay
+    fill(conn, minute(1))
+    assert fill_price_of(conn, buy) == D(200)
+    conn.execute("DELETE FROM live_bar_1m")
+    sell = propose(conn, jane, iid, side="SELL", qty=100)
+    orders.approve(conn, sell, user_id=jane, now=minute(2), order_type="LIMIT", limit_price=D(210))
+    live_bar_hl(conn, iid, 3, 205, 209, 204)  # high 209 < 210: not reached
+    assert fill(conn, minute(4)).waiting == 1
+    live_bar_hl(conn, iid, 4, 208, 212, 207)  # reaches 210: sold at the limit
+    assert fill(conn, minute(5)).filled == 1 and fill_price_of(conn, sell) == D(210)
+
+
+def test_a_limit_that_is_never_reached_expires_unfilled_and_a_market_order_is_unchanged(env):
+    conn, jane, _, iid = env
+    lim, mkt = propose(conn, jane, iid), propose(conn, jane, iid)
+    orders.approve(conn, lim, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D(180))
+    orders.approve(conn, mkt, user_id=jane, now=EVENING)  # default: MARKET
+    live_bar_hl(conn, iid, 0, 200, 201, 199)
+    fill(conn, minute(1), slippage=10)
+    assert status(conn, mkt)[0] == "FILLED" and status(conn, lim)[0] == "APPROVED"
+    assert fill_price_of(conn, mkt) == D("200.2")  # slippage applies to the market order only
+    orders.expire_due(conn, CLOSE)
+    assert status(conn, lim) == ("FAILED", "not filled before the order expired")
+
+
+def test_the_limit_is_checked_and_stored_when_approving(env):
+    conn, jane, _, iid = env
+    oid = propose(conn, jane, iid)
+    for kind, price, text in [
+        ("LIMIT", None, "needs a limit price"),
+        ("LIMIT", D(0), "needs a limit price"),
+        ("LIMIT", D("NaN"), "needs a limit price"),
+        ("LIMIT", D(100), "more than 20%"),
+        ("MARKET", D(200), "no limit price"),
+        ("STOP", None, "MARKET or LIMIT"),
+    ]:
+        with pytest.raises(orders.OrderError, match=text):
+            orders.approve(conn, oid, user_id=jane, now=EVENING, order_type=kind, limit_price=price)
+        assert status(conn, oid)[0] == "PENDING"
+    orders.approve(conn, oid, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D("199.5"))
+    row = conn.execute("SELECT order_type, limit_price FROM paper_order WHERE order_id=%s", (oid,))
+    assert row.fetchone() == ("LIMIT", D("199.5"))

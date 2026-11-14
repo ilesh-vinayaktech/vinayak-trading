@@ -8,7 +8,7 @@ formatted by the browser. UNVALIDATED research: nothing here can place a real or
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, get_args
+from typing import Any, Literal, get_args
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -232,7 +232,7 @@ def _order(o: dict[str, Any], heads_up: dict[int, list[dict[str, Any]]]) -> dict
         "order_id": str(o["order_id"]), "symbol": o["symbol"], "side": o["side"], "qty": _s(o["qty"]), "ref_price": _s(o["ref_price"]),
         "reason": o["reason"], "status": o["status"], "decision_day": o["decision_day"].isoformat(), "created_at": o["created_at"].isoformat(),
         "expires_at": o["expires_at"].isoformat(), "fill_price": _opt(o["fill_price"]), "fill_commission": _opt(o["fill_commission"]),
-        "fill_day": None if o["fill_day"] is None else o["fill_day"].isoformat(), "failure": o["failure"],
+        "fill_day": None if o["fill_day"] is None else o["fill_day"].isoformat(), "failure": o["failure"], "order_type": o["order_type"], "limit_price": _opt(o["limit_price"]),
         "upcoming": heads_up.get(o["instrument_id"], []) if o["status"] in OPEN else [],  # nothing left to warn about once decided
     }  # fmt: skip
 
@@ -252,8 +252,18 @@ def list_orders(
     return {"orders": [_order(o, heads_up) for o in rows]}
 
 
+class ApproveBody(BaseModel):
+    order_type: Literal["MARKET", "LIMIT"] = "MARKET"
+    limit_price: Decimal | None = None
+
+
 def _answer(
-    action: str, order_id: str, request: Request, who: CurrentUser, conn: WConn
+    action: str,
+    order_id: str,
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    how: ApproveBody | None = None,
 ) -> dict[str, bool]:
     try:
         oid = UUID(order_id)
@@ -261,9 +271,18 @@ def _answer(
         raise HTTPException(404, "no such order") from e
     now = _st(request).clock.now()
     try:
-        (orders.approve if action == "approved" else orders.reject)(
-            conn, oid, user_id=who.session.user_id, now=now
-        )
+        if action == "approved":
+            how = how or ApproveBody()
+            orders.approve(
+                conn,
+                oid,
+                user_id=who.session.user_id,
+                now=now,
+                order_type=how.order_type,
+                limit_price=how.limit_price,
+            )
+        else:
+            orders.reject(conn, oid, user_id=who.session.user_id, now=now)
     except orders.OrderError as e:
         raise HTTPException(404 if str(e) == "no such order" else 400, str(e)) from e
     audit.record(
@@ -279,9 +298,13 @@ def _answer(
 
 @router.post("/orders/{order_id}/approve")
 def approve_order(
-    order_id: str, request: Request, who: CurrentUser, conn: WConn
+    order_id: str,
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    body: ApproveBody | None = None,
 ) -> dict[str, bool]:
-    return _answer("approved", order_id, request, who, conn)
+    return _answer("approved", order_id, request, who, conn, body)
 
 
 @router.post("/orders/{order_id}/reject")

@@ -668,6 +668,8 @@ export const paperOrderSchema = z.object({
   fill_commission: decimal.nullable(),
   fill_day: z.string().nullable(),
   failure: z.string().nullable(),
+  order_type: z.enum(["MARKET", "LIMIT"]),
+  limit_price: decimal.nullable(),
   upcoming: z.array(actionSchema), // announced actions within days of an order that is still open
 });
 export const paperOrdersSchema = z.object({ orders: z.array(paperOrderSchema) });

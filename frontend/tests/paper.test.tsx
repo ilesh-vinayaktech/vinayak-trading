@@ -98,10 +98,17 @@ const order = (over: Record<string, unknown>) => ({
   fill_commission: null,
   fill_day: null,
   failure: null,
+  order_type: "MARKET",
+  limit_price: null,
   upcoming: [],
   ...over,
 });
-const COMING = (kind: string, ex_date: string, amount: string | null, subject: string) => ({ ex_date, kind, status: "ok", num: null, den: null, amount, subject });
+const COMING = (
+  kind: string,
+  ex_date: string,
+  amount: string | null,
+  subject: string,
+) => ({ ex_date, kind, status: "ok", num: null, den: null, amount, subject });
 const ORDERS = {
   orders: [
     order({}),
@@ -351,8 +358,22 @@ describe("starting a paper account", () => {
 
   it("starts a screener strategy's account on the standard settings and then puts the strategy on it", async () => {
     const screener = {
-      ...STRATEGY, config_id: "c3", name: "Dip buyer", strategy_id: "screener", universe: "segments", max_instruments: null, params: { max_positions: 10 },
-      screen: { screen: { conditions: [{ field: "rsi_14", op: "lte", value: "40" }], match: "all", sort: "rsi_14", descending: false }, segments: ["large", "mid"] },
+      ...STRATEGY,
+      config_id: "c3",
+      name: "Dip buyer",
+      strategy_id: "screener",
+      universe: "segments",
+      max_instruments: null,
+      params: { max_positions: 10 },
+      screen: {
+        screen: {
+          conditions: [{ field: "rsi_14", op: "lte", value: "40" }],
+          match: "all",
+          sort: "rsi_14",
+          descending: false,
+        },
+        segments: ["large", "mid"],
+      },
     };
     backend(
       ready(null, {
@@ -362,10 +383,18 @@ describe("starting a paper account", () => {
       }),
     );
     mount();
-    await waitFor(() => expect(screen.getByLabelText("Strategy")).toHaveValue("c3"));
-    fireEvent.click(screen.getByRole("button", { name: "Start paper trading" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Strategy")).toHaveValue("c3"),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Start paper trading" }),
+    );
     await waitFor(() => expect(posted()).toHaveLength(2));
-    expect(posted()[0]?.body).toMatchObject({ universe: "nifty200", max_instruments: null, params: { trend_sma: 200, max_positions: 10 } });
+    expect(posted()[0]?.body).toMatchObject({
+      universe: "nifty200",
+      max_instruments: null,
+      params: { trend_sma: 200, max_positions: 10 },
+    });
     expect(posted()[1]?.path).toBe("/api/strategies/c3/use");
   });
 
@@ -446,18 +475,46 @@ describe("the account overview", () => {
 
 describe("announced actions coming up", () => {
   it("warns on a holding whose stock has an ex-date within days, and on an order waiting for an answer", async () => {
-    const dividend = COMING("dividend", "2026-11-20", "7", "Interim Dividend - Rs 7 Per Share");
+    const dividend = COMING(
+      "dividend",
+      "2026-11-20",
+      "7",
+      "Interim Dividend - Rs 7 Per Share",
+    );
     const split = COMING("split", "2026-11-15", null, "Face Value Split");
-    const held = { ...SUMMARY, positions: [{ ...SUMMARY.positions[0], upcoming: [dividend] }] };
-    const orders = { orders: [order({ upcoming: [split] }), order({ order_id: "o2", symbol: "INFY" })] };
-    backend(ready({}, { "GET /api/paper/summary": held, "GET /api/paper/orders": orders }));
+    const held = {
+      ...SUMMARY,
+      positions: [{ ...SUMMARY.positions[0], upcoming: [dividend] }],
+    };
+    const orders = {
+      orders: [
+        order({ upcoming: [split] }),
+        order({ order_id: "o2", symbol: "INFY" }),
+      ],
+    };
+    backend(
+      ready(
+        {},
+        { "GET /api/paper/summary": held, "GET /api/paper/orders": orders },
+      ),
+    );
     mount();
-    const positions = within(await screen.findByRole("table", { name: "Positions" }));
-    expect(positions.getByText(/Ex-date 2026-11-20: dividend ₹7/)).toBeInTheDocument();
+    const positions = within(
+      await screen.findByRole("table", { name: "Positions" }),
+    );
+    expect(
+      positions.getByText(/Ex-date 2026-11-20: dividend ₹7/),
+    ).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("tab", { name: /Orders/ }));
-    const waiting = within(await screen.findByRole("table", { name: "Orders waiting for your answer" }));
-    expect(await waiting.findByText(/Ex-date 2026-11-15: split/)).toBeInTheDocument();
-    const infy = (waiting.getByText("INFY").closest("tr") as HTMLElement);
+    const waiting = within(
+      await screen.findByRole("table", {
+        name: "Orders waiting for your answer",
+      }),
+    );
+    expect(
+      await waiting.findByText(/Ex-date 2026-11-15: split/),
+    ).toBeInTheDocument();
+    const infy = waiting.getByText("INFY").closest("tr") as HTMLElement;
     expect(within(infy).queryByText(/Ex-date/)).not.toBeInTheDocument(); // nothing coming for it: no noise
   });
 });
@@ -528,6 +585,44 @@ describe("answering orders", () => {
     );
   });
 
+  it("lets the owner choose a limit price when approving, and sends a market order by default", async () => {
+    await open();
+    fireEvent.change(await screen.findByLabelText("Order type for TCS"), {
+      target: { value: "LIMIT" },
+    });
+    const price = screen.getByLabelText("Limit price for TCS");
+    expect(price).toHaveValue("3500"); // starts at the reference price
+    fireEvent.change(price, { target: { value: "1490.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Approve BUY TCS" }));
+    await waitFor(() =>
+      expect(
+        calls.find((c) => c.path === "/api/paper/orders/o1/approve")?.body,
+      ).toEqual({ order_type: "LIMIT", limit_price: "1490.5" }),
+    );
+    expect(
+      await screen.findByText(/fills only at ₹1490\.5 or better/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Approve SELL INFY" }));
+    await waitFor(() =>
+      expect(
+        calls.find((c) => c.path === "/api/paper/orders/o2/approve")?.body,
+      ).toEqual({ order_type: "MARKET" }),
+    );
+  });
+
+  it("will not approve a limit order without a price", async () => {
+    await open();
+    fireEvent.change(await screen.findByLabelText("Order type for TCS"), {
+      target: { value: "LIMIT" },
+    });
+    fireEvent.change(screen.getByLabelText("Limit price for TCS"), {
+      target: { value: "" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Approve BUY TCS" }),
+    ).toBeDisabled();
+  });
+
   it("can approve everything waiting at once", async () => {
     backend(
       ready(
@@ -541,7 +636,7 @@ describe("answering orders", () => {
     mount();
     fireEvent.click(await screen.findByRole("tab", { name: /Orders/ }));
     fireEvent.click(
-      await screen.findByRole("button", { name: "Approve all 2" }),
+      await screen.findByRole("button", { name: "Approve all 2 at market" }),
     );
     await waitFor(() =>
       expect(

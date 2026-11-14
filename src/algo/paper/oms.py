@@ -39,13 +39,16 @@ class _Row:
     status: str
     fill_price: Decimal | None
     failure: str | None
+    limit_price: Decimal | None
 
     @property
     def client_order_id(self) -> str:
         return client_order_id(self.strategy_id, str(self.order_id))
 
     def request(self) -> OrderRequest:
-        return OrderRequest(self.strategy_id, self.instrument_id, Side(self.side), int(self.qty))
+        return OrderRequest(
+            self.strategy_id, self.instrument_id, Side(self.side), int(self.qty), self.limit_price
+        )
 
     def as_broker_order(self) -> BrokerOrder:
         if self.status == "APPROVED":
@@ -67,7 +70,7 @@ def _rows(conn: psycopg.Connection) -> list[_Row]:
     return [
         _Row(*r)
         for r in conn.execute(
-            "SELECT o.order_id, o.user_id, a.strategy_id, o.instrument_id, o.side, o.qty, o.status, o.fill_price, o.failure"
+            "SELECT o.order_id, o.user_id, a.strategy_id, o.instrument_id, o.side, o.qty, o.status, o.fill_price, o.failure, o.limit_price"
             " FROM paper_order o JOIN paper_account a USING (user_id)"
             " WHERE o.decided_at IS NOT NULL AND o.status <> 'REJECTED' ORDER BY o.created_at, o.order_id"
         )

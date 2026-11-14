@@ -2,6 +2,7 @@
 
 import { UpcomingNote } from "@/components/paper/UpcomingNote";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Alert } from "@/components/ui/Alert";
 import { Panel, RelativeTime, StatusPill } from "@/components/ui/Layout";
@@ -25,11 +26,12 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   const toast = useToast();
   const q = useQuery({ queryKey: ["paper", "orders"], queryFn: () => api.paperOrders(), refetchInterval: 30_000 });
   const done = () => void qc.invalidateQueries({ queryKey: ["paper"] });
-  const approve = useMutation({ mutationFn: (id: string) => api.approvePaperOrder(id), onSuccess: () => { toast.success("Approved. It fills at the next live price."); done(); } });
+  const approve = useMutation({ mutationFn: ({ id, how }: { id: string; how?: { order_type: "MARKET" | "LIMIT"; limit_price?: string } }) => api.approvePaperOrder(id, how), onSuccess: (_r, v) => { toast.success(v.how?.order_type === "LIMIT" ? `Approved. It fills only at ₹${v.how.limit_price} or better.` : "Approved. It fills at the next live price."); done(); } });
   const reject = useMutation({ mutationFn: (id: string) => api.rejectPaperOrder(id), onSuccess: () => { toast.success("Rejected."); done(); } });
   const all = q.data?.orders ?? [];
   const pending = all.filter((o) => o.status === "PENDING");
   const history = all.filter((o) => o.status !== "PENDING");
+  const [how, setHow] = useState<Record<string, { type: "MARKET" | "LIMIT"; price: string }>>({}); // the owner's choice per order, made when approving
   const busy = approve.isPending || reject.isPending;
   const error = approve.error ?? reject.error;
 
@@ -46,7 +48,14 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
       className: "text-right",
       cell: (o) => (
         <span className="inline-flex gap-2">
-          <button type="button" disabled={busy} onClick={() => approve.mutate(o.order_id)} className={buttonClass("primary", true)} aria-label={`Approve ${o.side} ${o.symbol}`}>Approve</button>
+          <span className="inline-flex items-center gap-1">
+            <select aria-label={`Order type for ${o.symbol}`} value={how[o.order_id]?.type ?? "MARKET"} onChange={(e) => setHow((h) => ({ ...h, [o.order_id]: { type: e.target.value as "MARKET" | "LIMIT", price: h[o.order_id]?.price ?? o.ref_price } }))} className="rounded border border-line px-1 py-1 text-sm">
+              <option value="MARKET">Market</option>
+              <option value="LIMIT">Limit</option>
+            </select>
+            {how[o.order_id]?.type === "LIMIT" ? <input aria-label={`Limit price for ${o.symbol}`} inputMode="decimal" value={how[o.order_id]?.price ?? ""} onChange={(e) => setHow((h) => ({ ...h, [o.order_id]: { type: "LIMIT", price: e.target.value } }))} className="w-24 rounded border border-line px-2 py-1 text-right text-sm" /> : null}
+          </span>
+          <button type="button" disabled={busy || (how[o.order_id]?.type === "LIMIT" && !(Number(how[o.order_id]?.price) > 0))} onClick={() => approve.mutate({ id: o.order_id, how: how[o.order_id]?.type === "LIMIT" ? { order_type: "LIMIT", limit_price: how[o.order_id]?.price } : undefined })} className={buttonClass("primary", true)} aria-label={`Approve ${o.side} ${o.symbol}`}>Approve</button>
           <button type="button" disabled={busy} onClick={() => reject.mutate(o.order_id)} className={buttonClass("secondary", true)} aria-label={`Reject ${o.side} ${o.symbol}`}>Reject</button>
         </span>
       ),
@@ -57,6 +66,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
     { key: "symbol", header: "Stock", cell: (o) => <div><span className="font-medium">{o.symbol}</span><UpcomingNote items={o.upcoming} /></div> },
     { key: "side", header: "Action", cell: (o) => <SidePill side={o.side} /> },
     { key: "qty", header: "Shares", className: "text-right", cell: (o) => fmtMoney(o.qty, 0) },
+    { key: "type", header: "Type", hideBelow: "md", cell: (o) => (o.order_type === "LIMIT" ? `Limit ₹${fmtMoney(o.limit_price ?? "0")}` : "Market") },
     { key: "fill", header: "Filled at", className: "text-right", hideBelow: "sm", cell: (o) => (o.fill_price ? `₹${fmtMoney(o.fill_price)}` : <span className="text-ink-faint">-</span>) },
     { key: "status", header: "Status", cell: (o) => <span title={o.failure ?? undefined}><StatusPill tone={TONE[o.status]}>{LABEL[o.status]}</StatusPill></span> },
     { key: "note", header: "Note", hideBelow: "md", cell: (o) => <span className="text-ink-soft">{o.failure ?? o.reason}</span> },
@@ -68,7 +78,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
       {error ? <Alert tone="error">{message(error)}</Alert> : null}
       <Panel
         title="Waiting for your answer"
-        actions={pending.length > 1 ? <button type="button" disabled={busy} onClick={() => pending.forEach((o) => approve.mutate(o.order_id))} className={buttonClass("secondary", true)}>Approve all {pending.length}</button> : null}
+        actions={pending.length > 1 ? <button type="button" disabled={busy} onClick={() => pending.forEach((o) => approve.mutate({ id: o.order_id }))} className={buttonClass("secondary", true)}>Approve all {pending.length} at market</button> : null}
       >
         <DataTable caption="Orders waiting for your answer" columns={pendingColumns} rows={q.data ? pending : undefined} rowKey={(o) => o.order_id} loading={q.isLoading} empty={<EmptyState icon="tasks" title="Nothing to approve">The strategy decides once a day after the market closes. New proposals appear here.</EmptyState>} />
       </Panel>

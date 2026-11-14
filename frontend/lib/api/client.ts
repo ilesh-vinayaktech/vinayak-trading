@@ -197,7 +197,7 @@ export const api = {
   updatePaperSettings: (b: { enabled?: boolean; universe?: string; max_instruments?: number | null; timeframe?: string; params?: Record<string, number> }) => send("POST", "/api/paper/account/settings", b, okSchema),
   paperSummary: () => get("/api/paper/summary", paperSummarySchema),
   paperOrders: (statuses?: string[]) => get("/api/paper/orders", paperOrdersSchema, statuses ? { status: statuses.join(",") } : undefined),
-  approvePaperOrder: (id: string) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/approve`, undefined, okSchema),
+  approvePaperOrder: (id: string, how: { order_type: "MARKET" | "LIMIT"; limit_price?: string } = { order_type: "MARKET" }) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/approve`, how, okSchema),
   rejectPaperOrder: (id: string) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/reject`, undefined, okSchema),
   paperRuns: () => get("/api/paper/runs", paperRunsSchema),
   strategies: () => get("/api/strategies", strategiesSchema),

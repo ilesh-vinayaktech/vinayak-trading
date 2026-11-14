@@ -30,9 +30,15 @@ from algo.paper import risk as paper_risk
 IST = ZoneInfo("Asia/Kolkata")
 COLUMNS = (
     "o.order_id, o.user_id, o.decision_day, o.instrument_id, i.symbol, o.side, o.qty, o.ref_price, o.reason, o.status,"
-    " o.created_at, o.not_before, o.expires_at, o.decided_at, o.fill_day, o.fill_price, o.fill_commission, o.filled_at, o.failure"
+    " o.created_at, o.not_before, o.expires_at, o.decided_at, o.fill_day, o.fill_price, o.fill_commission, o.filled_at, o.failure,"
+    " o.order_type, o.limit_price"
 )
 KEYS = [c.split(".")[1] for c in COLUMNS.replace(" ", "").split(",")]
+
+
+LIMIT_BAND = Decimal(
+    "0.20"
+)  # a limit further than this from the reference close is a typo, not a price
 
 
 class OrderError(ValueError):
@@ -91,11 +97,49 @@ def _decide(
     )
 
 
-def approve(conn: psycopg.Connection, order_id: UUID, *, user_id: UUID, now: datetime) -> None:
+def _how_sent(
+    conn: psycopg.Connection,
+    order_id: UUID,
+    order_type: str,
+    limit_price: Decimal | None,
+) -> None:
+    """Record how the owner chose to send the order (before the risk check, which looks at the price)."""
+    if order_type == "MARKET":
+        if limit_price is not None:
+            raise OrderError("a market order has no limit price")
+    elif order_type == "LIMIT":
+        if limit_price is None or not limit_price.is_finite() or limit_price <= 0:
+            raise OrderError("a limit order needs a limit price above zero")
+        ref = conn.execute(
+            "SELECT ref_price FROM paper_order WHERE order_id=%s", (order_id,)
+        ).fetchone()
+        assert ref is not None
+        if abs(limit_price - ref[0]) > ref[0] * LIMIT_BAND:
+            raise OrderError(
+                f"the limit {limit_price} is more than {LIMIT_BAND:.0%} from the reference price {ref[0]}"
+            )
+    else:
+        raise OrderError("the order type is MARKET or LIMIT")
+    conn.execute(
+        "UPDATE paper_order SET order_type=%s, limit_price=%s WHERE order_id=%s",
+        (order_type, limit_price, order_id),
+    )
+
+
+def approve(
+    conn: psycopg.Connection,
+    order_id: UUID,
+    *,
+    user_id: UUID,
+    now: datetime,
+    order_type: str = "MARKET",
+    limit_price: Decimal | None = None,
+) -> None:
     _answerable(conn, order_id, user_id, now)
     acct = book.get_account(conn, user_id)
     if acct is None or not acct["enabled"] or acct["attention"]:
         raise OrderError("the account is paused, so orders cannot be approved")
+    _how_sent(conn, order_id, order_type, limit_price)
     decision = paper_risk.check_approval(
         conn, user_id, order_id, now
     )  # approval is when an order is "sent"
@@ -146,10 +190,10 @@ def fill_due(
     filled = failed = waiting = 0
     switch = paper_risk.load_switch(conn)
     due = conn.execute(
-        "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at FROM paper_order WHERE status='APPROVED' AND expires_at > %s ORDER BY created_at, order_id",
+        "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at, limit_price FROM paper_order WHERE status='APPROVED' AND expires_at > %s ORDER BY created_at, order_id",
         (now,),
     ).fetchall()
-    for order_id, user_id, iid, side, qty, not_before, expires_at, decided_at in due:
+    for order_id, user_id, iid, side, qty, not_before, expires_at, decided_at, limit in due:
         acct = book.get_account(conn, user_id)
         if acct is not None and switch.mode(acct["strategy_id"]).cancels_open:
             conn.execute(
@@ -161,15 +205,28 @@ def fill_due(
             )
             failed += 1
             continue
+        reach = (  # a limit order waits for a minute that trades at its price or better
+            "" if limit is None else (" AND low <= %s" if side == "BUY" else " AND high >= %s")
+        )
         bar = conn.execute(
-            "SELECT ts, open FROM live_bar_1m WHERE instrument_id=%s AND ts >= %s AND ts < %s ORDER BY ts LIMIT 1",
-            (iid, max(not_before, _next_minute(decided_at)), expires_at),
+            "SELECT ts, open FROM live_bar_1m WHERE instrument_id=%s AND ts >= %s AND ts < %s"
+            + reach
+            + " ORDER BY ts LIMIT 1",
+            (
+                iid,
+                max(not_before, _next_minute(decided_at)),
+                expires_at,
+                *(() if limit is None else (limit,)),
+            ),
         ).fetchone()
         if acct is None or not acct["enabled"] or acct["attention"] or bar is None:
             waiting += 1
             continue
         day = bar[0].astimezone(IST).date()
-        price = fill_price(bar[1], side, slippage_bps)
+        if limit is None:
+            price = fill_price(bar[1], side, slippage_bps)
+        else:  # the limit or better: the open when it already is, else the limit; no slippage on top
+            price = min(bar[1], limit) if side == "BUY" else max(bar[1], limit)
         ch = cost.charges(day, side, qty, price)
         extra = [(ln.type, ln.amount) for ln in ch.lines if ln.type != "COMMISSION"]
         try:

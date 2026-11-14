@@ -65,10 +65,11 @@ def inputs(
     acct = book.get_account(conn, user_id)
     assert acct is not None
     order = conn.execute(
-        "SELECT instrument_id, side, qty, ref_price FROM paper_order WHERE order_id=%s", (order_id,)
+        "SELECT instrument_id, side, qty, ref_price, limit_price FROM paper_order WHERE order_id=%s",
+        (order_id,),
     ).fetchone()
     assert order is not None
-    iid, side, qty, ref = order
+    iid, side, qty, ref, limit = order
     if qty != qty.to_integral_value():
         raise ValueError(f"quantity {qty} is not a whole number")
     ledger = book.load(conn, user_id)
@@ -87,7 +88,7 @@ def inputs(
     ).fetchone()
     assert open_row is not None
     request = OrderRequest(
-        acct["strategy_id"], iid, Side(side), int(qty), None, reduce_only=side == "SELL"
+        acct["strategy_id"], iid, Side(side), int(qty), limit, reduce_only=side == "SELL"
     )
     state = Book(
         position_qty=int(held.get(iid, 0)),
