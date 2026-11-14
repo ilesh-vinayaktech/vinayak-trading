@@ -69,6 +69,13 @@
    "name": "bhavcopy-daily"
   },
   {
+   "calendar": "Mon..Fri *-*-* 21:15 Asia/Kolkata",
+   "description": "Alert on a quarantined bhavcopy, an open weekday with no daily bars, or a session with under 90% of the usual number of bars (after the retries and the gap sweep have had their chance)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "data-completeness"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 19:45 Asia/Kolkata",
    "description": "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
    "last_run": null,
@@ -125,11 +132,18 @@
    "name": "corporate-actions-monthly"
   },
   {
-   "calendar": "Mon..Fri *-*-* 19:30 Asia/Kolkata",
-   "description": "Kite daily candles for the mapped instruments (exit 3 = session expired, 1 = some stock failed; alerted)",
+   "calendar": "Mon..Fri *-*-* 17:00 Asia/Kolkata",
+   "description": "Today's Kite daily candle for the mapped instruments (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
    "last_run": null,
    "last_success_at": null,
    "name": "kite-daily-candles"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 09:05 Asia/Kolkata",
+   "description": "Re-read the last week of Kite daily candles and keep the final values: yesterday's evening candle is provisional, a changed candle is stored as the next dataset version and the history is kept (also fills a missed day); frozen days are never touched",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "kite-daily-revise"
   },
   {
    "calendar": "Mon..Fri *-*-* 21:00 Asia/Kolkata",
@@ -207,7 +221,7 @@
    },
    {
     "level": "attention",
-    "text": "20 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, price-continuity and 17 more."
+    "text": "22 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 19 more."
    }
   ],
   "status": "DOWN"

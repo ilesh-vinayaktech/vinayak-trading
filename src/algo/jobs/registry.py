@@ -27,6 +27,12 @@ JOBS: tuple[Job, ...] = (
         retries=12,
     ),
     Job(
+        "data-completeness",
+        f"{WEEKDAYS} *-*-* 21:15 Asia/Kolkata",
+        ((*_PY, "scripts/check_completeness.py", "--db", "{db}"),),
+        "Alert on a quarantined bhavcopy, an open weekday with no daily bars, or a session with under 90% of the usual number of bars (after the retries and the gap sweep have had their chance)",
+    ),
+    Job(
         "price-continuity",
         f"{WEEKDAYS} *-*-* 19:45 Asia/Kolkata",
         ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}"),),
@@ -117,7 +123,27 @@ JOBS: tuple[Job, ...] = (
     ),
     Job(
         "kite-daily-candles",
-        f"{WEEKDAYS} *-*-* 19:30 Asia/Kolkata",
+        f"{WEEKDAYS} *-*-* 17:00 Asia/Kolkata",
+        (
+            (
+                *_PY,
+                "scripts/kite_load_days.py",
+                "--db",
+                "{db}",
+                "--from",
+                "{today}",
+                "--interval",
+                "0.5",
+            ),
+        ),  # fmt: skip
+        "Today's Kite daily candle for the mapped instruments (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
+        timeout_s=2
+        * 3600,  # about 2,400 stocks at 2 requests a second is 20 minutes; the default 2 s spacing would be 80
+        needs_kite=True,
+    ),
+    Job(
+        "kite-daily-revise",
+        f"{WEEKDAYS} *-*-* 09:05 Asia/Kolkata",
         (
             (
                 *_PY,
@@ -128,11 +154,11 @@ JOBS: tuple[Job, ...] = (
                 "{d7}",
                 "--interval",
                 "0.5",
+                "--revise",
             ),
         ),  # fmt: skip
-        "Kite daily candles for the mapped instruments (exit 3 = session expired, 1 = some stock failed; alerted)",
-        timeout_s=2
-        * 3600,  # about 2,600 stocks at 2 requests a second is 25 minutes; the default 2 s spacing would be 87
+        "Re-read the last week of Kite daily candles and keep the final values: yesterday's evening candle is provisional, a changed candle is stored as the next dataset version and the history is kept (also fills a missed day); frozen days are never touched",
+        timeout_s=2 * 3600,
         needs_kite=True,
     ),
     Job(

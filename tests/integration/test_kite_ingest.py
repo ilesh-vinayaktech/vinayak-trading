@@ -452,3 +452,64 @@ def test_a_superseded_token_is_not_asked_for_but_a_history_only_stock_still_is(e
         (NOW,),
     )
     assert day_work(conn) == [(3, "HISTONLY", other), (2, "RELIANCE", iid)]
+
+
+def test_the_be_series_are_not_asked_for(env):
+    from algo.data.kite_ingest import day_work
+
+    conn, iid = env
+    for token, symbol in ((1, "RELIANCE"), (2, "AARTISURF-BE"), (3, "SHIVAM-RE1-BE")):
+        conn.execute(
+            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id,"
+            " refreshed_at, active) VALUES (%s,%s,%s,'n',%s,%s,true)",
+            (token, token, symbol, iid, NOW),
+        )
+    assert day_work(conn) == [(1, "RELIANCE", iid)]
+
+
+def test_a_revising_load_stores_a_changed_candle_as_a_new_version_and_leaves_identical_ones_alone(
+    env,
+):
+    from algo.data import freeze
+    from algo.data.kite_ingest import load_days
+
+    conn, iid = env
+    d1, d2, d3 = date(2026, 11, 5), date(2026, 11, 6), date(2026, 11, 9)
+    evening = {d: ("100", "105", "99", "104", "5000") for d in (d1, d2, d3)}
+    load_days(conn, FakeDayKite(evening), 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW)
+    final = {
+        **evening,
+        d3: ("100", "107", "99", "106", "5200"),
+    }  # the last day's close was provisional
+    # the routine evening load never overwrites: the provisional candle stays
+    r = load_days(conn, FakeDayKite(final), 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW)
+    assert r.rows == 0 and [x[5] for x in day_rows(conn, iid)] == [D(104)] * 3
+    # the morning load revises: one new version for the day that changed, nothing for the others
+    r = load_days(
+        conn, FakeDayKite(final), 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW, revise=True
+    )
+    assert r.rows == 1
+    rows = day_rows(conn, iid)
+    assert [(x[1], x[5], x[9]) for x in rows if x[1] == d3] == [(d3, D(104), 1), (d3, D(106), 2)]
+    assert [x[9] for x in rows if x[1] != d3] == [1, 1]
+    assert (
+        load_days(
+            conn,
+            FakeDayKite(final),
+            1,
+            iid,
+            date(2026, 11, 1),
+            date(2026, 11, 11),
+            NOW,
+            revise=True,
+        ).rows
+        == 0
+    )  # a second revise finds nothing new
+    # frozen days are never revised, even when the vendor now says something else
+    frozen = freeze.take(conn, "kite", d2, NOW, "history frozen")
+    moved = {**final, d1: ("1", "1", "1", "1", "1"), d2: ("2", "2", "2", "2", "2")}
+    load_days(
+        conn, FakeDayKite(moved), 1, iid, date(2026, 11, 1), date(2026, 11, 11), NOW, revise=True
+    )
+    assert freeze.verify(conn, frozen) == []
+    assert [x[9] for x in day_rows(conn, iid) if x[1] in (d1, d2)] == [1, 1]

@@ -102,7 +102,7 @@ def day_work(conn: psycopg.Connection) -> list[tuple[int, str, int]]:
             "SELECT k.instrument_token, k.tradingsymbol, k.instrument_id FROM kite_instrument k"
             " WHERE k.instrument_id IS NOT NULL AND NOT (NOT k.active AND EXISTS"
             "  (SELECT 1 FROM kite_instrument o WHERE o.instrument_id = k.instrument_id AND o.active))"
-            " ORDER BY k.tradingsymbol"
+            " AND k.tradingsymbol NOT LIKE '%-BE' ORDER BY k.tradingsymbol"
         )
     ]
 
@@ -315,10 +315,14 @@ def load_days(
     *,
     window_days: int = 2000,
     lake: LocalLake | None = None,
+    revise: bool = False,
 ) -> MinuteLoad:
     """Kite DAILY candles into bar_1d (source 'kite', ts = 09:15 IST of the day like the bhavcopy rows). Same rules as
     load_minutes: finished windows are skipped except the one touching today, an inconsistent window is refused whole,
-    an expired session raises, the raw response is archived. The day candle carries the full day's volume."""
+    an expired session raises, the raw response is archived. The day candle carries the full day's volume.
+    `revise`: a candle whose values differ from the latest stored one is stored as the NEXT dataset_version (the reader
+    takes the highest), so the provisional candle of the evening is replaced by the final one the next morning, with
+    the history kept; identical candles add nothing, and frozen days are still never touched."""
     res = MinuteLoad()
     today = now.astimezone(IST).date()
     frozen_row = conn.execute(
@@ -389,9 +393,20 @@ def load_days(
                 if frozen_through is not None and c.ts.astimezone(IST).date() <= frozen_through:
                     continue  # frozen history is never written by a routine load (the database refuses it)
                 opened = datetime.combine(c.ts.astimezone(IST).date(), time(9, 15), IST)
+                version = 1
+                if revise:
+                    last = conn.execute(
+                        "SELECT open, high, low, close, volume, dataset_version FROM bar_1d WHERE instrument_id=%s"
+                        " AND ts=%s AND source=%s ORDER BY dataset_version DESC LIMIT 1",
+                        (instrument_id, opened, SOURCE),
+                    ).fetchone()
+                    if last is not None:
+                        if tuple(last[:5]) == (c.open, c.high, c.low, c.close, c.volume):
+                            continue  # nothing changed
+                        version = int(last[5]) + 1
                 n += conn.execute(
                     "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, source, dataset_version, ingested_at,"
-                    " adjusted_through) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,1,%s,%s) ON CONFLICT DO NOTHING",
+                    " adjusted_through) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
                     (
                         instrument_id,
                         opened,
@@ -401,6 +416,7 @@ def load_days(
                         c.close,
                         c.volume,
                         SOURCE,
+                        version,
                         now.astimezone(UTC),
                         today,
                     ),

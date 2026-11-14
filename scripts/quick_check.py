@@ -1,14 +1,18 @@
 # ruff: noqa: E501
-"""Run only what your change touches (minutes, not 20): lint + types, then the tests that depend on
-the changed Python modules (static import graph over src/algo and tests, transitive), then the
-frontend tests related to changed frontend files. `make check` stays the full gate, 1-2 times a day:
+"""Run only what your change touches (minutes, not 20): lint + types, then the tests that EXECUTE the
+changed source files, then the frontend tests related to changed frontend files.
+Which tests execute which file comes from the last full run (`make cov` records a coverage context per
+test in .coverage); without that map, or for a file the map has never seen, it falls back to a static
+import graph (transitive, much broader). `make check` stays the full gate, 1-2 times a day:
 this does NOT check coverage floors and cannot see dynamic imports.
 usage: quick_check.py [--base HEAD | --files PATH...] [--workers 2] [--list]   (--list: show the plan, run nothing)"""
 
 import argparse
 import ast
+import sqlite3
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -75,16 +79,77 @@ start = {
     for p in changed
     if p.endswith(".py") and (ROOT / p).exists() and dotted(ROOT / p) in modules
 }
-affected, todo = set(start), list(start)
+
+
+def mapped_tests() -> tuple[set[str], set[str], str]:
+    """(tests that executed any changed src file, changed src files the map has never seen, note)."""
+    db = ROOT / ".coverage"
+    src = [
+        p
+        for p in changed
+        if p.startswith("src/algo/") and p.endswith(".py") and (ROOT / p).exists()
+    ]
+    if not src:
+        return set(), set(), ""
+    if not db.exists():
+        return (
+            set(),
+            set(src),
+            "no .coverage map: run `make check` once (it records which test runs which file)",
+        )
+    con = sqlite3.connect(db)
+    try:
+        if not con.execute("SELECT count(*) FROM context WHERE context != ''").fetchone()[0]:
+            return (
+                set(),
+                set(src),
+                "the last coverage run had no per-test contexts: run `make check` once",
+            )
+        table = (
+            "arc"
+            if con.execute("SELECT 1 FROM sqlite_master WHERE name='arc'").fetchone()
+            else "line_bits"
+        )
+        found: set[str] = set()
+        unseen: set[str] = set()
+        for p in src:
+            rows = con.execute(
+                f"SELECT DISTINCT c.context FROM {table} t JOIN file f ON f.id = t.file_id"
+                " JOIN context c ON c.id = t.context_id WHERE f.path LIKE ? AND c.context != ''",
+                (f"%/{p}" if not p.startswith("/") else p,),
+            ).fetchall()
+            if (
+                not rows
+                and not con.execute("SELECT 1 FROM file WHERE path LIKE ?", (f"%/{p}",)).fetchone()
+            ):
+                unseen.add(p)  # a file the recorded run never imported (new since then)
+            found |= {r[0].split("::")[0] for r in rows}
+        age = (time.time() - db.stat().st_mtime) / 3600
+        return found, unseen, f"map from the coverage run {age:.0f} h ago"
+    finally:
+        con.close()
+
+
+mapped, unseen, map_note = mapped_tests()
+fallback = {dotted(ROOT / p) for p in unseen} if map_note.startswith("map from") else start
+affected, todo = set(fallback), list(fallback)
 while todo:
     for dep in dependents[todo.pop()]:
         if dep not in affected:
             affected.add(dep)
             todo.append(dep)
 tests = sorted(
-    str(modules[m].relative_to(ROOT))
-    for m in affected
-    if modules[m].name.startswith("test_") and "tests" in modules[m].parts
+    {
+        str(modules[m].relative_to(ROOT))
+        for m in affected
+        if modules[m].name.startswith("test_") and "tests" in modules[m].parts
+    }
+    | mapped
+    | {
+        p
+        for p in changed
+        if p.startswith("tests/") and Path(p).name.startswith("test_") and (ROOT / p).exists()
+    }
 )
 notes = []
 if (
@@ -108,7 +173,10 @@ front = [
 print(
     f"changed files: {len(changed)}; python modules touched: {len(start)}; dependents: {len(affected) - len(start)}"
 )
-print(f"tests selected: {len(tests)}; frontend files: {len(front)}")
+print(
+    f"tests selected: {len(tests)}; frontend files: {len(front)}"
+    + (f"; {map_note}" if map_note else "")
+)
 for t in tests:
     print("  ", t)
 for n in notes:

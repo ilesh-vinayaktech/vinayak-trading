@@ -3,7 +3,8 @@
 (source 'kite'). Needs a live session (scripts/kite_login.py) and the Kite instrument mapping that kite_load_minutes.py
 made. Resumable; the request spacing is global (default 2 s, so it can run next to the minute load without passing Kite's
 3 requests/second limit). Stops cleanly when the session expires (exit 3).
-usage: kite_load_days.py --db URL [--from 2016-01-01] [--to TODAY] [--symbols A,B] [--limit N] [--interval 2.0] [--workers 2]"""
+usage: kite_load_days.py --db URL [--from 2016-01-01] [--to TODAY] [--symbols A,B] [--limit N] [--interval 2.0] [--workers 2] [--revise]
+--revise: store a candle that differs from the stored one as the next dataset version (the final candle replaces the evening's provisional one); without it a stored candle is never overwritten"""
 
 import argparse
 import os
@@ -34,6 +35,7 @@ ap.add_argument("--env", type=Path, default=Path(".env"))
 ap.add_argument("--token-file", type=Path, default=Path("data/secrets/kite_token.json"))
 ap.add_argument("--interval", type=float, default=2.0)
 ap.add_argument("--workers", type=int, default=2)
+ap.add_argument("--revise", action="store_true")
 a = ap.parse_args()
 if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
@@ -69,7 +71,9 @@ def one(token: int, symbol: str, iid: int):
     if stop.is_set():
         return None
     with psycopg.connect(a.db, autocommit=True) as c:
-        return symbol, load_days(c, client, token, iid, a.start, end, now, lake=lake)
+        return symbol, load_days(
+            c, client, token, iid, a.start, end, now, lake=lake, revise=a.revise
+        )
 
 
 failed: list[str] = []

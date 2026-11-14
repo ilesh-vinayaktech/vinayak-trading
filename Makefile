@@ -1,6 +1,6 @@
 .PHONY: test cov lint type mut check quick console-check console-api dev-api dev-web dev-feed dev-admin
 test: ; uv run pytest -q
-cov:  ; uv run pytest -q -n auto --cov --cov-report=term-missing && uv run python scripts/check_floors.py
+cov:  ; uv run pytest -q -n auto --cov --cov-context=test --cov-report=term-missing && uv run python scripts/check_floors.py
 lint: ; uv run ruff check . && uv run ruff format --check .
 type: ; uv run mypy src
 mut:  ; uv run mutmut run
