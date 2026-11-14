@@ -72,22 +72,24 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   }, [active, loaded]);
   const catalog = useQuery({ queryKey: ["indicator-catalog"], queryFn: api.indicatorCatalog, staleTime: Infinity });
   const names = active.map((a) => a.spec).join(",");
+  // on the chart's own timeframe; daily, weekly and monthly over ALL stored history (so scrolling back never outruns them), intraday over the window
+  const indStart = isIntraday(timeframe) ? start : (instrument?.bars.first ?? start);
   const series = useQuery({
-    queryKey: ["indicators", picked?.id, start, end, adjust, names],
-    queryFn: () => api.indicatorSeries(picked?.id as number, start, end, adjust, names),
-    enabled: picked !== null && names !== "" && start !== "" && start <= end && timeframe === "1d", // indicators are computed on daily bars
-    placeholderData: (prev) => prev,
+    queryKey: ["indicators", picked?.id, indStart, end, adjust, names, timeframe],
+    queryFn: () => api.indicatorSeries(picked?.id as number, indStart, end, adjust, names, timeframe),
+    enabled: picked !== null && names !== "" && indStart !== "" && indStart <= end,
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[6] === timeframe && prevQuery?.queryKey[1] === picked?.id ? prev : undefined), // keep the lines while a parameter changes, never another timeframe's
   });
   const controls: IndicatorControls = useMemo(
     () => ({
       active,
-      data: timeframe === "1d" ? series.data : undefined, // daily points on a weekly or intraday chart would add a time slot for every day
+      data: series.data,
       catalog: catalog.data?.indicators ?? [],
       onToggle: (uid) => setActive((l) => l.map((a) => (a.uid === uid ? { ...a, visible: !a.visible } : a))),
       onRemove: (uid) => setActive((l) => l.filter((a) => a.uid !== uid)),
       onEdit: (uid, spec) => setActive((l) => l.map((a) => (a.uid === uid ? { ...a, spec } : a))),
     }),
-    [active, series.data, catalog.data, timeframe],
+    [active, series.data, catalog.data],
   );
   const counts: Record<string, number> = {};
   for (const a of active) {
@@ -129,7 +131,7 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
         ))}
       </div>
       <Sep />
-      <button type="button" title={timeframe !== "1d" ? "Indicators are available on the 1D timeframe" : "Indicators"} aria-label="Indicators" disabled={timeframe !== "1d"} onClick={() => setDialog(true)} className={tbBtn(active.length > 0 && timeframe === "1d")}>
+      <button type="button" title="Indicators" aria-label="Indicators" onClick={() => setDialog(true)} className={tbBtn(active.length > 0)}>
         <Icon name="line" size={18} />
         <span>Indicators</span>
       </button>

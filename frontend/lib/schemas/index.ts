@@ -358,6 +358,7 @@ export const indicatorSeriesSchema = z.object({
   adjust: z.enum(["none", "split", "total_return"]),
   adjustment_version: z.string(),
   dates: z.array(z.string()),
+  times: z.array(z.number()).optional(), // intraday only: UTC epoch seconds of each bar open
   indicators: z.array(
     z.object({
       spec: z.string(),

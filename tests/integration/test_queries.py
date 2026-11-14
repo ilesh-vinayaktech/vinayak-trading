@@ -349,3 +349,18 @@ def test_indicators_are_warmed_up_on_the_full_history_and_returned_for_the_windo
     assert [o["key"] for o in bb["outputs"]] == ["upper", "basis", "lower"]
     empty = queries.indicator_series(conn, iid, date(2030, 1, 1), date(2030, 2, 1), "none", ["sma"])
     assert empty["dates"] == [] and empty["indicators"][0]["outputs"][0]["values"] == []
+
+
+def test_weekly_indicators_are_computed_on_the_weekly_bars_over_the_whole_history(env):
+    conn, iid = env
+    seed_closes(conn, iid, [100 + i for i in range(40)])  # 2025-01-01 .. 2025-02-09
+    weekly = queries.instrument_bars(conn, iid, date(2025, 1, 1), date(2025, 2, 9), "none", "1w")
+    ind = queries.indicator_series(
+        conn, iid, date(2025, 1, 1), date(2025, 2, 9), "none", ["sma:2"], "1w"
+    )
+    assert ind["dates"] == [
+        b["date"] for b in weekly["bars"]
+    ]  # one value per weekly candle, not per day
+    values = ind["indicators"][0]["outputs"][0]["values"]
+    closes = [D(b["close"]) for b in weekly["bars"]]
+    assert values[0] is None and D(values[-1]) == (closes[-1] + closes[-2]) / 2

@@ -22,7 +22,7 @@ import { reachedLeftEdge, viewToRestore, type SavedView } from "@/lib/chartView"
 import { plotNumber } from "@/lib/formatting";
 import { toPoints, type Active } from "@/lib/indicators";
 import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail, Timeframe } from "@/lib/schemas";
-import { TIMEFRAME_LABELS, barLabel, barTime, isIntraday } from "@/lib/timeframes";
+import { IST_OFFSET_S, TIMEFRAME_LABELS, barLabel, barTime, isIntraday } from "@/lib/timeframes";
 import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools";
 import { IndicatorRow } from "./IndicatorLegend";
 
@@ -189,6 +189,9 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
     if (!h || !data) return;
     const made: ISeriesApi<SeriesType>[] = [];
     let panes = 0;
+    // the indicator series reach back over all stored history; draw only from the first loaded bar so the time axis is the candles' own
+    const lo = bars[0] ? barTime(bars[0]) : null;
+    const at = data.dates.map((d, i) => { const t = data.times ? (data.times[i] as number) + IST_OFFSET_S : d; return lo !== null && t < lo ? undefined : t; });
     for (const a of active) {
       if (!a.visible) continue;
       const r = data.indicators.find((x) => x.spec === a.spec);
@@ -202,10 +205,10 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
         let s: ISeriesApi<SeriesType>;
         if (o.kind === "histogram") {
           s = h.chart.addSeries(HistogramSeries, { lastValueVisible: false, priceLineVisible: false }, paneIndex);
-          s.setData(o.values.map((v, i) => (v === null ? { time: data.dates[i] as Time } : { time: data.dates[i] as Time, value: Number.parseFloat(v), color: Number.parseFloat(v) >= 0 ? "rgba(8,153,129,0.6)" : "rgba(242,54,69,0.6)" })));
+          s.setData(o.values.flatMap((v, i) => (at[i] === undefined ? [] : [v === null ? { time: at[i] as Time } : { time: at[i] as Time, value: Number.parseFloat(v), color: Number.parseFloat(v) >= 0 ? "rgba(8,153,129,0.6)" : "rgba(242,54,69,0.6)" }])));
         } else {
           s = h.chart.addSeries(LineSeries, o.kind === "dots" ? { color, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2, lastValueVisible: false, priceLineVisible: false } : { color, lineWidth: r.outputs.length === 1 || o.key === "up" || o.key === "down" ? 2 : 1, lastValueVisible: label, priceLineVisible: false }, paneIndex);
-          s.setData(toPoints(data.dates, o.values).map((p) => ({ ...p, time: p.time as Time })));
+          s.setData(toPoints(at.map((t) => String(t)), o.values).flatMap((p, i) => (at[i] === undefined ? [] : [{ ...p, time: at[i] as Time }])));
           first ??= s;
         }
         made.push(s);
@@ -223,7 +226,7 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
       if (handles.current?.chart !== h.chart) return; // the chart was replaced: its series went with it
       for (const s of made) h.chart.removeSeries(s);
     };
-  }, [active, data, ready, colorsFor]);
+  }, [active, data, ready, colorsFor, bars]); // bars: a wider load (earlier history) draws the indicator further back
 
   // the candle still forming follows the feed: updated in place, so zoom and position are kept (no rebuild of the chart).
   // One older than the last stored bar is ignored: the chart already has that bar.

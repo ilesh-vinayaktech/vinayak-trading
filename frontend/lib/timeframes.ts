@@ -34,7 +34,7 @@ export const INTRADAY_PRESETS = [
   { key: "4Y", days: 1461 },
 ] as const;
 
-const IST_OFFSET_S = 19800; // India has no daylight saving: a fixed +05:30
+export const IST_OFFSET_S = 19800; // India has no daylight saving: a fixed +05:30
 
 /** Today in India (the session day), from this browser's clock. */
 export function todayIST(now: number = Date.now()): string {

@@ -261,8 +261,8 @@ export const api = {
   reviewHistory: (id: string) => get(`/api/reviews/${encodeURIComponent(id)}/history`, reviewHistorySchema),
   decideReview: (id: string, d: ReviewDraft) => post(`/api/reviews/${encodeURIComponent(id)}/decisions`, d),
   indicatorCatalog: () => get("/api/indicators", indicatorCatalogSchema),
-  indicatorSeries: (id: number, start: string, end: string, adjust: Adjust, names: string) =>
-    get(`/api/instruments/${id}/indicators`, indicatorSeriesSchema, { start, end, adjust, names }),
+  indicatorSeries: (id: number, start: string, end: string, adjust: Adjust, names: string, timeframe: Timeframe = "1d") =>
+    get(`/api/instruments/${id}/indicators`, indicatorSeriesSchema, { start, end, adjust, names, timeframe }),
   benchmarks: () => get("/api/benchmarks", benchmarkListSchema),
   benchmark: (id: number) => get(`/api/benchmarks/${id}`, benchmarkDetailSchema),
   benchmarkLevels: (id: number, start?: string, maxPoints = 1500) =>

@@ -572,30 +572,34 @@ def indicator_catalog() -> list[dict[str, Any]]:
 
 def indicator_series(
     conn: psycopg.Connection, instrument_id: int, start: date, end: date, adjust: str,
-    specs: list[str],
+    specs: list[str], timeframe: str = "1d",
 ) -> dict[str, Any]:  # fmt: skip
-    """Indicators over the instrument's WHOLE history up to `end` (so the first visible value is
-    already warmed up), returned for [start, end] only. Computed by algo.indicators on the same
-    adjusted bars the chart draws, as strings; None where an indicator has no value yet."""
-    h = reader_for(conn, instrument_id)[0].issuer_history(
-        instrument_id, date(1900, 1, 1), end, adjust=adjust
-    )
+    """Indicators on the SAME bars the chart draws for `timeframe`, returned for [start, end].
+    1d, 1w and 1mo use the whole stored history up to `end`, so the first value is warmed up;
+    intraday uses only [start, end] (the window those minutes are served for) and adds `times`
+    (UTC epoch seconds) beside `dates`. Strings; None where there is no value yet."""
+    if timeframe in INTRADAY_MINUTES:
+        rows = instrument_intraday_bars(conn, instrument_id, start, end, adjust, timeframe)
+    else:
+        rows = instrument_bars(conn, instrument_id, date(1900, 1, 1), end, adjust, timeframe)
     bars = Bars(
-        [b.open for b in h.bars], [b.high for b in h.bars], [b.low for b in h.bars],
-        [b.close for b in h.bars], [b.volume for b in h.bars],
-    )  # fmt: skip
-    days = [b.ts.astimezone(IST).date() for b in h.bars]
+        *([Decimal(r[k]) for r in rows["bars"]] for k in ("open", "high", "low", "close", "volume"))
+    )
+    days = [date.fromisoformat(r["date"]) for r in rows["bars"]]
     keep = [i for i, d in enumerate(days) if start <= d <= end]
     out = []
     for spec in specs:
         ind, params, series = compute(spec, bars)
         out.append(
-            _indicator_json(ind, params, [{k: [v[i] for i in keep] for k, v in series.items()}][0])
+            _indicator_json(ind, params, {k: [v[i] for i in keep] for k, v in series.items()})
         )
-    return {
-        "adjust": adjust, "adjustment_version": h.adjustment_version,
+    res: dict[str, Any] = {
+        "adjust": adjust, "adjustment_version": rows["adjustment_version"],
         "dates": [days[i].isoformat() for i in keep], "indicators": out,
     }  # fmt: skip
+    if timeframe in INTRADAY_MINUTES:
+        res["times"] = [rows["bars"][i]["time"] for i in keep]
+    return res
 
 
 def _indicator_json(

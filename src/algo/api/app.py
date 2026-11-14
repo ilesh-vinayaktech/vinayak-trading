@@ -287,11 +287,16 @@ def create_app(
         end: date,
         names: Annotated[str, Query(min_length=1, max_length=400)],
         adjust: Adjust = "none",
+        timeframe: Timeframe = "1d",
     ) -> dict[str, Any]:
         if end < start:
             raise HTTPException(422, "end before start")
         if (end - start).days > MAX_RANGE_DAYS:
             raise HTTPException(422, "range longer than 40 years")
+        if timeframe in INTRADAY_MAX_DAYS and (end - start).days > INTRADAY_MAX_DAYS[timeframe]:
+            raise HTTPException(
+                422, f"{timeframe} bars: at most {INTRADAY_MAX_DAYS[timeframe]} days per request"
+            )
         specs = [n for n in names.split(",") if n.strip()]
         if not specs or len(specs) > MAX_INDICATORS:
             raise HTTPException(422, f"ask for between 1 and {MAX_INDICATORS} indicators")
@@ -302,7 +307,7 @@ def create_app(
             raise HTTPException(422, str(e)) from e
         if queries.instrument(c, instrument_id) is None:
             raise HTTPException(404, f"no instrument {instrument_id}")
-        return queries.indicator_series(c, instrument_id, start, end, adjust, specs)
+        return queries.indicator_series(c, instrument_id, start, end, adjust, specs, timeframe)
 
     @app.get("/api/benchmarks")
     def benchmark_list(c: Conn) -> dict[str, Any]:

@@ -318,7 +318,7 @@ describe("Data Explorer", () => {
     expect(await screen.findByRole("list", { name: "Matches" })).toBeInTheDocument();
   });
 
-  it("offers intraday timeframes: asks the API for them, narrows the ranges and turns indicators off", async () => {
+  it("offers intraday timeframes: asks the API for them, narrows the ranges and keeps indicators on", async () => {
     const urls: string[] = [];
     const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } });
     vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
@@ -340,7 +340,7 @@ describe("Data Explorer", () => {
     expect(screen.queryByRole("menu", { name: "Timeframes" })).not.toBeInTheDocument(); // closes on pick
     const end = todayIST(); // intraday ranges reach today: today's minutes come from the live feed
     await waitFor(() => expect(urls.some((u) => u.includes("timeframe=5m") && u.includes(`start=${shiftDays(end, -30)}`) && u.includes(`end=${end}`))).toBe(true));
-    expect(screen.getByRole("button", { name: "Indicators" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Indicators" })).toBeEnabled(); // indicators follow the timeframe
     expect(screen.getByRole("button", { name: "Timeframe: 5m" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "2Y" })).not.toBeInTheDocument(); // 5m is served up to 124 days
     expect(screen.getByRole("button", { name: "3M" })).toBeInTheDocument();
