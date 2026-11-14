@@ -10,7 +10,7 @@ autonomous live trading; that comes much later and behind the regulatory gate be
 | # | Area | Decision |
 |---|---|---|
 | 1 | Universe | **Nifty 200 only** for the first research dataset (point-in-time membership), not the 2,100+ stocks and not the AMFI universe. Widen only when historical membership, delisted-stock coverage and instrument identity are reliable. |
-| 2 | Holdout | **One globally locked, frozen holdout (2025-01-01 to 2026-11-13), evaluated by preregistered batch.** No discovery worker, researcher or LLM can read it. See section 3. |
+| 2 | Holdout | **One globally locked, frozen holdout (2025-01-01 to 2026-11-13), evaluated ONCE, by one preregistered batch for the whole research family. It is consumed by that evaluation.** No discovery worker, researcher or LLM can read it. See section 3. |
 | 3 | Compute | **One concurrent study worker.** Other experiments queue. Live ingestion first, then paper trading, then research. No separate worker pools yet. |
 | 4 | Reuse | **Extend the existing studies, trials, verdict, holdout, trial counter, stage lifecycle, `backtest_run` and audit log.** No parallel `vti_*` tables, no second promotion state machine. Code stays under `algo`. |
 | 5 | LLM | Optional and provider-isolated. Everything works without it. 250,000 tokens and Rs 1,000 a month, both enforced. Initial provider, if enabled: OpenAI. Never receives raw market data or holdout results. |
@@ -42,16 +42,35 @@ Checked on 2026-11-14 against the dev database and `pyproject.toml`.
 | Dataset | Dates | Purpose |
 |---|---|---|
 | Research / development | 2016-01-04 to 2024-12-31 | features, discovery, experiments, walk-forward |
-| Global final holdout | **2025-01-01 to 2026-11-13, frozen** | one controlled batch evaluation per frozen candidate set |
+| Global final holdout | **2025-01-01 to 2026-11-13, frozen** | **one** evaluation batch for the whole research family, then consumed |
 | Forward evidence | after 2026-11-13, and paper trading | never appended to the holdout; a larger holdout would need explicit evaluation vintages and its own access policy |
 
 Rules: (1) discovery and experiment workers cannot query holdout days; (2) the LLM never receives holdout data or detailed holdout
-results; (3) a candidate must first pass development validation and walk-forward; (4) candidates are frozen, then evaluated in a
-**preregistered batch** by a separate evaluator, with the multiple-testing correction applied across the batch and the family's
-whole trial count; (5) the evaluator returns a controlled verdict (pass or fail and the names of failed gates), never metrics,
-equity curves or trades that could be used to tune a candidate; (6) a failed candidate cannot be modified and resubmitted against
-the same holdout; a changed candidate is a new family member. The trial counter spans the whole research family and is never reset
-per study or per re-registration.
+results; (3) a candidate must first pass development validation and walk-forward; (4) candidates are frozen, then evaluated in
+**one preregistered global batch** by a separate evaluator, with the multiple-testing correction applied across the batch and the
+family's whole trial count; (5) the evaluator returns a controlled verdict, never metrics, equity curves or trades that could be
+used to tune a candidate; (6) **the holdout is consumed globally when that batch is evaluated.** After it there is no second
+evaluation against these dates and no further candidate submission against them, even for new candidates: repeated pass/fail
+feedback is itself an optimisation signal. New strategies are judged on forward evidence after 2026-11-13. A later historical
+evaluation needs a genuinely new, independently governed evaluation period.
+
+**The batch manifest and its states.** Before any holdout data is read, the evaluator validates and freezes a manifest: candidate
+ids and immutable strategy versions, parameter hashes, `dataset_sha256` and `study_sha256` for each, the development validation
+reports, the family id and its trial count, the evaluation date range, the multiple-testing procedure and version, and the
+evaluation code version. An accepted manifest is immutable. The batch has a unique immutable id and moves only forward:
+`REGISTERED -> FROZEN -> EVALUATING -> CONSUMED`, each transition atomic and audited. An interrupted evaluation stays
+`EVALUATING`; recovery may only re-run the same frozen manifest with the same evaluation code version, and any difference is
+refused. Nothing can return a batch to an earlier state or start a second batch once one is `CONSUMED`.
+
+**Verdict values.** A candidate's gate and batch results are one of `PASS`, `FAIL`, `INSUFFICIENT_EVIDENCE`, `NOT_APPLICABLE`.
+Missing evidence is never a weak pass, and neither the platform nor a future research agent may read it as one. A candidate with
+any `INSUFFICIENT_EVIDENCE` gate is not promotable. (Today missing evidence is reported as a failed gate with the text "evidence
+missing"; the distinct state is part of the Phase 1 work.)
+
+**Research family.** A family has a stable, immutable id. Every experiment that tests a hypothesis in the family adds to its
+trial count. Re-registering a study, changing parameters, changing the feature set or splitting a study into several does **not**
+create a new family or reset the count. A new family needs an explicit, audited classification decision (who, why, what makes the
+hypothesis genuinely different), never an automatic result of registering a study.
 
 Enforcement: the lock configuration is anchored in the database (a hash in an append-only table); if the file and the database
 disagree every research reader fails closed; the unwrapped reader exists only behind an evaluator capability tied to a registered
@@ -71,9 +90,7 @@ How it differs from what exists:
 
 ## 4. The Nifty 200 reality (a consequence of decision 1)
 
-`docs/stage4/membership/MEMBERSHIP_COVERAGE.md` and the dev database show:
-
-Membership eligibility and price-adjustment eligibility are different questions and are reported separately.
+`docs/stage4/membership/MEMBERSHIP_COVERAGE.md` and the dev database show the following. Membership eligibility and price-adjustment eligibility are different questions and are reported separately.
 
 **Membership** (`docs/stage4/membership/MEMBERSHIP_COVERAGE.md`, dev database):
 
@@ -92,8 +109,12 @@ after the NSE cutoff rights, demergers and buy-backs need a person again. Track 
 count.
 
 **Decision (owner, 2026-11-14):** Nifty 200 only for the first research dataset; the AMFI market-cap universe is not a second
-discovery universe in Phase 1. The development window is therefore the verified membership window (about 2020-10 to 2024-12)
-until earlier membership is reconstructed and verified.
+discovery universe in Phase 1.
+
+**The development window is intended, not yet verified.** The intended initial window is 2020-10-01 to 2024-12-31. It becomes
+eligible for Nifty 200 point-in-time research only after membership revision 3 has been person-verified, loaded into the database
+and has passed the strict eligibility checks. Until then the platform may validate features against historical prices, but nothing
+may claim point-in-time Nifty 200 universe validity, and **no Nifty 200 experiment may be registered**.
 
 ## 5. Mapping `plan.md` onto what exists
 
@@ -158,8 +179,12 @@ blocked until the owner records the four rules.
 
 ## 9. Open items
 
-1. Verify and load the Nifty 200 membership (the 13 documented exceptions, PEL, GSPL, placeholders) so strict-eligible sessions exist; report membership and price-adjustment eligibility separately.
+1. Verify and load the Nifty 200 membership (the 13 documented exceptions, PEL, GSPL, placeholders) so strict-eligible sessions exist; report membership and price-adjustment eligibility separately. **Highest priority, alongside the holdout enforcement. No Nifty 200 experiment before it is done.**
 2. Owner confirms the first feature formulas (`docs/vti-phase1-spec.md` section C) before they are implemented.
-3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched, trial count carried forward) and enforce the lock at the reader.
-4. Frontend and portal work for research (queue view, controlled holdout verdict display) is not specified yet.
-5. Optional hardening: a read-only research database role limited to development-window views.
+3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched) under one family id carrying their trial counts, and enforce the lock at the reader.
+4. Define the research family id and the audited classification procedure for a new family (section 3).
+5. Add the distinct validation states `PASS / FAIL / INSUFFICIENT_EVIDENCE / NOT_APPLICABLE` to gate results.
+6. Holdout batch policy: one global batch, consumed on evaluation; manifest, states and recovery as in section 3.
+7. Data history: 336M minute bars are not proof of coverage; completeness reports by instrument, session and expected minute count before any intraday research.
+8. Frontend and portal work for research (queue view, controlled holdout verdict display) is not specified yet.
+9. Optional hardening: a read-only research database role limited to development-window views.

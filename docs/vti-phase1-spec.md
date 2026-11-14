@@ -21,7 +21,7 @@ feature also has a hand-computed reference fixture and property tests as indepen
 | # | Prerequisite | Notes |
 |---|---|---|
 | P1 | Nifty 200 membership verified by a person and loaded (`index_membership_event`, declared `index_membership_coverage`); PEL, GSPL and the demerger placeholders resolved to instruments | Report two separate things, never one number (below) |
-| P2 | **Decided:** Nifty 200 only for the first research dataset. No AMFI universe in Phase 1. The development window is the verified membership window (about 2020-10 to 2024-12 until earlier membership is reconstructed and verified) | Owner, 2026-11-14 |
+| P2 | **Decided:** Nifty 200 only for the first research dataset. No AMFI universe in Phase 1. The intended development window is 2020-10-01 to 2024-12-31, **eligible for point-in-time Nifty 200 research only after P1 is complete** (verified, loaded, strict checks passed) | Owner, 2026-11-14 |
 | P3 | Register new versions of the 8 existing studies with a research end of 2024-12-31. **Never edit the originals** | See P3 below |
 
 **P1: two eligibility questions, reported separately.**
@@ -40,8 +40,9 @@ feature also has a hand-computed reference fixture and property tests as indepen
 (`supersedes_experiment_id` records the link) with research end 2024-12-31. The strategy family and its **trial count carry
 forward**: the multiple-testing penalty is not reset.
 
-Until P1 is done, features may be computed and validated (they do not depend on membership), but no experiment may be registered
-on a "Nifty 200" universe and called point-in-time.
+Until P1 is done, features may be computed and validated against historical prices (they do not depend on membership), but the
+system cannot claim point-in-time Nifty 200 validity and **no Nifty 200 experiment may be registered**. Do not start Nifty 200
+experiments until membership is strict-eligible.
 
 ## 2. Existing tables and modules to extend (before anything new)
 
@@ -63,6 +64,10 @@ New tables only where nothing exists: `research_lock`, `holdout_batch` and its r
 
 ### A. Holdout lock and controlled evaluation
 
+**Family.** A research family has a stable, immutable id; its trial count only grows. Re-registering, changing parameters or
+features, or splitting a study never creates a family or resets the count; a new family needs an explicit, audited classification
+decision (who, why, what makes the hypothesis genuinely different).
+
 **Frozen window.** Development: 2016-01-04 to 2024-12-31. Global holdout: **2025-01-01 to 2026-11-13, fixed**. Observations after
 2026-11-13 are forward-validation evidence, never appended to this holdout. A later, larger holdout would need explicit
 evaluation vintages and a separate access policy; it is not part of Phase 1.
@@ -78,24 +83,27 @@ solely for a registered, frozen batch. Honest limit: inside one Python process t
 someone with database credentials; the stronger boundary (research jobs connecting with a read role limited to development-window
 views) is recorded as a hardening option, not a Phase 1 requirement.
 
-**Evaluation is by preregistered batch, not per study.**
-1. Freeze each candidate (strategy config, parameters, dataset_sha256, study_sha256) before evaluation.
-2. Register an evaluation batch: the frozen candidates, the family, and the multiple-testing correction, before any holdout data
-   is read (`holdout_batch`).
+**Evaluation is one global preregistered batch, and it consumes the holdout.**
+1. Freeze each candidate (strategy config, parameters, `dataset_sha256`, `study_sha256`, development validation reports) before evaluation.
+2. Register the batch: the frozen candidates, the family id and its trial count, the date range, the multiple-testing procedure and
+   version and the evaluation code version. The evaluator validates this manifest **before reading any holdout data**; an accepted
+   manifest is immutable. States move only forward and atomically, each audited: `REGISTERED -> FROZEN -> EVALUATING -> CONSUMED`.
+   An interrupted run stays `EVALUATING` and can only be re-run with the same manifest and evaluation code version.
 3. A separate evaluator runs the whole batch once; the correction is applied across the batch and the family's full trial count.
-4. The result for research code is a **controlled verdict**: pass or fail per candidate and the names of failed gates. No metrics,
-   equity curves, trades or dates. The detailed report is stored where only the owner reads it through the portal.
-5. A failed candidate cannot be modified and resubmitted: a changed candidate is a new family member with its own trial count and
-   cannot be evaluated against the same holdout again.
+   When it completes the holdout is **consumed globally**: no second batch, no further candidate against these dates.
+4. The result for research code is a **controlled verdict**: `PASS`, `FAIL`, `INSUFFICIENT_EVIDENCE` or `NOT_APPLICABLE` per
+   candidate gate, with gate names. Missing evidence is never read as a weak pass. No metrics, equity curves, trades or dates. The detailed report is stored where only the owner reads it through the portal.
+5. A failed candidate cannot be modified and resubmitted, and a new candidate cannot be evaluated against these dates once the
+   batch is `CONSUMED`; new strategies use forward evidence after 2026-11-13.
 6. Nothing from a verdict feeds discovery; the LLM never sees the holdout or its detailed results.
 
 Acceptance:
 1. No ordinary API, CLI or research process can return holdout data (history, issuer history, minute reader, fundamentals, feature reads).
 2. Config file and database disagreeing, or a missing `research_lock` row, makes every research reader raise.
 3. A study ending after 2024-12-31 is refused; 2024-12-31 is accepted; 2025-01-01 is refused.
-4. The evaluator capability cannot be obtained without a registered batch, cannot be reused for a second batch over the same
-   candidates, and a modified candidate is refused.
-5. The research-facing result contains no figure beyond pass/fail and gate names.
+4. The evaluator capability cannot be obtained without a `FROZEN` batch; a modified manifest, a second batch after `CONSUMED`, or
+   a re-run with a different manifest or evaluation code version is refused; no transition goes backwards.
+5. The research-facing result contains no figure beyond the four verdict values and gate names.
 6. A lock change after a batch has run is refused; every lock change and batch is audited.
 
 Tests: boundary-exact (2024-12-31 / 2025-01-01) on every reader entry point; file/DB mismatch fail-closed; capability tests
