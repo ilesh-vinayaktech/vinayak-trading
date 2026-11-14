@@ -4,7 +4,9 @@ the only price source: an action our parser could not price shows up here as a j
 A jump (or a recorded split whose price move is missing) is
   unexplained  no corporate action of any kind, status or date touches that bar: alert
   pending      an action is recorded for that bar but waits for a person (review status) or is not a
-               price factor (dividend, buy-back): shown, not alerted
+               price factor (dividend, buy-back), or the move spans a session NSE has no bars for
+               (a Muhurat or Saturday session its file does not carry, a day it did not publish):
+               shown, not alerted
 Runs of closes more than MAX_GAP_DAYS apart are separate (a stock that did not trade for weeks can
 legitimately reappear far away)."""
 
@@ -52,6 +54,50 @@ def _runs(closes: list[tuple[date, Decimal]]) -> list[list[tuple[date, Decimal]]
     return runs
 
 
+def _missing_sessions(conn: psycopg.Connection, first: date) -> set[date]:
+    """Days the exchange traded (a Kite bar, a calendar SESSION entry, or an open weekday) but NSE
+    has no bars for at all: a move across one of them is two sessions long, not a jump."""
+    last_row = conn.execute(
+        "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d"
+    ).fetchone()
+    last = last_row[0] if last_row and last_row[0] else first
+
+    def days(sql: str) -> set[date]:
+        return {r[0] for r in conn.execute(sql, (first, last))}
+
+    nse = days(
+        "SELECT DISTINCT (ts AT TIME ZONE 'Asia/Kolkata')::date FROM bar_1d WHERE source='nse'"
+        " AND (ts AT TIME ZONE 'Asia/Kolkata')::date BETWEEN %s AND %s"
+    )
+    kite = days(
+        "SELECT DISTINCT (ts AT TIME ZONE 'Asia/Kolkata')::date FROM bar_1d WHERE source='kite'"
+        " AND (ts AT TIME ZONE 'Asia/Kolkata')::date BETWEEN %s AND %s"
+    )
+    sessions = days(
+        "SELECT session_date FROM market_session"
+        " WHERE kind='SESSION' AND session_date BETWEEN %s AND %s"
+    )
+    closed = days(
+        "SELECT session_date FROM market_session"
+        " WHERE kind='CLOSED' AND session_date BETWEEN %s AND %s"
+    )
+    # the platform's only evidence of a holiday: NSE published no file for it
+    closed |= {
+        date.fromisoformat(str(r[0]))
+        for r in conn.execute(
+            "WITH l AS (SELECT DISTINCT ON (source, dataset, partition) partition, status"
+            " FROM partition_load ORDER BY source, dataset, partition, id DESC)"
+            " SELECT partition FROM l WHERE status='not_published'"
+        )
+    }
+    weekdays = {
+        first + timedelta(days=i)
+        for i in range((last - first).days + 1)
+        if (first + timedelta(days=i)).weekday() < 5
+    }
+    return ((kite | sessions | weekdays) - closed) - nse
+
+
 def scan(
     conn: psycopg.Connection,
     since: date,
@@ -80,6 +126,7 @@ def scan(
         (since, LOOKBACK.days),
     ):
         touched[iid].append(ex)
+    missing = _missing_sessions(conn, since - LOOKBACK)
     out = ScanResult(scanned=len(series))
     for iid, closes in sorted(series.items(), key=lambda kv: names.get(kv[0], "")):
         adj: list[Adjustment] = []
@@ -99,6 +146,11 @@ def scan(
             f = Finding(names.get(iid, str(iid)), i.day, i.kind, i.detail)
             prev = max((d for d, _ in closes if d < i.day), default=i.day)
             near = any(prev < ex <= i.day for ex in touched.get(iid, []))
+            if i.kind != "action_without_discontinuity" and any(prev < m < i.day for m in missing):
+                f = Finding(
+                    f.symbol, f.day, f.kind, f"{f.detail}; spans a session without NSE bars"
+                )
+                near = True
             # a recorded split the price did not follow is a data error, never "pending"
             pending = near and i.kind != "action_without_discontinuity"
             (out.pending if pending else out.unexplained).append(f)

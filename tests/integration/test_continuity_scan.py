@@ -91,3 +91,63 @@ def test_other_sources_do_not_count(env):
     bars(conn, ids["FLAT"], [100, 100])
     r = scan(conn, D0)
     assert r.scanned == 1 and r.unexplained == []
+
+
+def pair(conn, iid, a, b, close_a=100, close_b=160):
+    bars(conn, iid, [close_a], start=a)
+    bars(conn, iid, [close_b], start=b)
+
+
+def test_a_jump_across_a_session_that_has_no_nse_bars_is_pending_not_an_alert(env):
+    conn, ids = env
+    repo = InstrumentRepo(conn)
+    x = repo.add_exchange("XBOM", "IN", "Asia/Kolkata", "INR", "BSE")
+    other = repo.add_instrument(x, "OTHER")
+    # control: Friday -> Monday, nothing in between but a weekend: a real jump
+    pair(conn, ids["FLAT"], date(2026, 10, 2), date(2026, 10, 5))
+    # a Kite bar on the Sunday in between (the Muhurat session NSE's file does not carry)
+    pair(conn, ids["JUMP"], date(2026, 10, 9), date(2026, 10, 12))
+    bars(conn, other, [50], start=date(2026, 10, 11), source="kite")
+    # a calendar SESSION entry on the Saturday in between
+    pair(conn, ids["SPLIT"], date(2026, 10, 16), date(2026, 10, 19))
+    conn.execute(
+        "INSERT INTO market_session (session_date,kind,start_time,end_time,note,source,created_at)"
+        " VALUES ('2026-10-17','SESSION','18:00','19:00','muhurat','manual',%s)",
+        (INGESTED,),
+    )
+    # an open weekday (Wednesday) on which NSE published nothing at all
+    pair(conn, ids["PENDING"], date(2026, 10, 20), date(2026, 10, 22))
+    r = scan(conn, date(2026, 10, 1))
+    assert [(f.symbol, f.day) for f in r.unexplained] == [("FLAT", date(2026, 10, 5))]
+    assert sorted((f.symbol, f.day) for f in r.pending) == [
+        ("JUMP", date(2026, 10, 12)),
+        ("PENDING", date(2026, 10, 22)),
+        ("SPLIT", date(2026, 10, 19)),
+    ]
+    assert {f.detail.split(";")[-1].strip() for f in r.pending} == {
+        "spans a session without NSE bars"
+    }
+
+
+def test_a_closed_weekday_in_between_is_not_a_missing_session(env):
+    conn, ids = env
+    pair(conn, ids["FLAT"], date(2026, 10, 20), date(2026, 10, 22))
+    conn.execute(
+        "INSERT INTO market_session (session_date,kind,note,source,created_at)"
+        " VALUES ('2026-10-21','CLOSED','holiday','nse',%s)",
+        (INGESTED,),
+    )
+    (f,) = scan(conn, date(2026, 10, 1)).unexplained
+    assert (f.symbol, f.day) == ("FLAT", date(2026, 10, 22))
+
+
+def test_a_weekday_nse_did_not_publish_a_file_for_is_a_holiday_not_a_missing_session(env):
+    conn, ids = env
+    pair(conn, ids["FLAT"], date(2026, 10, 20), date(2026, 10, 22))
+    conn.execute(
+        "INSERT INTO partition_load (source,dataset,partition,status,at)"
+        " VALUES ('nse','bhav','2026-10-21','not_published',%s)",
+        (INGESTED,),
+    )
+    (f,) = scan(conn, date(2026, 10, 1)).unexplained  # a real jump across a holiday still alerts
+    assert (f.symbol, f.day) == ("FLAT", date(2026, 10, 22))
