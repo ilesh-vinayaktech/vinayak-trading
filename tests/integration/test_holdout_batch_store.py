@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
 from algo.data.store.migrate import migrate
 from algo.research import holdout_batch as hb
@@ -29,6 +30,20 @@ def env(conn, monkeypatch, tmp_path):
             "INSERT INTO validation_report (report_id, experiment_id, run_id, passed, thresholds_status, n_trials, evidence, gates, created_at)"
             " VALUES (%s, %s, %s, %s, 'confirmed', 3, '{}', '[]', %s)",
             (rid, rid, rid, passed, NOW),
+        )
+    for i in (
+        1,
+        2,
+        3,
+    ):  # the studies behind the candidates; study 3 was registered from a dirty tree
+        conn.execute(
+            "INSERT INTO experiment (experiment_id, name, strategy_id, hypothesis, style, param_ranges, holdout_start, holdout_end, registered_at, study, study_sha256)"
+            " VALUES (%s, %s, 'trend_pullback', 'h', 'long_only', '{}', '2024-01-01', '2024-12-31', %s, %s, %s)",
+            (i, f"study {i}", NOW, Jsonb({"code": {"commit": "abc", "dirty": i == 3}}), f"s{i}"),
+        )
+        conn.execute(
+            "INSERT INTO study_dataset (experiment_id, dataset_sha256, manifest, sealed_at) VALUES (%s,%s,'{}',%s)",
+            (i, f"d{i}", NOW),
         )
     conn.execute("SET session_replication_role = DEFAULT")
     return conn
@@ -278,3 +293,25 @@ def test_a_manifest_cannot_be_set_twice_and_an_unknown_batch_is_refused(env):
         hb.freeze(env, bid, manifest(bid), NOW)
     with pytest.raises(hb.BatchError, match="no holdout batch 99"):
         hb.evaluate(env, 99, all_pass, reader, NOW)
+
+
+def test_a_candidate_must_be_a_real_clean_study_whose_dataset_hash_matches_what_it_sealed(env):
+    bid = hb.register(env, by="owner", now=NOW)
+    ghost = hb.Candidate("ghost", "momentum", "1", "pg", "dg", "no-such-study", 1)
+    wrong_data = hb.Candidate("c1", "momentum", "1", "p1", "not-its-dataset", "s1", 1)
+    wrong_report = hb.Candidate(
+        "c1", "momentum", "1", "p1", "d1", "s1", 2
+    )  # report 2 belongs to study 2
+    for bad, text in (
+        (ghost, "no registered study has study_sha256"),
+        (wrong_data, "does not match the dataset its study sealed"),
+        (wrong_report, "for its study"),
+    ):
+        with pytest.raises(hb.BatchError, match=text):
+            hb.freeze(env, bid, manifest(bid, [bad]), NOW)
+    dirty = hb.Candidate(
+        "c3", "momentum", "1", "p3", "d3", "s3", 3
+    )  # passed validation, but its study came from a dirty tree
+    with pytest.raises(hb.BatchError, match="cannot be reproduced"):
+        hb.freeze(env, bid, manifest(bid, [dirty]), NOW)
+    hb.freeze(env, bid, manifest(bid, [cand(1), cand(2)]), NOW)

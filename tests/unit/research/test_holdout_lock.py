@@ -171,3 +171,18 @@ def test_no_request_returns_a_bar_on_or_after_the_holdout_start(end, asof_days):
         return
     assert end < LOCK.holdout_start
     assert all(b.ts.date() < LOCK.holdout_start for b in h.bars)
+
+
+def test_the_snapshot_hash_is_remembered_per_set_of_instruments():
+    calls = []
+
+    class Counting(Inner):
+        def snapshot_hash(self, ids):
+            calls.append(tuple(ids))
+            return "h" + str(len(calls))
+
+    r = ResearchReader(Counting(), LOCK)
+    assert (
+        r.snapshot_hash([3, 1, 2]) == r.snapshot_hash([2, 3, 1, 1]) == "h1"
+    )  # order and repeats do not matter
+    assert r.snapshot_hash([4]) == "h2" and calls == [(1, 2, 3), (4,)]

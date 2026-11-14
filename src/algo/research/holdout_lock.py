@@ -138,13 +138,15 @@ def _clip(loaded: Loaded, holdout_start: date) -> _GuardedLoaded:
 class ResearchReader:
     """The only price reader research code may hold. See the module doc."""
 
-    __slots__ = ("_inner", "_start")
+    __slots__ = ("_inner", "_memo", "_start")
     _inner: BarReader
+    _memo: dict[tuple[int, ...], str | None]
     _start: date
 
     def __init__(self, inner: BarReader, lock: Lock) -> None:
         object.__setattr__(self, "_inner", inner)
         object.__setattr__(self, "_start", lock.holdout_start)
+        object.__setattr__(self, "_memo", {})
 
     @property
     def known_at(self) -> datetime | None:
@@ -163,7 +165,11 @@ class ResearchReader:
         return self._inner.cutoff
 
     def snapshot_hash(self, instrument_ids: list[int]) -> str | None:
-        return self._inner.snapshot_hash(instrument_ids)
+        """Remembered per set of instruments: every trial of a study asks for the same ones and the hash walks all their bars."""
+        key = tuple(sorted(set(instrument_ids)))
+        if key not in self._memo:
+            self._memo[key] = self._inner.snapshot_hash(list(key))
+        return self._memo[key]
 
     def isin_links(self) -> list[Link]:
         return self._inner.isin_links()

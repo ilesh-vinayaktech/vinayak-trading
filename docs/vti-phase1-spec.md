@@ -129,6 +129,12 @@ holdout date; existing holdout tests migrated to the batch path.
 
 ### B. Dataset identity and study manifest
 
+**Status (2026-11-14): built.** `known_at` and `code` (commit, dirty flag, strategy file hash) are recorded in the locked study at registration;
+the first run seals `dataset_sha256` in `study_dataset` and every later run must reproduce it; the reader is pinned to `known_at`; the
+holdout batch checks candidates against the sealed hash and the dirty flag. Deviation: the hash is sealed by the first run (the
+universe takes about 30 s to build), computed as of the registration moment, so it is the same value. Hashes are not yet shown on
+the study page, and feature pins join `study_sha256` when features exist.
+
 Two hashes, kept separate:
 
 - `dataset_sha256` identifies the **data inputs** only.

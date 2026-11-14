@@ -37,7 +37,14 @@ from algo.backtest.validation.stats import sharpe_per_period
 from algo.data import benchmark as benchmarks
 from algo.data import benchmark_gate
 from algo.data.reader import BarReader, PriceReader
-from algo.research import fundamentals_book, holdout_lock, study_jobs, study_universe, verdict
+from algo.research import (
+    dataset,
+    fundamentals_book,
+    holdout_lock,
+    study_jobs,
+    study_universe,
+    verdict,
+)
 from algo.research.holdout_lock import ResearchReader
 from algo.research.study import THRESHOLDS_FILE, StudySpec
 from algo.research.study_store import get_study
@@ -138,11 +145,29 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         start, research_end = spec.holdout_start, spec.end
     else:
         registry.assert_research_window(conn, exp, research_end)
+    row = conn.execute("SELECT study FROM experiment WHERE experiment_id=%s", (exp,)).fetchone()
+    study_doc = row[0] if row is not None and row[0] else {}
+    pinned = study_doc.get("known_at")
+    if pinned is None:
+        raise StudyRunError(
+            "this study predates dataset pinning (it has no known_at): register a new version of it"
+        )
+    known_at = datetime.fromisoformat(pinned)
     membership, coverage = study_universe.build(conn, spec.universe, start, research_end)
     if not membership.ever():
         raise StudyRunError(
             "no stocks to trade: the chosen segments hold none we have Kite history for in this period"
         )
+    if (
+        not holdout
+    ):  # the research window's data identity: sealed by the first run, identical on every later one
+        try:
+            dataset.check(
+                conn, exp,
+                dataset.build(conn, spec, study_doc, membership.intervals(), membership.ever(), start, research_end, known_at),
+            )  # fmt: skip
+        except dataset.DatasetChanged as e:
+            raise StudyRunError(str(e)) from e
     first = membership.first_day()
     assert first is not None  # the universe is not empty
     return Setup(
@@ -154,7 +179,9 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         # Studies read the FROZEN Kite history on purpose (locked by freeze and hash, Kite
         # visibility lag): they do not follow ALGO_PRICE_CUTOFF. Studying past the cutoff needs a
         # new freeze that includes the NSE bars, decided then.
-        ResearchReader(BarReader(conn, source="kite", publish_lag=timedelta(0)), lock),
+        ResearchReader(
+            BarReader(conn, source="kite", publish_lag=timedelta(0), known_at=known_at), lock
+        ),
         fundamentals_book.load(conn, membership.ever(), start, research_end)
         if spec.screen is not None and spec.screen.needs_fundamentals()
         else None,

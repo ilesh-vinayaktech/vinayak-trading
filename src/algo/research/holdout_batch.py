@@ -224,12 +224,33 @@ def freeze(conn: psycopg.Connection, batch_id: int, m: Manifest, now: datetime) 
     if newest is None or newest[0] != lock_id:
         problems.append("the research lock in force is not the one this batch was registered under")
     for c in m.candidates:
-        ok = conn.execute(
-            "SELECT passed FROM validation_report WHERE report_id=%s", (c.validation_report_id,)
+        study = conn.execute(
+            "SELECT e.experiment_id, e.study, d.dataset_sha256 FROM experiment e"
+            " LEFT JOIN study_dataset d USING (experiment_id)"
+            " WHERE e.study_sha256=%s ORDER BY e.experiment_id LIMIT 1",
+            (c.study_sha256,),
         ).fetchone()
-        if ok is None or not ok[0]:
+        if study is None:
             problems.append(
-                f"candidate {c.candidate_id} has no passed development validation report ({c.validation_report_id})"
+                f"candidate {c.candidate_id}: no registered study has study_sha256 {c.study_sha256}"
+            )
+            continue
+        code = (study[1] or {}).get("code") or {}
+        if code.get("dirty", True):
+            problems.append(
+                f"candidate {c.candidate_id}: its study was registered from source that differs from its commit, so it cannot be reproduced"
+            )
+        if study[2] != c.dataset_sha256:
+            problems.append(
+                f"candidate {c.candidate_id}: dataset_sha256 does not match the dataset its study sealed"
+            )
+        ok = conn.execute(
+            "SELECT passed, experiment_id FROM validation_report WHERE report_id=%s",
+            (c.validation_report_id,),
+        ).fetchone()
+        if ok is None or not ok[0] or ok[1] != study[0]:
+            problems.append(
+                f"candidate {c.candidate_id} has no passed development validation report ({c.validation_report_id}) for its study"
             )
     if problems:
         raise BatchError("the manifest is refused: " + "; ".join(problems))

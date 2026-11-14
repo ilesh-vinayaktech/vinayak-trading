@@ -5,7 +5,9 @@ research-window rule and the one-time holdout of algo.backtest.validation.regist
 
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -15,7 +17,9 @@ from algo.backtest.validation import registry
 from algo.data.benchmark import DEFAULT_BENCHMARK
 from algo.live.market_calendar import IST
 from algo.research import holdout_lock
+from algo.research.code_identity import file_sha256, git_state
 from algo.research.study import StudyError, StudySpec, check, combinations
+from algo.strategies.registry import STRATEGIES
 
 COLUMNS = "e.experiment_id, e.name, e.strategy_id, e.hypothesis, e.registered_at, e.holdout_opened_at, e.study, e.study_sha256, e.owner_user_id"
 
@@ -61,12 +65,20 @@ def register_study(conn: psycopg.Connection, owner: UUID, spec: StudySpec, now: 
     ):
         raise StudyError(f"there is no total-return index called {spec.benchmark!r}")
     combos = combinations(spec)
+    commit, dirty = git_state()
+    strategy_file = inspect.getsourcefile(STRATEGIES[spec.strategy_id][0])
     study = {
         "spec": spec.model_dump(mode="json"),
         "combinations": combos,
         "data_freeze": {"id": freeze_id, "through": through.isoformat()},
         "cost_schedules": costs,
-    }
+        # the study reads only what the database held at this moment, and records which code made it
+        "known_at": now.isoformat(),
+        "code": {
+            "commit": commit, "dirty": dirty,
+            "strategy_sha256": file_sha256(Path(strategy_file)) if strategy_file else "unknown",
+        },
+    }  # fmt: skip
     try:
         with conn.transaction():
             return registry.register(
