@@ -1,0 +1,209 @@
+# ruff: noqa: E501
+"""The order management system, core rules (spec section 11). The only holder of a Broker.
+
+  * a breached order never reaches the broker (the risk engine decides first, the kill switch included)
+  * a timeout makes an order UNKNOWN; it is never resubmitted blindly: the same intent looks the order up by its
+    client_order_id, and an order that cannot be found pauses its strategy and raises an alert
+  * broker updates are idempotent and tolerate out-of-order delivery (a duplicate, a stale fill or a late ACK is ignored)
+  * every transition is an OrderEvent; `orders` is the fold of `events`
+Not here yet: persistence of the events and the transactional outbox (this core keeps them in memory), the minute
+reconciler process, and flatten (building the closing orders from positions)."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from algo.core.clock import Clock
+from algo.execution.broker import Broker, BrokerError, BrokerOrder, BrokerRejected, BrokerTimeout
+from algo.execution.orders import (
+    ALLOWED,
+    Order,
+    OrderError,
+    OrderEvent,
+    State,
+    apply,
+    client_order_id,
+)
+from algo.risk.engine import RiskEngine
+from algo.risk.killswitch import Failure, FailurePolicy
+from algo.risk.model import Book, Day, Market, OrderRequest
+
+STATUS = {
+    "OPEN": State.ACKED,
+    "PARTIAL": State.PARTIALLY_FILLED,
+    "COMPLETE": State.FILLED,
+    "CANCELLED": State.CANCELLED,
+    "REJECTED": State.REJECTED,
+    "EXPIRED": State.EXPIRED,
+}
+
+
+@dataclass(frozen=True)
+class Mismatch:
+    kind: str  # MISSING_AT_BROKER | STATE_MISMATCH | FILL_MISMATCH | ORPHAN | BROKER_UNREACHABLE
+    client_order_id: str
+    detail: str
+
+
+class Oms:
+    def __init__(
+        self, broker: Broker, risk: RiskEngine, clock: Clock, policy: FailurePolicy | None = None
+    ) -> None:
+        self.broker, self.risk, self.clock = broker, risk, clock
+        self.policy = policy or FailurePolicy()
+        self.events: dict[str, list[OrderEvent]] = {}
+        self.orders: dict[str, Order] = {}
+        self.alerts: list[str] = []
+        self.orphans: list[BrokerOrder] = []
+        self.ignored = 0
+
+    def _emit(self, oid: str, state: State | None, kind: str = "STATE", **data: object) -> Order:
+        log = self.events.setdefault(oid, [])
+        ev = OrderEvent(oid, len(log), self.clock.now(), state, kind, dict(data))
+        self.orders[oid] = apply(self.orders.get(oid), ev)
+        log.append(ev)
+        return self.orders[oid]
+
+    def submit(
+        self, intent_key: str, req: OrderRequest, market: Market, book: Book, day: Day
+    ) -> Order:
+        oid = client_order_id(req.strategy_id, intent_key)
+        existing = self.orders.get(oid)
+        if existing is not None:  # the same intent again: never a second order
+            return self.resolve_unknown(oid) if existing.state is State.UNKNOWN else existing
+        decision = self.risk.approve(req, market, book, day, self.clock.now())
+        self._emit(
+            oid,
+            None,
+            "NEW",
+            strategy_id=req.strategy_id,
+            instrument_id=req.instrument_id,
+            side=req.side.value,
+            qty=req.qty,
+            price=req.price,
+        )
+        if not decision.approved:
+            return self._emit(oid, State.REJECTED, reason="risk: " + ", ".join(decision.codes))
+        self._emit(oid, State.SUBMITTING)
+        try:
+            broker_id = self.broker.place_order(req, oid)
+        except BrokerRejected as e:
+            return self._emit(oid, State.REJECTED, reason=f"broker: {e}")
+        except BrokerTimeout as e:
+            return self._emit(oid, State.UNKNOWN, reason=f"no answer from the broker: {e}")
+        return self._emit(oid, State.SUBMITTED, broker_order_id=broker_id)
+
+    def on_update(self, u: BrokerOrder) -> Order | None:
+        """A broker update (postback, stream or poll). Returns the order when it changed, None when it was ignored."""
+        o = self.orders.get(u.client_order_id)
+        if o is None:
+            self.orphans.append(u)
+            return None
+        target = STATUS.get(u.status)
+        if target is None:
+            raise OrderError(f"unknown broker status {u.status!r}")
+        stale = o.is_terminal or u.filled_qty < o.filled_qty
+        duplicate = target is o.state and u.filled_qty == o.filled_qty
+        if stale or duplicate or target not in ALLOWED[o.state]:
+            self.ignored += 1
+            return None
+        return self._emit(
+            o.order_id,
+            target,
+            filled_qty=u.filled_qty,
+            avg_price=u.avg_price,
+            broker_order_id=u.broker_order_id,
+        )
+
+    def _escalate(self, o: Order, why: str) -> Order:
+        self._emit(o.order_id, None, "NOTE", text=why)
+        mode = self.risk.switch.apply(
+            Failure.AMBIGUOUS_ORDER, self.policy, o.strategy_id, self.clock.now()
+        )
+        self.alerts.append(
+            f"order {o.order_id} is UNKNOWN ({why}); {o.strategy_id} is now {mode.value}"
+        )
+        return self.orders[o.order_id]
+
+    def resolve_unknown(self, order_id: str) -> Order:
+        o = self.orders[order_id]
+        if o.state is not State.UNKNOWN:
+            return o
+        try:
+            found = next((b for b in self.broker.orders() if b.client_order_id == order_id), None)
+        except BrokerError as e:
+            return self._escalate(o, f"the lookup failed: {e}")
+        if found is None:
+            return self._escalate(o, "not found at the broker")
+        self.on_update(found)
+        return self.orders[order_id]
+
+    def confirm_not_sent(self, order_id: str, *, by: str, reason: str) -> Order:
+        """A person has checked that the broker never had the order: the only way an UNKNOWN order ends without the broker's word."""
+        o = self.orders[order_id]
+        if o.state is not State.UNKNOWN:
+            raise OrderError(f"{order_id} is {o.state}, not UNKNOWN")
+        return self._emit(order_id, State.CANCELLED, reason=f"confirmed not sent by {by}: {reason}")
+
+    def cancel_open(self, scope: str | None = None) -> list[str]:
+        """Ask the broker to cancel open orders (one strategy, or all). The order becomes CANCELLED when the broker says so."""
+        requested = []
+        for o in list(self.orders.values()):
+            if o.is_open and (scope is None or o.strategy_id == scope):
+                try:
+                    self.broker.cancel_order(o.broker_order_id or "")
+                except BrokerError as e:
+                    self._emit(o.order_id, None, "NOTE", text=f"cancel failed: {e}")
+                    continue
+                self._emit(o.order_id, None, "CANCEL_REQUESTED")
+                requested.append(o.order_id)
+        return requested
+
+    def reconcile(self, threshold: int = 1) -> list[Mismatch]:
+        """Compare the OMS with the broker (the broker is the truth). At `threshold` mismatches trading is paused and an alert raised."""
+        now = self.clock.now()
+        try:
+            remote = {b.client_order_id: b for b in self.broker.orders()}
+        except BrokerError as e:
+            self.risk.switch.apply(Failure.BROKER_DOWN, self.policy, None, now)
+            self.alerts.append(f"reconciliation could not read the broker: {e}")
+            return [Mismatch("BROKER_UNREACHABLE", "", str(e))]
+        out: list[Mismatch] = []
+        for oid, o in self.orders.items():
+            if o.state in (State.NEW, State.REJECTED):
+                continue  # never reached the broker
+            b = remote.get(oid)
+            if b is None:
+                out.append(
+                    Mismatch(
+                        "MISSING_AT_BROKER",
+                        oid,
+                        f"the OMS has it {o.state}, the broker does not know it",
+                    )
+                )
+            elif STATUS.get(b.status) is not o.state:
+                out.append(
+                    Mismatch("STATE_MISMATCH", oid, f"the OMS has {o.state}, the broker {b.status}")
+                )
+            elif b.filled_qty != o.filled_qty:
+                out.append(
+                    Mismatch(
+                        "FILL_MISMATCH",
+                        oid,
+                        f"the OMS filled {o.filled_qty}, the broker {b.filled_qty}",
+                    )
+                )
+        out += [
+            Mismatch("ORPHAN", c, "the broker has an order the OMS never sent")
+            for c in remote
+            if c not in self.orders
+        ]
+        for m in out:
+            if m.client_order_id in self.orders:
+                self._emit(m.client_order_id, None, "RECONCILED", result=m.kind, detail=m.detail)
+        if len(out) >= threshold:
+            self.risk.switch.apply(Failure.RECONCILIATION, self.policy, None, now)
+            self.alerts.append(
+                f"reconciliation found {len(out)} mismatch(es): " + "; ".join(m.kind for m in out)
+            )
+        return out
