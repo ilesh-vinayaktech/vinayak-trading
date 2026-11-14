@@ -64,10 +64,12 @@ New tables only where nothing exists: `research_lock`, `holdout_batch` and its r
 
 ### A. Holdout lock and controlled evaluation
 
-**Status (2026-11-14): slice 1 built** (lock table, file hash anchored in the database and failing closed, guarded `ResearchReader` and
-minute history, study registration and runner wired, `scripts/research_lock.py`). **Slice 2** (the batch table and evaluator) and
-**slice 3** (replacing the per-study holdout open) are next; fundamentals and feature reads join the guard when they exist.
-The lock is not yet anchored in the dev database, so research is refused until the owner anchors it.
+**Status (2026-11-14): slices 1 and 2 built.** Slice 1: lock table, file hash anchored in the database and failing closed, guarded
+`ResearchReader` and minute history, study registration and runner wired, `scripts/research_lock.py`; the lock is anchored in the dev
+database. Slice 2: `holdout_batch` (one batch ever, forward-only states, immutable manifest, redacted verdicts, one-use evaluator
+capability, crash and resume, `EVALUATION_FAILED`, lock frozen once a batch exists). **Slice 3** is next: the evaluator that runs
+the frozen candidates over the holdout and judges the gates, and replacing the per-study holdout open. Fundamentals and feature reads
+join the guard when they exist; the family id and the family-wide trial counter are still to be enforced in the registry.
 
 **Family.** A research family has a stable, immutable id; its trial count only grows. Re-registering, changing parameters or
 features, or splitting a study never creates a family or resets the count; a new family needs an explicit, audited classification

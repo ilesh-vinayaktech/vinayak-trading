@@ -5,7 +5,7 @@ Which tests execute which file comes from the last full run (`make cov` records 
 test in .coverage); without that map, or for a file the map has never seen, it falls back to a static
 import graph (transitive, much broader). `make check` stays the full gate, 1-2 times a day:
 this does NOT check coverage floors and cannot see dynamic imports.
-usage: quick_check.py [--base HEAD | --files PATH...] [--workers 2] [--list]   (--list: show the plan, run nothing)"""
+usage: quick_check.py [--base HEAD | --files PATH...] [--workers 16] [--list]   (--list: show the plan, run nothing)"""
 
 import argparse
 import ast
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ap = argparse.ArgumentParser()
 ap.add_argument("--base", default="HEAD", help="compare the working tree with this commit")
 ap.add_argument(
-    "--workers", type=int, default=2, help="pytest-xdist workers (each starts a test database)"
+    "--workers", type=int, default=16, help="pytest-xdist workers (each starts a test database)"
 )
 ap.add_argument(
     "--files", nargs="+", help="treat exactly these paths as the change instead of asking git"
