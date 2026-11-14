@@ -3,7 +3,7 @@
 Spec: `Algo Trading Platform Developer Spec v1.md`. Plan/progress: `TODO.md` (check items off as done).
 Python 3.12 + uv. Rules: see `.claude/skills/algo-testing/SKILL.md` (tests-first, 90% branch gate, 100% on money paths).
 
-- `make check` (lint+types+coverage+floors) must be green before declaring anything done; paste the output.
+- While working run `make quick` (lint, types and only the tests that depend on your change; seconds to minutes). `make check` (lint+types+coverage+floors, 10-20 min) is the full gate: run it before a commit or when finishing a piece of work (1-2 times a day, not after every edit), and paste its output. `make quick ARGS=--list` shows the plan.
 - Never call the system clock in `src/`; inject a `Clock`. Prices/qty are `Decimal`, never float.
 - Strategies only see data via `Context`; no DB/broker/network handles.
 - New module under `src/algo/` needs a matching `tests/**/test_<module>.py` (enforced by `tests/test_every_module_has_test.py`).

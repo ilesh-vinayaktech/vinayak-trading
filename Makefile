@@ -1,10 +1,11 @@
-.PHONY: test cov lint type mut check console-check console-api dev-api dev-web dev-feed dev-admin
+.PHONY: test cov lint type mut check quick console-check console-api dev-api dev-web dev-feed dev-admin
 test: ; uv run pytest -q
 cov:  ; uv run pytest -q -n auto --cov --cov-report=term-missing && uv run python scripts/check_floors.py
 lint: ; uv run ruff check . && uv run ruff format --check .
 type: ; uv run mypy src
 mut:  ; uv run mutmut run
 check: lint type cov
+quick: ; uv run python scripts/quick_check.py $(ARGS)  # only what your change touches; `make quick ARGS=--list` shows the plan
 
 console-check:
 	cd frontend && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build
