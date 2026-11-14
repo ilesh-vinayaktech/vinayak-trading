@@ -10,7 +10,7 @@ person's explicit act. This module only holds the state: the risk engine refuses
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
@@ -80,6 +80,15 @@ class KillSwitch:
     def __init__(self) -> None:
         self._modes: dict[str | None, Mode] = {}
         self.events: list[SwitchEvent] = []
+
+    @classmethod
+    def from_events(cls, events: Iterable[SwitchEvent]) -> KillSwitch:
+        """Rebuild the switch from its log: the mode in force per scope is its latest event."""
+        k = cls()
+        for e in events:
+            k._modes[e.scope] = e.mode
+            k.events.append(e)
+        return k
 
     def mode(self, strategy_id: str) -> Mode:
         a, b = self._modes.get(None, Mode.RUNNING), self._modes.get(strategy_id, Mode.RUNNING)

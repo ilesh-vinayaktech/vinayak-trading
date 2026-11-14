@@ -24,6 +24,7 @@ from psycopg.types.json import Jsonb
 from algo.backtest.costs.policy import CostPolicy
 from algo.backtest.costs.slippage import fill_price
 from algo.paper import book
+from algo.paper import risk as paper_risk
 
 IST = ZoneInfo("Asia/Kolkata")
 COLUMNS = (
@@ -94,6 +95,16 @@ def approve(conn: psycopg.Connection, order_id: UUID, *, user_id: UUID, now: dat
     acct = book.get_account(conn, user_id)
     if acct is None or not acct["enabled"] or acct["attention"]:
         raise OrderError("the account is paused, so orders cannot be approved")
+    decision = paper_risk.check_approval(
+        conn, user_id, order_id, now
+    )  # approval is when an order is "sent"
+    if not decision.approved:
+        raise OrderError(
+            "risk: "
+            + ", ".join(decision.codes)
+            + " - "
+            + "; ".join(r.detail for r in decision.rejections)
+        )
     _decide(conn, order_id, user_id, now, "APPROVED")
 
 
@@ -127,12 +138,23 @@ def fill_due(
     conn: psycopg.Connection, now: datetime, *, cost: CostPolicy, slippage_bps: Decimal
 ) -> FillReport:
     filled = failed = waiting = 0
+    switch = paper_risk.load_switch(conn)
     due = conn.execute(
         "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at FROM paper_order WHERE status='APPROVED' AND expires_at > %s ORDER BY created_at, order_id",
         (now,),
     ).fetchall()
     for order_id, user_id, iid, side, qty, not_before, expires_at, decided_at in due:
         acct = book.get_account(conn, user_id)
+        if acct is not None and switch.mode(acct["strategy_id"]).cancels_open:
+            conn.execute(
+                "UPDATE paper_order SET status='FAILED', failure=%s WHERE order_id=%s",
+                (
+                    f"cancelled by the kill switch: {paper_risk.why(switch, acct['strategy_id'])}",
+                    order_id,
+                ),
+            )
+            failed += 1
+            continue
         bar = conn.execute(
             "SELECT ts, open FROM live_bar_1m WHERE instrument_id=%s AND ts >= %s AND ts < %s ORDER BY ts LIMIT 1",
             (iid, max(not_before, _next_minute(decided_at)), expires_at),

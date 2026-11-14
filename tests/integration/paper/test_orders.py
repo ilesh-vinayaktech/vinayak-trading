@@ -162,7 +162,15 @@ def test_a_sale_is_filled_lower_and_one_that_cannot_happen_fails_with_the_reason
     live_bar(conn, iid, 0, D(200))
     sell, short = propose(conn, jane, iid, "SELL", 50), propose(conn, bob, iid, "SELL", 5)
     big = propose(conn, jane, iid, "BUY", 100_000)
-    for oid, who in ((sell, jane), (short, bob), (big, jane)):
+    with pytest.raises(orders.OrderError, match="REDUCE_ONLY_VIOLATION"):
+        orders.approve(
+            conn, short, user_id=bob, now=EVENING
+        )  # selling what you do not hold is now refused at approval
+    conn.execute(  # forced past the approval: the book still refuses it at the fill
+        "UPDATE paper_order SET status='APPROVED', decided_at=%s WHERE order_id=%s",
+        (EVENING, short),
+    )
+    for oid, who in ((sell, jane), (big, jane)):
         orders.approve(conn, oid, user_id=who, now=EVENING)
     assert fill(conn, minute(1), 100) == orders.FillReport(1, 2, 0)
     price = conn.execute("SELECT fill_price FROM paper_order WHERE order_id=%s", (sell,)).fetchone()

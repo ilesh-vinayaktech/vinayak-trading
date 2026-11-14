@@ -88,3 +88,15 @@ def test_a_failure_only_ever_escalates_and_is_recorded_as_automatic():
         "policy:DRAWDOWN",
     ]  # the no-op was not an event
     assert k.mode("a") is Mode.CANCEL
+
+
+def test_the_switch_can_be_rebuilt_from_its_log_with_the_latest_event_per_scope_in_force():
+    from algo.risk.killswitch import SwitchEvent
+
+    log = [
+        SwitchEvent(NOW, None, Mode.PAUSE, "jane", "r1"),
+        SwitchEvent(NOW, "a", Mode.CANCEL, "jane", "r2"),
+        SwitchEvent(NOW, None, Mode.RUNNING, "joe", "r3"),
+    ]
+    k = KillSwitch.from_events(log)
+    assert k.mode("a") is Mode.CANCEL and k.mode("b") is Mode.RUNNING and k.events == log

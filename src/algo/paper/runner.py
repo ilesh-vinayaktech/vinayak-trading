@@ -31,6 +31,7 @@ from algo.data.store.instruments import InstrumentRepo, NotFoundError
 from algo.data.universe import Interval
 from algo.live.market_calendar import windows_for
 from algo.paper import book
+from algo.paper import risk as paper_risk
 from algo.paper.universe import FOREVER, UniverseError, current_universe
 from algo.research import fundamentals_book
 from algo.research.study import UniverseSpec
@@ -119,6 +120,18 @@ def run_day(
             ident,
             "SKIPPED",
             {"reason": f"paused: {acct['attention']}"},
+            [],
+        )
+    mode = paper_risk.load_switch(conn).mode(acct["strategy_id"])
+    if mode.blocks_new:
+        return _record(
+            conn,
+            user_id,
+            day,
+            now,
+            ident,
+            "SKIPPED",
+            {"reason": f"the kill switch is {mode.value}"},
             [],
         )
     ready = assess(

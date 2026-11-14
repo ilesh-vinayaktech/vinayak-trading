@@ -385,3 +385,27 @@ def test_a_weekday_without_bars_blocks_the_decision_too(env):
     conn.execute("DELETE FROM bar_1d WHERE (ts AT TIME ZONE 'Asia/Kolkata')::date=%s", (gone,))
     out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
     assert out.status == "ERROR" and [r["code"] for r in out.detail["readiness"]] == ["MISSING_DAY"]
+
+
+def test_a_paused_strategy_or_a_global_pause_means_the_runner_proposes_nothing_and_says_why(env):
+    from algo.risk import store
+
+    conn, ids, lake = env
+    uid = user(conn)
+    store.change(conn, "pause", "trend_pullback", by="jane", reason="looking", now=NOW)
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert (
+        out.status == "SKIPPED"
+        and out.detail["reason"] == "the kill switch is PAUSE"
+        and orders(conn, uid) == []
+    )
+    store.change(conn, "resume", "trend_pullback", by="jane", reason="ok", now=NOW)
+    store.change(conn, "cancel", None, by="joe", reason="data", now=NOW)
+    assert (
+        run_day(conn, uid, day=DAY, now=NOW, lake_root=lake).detail["reason"]
+        == "the kill switch is CANCEL"
+    )
+    store.change(conn, "resume", None, by="joe", reason="fixed", now=NOW)
+    assert (
+        run_day(conn, uid, day=DAY, now=NOW, lake_root=lake).status == "PROPOSED"
+    )  # a skipped run is retried
