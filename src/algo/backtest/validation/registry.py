@@ -154,7 +154,10 @@ def save_report(
     now: datetime,
     refs: Mapping[str, Any] | None = None,
 ) -> int:
-    gates = [{"name": g.name, "passed": g.passed, "detail": g.detail} for g in report.gates]
+    gates = [
+        {"name": g.name, "passed": g.passed, "detail": g.detail, "status": g.status}
+        for g in report.gates
+    ]
     row = conn.execute(
         "INSERT INTO validation_report (experiment_id,run_id,passed,thresholds_status,n_trials,"
         "evidence,gates,created_at,refs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING report_id",

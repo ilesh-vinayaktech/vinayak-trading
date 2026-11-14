@@ -61,6 +61,19 @@ export const GATE_LABELS: Record<string, string> = {
   concentration_trade: "Profit not just from three trades",
 };
 
+export type GateState = "PASS" | "FAIL" | "INSUFFICIENT_EVIDENCE" | "NOT_APPLICABLE";
+
+/** What a check says, in one of four ways. Missing evidence is never shown as a weak pass or an ordinary fail; reports saved before the
+ * four-way status carry only `passed` and the text "evidence missing", which is read the same way. */
+export function gateState(g: { passed: boolean; detail: string; status?: GateState }): GateState {
+  if (g.status) return g.status;
+  if (!g.passed && g.detail === "evidence missing") return "INSUFFICIENT_EVIDENCE";
+  return g.passed ? "PASS" : "FAIL";
+}
+
+export const GATE_STATE_LABEL: Record<GateState, string> = { PASS: "Pass", FAIL: "Fail", INSUFFICIENT_EVIDENCE: "No evidence", NOT_APPLICABLE: "n/a" };
+export const GATE_STATE_TONE: Record<GateState, "good" | "bad" | "warn" | "neutral"> = { PASS: "good", FAIL: "bad", INSUFFICIENT_EVIDENCE: "warn", NOT_APPLICABLE: "neutral" };
+
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 export function gateValue(name: string, e: Record<string, number | null>): string {

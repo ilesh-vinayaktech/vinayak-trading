@@ -205,6 +205,7 @@ def holdout_gates(
                 "name": name,
                 "passed": value is not None and ok,
                 "detail": "evidence missing" if value is None else detail,
+                "status": "INSUFFICIENT_EVIDENCE" if value is None else ("PASS" if ok else "FAIL"),
             }
         )
 

@@ -1,5 +1,6 @@
 """The pass/fail decision. Every gate needs its evidence; MISSING evidence FAILS the gate (a check
-that was not run is not a check that passed). Thresholds are data
+that was not run is not a check that passed) and is reported as INSUFFICIENT_EVIDENCE, distinct from
+a measured FAIL. Thresholds are data
 (config/validation_thresholds.json) and are fixed BEFORE a strategy is validated."""
 
 from __future__ import annotations
@@ -56,11 +57,24 @@ class Evidence:
     window_share: float | None = None
 
 
+STATUSES = ("PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE")
+
+
 @dataclass(frozen=True)
 class Gate:
     name: str
     passed: bool
     detail: str
+    missing: bool = False  # the evidence was not measured at all
+
+    @property
+    def status(self) -> str:
+        """PASS or FAIL when measured, INSUFFICIENT_EVIDENCE when not. (NOT_APPLICABLE is in the
+        vocabulary for gates that do not apply by design; none does today.) Missing evidence is
+        never read as a weak pass."""
+        if self.missing:
+            return "INSUFFICIENT_EVIDENCE"
+        return "PASS" if self.passed else "FAIL"
 
 
 @dataclass(frozen=True)
@@ -76,16 +90,25 @@ class Report:
     def failures(self) -> list[str]:
         return [f"{g.name}: {g.detail}" for g in self.gates if not g.passed]
 
+    @property
+    def statuses(self) -> dict[str, str]:
+        return {g.name: g.status for g in self.gates}
+
+    @property
+    def insufficient(self) -> list[str]:
+        """The gates that could not be judged because their evidence was never measured."""
+        return [g.name for g in self.gates if g.missing]
+
 
 def _gate(name: str, value: float | None, ok, detail: str) -> Gate:  # type: ignore[no-untyped-def]
     if value is None:
-        return Gate(name, False, "evidence missing")
+        return Gate(name, False, "evidence missing", missing=True)
     return Gate(name, bool(ok(value)), detail.format(v=value))
 
 
 def _drawdown_gate(e: Evidence, t: Thresholds) -> Gate:
     if e.max_drawdown is None or e.benchmark_max_drawdown is None:
-        return Gate("max_drawdown", False, "evidence missing")
+        return Gate("max_drawdown", False, "evidence missing", missing=True)
     dd, bench = abs(e.max_drawdown), abs(e.benchmark_max_drawdown)
     if dd > t.owner_max_drawdown:
         return Gate("max_drawdown", False, f"{dd:.1%} > owner cap {t.owner_max_drawdown:.0%}")

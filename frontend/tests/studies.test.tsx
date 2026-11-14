@@ -436,6 +436,21 @@ describe("the verdict", () => {
     backend({ "GET /api/auth/me": who(perms), "GET /api/studies/7": STUDY, "GET /api/studies/7/results": NO_RUN, "GET /api/studies/7/verdict": verdict, ...extra });
     mount(<StudyPage />);
   };
+  it("shows a check with no evidence as its own state, never as an ordinary fail or a weak pass", async () => {
+    const gates = [
+      { name: "oos_sharpe", passed: true, detail: "ok", status: "PASS" },
+      { name: "deflated_sharpe", passed: false, detail: "0.612 < required 0.95", status: "FAIL" },
+      { name: "overfitting_probability", passed: false, detail: "evidence missing", status: "INSUFFICIENT_EVIDENCE" },
+      { name: "beats_benchmark", passed: false, detail: "evidence missing" }, // saved before the four-way status: read from its text
+    ];
+    open({ holdout: null, holdout_run: null, run: RUNV, report: { ...REPORT, gates }, trials_done: 12, trials_planned: 12 });
+    expect(await screen.findByText("2 without evidence")).toBeInTheDocument();
+    const pbo = screen.getByText(/Chance the best settings are overfitted/).closest("tr") as HTMLElement;
+    expect(within(pbo).getByText("No evidence")).toBeInTheDocument();
+    expect(within(pbo).queryByText("Fail")).not.toBeInTheDocument();
+    const dsr = screen.getByText("Deflated Sharpe (allows for luck across all the tries)").closest("tr") as HTMLElement;
+    expect(within(dsr).getByText("Fail")).toBeInTheDocument();
+  });
   it("shows every check with the figure it judged, only explains the failures, and links the runs behind it", async () => {
     open({ holdout: null, holdout_run: null, run: RUNV, report: REPORT, trials_done: 12, trials_planned: 12 });
     expect(await screen.findByText("Failed 2 of 3 checks")).toBeInTheDocument();

@@ -159,6 +159,7 @@ def test_without_a_benchmark_that_gate_fails_for_missing_evidence_and_the_rest_s
         "name": "holdout_beats_benchmark",
         "passed": False,
         "detail": "evidence missing",
+        "status": "INSUFFICIENT_EVIDENCE",
     }
     assert g["holdout_sharpe"]["passed"] and g["holdout_drawdown"]["passed"]
 
@@ -171,4 +172,22 @@ def test_an_undefined_sharpe_fails_instead_of_passing():
         "name": "holdout_sharpe",
         "passed": False,
         "detail": "evidence missing",
+        "status": "INSUFFICIENT_EVIDENCE",
     }
+
+
+def test_holdout_gates_carry_the_same_four_way_status_and_missing_evidence_is_insufficient_not_a_fail():
+    from algo.backtest.validation.gates import Thresholds
+    from algo.research.verdict import holdout_gates
+
+    t = Thresholds(0.8, 0.95, 0.2, 1.25, 0.25, 0.3, 0.5, 0.2, 252, 2, 0.5, 0.02)
+    gates, _ = holdout_gates([], None, t)  # nothing to measure
+    assert {g["name"]: g["status"] for g in gates} == {
+        "holdout_sharpe": "INSUFFICIENT_EVIDENCE",
+        "holdout_drawdown": "INSUFFICIENT_EVIDENCE",
+        "holdout_beats_benchmark": "INSUFFICIENT_EVIDENCE",
+    }
+    gates, _ = holdout_gates(calm(0.003), calm(0.0005), t)
+    assert all(g["status"] == "PASS" and g["passed"] for g in gates)
+    gates, _ = holdout_gates(calm(0.0001), calm(0.0005), t)
+    assert by_name(gates)["holdout_sharpe"]["status"] == "FAIL"  # measured, not good enough

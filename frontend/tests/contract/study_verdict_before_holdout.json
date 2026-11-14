@@ -24,72 +24,86 @@
    {
     "detail": "252 OOS observations < required 252",
     "name": "oos_days",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "2 regimes < required 2",
     "name": "regimes",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "one window supplies 40% of gains (> 50%)",
     "name": "window_share",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "1.10 < required 0.8",
     "name": "oos_sharpe",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "0.970 < required 0.95",
     "name": "deflated_sharpe",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "0.10 > allowed 0.2",
     "name": "overfitting_probability",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "20.0% is 0.67x benchmark (limit 1.25)",
     "name": "max_drawdown",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "Sharpe edge over benchmark 0.40 < required 0.2",
     "name": "beats_benchmark",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "10% Sharpe lost at a neighbouring setting (> 30%)",
     "name": "parameter_plateau",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "Sharpe 0.60 at 2x costs",
     "name": "survives_2x_costs",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "evidence missing",
     "name": "survives_3x_capital",
-    "passed": false
+    "passed": false,
+    "status": "INSUFFICIENT_EVIDENCE"
    },
    {
     "detail": "40% of gains from 3 instruments (> 50%)",
     "name": "concentration_instrument",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "30% of gains from 3 months (> 50%)",
     "name": "concentration_month",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    },
    {
     "detail": "20% of gains from 3 trades (> 50%)",
     "name": "concentration_trade",
-    "passed": true
+    "passed": true,
+    "status": "PASS"
    }
   ],
   "n_trials": 12,

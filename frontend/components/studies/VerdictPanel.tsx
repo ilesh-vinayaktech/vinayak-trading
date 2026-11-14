@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import type { StudyVerdict } from "@/lib/schemas";
-import { GATE_LABELS, gateValue } from "@/lib/studies";
+import { GATE_LABELS, GATE_STATE_LABEL, GATE_STATE_TONE, gateState, gateValue } from "@/lib/studies";
 
 type Report = NonNullable<StudyVerdict["report"]>;
 type Gate = Report["gates"][number];
@@ -45,11 +45,12 @@ export function VerdictPanel({ id }: { id: number }) {
   const ready = v !== undefined && v.trials_planned > 0 && v.trials_done >= v.trials_planned;
   const r = v?.report ?? null;
   const gateCols: Column<Gate>[] = [
-    { key: "ok", header: "", cell: (g) => <StatusPill tone={g.passed ? "good" : "bad"}>{g.passed ? "Pass" : "Fail"}</StatusPill> },
+    { key: "ok", header: "", cell: (g) => <StatusPill tone={GATE_STATE_TONE[gateState(g)]}>{GATE_STATE_LABEL[gateState(g)]}</StatusPill> },
     { key: "n", header: "Check", cell: (g) => GATE_LABELS[g.name] ?? g.name },
     { key: "v", header: "Result", className: "text-right", cell: (g) => (r ? gateValue(g.name, r.evidence) : "") },
     { key: "d", header: "Why", hideBelow: "md", cell: (g) => (g.passed ? "" : <span className="text-xs text-ink-soft">{g.detail}</span>) },
   ];
+  const unmeasured = r ? r.gates.filter((g) => gateState(g) === "INSUFFICIENT_EVIDENCE").length : 0;
   const winCols: Column<Window>[] = [
     { key: "tr", header: "Chose settings on", hideBelow: "md", cell: (w) => <span className="whitespace-nowrap text-xs">{w.train_from} to {w.train_to}</span> },
     { key: "te", header: "Judged on", cell: (w) => <span className="whitespace-nowrap text-xs">{w.test_from} to {w.test_to}</span> },
@@ -85,6 +86,7 @@ export function VerdictPanel({ id }: { id: number }) {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill tone={r.passed ? "good" : "bad"}>{r.passed ? "Passed every check" : `Failed ${r.gates.filter((g) => !g.passed).length} of ${r.gates.length} checks`}</StatusPill>
+              {unmeasured > 0 ? <StatusPill tone="warn">{unmeasured} without evidence</StatusPill> : null}
               <span className="text-xs text-ink-soft">Thresholds {r.thresholds_status} · {r.n_trials} combinations tried · <RelativeTime iso={r.created_at} /></span>
             </div>
             <p className="text-xs text-ink-soft">
@@ -119,7 +121,7 @@ const holdoutValue = (name: string, e: Record<string, number | null>) => {
 function HoldoutSection({ id, h, run, passed, canOpen, opening, error, onOpen }: { id: number; h: StudyVerdict["holdout"]; run: StudyVerdict["holdout_run"]; passed: boolean; canOpen: boolean; opening: boolean; error: unknown; onOpen: () => void }) {
   const active = run !== null && ["QUEUED", "RUNNING"].includes(run.status);
   const cols: Column<NonNullable<StudyVerdict["holdout"]>["gates"][number]>[] = [
-    { key: "ok", header: "", cell: (g) => <StatusPill tone={g.passed ? "good" : "bad"}>{g.passed ? "Pass" : "Fail"}</StatusPill> },
+    { key: "ok", header: "", cell: (g) => <StatusPill tone={GATE_STATE_TONE[gateState(g)]}>{GATE_STATE_LABEL[gateState(g)]}</StatusPill> },
     { key: "n", header: "Check", cell: (g) => GATE_LABELS[g.name] ?? g.name },
     { key: "v", header: "Result", className: "text-right", cell: (g) => (h ? holdoutValue(g.name, h.evidence) : "") },
     { key: "d", header: "Why", hideBelow: "md", cell: (g) => (g.passed ? "" : <span className="text-xs text-ink-soft">{g.detail}</span>) },

@@ -200,7 +200,7 @@ blocked until the owner records the four rules.
 2. Owner confirms the first feature formulas (`docs/vti-phase1-spec.md` section C) before they are implemented.
 3. Register new versions of the 8 studies with a 2024-12-31 research end (originals untouched) under one family id carrying their trial counts. The lock is enforced at the reader (built 2026-11-14, slice 1) but **not yet anchored in the dev database**: run `scripts/research_lock.py anchor` (owner), after which the 8 old studies are refused until re-registered.
 4. Define the research family id and the audited classification procedure for a new family (section 3). The batch manifest already carries family ids and trial counts, but the trial registry does not enforce them yet.
-5. Add the distinct validation states `PASS / FAIL / INSUFFICIENT_EVIDENCE / NOT_APPLICABLE` to gate results.
+5. The distinct validation states `PASS / FAIL / INSUFFICIENT_EVIDENCE / NOT_APPLICABLE` on gate results: **built 2026-11-14** (gates, stored reports, study page); no gate returns NOT_APPLICABLE yet.
 6. Holdout batch policy: one global batch across all families, at most one ever, consumed when `EVALUATING` is recorded; manifest, states, `EVALUATION_FAILED` and recovery as in section 3. **Built 2026-11-14 (slice 2); the evaluator that actually runs the candidates over the holdout is not built (slice 3).**
 7. Data history: 336M minute bars are not proof of coverage; completeness reports by instrument, session and expected minute count before any intraday research.
 8. Frontend and portal work for research (queue view, controlled holdout verdict display) is not specified yet.

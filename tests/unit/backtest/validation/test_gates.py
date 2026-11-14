@@ -100,3 +100,31 @@ def test_unknown_style_and_malformed_keys_are_refused(tmp_path):
     ok = tmp_path / "o.json"
     ok.write_text(json.dumps({"long_only": vars(T)}))
     assert load_thresholds(ok, "long_only") == (T, "")
+
+
+def test_every_gate_has_one_of_four_distinct_states_and_missing_evidence_is_never_a_weak_pass():
+    r = evaluate(replace(GOOD, oos_sharpe=0.1, pbo=None, plateau_drop=None), T, "confirmed")
+    by = r.statuses
+    assert by["oos_sharpe"] == "FAIL"  # measured, and not good enough
+    assert (
+        by["overfitting_probability"] == by["parameter_plateau"] == "INSUFFICIENT_EVIDENCE"
+    )  # not measured at all
+    assert by["deflated_sharpe"] == "PASS"
+    assert r.insufficient == ["overfitting_probability", "parameter_plateau"]
+    assert not r.passed  # an unmeasured gate still stops a pass
+    assert set(by.values()) <= {"PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE"}
+
+
+def test_a_missing_drawdown_figure_is_insufficient_evidence_not_a_fail():
+    for e in (replace(GOOD, max_drawdown=None), replace(GOOD, benchmark_max_drawdown=None)):
+        assert evaluate(e, T).statuses["max_drawdown"] == "INSUFFICIENT_EVIDENCE"
+    assert evaluate(replace(GOOD, max_drawdown=-0.9), T).statuses["max_drawdown"] == "FAIL"
+    assert evaluate(GOOD, T).statuses["max_drawdown"] == "PASS"
+
+
+def test_a_clean_report_has_no_insufficient_gates_and_the_vocabulary_is_fixed():
+    from algo.backtest.validation.gates import STATUSES
+
+    r = evaluate(GOOD, T)
+    assert r.insufficient == [] and set(r.statuses.values()) == {"PASS"}
+    assert STATUSES == ("PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE")

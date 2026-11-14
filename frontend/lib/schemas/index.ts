@@ -912,12 +912,15 @@ export const backtestReportSchema = z.object({
 });
 export type BacktestReport = z.infer<typeof backtestReportSchema>;
 
+export const gateStatusSchema = z.enum(["PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE"]);
+/** A check's result. `status` is absent on reports stored before the four-way verdicts: see gateState. */
+export const gateSchema = z.object({ name: z.string(), passed: z.boolean(), detail: z.string(), status: gateStatusSchema.optional() });
 export const studyHoldoutSchema = z.object({
   run_id: z.number(),
   passed: z.boolean(),
   created_at: z.string(),
   evidence: z.record(z.string(), z.number().nullable()),
-  gates: z.array(z.object({ name: z.string(), passed: z.boolean(), detail: z.string() })),
+  gates: z.array(gateSchema),
   refs: z.object({ chosen: z.record(z.string(), z.number()), benchmark: z.string(), benchmark_note: z.string().nullable(), window: z.array(z.string()), verdict_report: z.number() }),
 });
 export const studyVerdictSchema = z.object({
@@ -933,7 +936,7 @@ export const studyVerdictSchema = z.object({
       n_trials: z.number(),
       created_at: z.string(),
       evidence: z.record(z.string(), z.number().nullable()),
-      gates: z.array(z.object({ name: z.string(), passed: z.boolean(), detail: z.string() })),
+      gates: z.array(gateSchema),
       refs: z.object({
         chosen: z.record(z.string(), z.number()),
         benchmark: z.string(),
