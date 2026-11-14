@@ -3,6 +3,10 @@
 from algo.execution.broker import BrokerOrder, BrokerRejected, BrokerTimeout
 
 
+class Crash(BaseException):
+    """The process dies here: not an error the OMS may catch (BaseException, like a kill)."""
+
+
 class FakeBroker:
     def __init__(self, script=()):
         self.script = list(
@@ -19,10 +23,14 @@ class FakeBroker:
         behaviour = self.script.pop(0) if self.script else "ok"
         if behaviour == "reject":
             raise BrokerRejected("insufficient margin")
+        if behaviour == "crash_before":
+            raise Crash  # died before the order left the process
         if behaviour == "timeout_before":
             raise BrokerTimeout("timed out")  # the broker never saw the order
         broker_id = f"B{len(self.book) + 1}"
         self.book[client_order_id] = BrokerOrder(broker_id, client_order_id, "OPEN")
+        if behaviour == "crash_after":
+            raise Crash  # the broker has it, the process died before it heard
         if behaviour == "timeout_after":
             raise BrokerTimeout("timed out")  # the broker has it, the reply was lost
         return broker_id

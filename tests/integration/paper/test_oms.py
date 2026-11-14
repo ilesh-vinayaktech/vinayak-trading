@@ -88,7 +88,7 @@ def test_approving_sends_the_order_through_the_oms_and_the_paper_broker_and_it_s
         "SELECT status, decided_by FROM paper_order WHERE order_id=%s", (oid,)
     ).fetchone() == ("APPROVED", jane)
     events = paper_oms.build(conn, EVENING).events[cid(oid)]
-    assert [e.state for e in events] == [None, State.SUBMITTING, State.SUBMITTED] and replay(
+    assert [e.state for e in events] == [None, State.SUBMITTING, None, State.SUBMITTED] and replay(
         events
     ) == o
 
@@ -121,7 +121,9 @@ def test_a_fill_comes_back_as_a_broker_update_with_the_filled_quantity_and_price
         202
     )  # 1% over the open
     fill(conn)  # nothing new: the OMS is not touched twice
-    assert len(paper_oms.build(conn, EVENING).events[cid(oid)]) == 4
+    assert (
+        len(paper_oms.build(conn, EVENING).events[cid(oid)]) == 5
+    )  # NEW, command, attempt, answer, fill
 
 
 def test_a_refused_fill_is_a_rejected_order_with_the_books_reason(env):

@@ -38,7 +38,12 @@ def test_an_approved_order_is_sent_once_and_its_history_is_replayable():
     o = submit(oms)
     assert (o.state, o.broker_order_id, o.order_id) == (State.SUBMITTED, "B1", cid())
     assert broker.place_calls == 1
-    assert [e.state for e in oms.events[o.order_id]] == [None, State.SUBMITTING, State.SUBMITTED]
+    assert [e.state for e in oms.events[o.order_id]] == [
+        None,
+        State.SUBMITTING,
+        None,
+        State.SUBMITTED,
+    ]  # NEW, the command, the attempt, the answer
     assert replay(oms.events[o.order_id]) == oms.orders[o.order_id]
 
 
@@ -395,3 +400,74 @@ def test_a_live_oms_refuses_to_sell_more_than_the_strategy_bought_itself():
     assert (
         sell("s4", 99).state is State.SUBMITTED
     )  # the paper path keeps its own book and is unchanged
+
+
+# ---- the outbox: the SUBMITTING event is the durable command, an ATTEMPT event marks that it may have left the process ----
+from tests.support.fake_broker import Crash  # noqa: E402
+
+
+class CrashingStore(ListStore):
+    """Dies instead of writing the event whose kind or state is named."""
+
+    def __init__(self, die_on):
+        super().__init__()
+        self.die_on = die_on
+
+    def append(self, ev):
+        if self.die_on and self.die_on in (ev.kind, ev.state and ev.state.value):
+            raise Crash
+        super().append(ev)
+
+
+def crashed_then_restarted(store, script=(), switch=None):
+    """Run one submit until the crash, then start a fresh OMS on what was written. The broker's book survives the crash."""
+    oms, broker = build_with(store, script)
+    with pytest.raises(Crash):
+        submit(oms)
+    store.die_on = None
+    again, broker2 = build_with(store)
+    broker2.book = broker.book
+    if switch is not None:
+        again.risk.switch = switch
+    return again, broker2
+
+
+def test_a_crash_before_the_send_is_recovered_by_sending_once():
+    again, broker = crashed_then_restarted(CrashingStore("ATTEMPT"))
+    assert again.orders[REQ_ID].state is State.SUBMITTING and broker.place_calls == 0
+    again.recover()
+    assert again.orders[REQ_ID].state is State.SUBMITTED and broker.place_calls == 1
+    again.recover()  # nothing left to do: never a second send
+    assert broker.place_calls == 1
+
+
+def test_a_crash_after_the_broker_took_the_order_finds_it_by_its_tag_and_never_resends():
+    again, broker = crashed_then_restarted(CrashingStore("never"), script=["crash_after"])
+    again.recover()
+    assert again.orders[REQ_ID].state is State.ACKED and broker.place_calls == 0
+    assert not again.alerts
+
+
+def test_a_crash_after_the_attempt_that_the_broker_never_saw_is_unknown_pauses_and_is_not_resent():
+    again, broker = crashed_then_restarted(CrashingStore("never"), script=["crash_before"])
+    again.recover()
+    o = again.orders[REQ_ID]
+    assert o.state is State.UNKNOWN and broker.place_calls == 0
+    assert again.risk.switch.mode("s1") is not Mode.RUNNING and again.alerts
+
+
+def test_a_crash_before_the_risk_decision_was_written_rejects_the_order_and_sends_nothing():
+    again, broker = crashed_then_restarted(CrashingStore("SUBMITTING"))
+    assert again.orders[REQ_ID].state is State.NEW
+    again.recover()
+    o = again.orders[REQ_ID]
+    assert o.state is State.REJECTED and broker.place_calls == 0
+
+
+def test_an_unsent_order_found_on_restart_is_not_sent_when_the_strategy_has_been_paused_meanwhile():
+    store = CrashingStore("ATTEMPT")
+    switch = KillSwitch()
+    switch.pause("s1", by="t", reason="stop", now=NOW)
+    again, broker = crashed_then_restarted(store, switch=switch)
+    again.recover()
+    assert again.orders[REQ_ID].state is State.REJECTED and broker.place_calls == 0

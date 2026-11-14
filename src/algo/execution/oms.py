@@ -6,7 +6,8 @@
     client_order_id, and an order that cannot be found pauses its strategy and raises an alert
   * broker updates are idempotent and tolerate out-of-order delivery (a duplicate, a stale fill or a late ACK is ignored)
   * every transition is an OrderEvent; `orders` is the fold of `events`
-Not here yet: the transactional outbox, and the minute reconciler process for a real broker (positions and cash from Kite). `reconciler.compare` finds
+The outbox is the order log itself: SUBMITTING is the durable command, ATTEMPT marks that the send may have happened, `recover` finishes
+what a crash interrupted. Not here yet: the minute reconciler process for a real broker (positions and cash from Kite). `reconciler.compare` finds
 position and cash differences, `flatten.flatten` builds the closing orders."""
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ from algo.execution.orders import (
     replay,
 )
 from algo.risk.engine import RiskEngine
-from algo.risk.killswitch import Failure, FailurePolicy
+from algo.risk.killswitch import Failure, FailurePolicy, Mode
 from algo.risk.model import Book, Day, Market, OrderRequest, Side
 
 STATUS = {
@@ -101,6 +102,7 @@ class Oms:
             side=req.side.value,
             qty=req.qty,
             price=req.price,
+            reduce_only=req.reduce_only,
         )
         if not decision.approved:
             return self._emit(oid, State.REJECTED, reason="risk: " + ", ".join(decision.codes))
@@ -110,7 +112,15 @@ class Oms:
                 State.REJECTED,
                 reason="own position: more than this strategy bought (shares held from elsewhere are never sold)",
             )
-        self._emit(oid, State.SUBMITTING)
+        self._emit(
+            oid, State.SUBMITTING
+        )  # the durable command: a restart that finds it can still send it
+        return self._send(oid, req)
+
+    def _send(self, oid: str, req: OrderRequest) -> Order:
+        self._emit(
+            oid, None, "ATTEMPT"
+        )  # written BEFORE the call: from here on the broker may have the order
         try:
             broker_id = self.broker.place_order(req, oid)
         except BrokerRejected as e:
@@ -118,6 +128,44 @@ class Oms:
         except BrokerTimeout as e:
             return self._emit(oid, State.UNKNOWN, reason=f"no answer from the broker: {e}")
         return self._emit(oid, State.SUBMITTED, broker_order_id=broker_id)
+
+    def recover(self) -> None:
+        """Run after a restart: finish what a crash interrupted (the transactional outbox, with the order log as the outbox).
+        * NEW: the risk decision never reached the log and nothing was sent: REJECTED.
+        * SUBMITTING with no ATTEMPT: the command was logged but never left the process: send it, unless the strategy is paused now.
+        * SUBMITTING with an ATTEMPT: the broker may have it: UNKNOWN, found by its tag or escalated, never resent."""
+        for oid, o in list(self.orders.items()):
+            if o.state is State.NEW:
+                self._emit(
+                    oid,
+                    State.REJECTED,
+                    reason="interrupted before it was decided; nothing was sent",
+                )
+            elif o.state is State.SUBMITTING:
+                if any(e.kind == "ATTEMPT" for e in self.events[oid]):
+                    self._emit(
+                        oid, State.UNKNOWN, reason="the process stopped while it was being sent"
+                    )
+                    self.resolve_unknown(oid)
+                    continue
+                new = self.events[oid][0].data
+                req = OrderRequest(
+                    o.strategy_id,
+                    o.instrument_id,
+                    o.side,
+                    o.qty,
+                    o.price,
+                    new.get("reduce_only", False),
+                )
+                mode = self.risk.switch.mode(o.strategy_id)
+                if mode.blocks_new and not (req.reduce_only and mode is Mode.FLATTEN):
+                    self._emit(
+                        oid,
+                        State.REJECTED,
+                        reason=f"the kill switch is {mode.value}: not sent after the restart",
+                    )
+                else:
+                    self._send(oid, req)
 
     def on_update(self, u: BrokerOrder) -> Order | None:
         """A broker update (postback, stream or poll). Returns the order when it changed, None when it was ignored."""
@@ -162,6 +210,7 @@ class Oms:
             side=req.side.value,
             qty=req.qty,
             price=req.price,
+            reduce_only=req.reduce_only,
         )
         self._emit(oid, State.SUBMITTING)
         self._emit(oid, State.SUBMITTED, broker_order_id=sent.broker_order_id)

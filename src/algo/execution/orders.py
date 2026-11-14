@@ -69,7 +69,7 @@ class OrderEvent:
     state: (
         State | None
     )  # None: a fact that does not move the state (a note, a cancel request, a reconciliation result)
-    kind: str  # NEW | STATE | NOTE | CANCEL_REQUESTED | RECONCILED
+    kind: str  # NEW | ATTEMPT | STATE | NOTE | CANCEL_REQUESTED | RECONCILED
     data: dict[str, Any] = field(default_factory=dict)
 
 
