@@ -81,13 +81,13 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
   const controls: IndicatorControls = useMemo(
     () => ({
       active,
-      data: series.data,
+      data: timeframe === "1d" ? series.data : undefined, // daily points on a weekly or intraday chart would add a time slot for every day
       catalog: catalog.data?.indicators ?? [],
       onToggle: (uid) => setActive((l) => l.map((a) => (a.uid === uid ? { ...a, visible: !a.visible } : a))),
       onRemove: (uid) => setActive((l) => l.filter((a) => a.uid !== uid)),
       onEdit: (uid, spec) => setActive((l) => l.map((a) => (a.uid === uid ? { ...a, spec } : a))),
     }),
-    [active, series.data, catalog.data],
+    [active, series.data, catalog.data, timeframe],
   );
   const counts: Record<string, number> = {};
   for (const a of active) {
