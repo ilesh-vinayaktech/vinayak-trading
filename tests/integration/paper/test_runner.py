@@ -198,7 +198,8 @@ def test_data_that_cannot_support_a_decision_is_an_error_not_a_guess(env, tmp_pa
     late = DAYS[-1] + timedelta(days=7)  # no bars exist for this day
     put_list(lake, late - timedelta(days=3))
     out = run_day(conn, uid, day=late, now=NOW + timedelta(days=100), lake_root=lake)
-    assert out.status == "ERROR" and "unready" in out.detail["reason"] and orders(conn, uid) == []
+    assert out.status == "ERROR" and "data not ready" in out.detail["reason"]
+    assert out.detail["readiness"][0]["code"] == "STALE" and orders(conn, uid) == []
     no_list = run_day(conn, uid, day=DAY, now=NOW, lake_root=tmp_path / "empty")
     assert no_list.status == "ERROR" and "no nifty200_list" in no_list.detail["reason"]
 
@@ -350,3 +351,37 @@ def test_the_instrument_cap_keeps_the_most_liquid_names(env):
     assert (
         "capped_to" not in run_day(conn, roomy, day=DAY, now=NOW, lake_root=lake).detail["universe"]
     )
+
+
+def test_the_strategy_is_never_called_when_the_data_is_not_ready_and_the_run_recovers(
+    env, monkeypatch
+):
+    conn, ids, lake = env
+    uid = user(conn)
+    calls = []
+    real = TrendPullback.on_schedule
+    monkeypatch.setattr(
+        TrendPullback, "on_schedule", lambda self, ctx: calls.append(1) or real(self, ctx)
+    )
+    conn.execute(  # NSE refused one of the files in the last month
+        "INSERT INTO partition_load (source,dataset,partition,raw_version,checksum,status,at)"
+        " VALUES ('nse','bhav',%s,1,'x','quarantined',%s)",
+        (DAY - timedelta(days=3), NOW),
+    )
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert out.status == "ERROR" and "QUARANTINED" in out.detail["reason"]
+    assert [r["code"] for r in out.detail["readiness"]] == ["QUARANTINED"]
+    assert calls == [] and orders(conn, uid) == []
+    conn.execute("DELETE FROM partition_load")  # a person recovered the file
+    assert run_day(conn, uid, day=DAY, now=NOW, lake_root=lake).status == "PROPOSED"
+    assert calls == [1]
+
+
+def test_a_weekday_without_bars_blocks_the_decision_too(env):
+    conn, ids, lake = env
+    uid = user(conn)
+    gone = DAY - timedelta(days=7)
+    assert gone.weekday() < 5
+    conn.execute("DELETE FROM bar_1d WHERE (ts AT TIME ZONE 'Asia/Kolkata')::date=%s", (gone,))
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert out.status == "ERROR" and [r["code"] for r in out.detail["readiness"]] == ["MISSING_DAY"]

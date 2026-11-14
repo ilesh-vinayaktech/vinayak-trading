@@ -26,6 +26,7 @@ from algo.backtest.engine import SESSION_OPEN_UTC
 from algo.core.clock import SimClock
 from algo.core.money import snap_down
 from algo.data.reader import BarReader
+from algo.data.readiness import Needs, assess
 from algo.data.store.instruments import InstrumentRepo, NotFoundError
 from algo.data.universe import Interval
 from algo.live.market_calendar import windows_for
@@ -118,6 +119,23 @@ def run_day(
             ident,
             "SKIPPED",
             {"reason": f"paused: {acct['attention']}"},
+            [],
+        )
+    ready = assess(
+        conn, Needs(day)
+    )  # the strategy is never called on data that cannot support a decision
+    if not ready.ready:
+        return _record(
+            conn,
+            user_id,
+            day,
+            now,
+            ident,
+            "ERROR",
+            {
+                "reason": f"data not ready: {ready.summary()}",
+                "readiness": [{"code": r.code, "detail": r.detail} for r in ready.reasons],
+            },
             [],
         )
     try:
