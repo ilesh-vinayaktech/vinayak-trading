@@ -28,6 +28,7 @@ class Policy:
     violation: str | None = (
         None  # the first thing refused, kept even if the strategy swallows the exception
     )
+    loading: bool = False  # while the platform and the strategy are imported, native libraries (psycopg's) may be loaded
 
 
 _PROCESS = {
@@ -72,7 +73,7 @@ def decide(event: str, args: tuple[Any, ...], policy: Policy) -> str | None:
         return "network access is not allowed"
     if event in _PROCESS:
         return "starting or signalling processes is not allowed"
-    if event.startswith("ctypes."):
+    if event.startswith("ctypes.") and not policy.loading:
         return "native code is not allowed"
     if event in _CHANGE or event.startswith("shutil."):
         return "a strategy may not change files"

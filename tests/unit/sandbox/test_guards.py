@@ -28,6 +28,13 @@ def test_network_and_process_and_native_code_events_are_refused():
         assert "process" in ruling(ev, "x")
     assert "native" in ruling("ctypes.dlopen", "libc.so.6")
     assert "native" in ruling("ctypes.cdata", 1)
+    loading = Policy(read_roots=(ROOT,), loading=True)
+    assert (
+        ruling("ctypes.dlopen", "libpq.so", policy=loading) is None
+    )  # while the platform is being imported
+    assert "network" in ruling(
+        "socket.connect", object(), ("1.1.1.1", 53), policy=loading
+    )  # everything else stays refused
 
 
 def test_changes_to_files_are_refused_whatever_the_path():

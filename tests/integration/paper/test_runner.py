@@ -2,6 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal as D
+from pathlib import Path
 
 import pytest
 
@@ -10,7 +11,9 @@ from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 from algo.live.market_calendar import mark_closed
 from algo.paper import book
-from algo.paper.runner import run_day
+from algo.paper import orders as paper_orders
+from algo.paper.runner import SandboxConfig, run_day
+from algo.sandbox.host import Limits as SandboxLimits
 from algo.strategies.trend_pullback import TrendPullback, TrendPullbackParams
 from tests.integration.test_trend_pullback_engine import DAYS, UP, falling, sawtooth
 from tests.support.bt import add_action, put_bars
@@ -409,3 +412,59 @@ def test_a_paused_strategy_or_a_global_pause_means_the_runner_proposes_nothing_a
     assert (
         run_day(conn, uid, day=DAY, now=NOW, lake_root=lake).status == "PROPOSED"
     )  # a skipped run is retried
+
+
+SANDBOX = SandboxConfig(
+    limits=SandboxLimits(call_timeout_s=120.0),
+    import_roots=(Path(__file__).resolve().parents[3],),
+    read_roots=(Path(__file__).resolve().parents[3] / "tests",),
+)
+
+
+def proposals(conn, uid):
+    return sorted(
+        (str(o["instrument_id"]), o["side"], int(o["qty"]), str(o["ref_price"]), o["reason"])
+        for o in paper_orders.list_orders(conn, uid)
+    )
+
+
+def test_a_strategy_run_in_the_sandbox_proposes_exactly_what_it_does_in_process(env):
+    conn, ids, lake = env
+    inside, outside = user(conn, "a@example.com"), user(conn, "b@example.com")
+    in_process = run_day(conn, inside, day=DAY, now=NOW, lake_root=lake)
+    sandboxed = run_day(conn, outside, day=DAY, now=NOW, lake_root=lake, sandbox=SANDBOX)
+    assert in_process.status == "PROPOSED", in_process.detail
+    assert sandboxed.status == "PROPOSED", sandboxed.detail
+    assert (
+        in_process.detail["audit"] == sandboxed.detail["audit"]
+    )  # what it saw and why, key for key
+    assert proposals(conn, inside) == proposals(conn, outside) and proposals(conn, inside)
+
+
+def test_a_sandboxed_strategy_that_breaks_a_rule_is_halted_and_its_strategy_paused(
+    env, monkeypatch
+):
+    from algo.paper.runner import STRATEGIES
+    from algo.risk import store
+    from tests.support.adversarial import TrendPullbackThatSnoops
+
+    monkeypatch.setitem(
+        STRATEGIES, "trend_pullback", (TrendPullbackThatSnoops, STRATEGIES["trend_pullback"][1])
+    )
+    conn, ids, lake = env
+    uid = user(conn)
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake, sandbox=SANDBOX)
+    assert (
+        out.status == "ERROR"
+        and "halted by the sandbox" in out.detail["reason"]
+        and "outside the allowed paths" in out.detail["reason"]
+    )
+    assert orders(conn, uid) == []
+    assert (
+        store.load(conn).mode("trend_pullback").value == "PAUSE"
+    )  # nothing more runs until a person resumes it
+    assert store.load(conn).events[-1].by == "sandbox"
+    assert (
+        run_day(conn, uid, day=DAY, now=NOW, lake_root=lake, sandbox=SANDBOX).detail["reason"]
+        == "the kill switch is PAUSE"
+    )

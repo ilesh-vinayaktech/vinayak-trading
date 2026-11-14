@@ -132,3 +132,14 @@ class ReadsTheClockSneakily(_Base):
     def on_schedule(self, ctx):
         t = __import__("time")
         return {1: Decimal(t.time())}
+
+
+from algo.strategies.trend_pullback import TrendPullback  # noqa: E402
+
+
+class TrendPullbackThatSnoops(TrendPullback):
+    """A real strategy with one extra habit: it reads a file it has no business reading."""
+
+    def on_schedule(self, ctx):
+        open("/etc/passwd").read()
+        return super().on_schedule(ctx)

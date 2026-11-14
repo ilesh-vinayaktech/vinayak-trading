@@ -112,9 +112,8 @@ def main() -> None:
         sys.exec_prefix,
         *(paths[k] for k in ("stdlib", "platstdlib", "purelib", "platlib")),
     }
-    policy = Policy(read_roots=tuple(sorted(roots)))
+    policy = Policy(read_roots=tuple(sorted(roots)), loading=True)
     install(policy)
-    time.time = time.time_ns = _no_clock  # type: ignore[assignment]
     try:
         module_name, cls_name = init["spec"].split(":")
         found = importlib.util.find_spec(module_name)
@@ -123,11 +122,18 @@ def main() -> None:
             send({"ok": False, "kind": "violation", "error": "; ".join(findings)})
             return
         cls = getattr(importlib.import_module(module_name), cls_name)
-        strategy = cls(cls.Params(**init["params"]), *init["args"])
+        strategy = cls(cls.Params(**init["params"]), *[_rebuild(a) for a in init["args"]])
         if init.get("state") is not None and hasattr(strategy, "set_state"):
             strategy.set_state(init["state"])
     except SandboxViolation as e:
-        send({"ok": False, "kind": "violation", "error": str(e)})
+        send(
+            {
+                "ok": False,
+                "kind": "violation",
+                "error": str(e),
+                "detail": traceback.format_exc()[-1500:],
+            }
+        )
         return
     except Exception as e:
         send(
@@ -140,7 +146,9 @@ def main() -> None:
         return
     for name in [m for m in sys.modules if m.split(".")[0] in DENIED_AFTER_LOAD]:
         sys.modules[name] = None  # type: ignore[assignment]  # whatever the platform needed to load, a new `import` of it fails now
-    policy.denied_imports = DENIED_AFTER_LOAD
+    # the clock is closed only now: loading the platform imports modules (logging, via psycopg) that read it once at import time
+    time.time = time.time_ns = _no_clock  # type: ignore[assignment]
+    policy.denied_imports, policy.loading = DENIED_AFTER_LOAD, False
     send({"ok": True, "result": {"id": strategy.id, "version": strategy.version}})
 
     while True:
@@ -149,13 +157,23 @@ def main() -> None:
         try:
             if op == "get_state":
                 result: Any = strategy.get_state() if hasattr(strategy, "get_state") else None
+            elif op == "get_audit":
+                audit = getattr(strategy, "audit", None)
+                result = audit[-1] if audit else {}
             elif op == "call":
                 ctx = _Ctx(msg["ctx"], ask)
                 result = _call(strategy, msg["method"], ctx)
             else:
                 raise RuntimeError(f"unknown op {op!r}")
         except SandboxViolation as e:
-            send({"ok": False, "kind": "violation", "error": str(e)})
+            send(
+                {
+                    "ok": False,
+                    "kind": "violation",
+                    "error": str(e),
+                    "detail": traceback.format_exc()[-1500:],
+                }
+            )
             return  # a worker that broke a rule is never reused
         except MemoryError:
             send({"ok": False, "kind": "memory", "error": "the strategy ran out of memory"})
@@ -174,6 +192,18 @@ def main() -> None:
             send({"ok": False, "kind": "violation", "error": policy.violation})
             return
         send({"ok": True, "result": result})
+
+
+def _rebuild(arg: Any) -> Any:
+    """A constructor argument that is a description ({"$call": "algo.sandbox.adapters:fn", "arg": ...}) becomes the object it describes."""
+    if isinstance(arg, dict) and "$call" in arg:
+        module, fn = arg["$call"].split(":")
+        if module != "algo.sandbox.adapters":
+            raise RuntimeError(
+                f"only algo.sandbox.adapters functions can rebuild an argument, not {module}"
+            )
+        return getattr(importlib.import_module(module), fn)(arg["arg"])
+    return arg
 
 
 def _call(strategy: Any, method: str, ctx: _Ctx) -> Any:

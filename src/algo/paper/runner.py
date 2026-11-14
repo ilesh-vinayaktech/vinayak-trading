@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import bisect
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -36,6 +36,10 @@ from algo.paper.universe import FOREVER, UniverseError, current_universe
 from algo.research import fundamentals_book
 from algo.research.study import UniverseSpec
 from algo.research.study_universe import build as segment_universe
+from algo.risk import store as paper_risk_store
+from algo.sandbox.adapters import membership_spec
+from algo.sandbox.host import Limits as SandboxLimits
+from algo.sandbox.host import SandboxedStrategy, SandboxError, StrategyFailed
 from algo.strategies.nifty200_momentum import DataNotReady, IntervalMembership
 from algo.strategies.registry import STRATEGIES
 from algo.strategies.screener import ScreenerParams, ScreenerStrategy, ScreenSpec
@@ -78,8 +82,25 @@ def _record(
     return Outcome(status, orders, json.loads(_dumps(detail)))
 
 
+@dataclass(frozen=True)
+class SandboxConfig:
+    """Run the strategy in a sandboxed worker process instead of in this one (same decisions, isolated)."""
+
+    limits: SandboxLimits = field(default_factory=lambda: SandboxLimits(call_timeout_s=300.0))
+    import_roots: tuple[
+        Path, ...
+    ] = ()  # extra import paths (tests); the platform's own code is always importable and readable
+    read_roots: tuple[Path, ...] = ()
+
+
 def run_day(
-    conn: psycopg.Connection, user_id: UUID, *, day: date, now: datetime, lake_root: Path
+    conn: psycopg.Connection,
+    user_id: UUID,
+    *,
+    day: date,
+    now: datetime,
+    lake_root: Path,
+    sandbox: SandboxConfig | None = None,
 ) -> Outcome:
     acct = book.get_account(conn, user_id)
     if acct is None:
@@ -152,9 +173,33 @@ def run_day(
             [],
         )
     try:
-        return _decide(conn, user_id, acct, day, now, lake_root)
+        return _decide(conn, user_id, acct, day, now, lake_root, sandbox)
     except (UniverseError, DataNotReady) as e:
         return _record(conn, user_id, day, now, ident, "ERROR", {"reason": str(e)}, [])
+    except (
+        StrategyFailed
+    ) as e:  # the strategy raised: the same answer as when it runs in this process
+        text = str(e)
+        reason = (
+            text.split(": ", 1)[1]
+            if text.startswith("DataNotReady: ")
+            else f"strategy error: {text}"
+        )
+        return _record(conn, user_id, day, now, ident, "ERROR", {"reason": reason}, [])
+    except SandboxError as e:  # it broke a rule, ran out of time or memory, or died: halted, and paused until a person looks
+        paper_risk_store.change(
+            conn, "pause", acct["strategy_id"], by="sandbox", reason=str(e)[:300], now=now
+        )
+        return _record(
+            conn,
+            user_id,
+            day,
+            now,
+            ident,
+            "ERROR",
+            {"reason": f"strategy halted by the sandbox: {e}"},
+            [],
+        )
 
 
 def _next_session(conn: psycopg.Connection, day: date, now: datetime) -> tuple[datetime, datetime]:
@@ -188,6 +233,7 @@ def _decide(
     day: date,
     now: datetime,
     lake_root: Path,
+    sandbox: SandboxConfig | None = None,
 ) -> Outcome:
     strategy_cls, params_cls = STRATEGIES[acct["strategy_id"]]
     screen = acct["screen"]
@@ -258,8 +304,25 @@ def _decide(
         PortfolioView.of(ledger.cash, held, equity),
         "research",
     )
-    targets = strategy.on_schedule(ctx)
-    audit = strategy.audit[-1] if strategy.audit else {}
+    if (
+        sandbox is None or screen is not None
+    ):  # a screener's arguments (its screen and filings) cannot cross the boundary yet
+        targets = strategy.on_schedule(ctx)
+        audit = strategy.audit[-1] if strategy.audit else {}
+    else:
+        worker = SandboxedStrategy(
+            f"{strategy_cls.__module__}:{strategy_cls.__name__}",
+            strategy.params.model_dump(),
+            args=[{"$call": "algo.sandbox.adapters:membership", "arg": membership_spec(members)}],
+            import_roots=sandbox.import_roots,
+            read_roots=sandbox.read_roots,
+            limits=sandbox.limits,
+        )
+        try:
+            targets = worker.call("on_schedule", ctx)
+            audit = worker.audit()
+        finally:
+            worker.stop()
     base = {"universe": universe, "audit": audit, "equity": equity, "cash": ledger.cash}
     if targets is None:
         return _record(

@@ -23,6 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import algo
 from algo.sandbox.protocol import ProtocolError, dumps, loads
 
 CLONE_NEWUSER, CLONE_NEWNET = 0x10000000, 0x40000000
@@ -125,8 +126,12 @@ class SandboxedStrategy:
     ) -> None:
         self.spec, self.params, self.args = spec, params, list(args)
         self.import_roots = [str(r) for r in import_roots]  # added to sys.path in the worker
+        platform = str(
+            Path(algo.__file__).resolve().parents[1]
+        )  # the platform's own code is always readable
         self.read_roots = [
-            str(r) for r in (read_roots or import_roots)
+            platform,
+            *(str(r) for r in (read_roots or import_roots)),
         ]  # the only places it may read files from
         self.state, self.limits, self.on_halt, self._monotonic = (
             state,
@@ -135,6 +140,7 @@ class SandboxedStrategy:
             monotonic,
         )
         self.failed: str | None = None
+        self.detail = ""
         self.identity: dict[str, str] = {}
         self._proc: subprocess.Popen[bytes] | None = None
         self._buf = b""
@@ -194,6 +200,9 @@ class SandboxedStrategy:
 
     def _fail(self, reply: dict[str, Any]) -> None:
         kind, error = reply.get("kind", "exception"), str(reply.get("error"))
+        self.detail = str(
+            reply.get("detail", "")
+        )  # where it happened, for whoever has to fix the strategy
         if kind == "exception" and self._proc is not None and self.identity:
             raise StrategyFailed(
                 error
@@ -282,6 +291,16 @@ class SandboxedStrategy:
             "result"
         ]  # kept so a replacement worker can carry on from here
         return self._decode(method, msg["result"])
+
+    def audit(self) -> dict[str, Any]:
+        """The strategy's latest audit row (what it saw and decided), integer keys restored."""
+        from algo.sandbox.adapters import restore_audit
+
+        if self.failed:
+            raise StrategyHalted(self.failed)
+        self._send({"op": "get_audit"})
+        reply = self._recv(self._monotonic() + self.limits.call_timeout_s)
+        return restore_audit(reply["result"])
 
     @staticmethod
     def _decode(method: str, result: Any) -> Any:
