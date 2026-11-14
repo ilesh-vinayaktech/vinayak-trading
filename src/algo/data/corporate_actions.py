@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections import defaultdict
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -72,6 +74,83 @@ def load_actions(
                 res.unchanged += 1
     res.unknown_symbols = sorted(unknown)
     return res
+
+
+@dataclass
+class WindowResult:
+    inserted: int = 0
+    unchanged: int = 0
+    upcoming: int = 0
+    unknown_symbols: list[str] = field(default_factory=list)
+
+
+def _instrument_at(conn: psycopg.Connection, symbol: str, ex_date: date) -> int | None:
+    row = conn.execute(
+        "SELECT instrument_id FROM instrument_alias WHERE source='nse' AND source_symbol=%s "
+        "AND valid_from<=%s AND (valid_to IS NULL OR %s<valid_to)",
+        (symbol, ex_date, ex_date),
+    ).fetchone()
+    return None if row is None else int(row[0])
+
+
+def load_window(
+    conn: psycopg.Connection, raw: bytes, today: date, checksum: str, now: datetime
+) -> WindowResult:
+    """NSE's answer for a date range, for the whole market. Actions with an ex-date up to today join
+    `corporate_action` (a repeat is a no-op). Later ones replace the `upcoming` table whole, so a
+    revised date leaves no stale copy and nothing in the future reaches the real table."""
+    actions, _skipped = parse_actions(raw)
+    loaded = load_actions(conn, [a for a in actions if a.ex_date <= today], checksum, now)
+    res = WindowResult(loaded.inserted, loaded.unchanged, 0)
+    unknown = set(loaded.unknown_symbols)
+    with conn.transaction():
+        conn.execute("DELETE FROM corporate_action_upcoming")
+        for a in actions:
+            if a.ex_date <= today:
+                continue
+            iid = _instrument_at(conn, a.symbol, a.ex_date)
+            if iid is None:
+                unknown.add(a.symbol)
+                continue
+            c = a.comp
+            res.upcoming += conn.execute(
+                "INSERT INTO corporate_action_upcoming (instrument_id, ex_date, record_date, kind,"
+                " status, num, den, amount, reason, subject, fetched_at)"
+                " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                (iid, a.ex_date, a.record_date, c.kind, c.status, c.num, c.den, c.amount, c.reason,
+                 a.subject, now),
+            ).rowcount  # fmt: skip
+    res.unknown_symbols = sorted(unknown)
+    return res
+
+
+def upcoming_within(
+    conn: psycopg.Connection, instrument_ids: Sequence[int], today: date, days: int
+) -> dict[int, list[dict[str, Any]]]:
+    """For each instrument, the announced actions whose ex-date falls from today up to `days` days
+    ahead, soonest first (instruments with none are absent). Information only: nothing here has
+    happened yet, so no price or holding is adjusted for it."""
+    if not instrument_ids:
+        return {}
+    out: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for iid, ex, kind, status, num, den, amount, subject in conn.execute(
+        "SELECT instrument_id, ex_date, kind, status, num, den, amount, subject"
+        " FROM corporate_action_upcoming WHERE instrument_id = ANY(%s) AND ex_date >= %s"
+        " AND ex_date <= %s ORDER BY ex_date, kind",
+        (list(instrument_ids), today, today + timedelta(days=days)),
+    ):
+        out[int(iid)].append(
+            {
+                "ex_date": ex,
+                "kind": kind,
+                "status": status,
+                "num": num,
+                "den": den,
+                "amount": amount,
+                "subject": subject,
+            }  # fmt: skip
+        )
+    return dict(out)
 
 
 def refreshed_on(lake: LocalLake, symbol: str, day: date) -> bool:

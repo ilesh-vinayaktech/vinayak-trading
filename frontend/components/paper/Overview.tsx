@@ -1,5 +1,6 @@
 "use client";
 
+import { UpcomingNote } from "@/components/paper/UpcomingNote";
 import { useQuery } from "@tanstack/react-query";
 import { Alert } from "@/components/ui/Alert";
 import { DataTable, EmptyState, Skeleton, type Column } from "@/components/ui/DataTable";
@@ -35,7 +36,7 @@ function Curve({ points }: { points: PaperSummary["equity_curve"] }) {
 }
 
 const columns: Column<PaperSummary["positions"][number]>[] = [
-  { key: "symbol", header: "Stock", cell: (p) => <span className="font-medium">{p.symbol}</span> },
+  { key: "symbol", header: "Stock", cell: (p) => <div><span className="font-medium">{p.symbol}</span><UpcomingNote items={p.upcoming} /></div> },
   { key: "qty", header: "Shares", className: "text-right", cell: (p) => fmtMoney(p.qty, 0) },
   { key: "avg", header: "Average cost", className: "text-right", hideBelow: "sm", cell: (p) => rupees(p.avg_cost) },
   { key: "last", header: "Last price", className: "text-right", hideBelow: "sm", cell: (p) => rupees(p.last_price) },

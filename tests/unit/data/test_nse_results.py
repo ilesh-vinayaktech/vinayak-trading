@@ -338,3 +338,154 @@ def test_dimensional_text_and_identifier_facts_are_not_kept_as_numbers():
 def test_old_format_files_keep_their_quarter_and_year_to_date_numbers_too():
     s = parse_xbrl(fx("results_xbrl_RELIANCE_cons.xml"))
     assert s.extra["QUARTER"]["ProfitBeforeTax"] == s.quarter["pbt"] and s.extra["YTD"]
+
+
+# --- details the broader tests did not pin down ---
+def _rows(name: str):
+    import json
+
+    d = json.loads(fx(name))
+    return d["data"] if isinstance(d, dict) else d
+
+
+def test_the_integrated_listing_keeps_the_dissemination_time_and_both_links():
+    import json
+
+    rows = _rows("integrated_listing_TCS.json")
+    cons = next(
+        f
+        for f in parse_integrated_listing(json.dumps({"data": rows}).encode())
+        if f.symbol == "TCS"
+    )
+    assert cons.disseminated_at == datetime(2026, 10, 8, 16, 38, 10, tzinfo=UTC)  # 22:08:10 IST
+    assert cons.xbrl_url == (
+        "https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1734607_08102026100810_WEB.xml"
+    )
+    assert cons.detail_url == (
+        "https://nsearchives.nseindia.com/corporate/ixbrl/INTEGRATED_FILING_INDAS_200121_08102026220810_iXBRL_WEB.html"
+    )
+    bare = [
+        {**r, "creation_Date": None, "xbrl": None, "ixbrl": None}
+        for r in rows
+        if r["symbol"] == "TCS"
+    ]
+    (f, *_) = parse_integrated_listing(json.dumps({"data": bare}).encode())
+    assert (f.disseminated_at, f.xbrl_url, f.detail_url) == (None, None, None)
+
+
+def test_the_old_listing_keeps_the_dissemination_time_and_the_cumulative_flag():
+    import json
+
+    rows = json.loads(fx("results_listing_RELIANCE.json"))
+    first = parse_listing(json.dumps([rows[0]]).encode())[0]
+    assert first.disseminated_at == datetime(2025, 1, 16, 14, 50, 54, tzinfo=UTC)  # 20:20:54 IST
+    assert first.cumulative is False  # "Non-cumulative"
+    cumulative = parse_listing(json.dumps([{**rows[0], "cumulative": "Cumulative"}]).encode())[0]
+    assert cumulative.cumulative is True
+    no_xbrl = parse_listing(
+        json.dumps(
+            [{**rows[0], "xbrl": None, "resultDetailedDataLink": "https://x/y.html"}]
+        ).encode()
+    )[0]
+    assert (no_xbrl.xbrl_url, no_xbrl.detail_url) == (None, "https://x/y.html")
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("", None),
+        (None, None),
+        ("-", None),
+        ("https://a/-", None),
+        ("https://a/-/", None),
+        ("https://a/b", "https://a/b"),
+        ("https://a/b/", "https://a/b/"),
+    ],
+)
+def test_a_link_that_is_empty_or_just_a_dash_is_no_link(value, expected):
+    from algo.data.providers.nse_results import _link
+
+    assert _link(value) == expected
+
+
+@pytest.mark.parametrize("declaration", ["<!DOCTYPE x>", '<!ENTITY a "b">'])
+def test_either_a_dtd_or_an_entity_declaration_alone_is_refused(declaration):
+    raw = f'<?xml version="1.0"?>{declaration}<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>'.encode()
+    with pytest.raises(XbrlError, match="DTD/entity declarations refused"):
+        parse_xbrl(raw)
+
+
+def test_a_typed_member_context_is_dimensional_too_and_never_a_company_total():
+    typed = (
+        '<xbrli:context id="OneTyped"><xbrli:entity><xbrli:segment><xbrldi:typedMember dimension="d"><x>1</x></xbrldi:typedMember>'
+        "</xbrli:segment></xbrli:entity><xbrli:period><xbrli:startDate>2024-10-01</xbrli:startDate>"
+        "<xbrli:endDate>2024-12-31</xbrli:endDate></xbrli:period></xbrli:context>"
+    )
+    body = (
+        BASE
+        + '<in-bse-fin:RevenueFromOperations contextRef="OneTyped">1</in-bse-fin:RevenueFromOperations>'
+        + '<in-bse-fin:RevenueFromOperations contextRef="OneD">7</in-bse-fin:RevenueFromOperations>'
+    )
+    assert parse_xbrl(XML(body, typed)).quarter["revenue"] == D(7)
+
+
+@pytest.mark.parametrize(
+    "start, ok",
+    [("2024-10-13", False), ("2024-10-12", True), ("2024-09-22", True), ("2024-09-21", False)],
+)
+def test_a_period_is_a_quarter_only_when_it_runs_from_80_to_100_days(start, ok):
+    body = (
+        BASE.replace(
+            "2024-10-01</in-bse-fin:DateOfStartOfReportingPeriod>",
+            f"{start}</in-bse-fin:DateOfStartOfReportingPeriod>",
+        )
+        + '<in-bse-fin:RevenueFromOperations contextRef="OneD">5</in-bse-fin:RevenueFromOperations>'
+    )
+    if ok:
+        assert parse_xbrl(XML(body)).period_start == date.fromisoformat(start)
+    else:
+        with pytest.raises(XbrlError, match="contain no quarter"):
+            parse_xbrl(XML(body))
+
+
+@pytest.mark.parametrize("year_start, kept", [("2023-12-27", True), ("2023-12-26", False)])
+def test_a_year_to_date_context_may_start_at_most_370_days_before_the_quarter_end(year_start, kept):
+    year = (
+        f'<in-bse-fin:DateOfStartOfReportingPeriod contextRef="FourD">{year_start}</in-bse-fin:DateOfStartOfReportingPeriod>'
+        '<in-bse-fin:DateOfEndOfReportingPeriod contextRef="FourD">2024-12-31</in-bse-fin:DateOfEndOfReportingPeriod>'
+        '<in-bse-fin:RevenueFromOperations contextRef="FourD">900</in-bse-fin:RevenueFromOperations>'
+    )
+    body = (
+        BASE
+        + '<in-bse-fin:RevenueFromOperations contextRef="OneD">5</in-bse-fin:RevenueFromOperations>'
+        + year
+    )
+    assert parse_xbrl(XML(body)).ytd == ({"revenue": D(900)} if kept else {})
+
+
+@pytest.mark.parametrize(
+    "end, start",
+    [
+        ("2024-03-31", "2024-01-01"),
+        ("2024-06-30", "2024-04-01"),
+        ("2024-09-30", "2024-07-01"),
+        ("2024-12-31", "2024-10-01"),
+    ],
+)
+def test_a_quarter_start_is_derived_from_each_calendar_quarter_end(end, start):
+    assert parse_xbrl(_no_start(end)).period_start == date.fromisoformat(start)
+
+
+@pytest.mark.parametrize(
+    "nature, basis",
+    [
+        ("Consolidated", "CONSOLIDATED"),
+        ("Standalone", "STANDALONE"),
+        ("Non-consolidated", "STANDALONE"),
+    ],
+)
+def test_the_basis_is_read_from_the_nature_of_the_report(nature, basis):
+    body = BASE.replace(">Standalone<", f">{nature}<")
+    assert parse_xbrl(XML(body)).basis == basis
+    with pytest.raises(XbrlError, match="neither standalone or consolidated"):
+        parse_xbrl(XML(BASE.replace(">Standalone<", ">Something else<")))

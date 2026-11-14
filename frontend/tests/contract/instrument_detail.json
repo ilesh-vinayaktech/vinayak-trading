@@ -30,5 +30,6 @@
  "listed_on": null,
  "name": null,
  "status": "active",
- "symbol": "XYZ"
+ "symbol": "XYZ",
+ "upcoming": []
 }

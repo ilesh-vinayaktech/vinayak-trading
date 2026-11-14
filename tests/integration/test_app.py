@@ -182,6 +182,21 @@ def test_without_release_artifacts_nothing_is_called_eligible(conn, pg_url, tmp_
     )
 
 
+def test_an_instruments_announced_future_actions_are_listed_apart_from_its_history(api, conn):
+    c, iid, _ = api
+    assert c.get(f"/api/instruments/{iid}").json()["upcoming"] == []
+    conn.execute(
+        "INSERT INTO corporate_action_upcoming (instrument_id, ex_date, kind, status, amount, subject, fetched_at)"
+        " VALUES (%s,'2026-11-24','dividend','ok',7,'Interim Dividend - Rs 7 Per Share',%s),"
+        " (%s,'2026-11-20','bonus','ok',NULL,'Bonus 1:1',%s)", (iid, NOW, iid, NOW))  # fmt: skip
+    d = c.get(f"/api/instruments/{iid}").json()
+    assert [(u["ex_date"], u["kind"]) for u in d["upcoming"]] == [
+        ("2026-11-20", "bonus"),
+        ("2026-11-24", "dividend"),
+    ]  # soonest first
+    assert d["upcoming"][1]["amount"] == "7" and d["actions"] == []  # not part of the history
+
+
 def test_instrument_search_detail_and_bars(api):
     c, iid, _ = api
     assert [r["symbol"] for r in c.get("/api/instruments", params={"q": "xy"}).json()] == ["XYZ"]
@@ -748,3 +763,19 @@ def test_ratios_are_computed_from_filings_with_a_year_ago_and_a_history_and_with
     )
     after = {x["key"]: x for x in c.get(f"/api/instruments/{iid}/ratios").json()["ratios"]}
     assert after["pe"]["value"] is None and "split or bonus" in after["pe"]["note"]
+
+
+def test_the_corporate_action_review_worklist_is_served_ranked(api, conn):
+    client, iid, _ = api
+    conn.execute("INSERT INTO instrument_alias (instrument_id, source, source_symbol, valid_from)"
+                 " VALUES (%s,'nse','XYZ','2000-01-01')", (iid,))  # fmt: skip
+    for kind in ("dividend", "demerger"):
+        conn.execute(
+            "INSERT INTO corporate_action (instrument_id,ex_date,kind,status,reason,subject,"
+            "knowledge_time,knowledge_time_source,source,raw_checksum,ingested_at) VALUES"
+            " (%s,'2025-06-10',%s,'review','r','s',%s,'ex_date_proxy','nse','x',%s)",
+            (iid, kind, NOW, NOW),
+        )
+    body = client.get("/api/corporate-actions/review?limit=1").json()
+    assert (body["total"], body["by_kind"]) == (2, {"demerger": 1, "dividend": 1})
+    assert [r["kind"] for r in body["items"]] == ["demerger"]

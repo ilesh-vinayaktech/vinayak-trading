@@ -69,6 +69,13 @@
    "name": "bhavcopy-daily"
   },
   {
+   "calendar": "Mon..Fri *-*-* 19:45 Asia/Kolkata",
+   "description": "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "price-continuity"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 20:00 Asia/Kolkata",
    "description": "Compare the stored Kite daily candles with bhavcopy (database only: needs no Kite session)",
    "last_run": null,
@@ -105,17 +112,17 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 19:15 Asia/Kolkata",
-   "description": "Re-fetch corporate actions for the Nifty 200 (about 5 minutes); new ones that need a person are reported",
+   "description": "Corporate actions for the whole market in one request (last 14 days to 120 days ahead): new ones join the table, announced future ones are listed; new ones that need a person are reported",
    "last_run": null,
    "last_success_at": null,
    "name": "corporate-actions-daily"
   },
   {
-   "calendar": "Sat *-*-* 05:00 Asia/Kolkata",
-   "description": "Re-fetch corporate actions for every active equity (about 2 hours at a polite pace); resumes after a throttle; new ones that need a person are reported",
+   "calendar": "*-*-08 05:00 Asia/Kolkata",
+   "description": "Rebuild corporate actions from NSE's full history for every active equity (about 2 hours at a polite pace; resumes after a throttle): catches revisions made after an ex-date and anything the daily job missed",
    "last_run": null,
    "last_success_at": null,
-   "name": "corporate-actions-weekly"
+   "name": "corporate-actions-monthly"
   },
   {
    "calendar": "Mon..Fri *-*-* 19:30 Asia/Kolkata",
@@ -200,7 +207,7 @@
    },
    {
     "level": "attention",
-    "text": "19 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, kite-reconcile and 16 more."
+    "text": "20 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, price-continuity and 17 more."
    }
   ],
   "status": "DOWN"

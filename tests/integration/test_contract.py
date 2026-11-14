@@ -143,6 +143,29 @@ def test_the_api_responses_match_the_fixtures_the_frontend_is_tested_against(see
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
 
 
+def test_the_review_worklist_matches_the_fixture_the_frontend_is_tested_against(seeded, conn):
+    c, iid, _ = seeded
+    conn.execute(
+        "INSERT INTO instrument_alias (instrument_id, source, source_symbol, valid_from)"
+        " VALUES (%s,'nse','XYZ','2000-01-01')",
+        (iid,),
+    )
+    conn.execute(
+        "INSERT INTO corporate_action (instrument_id,ex_date,kind,status,reason,subject,"
+        "knowledge_time,knowledge_time_source,source,raw_checksum,ingested_at) VALUES"
+        " (%s,'2025-06-10','demerger','review','no ratio or price in the feed','Demerger',%s,"
+        "'ex_date_proxy','nse','x',%s)",
+        (iid, NOW, NOW),
+    )
+    resp = c.get("/api/corporate-actions/review")
+    assert resp.status_code == 200
+    text = json.dumps(resp.json(), indent=1, sort_keys=True) + "\n"
+    path = OUT / "corporate_action_review.json"
+    if os.environ.get("UPDATE_CONTRACT") == "1":
+        path.write_text(text)
+    assert path.read_text() == text, "the API response changed; run UPDATE_CONTRACT=1"
+
+
 def test_the_sign_in_responses_match_the_fixtures_the_frontend_is_tested_against(
     conn, pg_url, tmp_path
 ):

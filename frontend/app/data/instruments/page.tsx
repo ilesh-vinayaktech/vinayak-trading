@@ -200,6 +200,7 @@ function Explorer() {
     }
   };
   const actions = useMemo(() => detail.data?.actions ?? [], [detail.data]);
+  const upcoming = useMemo(() => detail.data?.upcoming ?? [], [detail.data]);
   const actionsNewestFirst = useMemo(() => [...actions].reverse(), [actions]); // the API sends oldest first; the chart markers keep that order
   const mode = BASES.find((m) => m.value === adjust) ?? BASES[0];
 
@@ -302,6 +303,14 @@ function Explorer() {
               <Stat label="Bars" value={detail.data.bars.count} />
             </div>
           </Card>
+          {upcoming.length > 0 ? (
+            <Card
+              title="Coming up"
+              note="Announced by the company, not applied to prices until the ex-date. Dates can still be revised."
+            >
+              <DataTable data={upcoming} columns={ACTION_COLUMNS} empty="" />
+            </Card>
+          ) : null}
           <Card
             title="Corporate actions"
             note="Markers on the chart: blue = verified, amber = under review."

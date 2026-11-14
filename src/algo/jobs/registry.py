@@ -27,6 +27,12 @@ JOBS: tuple[Job, ...] = (
         retries=12,
     ),
     Job(
+        "price-continuity",
+        f"{WEEKDAYS} *-*-* 19:45 Asia/Kolkata",
+        ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}"),),
+        "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
+    ),
+    Job(
         "kite-reconcile",
         f"{WEEKDAYS} *-*-* 20:00 Asia/Kolkata",
         ((*_PY, "scripts/reconcile_kite_prices.py"),),
@@ -80,16 +86,16 @@ JOBS: tuple[Job, ...] = (
                 "--lake",
                 "data/lake",
                 "--stage",
-                "actions",
+                "actionswindow",
             ),
         ),
-        "Re-fetch corporate actions for the Nifty 200 (about 5 minutes); new ones that need a person are reported",
-        retries=1,
+        "Corporate actions for the whole market in one request (last 14 days to 120 days ahead): new ones join the table, announced future ones are listed; new ones that need a person are reported",
+        retries=2,
         retry_wait_s=600,
     ),
     Job(
-        "corporate-actions-weekly",
-        "Sat *-*-* 05:00 Asia/Kolkata",
+        "corporate-actions-monthly",
+        "*-*-08 05:00 Asia/Kolkata",
         (
             (
                 *_PY,
@@ -104,7 +110,7 @@ JOBS: tuple[Job, ...] = (
                 "3.0",
             ),
         ),  # fmt: skip
-        "Re-fetch corporate actions for every active equity (about 2 hours at a polite pace); resumes after a throttle; new ones that need a person are reported",
+        "Rebuild corporate actions from NSE's full history for every active equity (about 2 hours at a polite pace; resumes after a throttle): catches revisions made after an ex-date and anything the daily job missed",
         timeout_s=4 * 3600,
         retries=6,  # NSE throttles a client after about 330 requests in 10 minutes; the stage resumes where it stopped
         retry_wait_s=900,

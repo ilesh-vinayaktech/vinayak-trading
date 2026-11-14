@@ -217,7 +217,7 @@ describe("System Activity", () => {
 
 describe("Data Explorer", () => {
   const inst = { id: 7, symbol: "XYZ", isin: "INE000A01010", name: "Xyz Ltd", status: "active", listed_on: null, delisted_on: null };
-  const detail = { ...inst, bars: { first: "2024-01-01", last: "2024-12-31", count: 250 }, actions: [{ ex_date: "2024-06-12", kind: "bonus", status: "review", num: "1", den: "1", amount: null, subject: "Bonus 1:1" }] };
+  const detail = { ...inst, bars: { first: "2024-01-01", last: "2024-12-31", count: 250 }, actions: [{ ex_date: "2024-06-12", kind: "bonus", status: "review", num: "1", den: "1", amount: null, subject: "Bonus 1:1" }], upcoming: [] as { ex_date: string; kind: string; status: string; num: string | null; den: string | null; amount: string | null; subject: string | null }[] };
   const bars = {
     adjust: "none",
     timeframe: "1d",
@@ -228,6 +228,28 @@ describe("Data Explorer", () => {
     unapplied: [{ kind: "demerger", ex_date: "2024-07-01" }],
     provisional: [],
   };
+
+  it("shows announced future actions in their own card, apart from the history, and nothing when none are announced", async () => {
+    const soon = { ex_date: "2026-11-24", kind: "dividend", status: "ok", num: null, den: null, amount: "7", subject: "Interim Dividend - Rs 7 Per Share" };
+    const withUpcoming = { ...detail, upcoming: [soon] };
+    const routes = (d: unknown) => route({ "/api/instruments": [inst], "/api/instruments/7": d, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } });
+    vi.stubGlobal("fetch", routes(withUpcoming));
+    const { unmount } = wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+    fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+    fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+    const card = (await screen.findByText("Coming up")).closest("section") as HTMLElement;
+    expect(within(card).getByText("2026-11-24")).toBeInTheDocument();
+    expect(within(card).getByText(/not applied to prices until the ex-date/)).toBeInTheDocument();
+    const history = screen.getByTestId("actions-scroll");
+    expect(within(history).queryByText("2026-11-24")).not.toBeInTheDocument(); // it is not history yet
+    unmount();
+    vi.stubGlobal("fetch", routes(detail));
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+    fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+    fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+    await screen.findByTestId("actions-scroll");
+    expect(screen.queryByText("Coming up")).not.toBeInTheDocument();
+  });
 
   it("lists corporate actions newest first in a list whose scrollbar is always visible", async () => {
     const action = (ex_date: string, kind: string) => ({ ex_date, kind, status: "ok", num: null, den: null, amount: "5", subject: `${kind} ${ex_date}` });

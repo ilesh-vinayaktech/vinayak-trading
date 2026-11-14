@@ -207,6 +207,21 @@ def instrument_actions(conn: psycopg.Connection, instrument_id: int) -> list[dic
     ]  # fmt: skip
 
 
+def instrument_upcoming(conn: psycopg.Connection, instrument_id: int) -> list[dict[str, Any]]:
+    """Actions NSE has announced whose ex-date has not come yet, soonest first. For information:
+    they are not part of the history and no price is adjusted for them."""
+    rows = _rows(
+        conn,
+        "SELECT ex_date, kind, status, num, den, amount, subject FROM corporate_action_upcoming"
+        " WHERE instrument_id=%s ORDER BY ex_date, kind",
+        (instrument_id,),
+    )
+    return [
+        {"ex_date": _iso(r[0]), "kind": r[1], "status": r[2], "num": _s(r[3]), "den": _s(r[4]),
+         "amount": _s(r[5]), "subject": r[6]} for r in rows
+    ]  # fmt: skip
+
+
 def _s(v: Any) -> str | None:
     return None if v is None else str(v)
 

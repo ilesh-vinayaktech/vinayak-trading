@@ -66,6 +66,7 @@ import {
   recoverySchema,
   sessionListSchema,
   reviewHistorySchema,
+  actionWorklistSchema,
   reviewListSchema,
   type ReviewDraft,
   type ScreenerCondition,
@@ -251,6 +252,7 @@ export const api = {
   fundamentals: (id: number, basis?: string) => get(`/api/instruments/${id}/fundamentals`, fundamentalsSchema, { quarters: 12, ...(basis ? { basis } : {}) }),
   bars: (id: number, start: string, end: string, adjust: Adjust, timeframe: Timeframe = "1d") =>
     get(`/api/instruments/${id}/bars`, barsSchema, { start, end, adjust, ...(timeframe === "1d" ? {} : { timeframe }) }),
+  actionWorklist: (limit: number, kind?: string) => get("/api/corporate-actions/review", actionWorklistSchema, { limit, kind }),
   reviews: () => get("/api/reviews", reviewListSchema),
   reviewHistory: (id: string) => get(`/api/reviews/${encodeURIComponent(id)}/history`, reviewHistorySchema),
   decideReview: (id: string, d: ReviewDraft) => post(`/api/reviews/${encodeURIComponent(id)}/decisions`, d),

@@ -73,6 +73,7 @@ const SUMMARY = {
       last_price: "2900",
       value: "290000",
       unrealized: "4950",
+      upcoming: [],
     },
   ],
   equity_curve: [
@@ -97,8 +98,10 @@ const order = (over: Record<string, unknown>) => ({
   fill_commission: null,
   fill_day: null,
   failure: null,
+  upcoming: [],
   ...over,
 });
+const COMING = (kind: string, ex_date: string, amount: string | null, subject: string) => ({ ex_date, kind, status: "ok", num: null, den: null, amount, subject });
 const ORDERS = {
   orders: [
     order({}),
@@ -438,6 +441,24 @@ describe("the account overview", () => {
     expect(await screen.findByText("Paused")).toBeInTheDocument();
     expect(screen.getByText(/rights \(ex 2026-11-05/)).toBeInTheDocument();
     expect(screen.getByText("Paper trading is off")).toBeInTheDocument();
+  });
+});
+
+describe("announced actions coming up", () => {
+  it("warns on a holding whose stock has an ex-date within days, and on an order waiting for an answer", async () => {
+    const dividend = COMING("dividend", "2026-11-20", "7", "Interim Dividend - Rs 7 Per Share");
+    const split = COMING("split", "2026-11-15", null, "Face Value Split");
+    const held = { ...SUMMARY, positions: [{ ...SUMMARY.positions[0], upcoming: [dividend] }] };
+    const orders = { orders: [order({ upcoming: [split] }), order({ order_id: "o2", symbol: "INFY" })] };
+    backend(ready({}, { "GET /api/paper/summary": held, "GET /api/paper/orders": orders }));
+    mount();
+    const positions = within(await screen.findByRole("table", { name: "Positions" }));
+    expect(positions.getByText(/Ex-date 2026-11-20: dividend ₹7/)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("tab", { name: /Orders/ }));
+    const waiting = within(await screen.findByRole("table", { name: "Orders waiting for your answer" }));
+    expect(await waiting.findByText(/Ex-date 2026-11-15: split/)).toBeInTheDocument();
+    const infy = (waiting.getByText("INFY").closest("tr") as HTMLElement);
+    expect(within(infy).queryByText(/Ex-date/)).not.toBeInTheDocument(); // nothing coming for it: no noise
   });
 });
 

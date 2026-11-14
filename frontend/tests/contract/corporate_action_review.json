@@ -1,0 +1,34 @@
+{
+ "by_kind": {
+  "demerger": 2
+ },
+ "items": [
+  {
+   "ex_close": "102",
+   "ex_date": "2025-06-10",
+   "has_prices": true,
+   "impact": 104,
+   "in_nifty200": false,
+   "kind": "demerger",
+   "move_pct": "0.99",
+   "prev_close": "101",
+   "reason": "no ratio or price in the feed",
+   "subject": "Demerger",
+   "symbol": "XYZ"
+  },
+  {
+   "ex_close": "104",
+   "ex_date": "2025-06-12",
+   "has_prices": true,
+   "impact": 104,
+   "in_nifty200": false,
+   "kind": "demerger",
+   "move_pct": "0.97",
+   "prev_close": "103",
+   "reason": "",
+   "subject": "t",
+   "symbol": "XYZ"
+  }
+ ],
+ "total": 2
+}

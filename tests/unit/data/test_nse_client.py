@@ -144,3 +144,37 @@ def test_a_connection_that_keeps_dropping_is_raised_after_the_retries(server):
     with pytest.raises(http.client.RemoteDisconnected):
         client([], retries=2, min_interval=0).get(server["base"] + "/f")
     assert server["hits"]["/f"] == 3
+
+
+def test_a_new_session_forgets_the_old_cookies_and_still_works(server):
+    import http.cookiejar
+
+    def jar_of(c):
+        return next(h for h in c._opener.handlers if hasattr(h, "cookiejar")).cookiejar
+
+    c = client([])
+    old = jar_of(c)
+    old.set_cookie(
+        http.cookiejar.Cookie(
+            0,
+            "nsit",
+            "abc",
+            None,
+            False,
+            "127.0.0.1",
+            False,
+            False,
+            "/",
+            True,
+            False,
+            None,
+            False,
+            None,
+            None,
+            {},
+        )  # fmt: skip
+    )
+    assert len(old) == 1
+    c.new_session()  # NSE stops answering one session after a few hundred calls: start another
+    assert jar_of(c) is not old and len(jar_of(c)) == 0
+    assert c.get(server["base"] + "/x") == b"payload"

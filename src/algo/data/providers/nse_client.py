@@ -43,6 +43,11 @@ class NseClient:
         self.retries, self.backoff, self.min_interval = retries, backoff, min_interval
         self.timeout, self._sleep, self._clock = timeout, sleep, clock
         self._last: float | None = None
+        self.new_session()
+
+    def new_session(self) -> None:
+        """Forget every cookie and start a fresh browser-like session. NSE stops answering one
+        session after a few hundred calls (later requests time out), so a long run starts anew."""
         self._opener = urllib.request.build_opener(  # session cookies for the JSON APIs
             urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
         )

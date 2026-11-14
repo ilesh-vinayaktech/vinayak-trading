@@ -469,3 +469,126 @@ def test_a_ratio_with_no_fixed_yardstick_is_judged_against_the_companys_own_past
     assert (
         reading_vs_own_past(pe, D("1.5"), [D(1), D(2), D(3)]) == "good"
     )  # odd count: the middle one is the median
+
+
+def test_a_catalog_entry_keeps_every_field_exactly_as_defined():
+    from algo.data.ratios import RatioDef
+
+    pe = BY_KEY["pe"]
+    assert pe == RatioDef(
+        "pe",
+        "Price to earnings (P/E)",
+        "valuation",
+        "x",
+        "How many years of the last year's profit you pay for. Lower is cheaper, but a low P/E can mean a business in trouble.",
+        "price ÷ earnings per share, last 12 months",
+        "low",
+        "both",
+        {},
+    )
+    roe = BY_KEY["roe"]  # a ratio with thresholds, kept as exact decimals (never floats)
+    assert (roe.label, roe.group, roe.unit, roe.better, roe.applies) == (
+        "Return on equity (ROE)",
+        "profitability",
+        "pct",
+        "high",
+        "both",
+    )
+    assert roe.formula == "profit to owners, last 12 months ÷ owners' equity"
+    assert roe.rules == {"company": (D("15"), D("8")), "bank": (D("14"), D("9"))}
+    assert all(isinstance(x, D) for pair in roe.rules.values() for x in pair)
+    assert BY_KEY["market_cap"].better is None and BY_KEY["market_cap"].rules == {}
+    assert BY_KEY["ps"].applies == "company" and BY_KEY["cost_to_income"].applies == "bank"
+
+
+# --- valuation: every figure is dated to the price it used, and every gap says why ---
+DAY = date(2026, 11, 11)
+VALUATION = ("market_cap", "pe", "pb", "earnings_yield", "dividend_yield", "ps", "ev_ebitda")
+
+
+def with_quarter(q, **changes):
+    return [
+        Quarter(x.period_end, x.filed_at, x.bank, {**x.quarter, **changes}, x.ytd, x.instant)
+        for x in q
+    ]
+
+
+def test_every_valuation_figure_is_dated_to_the_price_it_used():
+    r = compute(company(), Market(price=D(200), price_date=DAY, dividend_per_share_12m=D(4)))
+    for key in VALUATION:
+        assert r[key].as_of == DAY and r[key].note is None, key
+
+
+def test_a_bank_has_no_price_to_sales_or_ev_ebitda_and_a_company_has_both():
+    market = Market(price=D(200), price_date=DAY, dividend_per_share_12m=D(4))
+    bank = compute(company(bank=True), market)
+    assert [k for k in VALUATION if k in bank] == [
+        "market_cap",
+        "pe",
+        "pb",
+        "earnings_yield",
+        "dividend_yield",
+    ]
+    assert [k for k in VALUATION if k in compute(company(), market)] == sorted(
+        VALUATION, key=VALUATION.index
+    )
+
+
+def test_without_a_price_or_after_a_split_every_valuation_figure_says_so():
+    nothing = compute(company(), Market(price=None))
+    for key in VALUATION:
+        assert (nothing[key].value, nothing[key].note, nothing[key].as_of) == (
+            None,
+            "no price",
+            None,
+        ), key
+    split = compute(company(), Market(price=D(200), price_date=DAY, split_since_results=True))
+    for key in VALUATION:
+        assert split[key].value is None and split[key].note.startswith("a split or bonus since"), (
+            key
+        )
+
+
+def test_each_missing_valuation_figure_says_why_and_still_carries_the_price_date():
+    market = Market(price=D(200), price_date=DAY)
+    short = compute(company(3), market)  # only three quarters: no twelve-month figures
+    for key in ("pe", "earnings_yield"):
+        assert short[key].note == "needs four consecutive quarters of earnings per share", key
+        assert (short[key].value, short[key].as_of) == (None, DAY), key
+    assert (short["ps"].value, short["ps"].note, short["ps"].as_of) == (
+        None,
+        "needs four consecutive quarters",
+        DAY,
+    )
+    assert compute(company(), market)["dividend_yield"].note == "no dividend data"
+    assert compute(company(), market)["dividend_yield"].value is None
+    assert compute(company(), market)["dividend_yield"].as_of == DAY
+    nosheet = compute(company(sheet=False), market)
+    for key, why in (
+        ("pb", "owners' equity is missing, zero or negative"),
+        ("ev_ebitda", "needs a balance sheet and positive operating profit"),
+    ):
+        assert (nosheet[key].value, nosheet[key].note, nosheet[key].as_of) == (None, why, DAY), key
+
+
+def test_a_loss_making_year_blanks_pe_and_earnings_yield_with_the_same_reason_and_date():
+    loss = with_quarter(
+        company(), BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations=D("-1")
+    )
+    r = compute(loss, Market(price=D(200), price_date=DAY))
+    for key in ("pe", "earnings_yield"):
+        assert (r[key].value, r[key].note, r[key].as_of) == (
+            None,
+            "loss-making over the last 12 months: P/E is not meaningful",
+            DAY,
+        ), key
+
+
+def test_a_company_whose_operating_profit_is_not_positive_has_no_ev_to_ebitda():
+    r = compute(with_quarter(company(), Expenses=cr(500)), Market(price=D(200), price_date=DAY))
+    ev = r["ev_ebitda"]
+    assert (ev.value, ev.note, ev.as_of) == (
+        None,
+        "needs a balance sheet and positive operating profit",
+        DAY,
+    )

@@ -38,6 +38,7 @@ from algo.api import (
 from algo.api.security import PortalSettings, WConn, guard
 from algo.core.clock import Clock, SystemClock
 from algo.data import benchmark_gate
+from algo.data.review_worklist import worklist
 from algo.indicators.catalog import IndicatorError, parse_spec
 from algo.jobs import history as job_history
 from algo.portal import kite_vault
@@ -216,7 +217,11 @@ def create_app(
         row = queries.instrument(c, instrument_id)
         if row is None:
             raise HTTPException(404, f"no instrument {instrument_id}")
-        return {**row, "actions": queries.instrument_actions(c, instrument_id)}
+        return {
+            **row,
+            "actions": queries.instrument_actions(c, instrument_id),
+            "upcoming": queries.instrument_upcoming(c, instrument_id),
+        }
 
     @app.get("/api/instruments/{instrument_id}/fundamentals")
     def fundamentals(
@@ -390,6 +395,14 @@ def create_app(
             "backtests": queries.backtests(c, 10)["items"],
             "jobs": {"persisted": False, "note": "job runtime and resource use are not recorded"},
         }  # fmt: skip
+
+    @app.get("/api/corporate-actions/review")
+    def action_worklist(
+        c: Conn,
+        limit: int = Query(200, ge=1, le=5000),
+        kind: str | None = Query(None, max_length=30),
+    ) -> dict[str, Any]:
+        return worklist(c, limit=limit, kind=kind)
 
     review_path = reviews_file or docs_root / "stage4" / "review" / "review_items.json"
 

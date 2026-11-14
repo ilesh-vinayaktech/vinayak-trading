@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  actionWorklistSchema,
   activitySchema,
   backtestPageSchema,
   backtestReportSchema,
@@ -131,6 +132,7 @@ const CASES: [string, z.ZodTypeAny][] = [
   ["backtests", backtestPageSchema],
   ["backtest_report", backtestReportSchema],
   ["activity", activitySchema],
+  ["corporate_action_review", actionWorklistSchema],
   ["indicator_catalog", indicatorCatalogSchema],
   ["indicator_series", indicatorSeriesSchema],
 ];

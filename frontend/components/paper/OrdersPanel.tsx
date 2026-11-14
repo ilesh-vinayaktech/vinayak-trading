@@ -1,5 +1,6 @@
 "use client";
 
+import { UpcomingNote } from "@/components/paper/UpcomingNote";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Alert } from "@/components/ui/Alert";
@@ -33,7 +34,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   const error = approve.error ?? reject.error;
 
   const pendingColumns: Column<PaperOrder>[] = [
-    { key: "symbol", header: "Stock", cell: (o) => <span className="inline-flex items-center gap-2"><span className="font-medium">{o.symbol}</span><span className="sm:hidden"><SidePill side={o.side} /></span></span> },
+    { key: "symbol", header: "Stock", cell: (o) => <div><span className="inline-flex items-center gap-2"><span className="font-medium">{o.symbol}</span><span className="sm:hidden"><SidePill side={o.side} /></span></span><UpcomingNote items={o.upcoming} /></div> },
     { key: "side", header: "Action", hideBelow: "sm", cell: (o) => <SidePill side={o.side} /> },
     { key: "qty", header: "Shares", className: "text-right", cell: (o) => fmtMoney(o.qty, 0) },
     { key: "value", header: "About", className: "text-right", hideBelow: "sm", cell: (o) => `₹${fmtMoney(o.ref_price)} each` },
@@ -53,7 +54,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   ];
   const historyColumns: Column<PaperOrder>[] = [
     { key: "when", header: "Proposed", cell: (o) => <span className="whitespace-nowrap text-ink-soft"><RelativeTime iso={o.created_at} /></span> },
-    { key: "symbol", header: "Stock", cell: (o) => <span className="font-medium">{o.symbol}</span> },
+    { key: "symbol", header: "Stock", cell: (o) => <div><span className="font-medium">{o.symbol}</span><UpcomingNote items={o.upcoming} /></div> },
     { key: "side", header: "Action", cell: (o) => <SidePill side={o.side} /> },
     { key: "qty", header: "Shares", className: "text-right", cell: (o) => fmtMoney(o.qty, 0) },
     { key: "fill", header: "Filled at", className: "text-right", hideBelow: "sm", cell: (o) => (o.fill_price ? `₹${fmtMoney(o.fill_price)}` : <span className="text-ink-faint">-</span>) },

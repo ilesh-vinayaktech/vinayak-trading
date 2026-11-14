@@ -3,6 +3,8 @@
   actions   corporate actions for every Nifty 200 symbol (full history)
   actions500  as actions, for the Nifty 500 list in the lake; skips symbols with raw actions stored
   actionsall  as actions500, for every active equity in our instrument master (the whole market)
+  actionswindow  the whole market in one request, 14 days back to 120 ahead: past and today's join
+              the table, announced future ones replace the `upcoming` table (the daily job)
   actionsrefresh  every active equity again (new actions, any never downloaded); a failed symbol
               makes the run exit 1, and new actions that need a person are reported
   reparse   rebuild corporate_action from raw JSON already in the lake (no network)
@@ -14,15 +16,17 @@ import csv
 import io
 import os
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import psycopg
 
 from algo.core.calendar import nse
 from algo.data.corporate_actions import (
+    API,
     ReviewKey,
     ingest_symbol,
+    load_window,
     new_unresolved,
     refreshed_on,
     reparse_symbol,
@@ -58,6 +62,7 @@ ap.add_argument(
         "actions500",
         "actionsall",
         "actionsrefresh",
+        "actionswindow",
         "reparse",
         "bars",
     ],
@@ -76,10 +81,16 @@ now, lake = datetime.now(UTC), LocalLake(a.lake)
 client = NseClient(min_interval=a.interval)
 
 
-# NSE's session cookies go stale: visit the page again regularly, and right after a failure.
-WARM_EVERY = 40
+# NSE stops answering one session after about 330 calls (at any pace): start a new session well
+# before that, and right after a failure.
+NEW_SESSION_EVERY = 150
 # Symbols failing one after another mean NSE is not answering: stop instead of hammering it.
 MAX_IN_A_ROW = 5
+
+
+def fresh_session() -> None:
+    client.new_session()
+    client.warm(WARM)
 
 
 def log(*m: object) -> None:
@@ -136,8 +147,8 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         tot_ins = tot_unch = failed = in_a_row = 0
         before = review_keys(conn)
         for i, sym in enumerate(syms, 1):
-            if i > 1 and (i - 1) % WARM_EVERY == 0:
-                client.warm(WARM)
+            if i > 1 and (i - 1) % NEW_SESSION_EVERY == 0:
+                fresh_session()
             try:
                 r = ingest_symbol(
                     conn, lake, lambda u: client.get(u, accept="application/json"), sym, now
@@ -145,7 +156,7 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             except Exception as e:  # keep going; failures are listed in the log
                 failed += 1
                 in_a_row += 1
-                client.warm(WARM)  # a stale session is the usual cause: refresh it
+                fresh_session()  # the session is the usual cause: start another
                 log(f"[{i}/{len(syms)}] {sym} FAILED {type(e).__name__}: {e}")
                 if in_a_row >= MAX_IN_A_ROW:
                     log(f"{in_a_row} in a row failed: NSE is not answering, stopping")
@@ -193,8 +204,8 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         tot_ins = failed = in_a_row = 0
         before = review_keys(conn)
         for i, sym in enumerate(syms, 1):
-            if i > 1 and (i - 1) % WARM_EVERY == 0:
-                client.warm(WARM)
+            if i > 1 and (i - 1) % NEW_SESSION_EVERY == 0:
+                fresh_session()
             try:
                 r = ingest_symbol(
                     conn, lake, lambda u: client.get(u, accept="application/json"), sym, now
@@ -204,7 +215,7 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             ) as e:  # keep going; a re-run picks up the failures (nothing was stored for them)
                 failed += 1
                 in_a_row += 1
-                client.warm(WARM)  # a stale session is the usual cause: refresh it
+                fresh_session()  # the session is the usual cause: start another
                 log(f"[{i}/{len(syms)}] {sym} FAILED {type(e).__name__}: {e}")
                 if in_a_row >= MAX_IN_A_ROW:
                     log(f"{in_a_row} in a row failed: NSE is not answering, stopping")
@@ -222,6 +233,27 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         ).fetchone()[0]
         log(f"{a.stage} done: inserted={tot_ins} failed={failed} review={n_review}")
         finish_actions(conn, before, failed)
+
+    elif a.stage == "actionswindow":
+        today = now.date()
+        url = (
+            f"{API}?index=equities&from_date={today - timedelta(days=14):%d-%m-%Y}"
+            f"&to_date={today + timedelta(days=120):%d-%m-%Y}"
+        )
+        before = review_keys(conn)
+        client.warm(WARM)
+        try:
+            body = client.get(url, accept="application/json")
+        except Exception as e:
+            log(f"window request FAILED {type(e).__name__}: {e}")
+            sys.exit(1)
+        m = lake.put("nse", "corporate_actions_window", today, body, url=url, fetched_at=now)
+        r = load_window(conn, body, today, m.checksum, now)
+        log(
+            f"window done: inserted={r.inserted} unchanged={r.unchanged} upcoming={r.upcoming}"
+            f" unknown symbols={len(r.unknown_symbols)} {r.unknown_symbols[:8]}"
+        )
+        finish_actions(conn, before, 0)
 
     elif a.stage == "reparse":
         q = (

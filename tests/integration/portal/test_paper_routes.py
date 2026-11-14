@@ -213,12 +213,53 @@ def test_the_summary_values_the_account_at_the_latest_prices_and_hides_other_peo
     assert (s["cash"], s["invested"], s["equity"]) == ("79992.5", "21000", "100992.5")
     assert s["pnl"] == {"realized": "0", "unrealized": "1000", "fees": "7.5", "net": "992.5"}
     assert s["positions"] == [
-        {"instrument_id": ids["AAA"], "symbol": "AAA", "qty": "100", "avg_cost": "200", "last_price": "210", "value": "21000", "unrealized": "1000"}
+        {"instrument_id": ids["AAA"], "symbol": "AAA", "qty": "100", "avg_cost": "200", "last_price": "210", "value": "21000", "unrealized": "1000", "upcoming": []}
     ]  # fmt: skip
     assert [p["day"] for p in s["equity_curve"]] == ["2026-11-10", "2026-11-11"] and s[
         "pending_orders"
     ] == 1
     assert c2.get("/api/paper/summary").json()["positions"][0]["qty"] == "1"
+
+
+def test_a_holding_or_an_open_order_with_an_action_coming_within_ten_days_carries_a_warning(env):
+    conn, app, clock, ids = env
+    uid, c = trader(conn, app, clock)
+    accounts(conn, uid)
+    book.record_fill(conn, uid, day=TODAY, side="BUY", iid=ids["AAA"], qty=D(100), price=D("200"),
+                     commission=D(0), charges=[], ref="r1", now=START)  # fmt: skip
+    waiting = order(conn, uid, ids["BBB"])
+    answered = order(conn, uid, ids["BBB"], status="REJECTED")
+    for iid, ex, kind, amount, subject in (
+        (
+            ids["AAA"],
+            "2026-11-20",
+            "dividend",
+            7,
+            "Interim Dividend - Rs 7 Per Share",
+        ),  # 9 days away
+        (ids["AAA"], "2026-12-30", "bonus", None, "Bonus 1:1"),  # far away: not a warning yet
+        (ids["BBB"], "2026-11-15", "split", None, "Face Value Split"),  # 4 days away
+        (
+            ids["BBB"],
+            "2026-11-10",
+            "dividend",
+            3,
+            "Interim Dividend - Rs 3 Per Share",
+        ),  # already passed
+    ):
+        conn.execute(
+            "INSERT INTO corporate_action_upcoming (instrument_id, ex_date, kind, status, amount, subject, fetched_at)"
+            " VALUES (%s,%s,%s,'ok',%s,%s,%s)", (iid, ex, kind, amount, subject, START))  # fmt: skip
+    held = c.get("/api/paper/summary").json()["positions"][0]["upcoming"]
+    assert [(u["ex_date"], u["kind"], u["amount"]) for u in held] == [
+        ("2026-11-20", "dividend", "7")
+    ]
+    assert held[0]["subject"] == "Interim Dividend - Rs 7 Per Share"
+    rows = {r["order_id"]: r for r in c.get("/api/paper/orders").json()["orders"]}
+    assert [(u["ex_date"], u["kind"]) for u in rows[str(waiting)]["upcoming"]] == [
+        ("2026-11-15", "split")
+    ]
+    assert rows[str(answered)]["upcoming"] == []  # a decided order has nothing left to warn about
 
 
 def test_a_holding_with_no_price_is_valued_at_what_it_cost(env):
@@ -274,6 +315,7 @@ def test_orders_are_listed_filtered_and_answered_by_their_owner_only(env):
         "reason": "entry: oversold in an uptrend", "status": "PENDING", "decision_day": "2026-11-11",
         "created_at": START.isoformat(), "expires_at": (START + timedelta(hours=20)).isoformat(),
         "fill_price": None, "fill_commission": None, "fill_day": None, "failure": None,
+        "upcoming": [],
     }  # fmt: skip
     assert c.get("/api/paper/orders?status=FILLED,REJECTED").json()["orders"] == []
     assert (

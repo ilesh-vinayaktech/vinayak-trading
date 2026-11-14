@@ -124,6 +124,7 @@ ROUTE_PERMISSIONS = {
     ("POST", "/api/users/{user_id}/end-sessions"): "users:write",
     ("GET", "/api/audit"): "audit:read",
     ("GET", "/api/system/activity"): "ops:read",
+    ("GET", "/api/corporate-actions/review"): "ops:read",
     ("GET", "/api/reviews"): "ops:read",
     ("GET", "/api/reviews/{item_id}/history"): "ops:read",
     ("POST", "/api/reviews/{item_id}/decisions"): "ops:write",

@@ -120,6 +120,7 @@ export const actionSchema = z.object({
 export const instrumentDetailSchema = instrumentSchema.extend({
   bars: z.object({ first: z.string().nullable(), last: z.string().nullable(), count: z.number() }),
   actions: z.array(actionSchema),
+  upcoming: z.array(actionSchema),
 });
 
 const figures = z.record(z.string(), z.string());
@@ -646,7 +647,7 @@ export const paperSummarySchema = z.object({
   cash: decimal,
   invested: decimal,
   pnl: z.object({ realized: decimal, unrealized: decimal, fees: decimal, net: decimal }),
-  positions: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), qty: decimal, avg_cost: decimal, last_price: decimal, value: decimal, unrealized: decimal })),
+  positions: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), qty: decimal, avg_cost: decimal, last_price: decimal, value: decimal, unrealized: decimal, upcoming: z.array(actionSchema) })),
   equity_curve: z.array(z.object({ day: z.string(), equity: decimal })),
   pending_orders: z.number(),
 });
@@ -666,6 +667,7 @@ export const paperOrderSchema = z.object({
   fill_commission: decimal.nullable(),
   fill_day: z.string().nullable(),
   failure: z.string().nullable(),
+  upcoming: z.array(actionSchema), // announced actions within days of an order that is still open
 });
 export const paperOrdersSchema = z.object({ orders: z.array(paperOrderSchema) });
 export const paperRunsSchema = z.object({
@@ -959,3 +961,24 @@ export const screenerMetaSchema = z.object({
 export const screenerRunSchema = z.object({ total: z.number(), sort: z.string().nullable(), as_of: z.string().nullable().optional(), rows: z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))) });
 export type ScreenerMeta = z.infer<typeof screenerMetaSchema>;
 export type ScreenerCondition = { field: string; op: string; value?: unknown };
+
+export const actionWorklistSchema = z.object({
+  total: z.number(),
+  by_kind: z.record(z.number()),
+  items: z.array(
+    z.object({
+      symbol: z.string(),
+      ex_date: z.string(),
+      kind: z.string(),
+      subject: z.string(),
+      reason: z.string(),
+      prev_close: z.string().nullable(),
+      ex_close: z.string().nullable(),
+      move_pct: z.string().nullable(),
+      in_nifty200: z.boolean(),
+      has_prices: z.boolean(),
+      impact: z.number(),
+    }),
+  ),
+});
+export type ActionWorklist = z.infer<typeof actionWorklistSchema>;

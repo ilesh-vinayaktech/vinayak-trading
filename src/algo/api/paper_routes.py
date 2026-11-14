@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, ValidationError
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
+from algo.data.corporate_actions import upcoming_within
 from algo.live.market_calendar import IST
 from algo.paper import book, orders
 from algo.paper.universe import UNIVERSES
@@ -24,6 +25,20 @@ from algo.strategies.trend_pullback import TrendPullbackParams
 router = APIRouter(prefix="/api/paper", tags=["paper"])
 TIMEFRAMES = (("1D", "Daily", True), ("1h", "1 hour", False), ("15m", "15 minutes", False))
 STATUSES = {"PENDING", "APPROVED", "REJECTED", "EXPIRED", "FILLED", "FAILED"}
+WARN_DAYS = 10  # an announced action this close is worth a look before an order is approved
+OPEN = ("PENDING", "APPROVED")  # an order still to be decided or filled
+
+
+def _heads_up(request: Request, conn: Any, ids: list[int]) -> dict[int, list[dict[str, Any]]]:
+    """Announced actions coming within WARN_DAYS for these instruments, ready to send."""
+    today = _st(request).clock.now().astimezone(IST).date()
+    return {
+        iid: [
+            {**u, "ex_date": u["ex_date"].isoformat(), "num": _opt(u["num"]), "den": _opt(u["den"]), "amount": _opt(u["amount"])}
+            for u in items
+        ]
+        for iid, items in upcoming_within(conn, ids, today, WARN_DAYS).items()
+    }  # fmt: skip
 
 
 class CreateBody(BaseModel):
@@ -193,8 +208,9 @@ def summary(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
         iid: prices.get(iid, ledger.cost_basis(iid) / q) for iid, q in held.items()
     }  # no price yet: valued at cost
     equity, pnl = ledger.equity(marks), ledger.pnl(marks)
+    heads_up = _heads_up(request, conn, list(held))
     positions = [
-        {"instrument_id": iid, "symbol": symbols[iid], "qty": _s(q), "avg_cost": _s(ledger.cost_basis(iid) / q), "last_price": _s(marks[iid]), "value": _s(q * marks[iid]), "unrealized": _s(q * marks[iid] - ledger.cost_basis(iid))}
+        {"instrument_id": iid, "symbol": symbols[iid], "qty": _s(q), "avg_cost": _s(ledger.cost_basis(iid) / q), "last_price": _s(marks[iid]), "value": _s(q * marks[iid]), "upcoming": heads_up.get(iid, []), "unrealized": _s(q * marks[iid] - ledger.cost_basis(iid))}
         for iid, q in sorted(held.items(), key=lambda kv: symbols[kv[0]])
     ]  # fmt: skip
     curve = conn.execute(
@@ -211,27 +227,29 @@ def summary(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
     }  # fmt: skip
 
 
-def _order(o: dict[str, Any]) -> dict[str, Any]:
+def _order(o: dict[str, Any], heads_up: dict[int, list[dict[str, Any]]]) -> dict[str, Any]:
     return {
         "order_id": str(o["order_id"]), "symbol": o["symbol"], "side": o["side"], "qty": _s(o["qty"]), "ref_price": _s(o["ref_price"]),
         "reason": o["reason"], "status": o["status"], "decision_day": o["decision_day"].isoformat(), "created_at": o["created_at"].isoformat(),
         "expires_at": o["expires_at"].isoformat(), "fill_price": _opt(o["fill_price"]), "fill_commission": _opt(o["fill_commission"]),
         "fill_day": None if o["fill_day"] is None else o["fill_day"].isoformat(), "failure": o["failure"],
+        "upcoming": heads_up.get(o["instrument_id"], []) if o["status"] in OPEN else [],  # nothing left to warn about once decided
     }  # fmt: skip
 
 
 @router.get("/orders")
 def list_orders(
-    who: CurrentUser, conn: WConn, status: str | None = Query(default=None, max_length=100)
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    status: str | None = Query(default=None, max_length=100),
 ) -> dict[str, Any]:
     wanted = None if status is None else [s for s in status.split(",") if s in STATUSES]
     if wanted is not None and not wanted:
         return {"orders": []}
-    return {
-        "orders": [
-            _order(o) for o in orders.list_orders(conn, who.session.user_id, statuses=wanted)
-        ]
-    }
+    rows = orders.list_orders(conn, who.session.user_id, statuses=wanted)
+    heads_up = _heads_up(request, conn, [o["instrument_id"] for o in rows if o["status"] in OPEN])
+    return {"orders": [_order(o, heads_up) for o in rows]}
 
 
 def _answer(

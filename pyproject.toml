@@ -100,6 +100,8 @@ paths_to_mutate = [
   "src/algo/indicators/core.py",
   "src/algo/indicators/catalog.py",
   "src/algo/data/sessions.py",
+  "src/algo/data/ratios.py",
+  "src/algo/data/providers/nse_results.py",
 ]
 tests_dir = ["tests/unit/"]
-also_copy = ["src/", "tests/", "config/"]
+also_copy = ["src/", "tests/", "config/", "scripts/"]
