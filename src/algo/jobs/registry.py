@@ -35,8 +35,8 @@ JOBS: tuple[Job, ...] = (
     Job(
         "paper-run",
         f"{WEEKDAYS} *-*-* 21:30 Asia/Kolkata",
-        ((*_PY, "scripts/run_paper.py", "--db", "{db}"),),
-        "The evening decision for every enabled paper account on the newest session (after the data jobs and checks; a run that cannot decide, or errors, alerts); proposals wait for the owner's approval",
+        ((*_PY, "scripts/run_paper.py", "--db", "{db}", "--sandbox"),),
+        "The evening decision for every enabled paper account on the newest session, each strategy in its sandboxed worker (after the data jobs and checks; a run that cannot decide, or errors, alerts; a strategy that breaks a rule is halted and paused); proposals wait for the owner's approval",
     ),
     Job(
         "paper-orders",

@@ -77,7 +77,7 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 21:30 Asia/Kolkata",
-   "description": "The evening decision for every enabled paper account on the newest session (after the data jobs and checks; a run that cannot decide, or errors, alerts); proposals wait for the owner's approval",
+   "description": "The evening decision for every enabled paper account on the newest session, each strategy in its sandboxed worker (after the data jobs and checks; a run that cannot decide, or errors, alerts; a strategy that breaks a rule is halted and paused); proposals wait for the owner's approval",
    "last_run": null,
    "last_success_at": null,
    "name": "paper-run"
