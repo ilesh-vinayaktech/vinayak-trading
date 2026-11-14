@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  brokerAccountSchema,
   actionWorklistSchema,
   activitySchema,
   backtestPageSchema,
@@ -138,6 +139,7 @@ const CASES: [string, z.ZodTypeAny][] = [
   ["corporate_action_review", actionWorklistSchema],
   ["indicator_catalog", indicatorCatalogSchema],
   ["indicator_series", indicatorSeriesSchema],
+  ["broker_account", brokerAccountSchema],
 ];
 
 describe("API contract", () => {

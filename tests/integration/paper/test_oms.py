@@ -159,7 +159,11 @@ def test_the_oms_and_the_paper_orders_reconcile_and_a_difference_is_found(env):
     conn.execute(
         "UPDATE paper_order SET status='APPROVED' WHERE order_id=%s", (a,)
     )  # the order table disagrees with the OMS log
-    assert [m.kind for m in paper_oms.reconcile(conn, LATER)] == ["STATE_MISMATCH"]
+    kinds = [m.kind for m in paper_oms.reconcile(conn, LATER)]
+    assert kinds == [
+        "STATE_MISMATCH",
+        "POSITION_MISMATCH",
+    ]  # and the fill is now in the book but not in the orders
 
 
 def test_orders_approved_before_the_oms_existed_are_adopted_once_not_duplicated(env):
@@ -205,3 +209,117 @@ def test_the_broker_refuses_an_order_that_is_not_pending_and_cancels_only_open_o
         broker.place_order(None, cid(oid))  # already answered
     with pytest.raises(BrokerError, match="not open"):
         broker.cancel_order(str(oid))
+
+
+def hold(conn, jane, iid, qty=10, price=200):
+    """A position the account really holds: a BUY approved, filled at a live minute and booked."""
+    oid = propose(conn, jane, iid, qty=qty, ref=D(price))
+    orders.approve(conn, oid, user_id=jane, now=EVENING)
+    live_bar(conn, iid, 0, price)
+    assert fill(conn).filled == 1
+    conn.execute(
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,dataset_version,ingested_at)"
+        " VALUES (%s,%s,1,1,1,%s,100,'nse',1,%s)",
+        (iid, EVENING, price, EVENING),
+    )
+    return oid
+
+
+def flatten_now(conn, scope=None, now=LATER, reason="data corrupt"):
+    kill_switch.change(
+        conn, "flatten", scope, by="jane", reason=reason, now=now, emergency_override=True
+    )
+
+
+def test_flatten_sells_every_held_position_once_and_the_switch_does_not_cancel_its_own_closing_order(
+    env,
+):
+    conn, jane, iid = env
+    hold(conn, jane, iid)
+    assert paper_oms.flatten(conn, LATER) == paper_oms.FlattenResult(
+        [], []
+    )  # not in FLATTEN: nothing
+    flatten_now(conn)
+    r = paper_oms.flatten(conn, LATER)
+    assert len(r.sent) == 1 and r.refused == []
+    row = conn.execute(
+        "SELECT side, qty, status, reason FROM paper_order WHERE order_id=%s", (r.sent[0],)
+    ).fetchone()
+    assert row[:3] == ("SELL", D(10), "APPROVED") and row[3] == "flatten: data corrupt"
+    assert paper_oms.flatten(conn, LATER).sent == []  # the same FLATTEN again: no second order
+    live_bar(conn, iid, 6, 201)
+    assert (
+        fill(conn, LATER + timedelta(minutes=5)).filled == 1
+    )  # the switch is FLATTEN, which cancels others, not this
+    assert book.load(conn, jane).quantities().get(iid, 0) == 0
+    assert omsorder(conn, r.sent[0]).state is State.FILLED
+    assert paper_oms.reconcile(conn, LATER) == []
+
+
+def test_flatten_cancels_nothing_it_did_not_mean_to_and_a_later_flatten_closes_what_was_bought_since(
+    env,
+):
+    conn, jane, iid = env
+    hold(conn, jane, iid)
+    flatten_now(conn)
+    first = paper_oms.flatten(conn, LATER).sent
+    live_bar(conn, iid, 6, 201)
+    fill(conn, LATER + timedelta(minutes=5))
+    kill_switch.change(
+        conn, "resume", None, by="jane", reason="ok", now=LATER + timedelta(minutes=6)
+    )
+    hold2 = propose(conn, jane, iid, qty=3)
+    orders.approve(conn, hold2, user_id=jane, now=LATER + timedelta(minutes=6))
+    live_bar(conn, iid, 12, 202)
+    assert fill(conn, LATER + timedelta(minutes=8)).filled == 1
+    later = LATER + timedelta(minutes=9)
+    flatten_now(conn, now=later, reason="again")
+    second = paper_oms.flatten(conn, later).sent
+    assert len(second) == 1 and second != first
+    assert conn.execute("SELECT qty FROM paper_order WHERE order_id=%s", (second[0],)).fetchone()[
+        0
+    ] == D(3)
+
+
+def test_flatten_that_cannot_be_priced_or_is_refused_by_risk_is_reported_and_tried_again(env):
+    conn, jane, iid = env
+    oid = hold(conn, jane, iid)
+    conn.execute("DELETE FROM bar_1d")
+    flatten_now(conn)
+    assert paper_oms.flatten(conn, LATER).refused == [
+        (jane, iid, "no price known to value the order")
+    ]
+    conn.execute(
+        "INSERT INTO bar_1d (instrument_id,ts,open,high,low,close,volume,source,dataset_version,ingested_at)"
+        " VALUES (%s,%s,1,1,1,200,100,'nse',1,%s)",
+        (iid, EVENING, EVENING),
+    )
+    conn.execute(
+        "UPDATE paper_account SET risk=%s WHERE user_id=%s", ('{"max_order_qty": 5}', jane)
+    )
+    refused = paper_oms.flatten(conn, LATER)
+    assert refused.sent == [] and [r[2] for r in refused.refused] == [
+        "MAX_QTY"
+    ]  # a closing order is still held to its size cap
+    assert (
+        conn.execute("SELECT count(*) FROM paper_order WHERE reason LIKE 'flatten%'").fetchone()[0]
+        == 0
+    )
+    conn.execute("UPDATE paper_account SET risk=NULL WHERE user_id=%s", (jane,))
+    assert len(paper_oms.flatten(conn, LATER).sent) == 1  # the next run sends it
+    assert oid  # (the buy that created the position)
+
+
+def test_a_fill_that_the_book_never_recorded_is_a_position_mismatch_and_pauses_trading(env):
+    conn, jane, iid = env
+    hold(conn, jane, iid)
+    assert paper_oms.position_mismatches(conn) == []
+    conn.execute(
+        "UPDATE paper_order SET qty=qty+1 WHERE status='FILLED'"
+    )  # the order says more than the book recorded
+    found = paper_oms.reconcile(conn, LATER)
+    assert "POSITION_MISMATCH" in [m.kind for m in found]
+    assert any(
+        f"account {jane}: instrument {iid}: we hold 11, the broker 10" in m.detail for m in found
+    )
+    assert kill_switch.load(conn).mode("trend_pullback").value == "PAUSE"

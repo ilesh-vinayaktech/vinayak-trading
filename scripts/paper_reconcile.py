@@ -1,6 +1,7 @@
 # ruff: noqa: E501
-"""Compare the OMS order log with the paper orders (the paper broker's book). Exit 1 when they disagree: an order the OMS has but the
-broker does not, a different state or filled quantity, or a broker order the OMS never sent. Read-only.
+"""The paper reconciler (spec section 11: an independent watchdog, every minute in market hours and once after the close). Closes the positions of any
+account whose kill switch is FLATTEN, then compares the OMS log with the paper orders and the orders' fills with what the paper book recorded.
+A mismatch pauses the strategy and the job exits 1 so the runner alerts; a closing order that could not be sent also exits 1 (it is tried again next minute).
 usage: paper_reconcile.py [--db URL]"""
 
 import argparse
@@ -10,16 +11,22 @@ from datetime import UTC, datetime
 
 import psycopg
 
-from algo.paper import oms
+from algo.paper import oms as paper_oms
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
-with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as conn:
-    found = oms.reconcile(conn, datetime.now(UTC))
-print(f"{len(found)} mismatch(es)")
+now = datetime.now(UTC)
+with psycopg.connect(a.db, autocommit=True) as conn:
+    closed = paper_oms.flatten(conn, now)
+    found = paper_oms.reconcile(conn, now)
+print(
+    f"flatten: {len(closed.sent)} closing order(s) sent, {len(closed.refused)} refused; reconcile: {len(found)} mismatch(es)"
+)
+for who, iid, why in closed.refused:
+    print(f"  could not close {iid} for {who}: {why}")
 for m in found:
-    print(f"  {m.kind} {m.client_order_id}: {m.detail}")
-sys.exit(1 if found else 0)
+    print(f"  {m.kind} {m.client_order_id} {m.detail}")
+sys.exit(1 if found or closed.refused else 0)

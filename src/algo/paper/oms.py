@@ -9,10 +9,10 @@ a cache is due before it grows."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid5
 
 import psycopg
 
@@ -21,9 +21,12 @@ from algo.execution.broker import BrokerError, BrokerOrder, BrokerRejected
 from algo.execution.event_store import DbStore
 from algo.execution.oms import Mismatch, Oms
 from algo.execution.orders import Order, client_order_id
+from algo.execution.reconciler import Portfolio, compare
+from algo.paper import book
 from algo.paper import risk as paper_risk
 from algo.risk import store as kill_switch
 from algo.risk.engine import RiskEngine
+from algo.risk.killswitch import Mode
 from algo.risk.limits import Limits
 from algo.risk.model import OrderRequest, Side
 
@@ -147,5 +150,111 @@ def sync(conn: psycopg.Connection, now: datetime) -> Oms:
     return oms
 
 
+def position_mismatches(conn: psycopg.Connection) -> list[Mismatch]:
+    """Per account, what its FILLED orders add up to against what the paper book recorded as bought and sold. Two records of the same
+    fills that only agree when every fill was booked exactly once (splits change the ledger's holdings, so those are not compared)."""
+    out: list[Mismatch] = []
+    for (user_id,) in conn.execute("SELECT user_id FROM paper_account ORDER BY user_id").fetchall():
+        orders = {
+            int(i): int(q)
+            for i, q in conn.execute(
+                "SELECT instrument_id, sum(CASE side WHEN 'BUY' THEN qty ELSE -qty END) FROM paper_order"
+                " WHERE user_id=%s AND status='FILLED' GROUP BY instrument_id",
+                (user_id,),
+            )
+        }
+        booked = {
+            int(i): int(q)
+            for i, q in conn.execute(
+                "SELECT instrument_id, sum(CASE kind WHEN 'BUY' THEN qty ELSE -qty END) FROM paper_event"
+                " WHERE user_id=%s AND kind IN ('BUY', 'SELL') GROUP BY instrument_id",
+                (user_id,),
+            )
+        }
+        out += [
+            Mismatch(m.kind, m.client_order_id, f"account {user_id}: {m.detail}")
+            for m in compare(Portfolio(orders), Portfolio(booked))
+        ]
+    return out
+
+
 def reconcile(conn: psycopg.Connection, now: datetime) -> list[Mismatch]:
-    return build(conn, now).reconcile()
+    """Orders and positions against the paper book. A mismatch pauses the strategy, and that pause is saved (it is a halt, not a note)."""
+    oms = build(conn, now)
+    known = len(oms.risk.switch.events)
+    found = oms.reconcile(extra=position_mismatches(conn))
+    kill_switch.save_new(conn, oms.risk.switch, known)
+    return found
+
+
+FLATTEN_REASON = "flatten"  # the reason prefix of a closing order: the kill switch's own cancellation leaves these alone
+FLATTEN_LIFE = timedelta(
+    days=4
+)  # a closing order waits this long for a live price (covers a weekend)
+_FLATTEN_NS = UUID("6f1a2f3e-5b7c-4d8e-9a0b-1c2d3e4f5a6b")
+
+
+@dataclass(frozen=True)
+class FlattenResult:
+    sent: list[UUID]
+    refused: list[tuple[UUID, int, str]]  # (user, instrument, why): tried again on the next run
+
+
+def _last_close(conn: psycopg.Connection, instrument_id: int) -> Decimal | None:
+    row = conn.execute(
+        "SELECT close FROM bar_1d WHERE instrument_id=%s ORDER BY ts DESC, dataset_version DESC LIMIT 1",
+        (instrument_id,),
+    ).fetchone()
+    return None if row is None else Decimal(row[0])
+
+
+def flatten(conn: psycopg.Connection, now: datetime) -> FlattenResult:
+    """Close every position of each account whose kill switch is FLATTEN, with a market sell approved by the operator's FLATTEN itself
+    (it needed an explicit emergency override), through the OMS and the risk engine. Safe to repeat: a closing order's id comes from the
+    FLATTEN event, the account and the stock, so the same FLATTEN never creates a second one; a later FLATTEN closes what was bought since."""
+    switch = kill_switch.load(conn)
+    sent: list[UUID] = []
+    refused: list[tuple[UUID, int, str]] = []
+    for user_id, strategy in conn.execute(
+        "SELECT user_id, strategy_id FROM paper_account ORDER BY user_id"
+    ).fetchall():
+        if switch.mode(strategy) is not Mode.FLATTEN:
+            continue
+        ordered = max(
+            (e for e in switch.events if e.mode is Mode.FLATTEN and e.scope in (None, strategy)),
+            key=lambda e: e.ts,
+        )  # the FLATTEN now in force
+        epoch = ordered.ts
+        for iid, qty in sorted(book.load(conn, user_id).quantities().items()):
+            ref = _last_close(conn, iid) if qty > 0 else None
+            if ref is None:
+                if qty > 0:
+                    refused.append((user_id, iid, "no price known to value the order"))
+                continue
+            oid = uuid5(_FLATTEN_NS, f"{user_id}|{epoch.isoformat()}|{iid}")
+            made = conn.execute(
+                "INSERT INTO paper_order (order_id, user_id, decision_day, instrument_id, side, qty, ref_price, reason, created_at, not_before, expires_at)"
+                " VALUES (%s,%s,%s,%s,'SELL',%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING",
+                (
+                    oid, user_id, now.date(), iid, qty, ref,
+                    f"{FLATTEN_REASON}: {ordered.reason}"[:200],
+                    now, now, now + FLATTEN_LIFE,
+                ),
+            ).rowcount  # fmt: skip
+            if not made:
+                continue  # already sent for this FLATTEN
+            decision = paper_risk.check_approval(conn, user_id, oid, now)
+            if not decision.approved:  # not sent: take the row back so the next run tries again
+                conn.execute("DELETE FROM paper_order WHERE order_id=%s", (oid,))
+                refused.append((user_id, iid, ", ".join(decision.codes)))
+                continue
+            sent_order = submit_approved(conn, user_id, oid, now)
+            if sent_order.is_terminal:
+                conn.execute(
+                    "UPDATE paper_order SET status='FAILED', failure=%s WHERE order_id=%s AND status='PENDING'",
+                    (sent_order.reason, oid),
+                )
+                refused.append((user_id, iid, sent_order.reason))
+            else:
+                sent.append(oid)
+    return FlattenResult(sent, refused)

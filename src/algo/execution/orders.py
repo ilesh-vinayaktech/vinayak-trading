@@ -55,6 +55,12 @@ def client_order_id(strategy_id: str, intent_key: str) -> str:
     return "A" + hashlib.sha256(f"{strategy_id}|{intent_key}".encode()).hexdigest()[:19].upper()
 
 
+def is_platform_tag(tag: str) -> bool:
+    """True for a tag `client_order_id` could have made. An order at the broker without one (placed by hand, or by another app) is not ours:
+    the platform never cancels it, reconciles it or counts it."""
+    return len(tag) == 20 and tag[0] == "A" and all(c in "0123456789ABCDEF" for c in tag[1:])
+
+
 @dataclass(frozen=True)
 class OrderEvent:
     order_id: str

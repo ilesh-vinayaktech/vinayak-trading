@@ -193,3 +193,83 @@ def test_an_error_reply_that_is_not_json_is_still_reported():
         KiteBroker("KEY", "TOKEN", html, SYMBOLS, gate=GATE).place_order(BUY, TAG)
     with pytest.raises(BrokerError, match="gateway says no"):
         KiteBroker("KEY", "TOKEN", html, SYMBOLS, gate=GATE).cancel_order("1")
+
+
+FIXTURES = __import__("pathlib").Path(__file__).resolve().parents[2] / "data" / "kite_portfolio"
+
+
+def read_fixture(name):
+    return __import__("json").loads((FIXTURES / f"{name}.json").read_text())["data"]
+
+
+def account(**over):
+    """Kite's three account endpoints, in the shapes recorded from the real API (values made up)."""
+    kite = FakeKite()
+    kite.reads = {
+        "/portfolio/holdings": read_fixture("holdings"),
+        "/portfolio/positions": read_fixture("positions"),
+        "/user/margins": read_fixture("margins"),
+        **over,
+    }
+    return KiteBroker("KEY", "TOKEN", kite, {7: "AAA", 8: "BBB", 9: "CCC"}, gate=GATE), kite
+
+
+def test_holdings_are_settled_plus_unsettled_shares_for_the_instruments_we_trade_only():
+    b, kite = account()
+    assert b.holdings() == {
+        7: 100,
+        8: 15,
+    }  # BBB: 10 settled + 5 bought today, not yet settled; CCC is not held
+    assert kite.calls[0][:2] == ("GET", f"{BASE}/portfolio/holdings")  # read only
+    other = [{**h, "tradingsymbol": "ZZZ"} for h in read_fixture("holdings")]
+    other.append({**read_fixture("holdings")[0], "exchange": "BSE"})
+    assert (
+        account(**{"/portfolio/holdings": other})[0].holdings() == {}
+    )  # not ours, or another exchange
+
+
+def test_todays_delivery_positions_count_only_our_product_exchange_and_symbols():
+    row = {
+        "tradingsymbol": "CCC",
+        "exchange": "NSE",
+        "product": "CNC",
+        "quantity": 3,
+    }  # the shape in Kite's documentation
+    rows = [
+        row,
+        {**row, "product": "MIS", "quantity": 99},
+        {**row, "tradingsymbol": "ZZZ"},
+        {**row, "exchange": "BSE"},
+        {**row, "quantity": 2},
+    ]
+    b, _ = account(**{"/portfolio/positions": {"net": rows, "day": []}})
+    assert b.day_positions() == {9: 5}
+    assert account()[0].day_positions() == {}  # the recorded response of a day with no trades
+
+
+def test_the_portfolio_never_counts_a_purchase_twice_when_kite_shows_it_in_both_places():
+    row = {"tradingsymbol": "BBB", "exchange": "NSE", "product": "CNC", "quantity": 5}
+    both = account(
+        **{
+            "/portfolio/positions": {
+                "net": [row, {**row, "tradingsymbol": "CCC", "quantity": 4}],
+                "day": [],
+            }
+        }
+    )[0]
+    assert both.portfolio() == {
+        7: 100,
+        8: 15,
+        9: 4,
+    }  # BBB's 5 are inside its holding of 15; CCC is only in positions
+
+
+def test_available_cash_is_the_equity_net_balance_and_a_failed_read_is_reported():
+    b, kite = account()
+    assert b.available_cash() == D("1234.5")
+    kite.get_status = 500
+    with pytest.raises(BrokerError, match="HTTP 500 reading"):
+        b.holdings()
+    kite.get_status = 0
+    with pytest.raises(BrokerTimeout, match="no answer reading"):
+        b.available_cash()

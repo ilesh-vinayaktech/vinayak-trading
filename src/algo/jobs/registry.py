@@ -45,6 +45,12 @@ JOBS: tuple[Job, ...] = (
         "Every five minutes in market hours: fill approved paper orders at the next live open (needs the live feed) and expire the ones that ran out of time",
     ),
     Job(
+        "paper-reconcile",
+        f"{WEEKDAYS} *-*-* 09..15:*:30 Asia/Kolkata",
+        ((*_PY, "scripts/paper_reconcile.py", "--db", "{db}"),),
+        "Every minute in market hours and once after the close (the half-minute keeps it clear of paper-orders): close the positions of an account whose kill switch is FLATTEN, then check the OMS log, the paper orders and the book against each other; a mismatch pauses the strategy and alerts",
+    ),
+    Job(
         "price-continuity",
         f"{WEEKDAYS} *-*-* 19:45 Asia/Kolkata",
         ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}"),),

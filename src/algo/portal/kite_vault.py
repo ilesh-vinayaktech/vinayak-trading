@@ -297,3 +297,18 @@ def system_feed_credentials(
     return ring.decrypt(row[1], aad=_aad(uid, "api_key")).decode(), ring.decrypt(
         row[2], aad=_aad(uid, "access_token")
     ).decode()
+
+
+def user_credentials(
+    conn: psycopg.Connection, ring: KeyRing, *, user_id: UUID, now: datetime
+) -> tuple[str, str] | None:
+    """(api key, access token) of THIS person's own connection while its daily token is valid; None otherwise."""
+    row = conn.execute(
+        "SELECT api_key_enc, access_token_enc FROM portal_kite_connection WHERE user_id=%s AND access_token_enc IS NOT NULL AND token_expires_at > %s",
+        (user_id, now),
+    ).fetchone()
+    if row is None:
+        return None
+    return ring.decrypt(row[0], aad=_aad(user_id, "api_key")).decode(), ring.decrypt(
+        row[1], aad=_aad(user_id, "access_token")
+    ).decode()

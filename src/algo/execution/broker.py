@@ -10,6 +10,8 @@ from typing import Protocol
 
 from algo.risk.model import OrderRequest
 
+MANUAL_PREFIX = "MANUAL-"  # the id given to an order at the broker that carries none of our tags (placed by hand)
+
 
 class BrokerError(Exception):
     pass

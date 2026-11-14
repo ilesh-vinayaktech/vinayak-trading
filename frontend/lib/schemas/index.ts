@@ -1000,3 +1000,30 @@ export const riskStateSchema = z.object({
 });
 export type RiskState = z.infer<typeof riskStateSchema>;
 export type SwitchAction = "pause" | "cancel" | "resume" | "flatten";
+
+// The signed-in person's own Kite account, read only. `platform_qty` is what the platform bought itself (its own filled orders);
+// `outside_qty` is the rest, which the platform never sells.
+export const brokerAccountSchema = z.object({
+  state: z.enum(["ok", "not_connected", "expired", "unavailable"]),
+  message: z.string().nullable(),
+  read_at: z.string().nullable(),
+  kite_user_id: z.string().nullable(),
+  cash: decimal.nullable(),
+  holdings: z.array(
+    z.object({
+      symbol: z.string(),
+      instrument_id: z.number().nullable(), // our id, when we know the stock: opens its detail page
+      quantity: decimal, // settled plus not yet settled
+      unsettled: decimal,
+      average_price: decimal,
+      last_price: decimal,
+      value: decimal,
+      pnl: decimal,
+      platform_qty: decimal,
+      outside_qty: decimal,
+    }),
+  ),
+  positions: z.array(z.object({ symbol: z.string(), instrument_id: z.number().nullable(), product: z.string(), quantity: decimal, average_price: decimal, last_price: decimal, pnl: decimal })),
+  totals: z.object({ holdings_value: decimal, holdings_pnl: decimal }),
+});
+export type BrokerAccount = z.infer<typeof brokerAccountSchema>;

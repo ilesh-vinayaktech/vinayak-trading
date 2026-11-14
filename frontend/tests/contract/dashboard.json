@@ -90,6 +90,13 @@
    "name": "paper-orders"
   },
   {
+   "calendar": "Mon..Fri *-*-* 09..15:*:30 Asia/Kolkata",
+   "description": "Every minute in market hours and once after the close (the half-minute keeps it clear of paper-orders): close the positions of an account whose kill switch is FLATTEN, then check the OMS log, the paper orders and the book against each other; a mismatch pauses the strategy and alerts",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "paper-reconcile"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 19:45 Asia/Kolkata",
    "description": "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
    "last_run": null,
@@ -235,7 +242,7 @@
    },
    {
     "level": "attention",
-    "text": "24 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 21 more."
+    "text": "25 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 22 more."
    }
   ],
   "status": "DOWN"

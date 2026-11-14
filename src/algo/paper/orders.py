@@ -212,12 +212,18 @@ def fill_due(
     filled = failed = waiting = 0
     switch = paper_risk.load_switch(conn)
     due = conn.execute(
-        "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at, limit_price FROM paper_order WHERE status='APPROVED' AND expires_at > %s ORDER BY created_at, order_id",
+        "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at, limit_price, reason FROM paper_order WHERE status='APPROVED' AND expires_at > %s ORDER BY created_at, order_id",
         (now,),
     ).fetchall()
-    for order_id, user_id, iid, side, qty, not_before, expires_at, decided_at, limit in due:
+    for order_id, user_id, iid, side, qty, not_before, expires_at, decided_at, limit, why in due:
         acct = book.get_account(conn, user_id)
-        if acct is not None and switch.mode(acct["strategy_id"]).cancels_open:
+        if (
+            acct is not None
+            and switch.mode(acct["strategy_id"]).cancels_open
+            and not why.startswith(
+                paper_oms.FLATTEN_REASON
+            )  # a flatten's own closing order is what the switch asked for
+        ):
             conn.execute(
                 "UPDATE paper_order SET status='FAILED', failure=%s WHERE order_id=%s",
                 (

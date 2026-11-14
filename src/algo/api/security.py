@@ -109,6 +109,7 @@ ROUTE_PERMISSIONS = {
     ): "tickets:own",  # object-level: own ticket, or tickets:manage
     ("POST", "/api/tickets/{ticket_id}/assign"): "tickets:manage",
     ("GET", "/api/kite/connection"): "kite:own",
+    ("GET", "/api/kite/account"): "kite:own",
     ("POST", "/api/kite/credentials"): "kite:own",
     ("POST", "/api/kite/credentials/remove"): "kite:own",
     ("POST", "/api/kite/connect/start"): "kite:own",

@@ -11,7 +11,7 @@ import { buttonClass } from "@/components/ui/styles";
 import { roleLabel, ticketPill } from "@/components/users/format";
 import { api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
-import { fmtIst } from "@/lib/formatting";
+import { fmtIst, fmtMoney } from "@/lib/formatting";
 import type { MyDashboard, TicketStatus } from "@/lib/schemas";
 
 const KITE: Record<MyDashboard["kite"]["state"], { text: string; tone: "good" | "warn" | "bad" | undefined; hint: string }> = {
@@ -44,6 +44,7 @@ export default function OverviewPage() {
   const { user, can } = useAuth();
   const q = useQuery({ queryKey: ["dashboard", "me"], queryFn: api.myDashboard });
   const d = q.data;
+  const account = useQuery({ queryKey: ["broker", "account"], queryFn: api.brokerAccount, enabled: can("kite:own") && d?.kite.state === "connected" }); // only when Kite is connected: each read asks Kite
   const first = user?.name.split(" ")[0] ?? "";
   return (
     <div className="space-y-6">
@@ -55,6 +56,15 @@ export default function OverviewPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {can("kite:own") ? (
               <StatCard label="Kite connection" value={KITE[d.kite.state].text} tone={KITE[d.kite.state].tone} href="/kite" hint={d.kite.state === "connected" && d.kite.token_expires_at ? `Until ${fmtIst(d.kite.token_expires_at)}` : KITE[d.kite.state].hint} />
+            ) : null}
+            {can("kite:own") && d.kite.state === "connected" ? (
+              <StatCard
+                label="Broker account"
+                value={account.data?.state === "ok" && account.data.cash !== null ? `₹${fmtMoney(account.data.cash)}` : account.isLoading ? "Reading..." : "Not available"}
+                tone={account.data && account.data.state !== "ok" ? "warn" : undefined}
+                href="/broker"
+                hint={account.data?.state === "ok" ? `Cash. ${account.data.holdings.length} holding${account.data.holdings.length === 1 ? "" : "s"} worth ₹${fmtMoney(account.data.totals.holdings_value, 0)}` : "Cash and holdings in Kite"}
+              />
             ) : null}
             <StatCard label="Open requests" value={d.tickets.open} href="/support" hint={d.tickets.open === 0 ? "Nothing waiting" : "Support tickets you opened"} />
             {can("crm:read") ? <StatCard label="My follow-ups" value={d.tasks.open} href="/tasks" tone={d.tasks.overdue > 0 ? "bad" : undefined} hint={d.tasks.overdue > 0 ? `${d.tasks.overdue} overdue` : "None overdue"} /> : null}

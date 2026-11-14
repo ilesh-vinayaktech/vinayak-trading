@@ -1,0 +1,38 @@
+{
+ "cash": "1234.5",
+ "holdings": [
+  {
+   "average_price": "200.5",
+   "instrument_id": 1,
+   "last_price": "200.5",
+   "outside_qty": "100",
+   "platform_qty": "0",
+   "pnl": "0",
+   "quantity": "100",
+   "symbol": "AAA",
+   "unsettled": "0",
+   "value": "20050"
+  },
+  {
+   "average_price": "50.25",
+   "instrument_id": null,
+   "last_price": "50.25",
+   "outside_qty": "15",
+   "platform_qty": "0",
+   "pnl": "0",
+   "quantity": "15",
+   "symbol": "BBB",
+   "unsettled": "5",
+   "value": "753.75"
+  }
+ ],
+ "kite_user_id": "AB1234",
+ "message": null,
+ "positions": [],
+ "read_at": "2026-11-11T10:00:00+00:00",
+ "state": "ok",
+ "totals": {
+  "holdings_pnl": "0",
+  "holdings_value": "20803.75"
+ }
+}

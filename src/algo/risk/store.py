@@ -39,9 +39,14 @@ def change(
         getattr(switch, op)(scope, by=by, reason=reason, now=now)
     else:
         raise ValueError(f"unknown operation {op!r}")
-    for e in switch.events[before:]:
+    save_new(conn, switch, before)
+    return switch
+
+
+def save_new(conn: psycopg.Connection, switch: KillSwitch, already_saved: int) -> None:
+    """Write the switch events after the first `already_saved` (what a policy or the reconciler changed in memory)."""
+    for e in switch.events[already_saved:]:
         conn.execute(
             "INSERT INTO kill_switch_event (ts, scope, mode, by_who, reason) VALUES (%s,%s,%s,%s,%s)",
             (e.ts, e.scope, e.mode.value, e.by, e.reason),
         )
-    return switch

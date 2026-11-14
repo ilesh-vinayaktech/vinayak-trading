@@ -1,0 +1,62 @@
+{
+ "data": {
+  "commodity": {
+   "available": {
+    "adhoc_margin": 0,
+    "cash": 0,
+    "collateral": 0,
+    "intraday_payin": 0,
+    "live_balance": 0,
+    "opening_balance": 0
+   },
+   "enabled": false,
+   "net": 0,
+   "utilised": {
+    "additional": 0,
+    "debits": 0,
+    "delivery": 0,
+    "equity": 0,
+    "exposure": 0,
+    "holding_sales": 0,
+    "liquid_collateral": 0,
+    "m2m_realised": 0,
+    "m2m_unrealised": 0,
+    "option_premium": 0,
+    "payout": 0,
+    "span": 0,
+    "stock_collateral": 0,
+    "turnover": 0
+   }
+  },
+  "equity": {
+   "available": {
+    "adhoc_margin": 0,
+    "cash": 1234.5,
+    "collateral": 0,
+    "intraday_payin": 0,
+    "live_balance": 1234.5,
+    "opening_balance": 0
+   },
+   "enabled": true,
+   "net": 1234.5,
+   "segment": "",
+   "utilised": {
+    "additional": 0,
+    "debits": 0,
+    "delivery": 0,
+    "equity": 0,
+    "exposure": 0,
+    "holding_sales": 0,
+    "liquid_collateral": 0,
+    "m2m_realised": 0,
+    "m2m_unrealised": 0,
+    "option_premium": 0,
+    "payout": 0,
+    "span": 0,
+    "stock_collateral": 0,
+    "turnover": 0
+   }
+  }
+ },
+ "status": "success"
+}

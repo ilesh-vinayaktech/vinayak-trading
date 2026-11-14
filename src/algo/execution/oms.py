@@ -6,11 +6,12 @@
     client_order_id, and an order that cannot be found pauses its strategy and raises an alert
   * broker updates are idempotent and tolerate out-of-order delivery (a duplicate, a stale fill or a late ACK is ignored)
   * every transition is an OrderEvent; `orders` is the fold of `events`
-Not here yet: persistence of the events and the transactional outbox (this core keeps them in memory), the minute
-reconciler process, and flatten (building the closing orders from positions)."""
+Not here yet: the transactional outbox, and the minute reconciler process for a real broker (positions and cash from Kite). `reconciler.compare` finds
+position and cash differences, `flatten.flatten` builds the closing orders."""
 
 from __future__ import annotations
 
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 
 from algo.core.clock import Clock
@@ -24,11 +25,12 @@ from algo.execution.orders import (
     State,
     apply,
     client_order_id,
+    is_platform_tag,
     replay,
 )
 from algo.risk.engine import RiskEngine
 from algo.risk.killswitch import Failure, FailurePolicy
-from algo.risk.model import Book, Day, Market, OrderRequest
+from algo.risk.model import Book, Day, Market, OrderRequest, Side
 
 STATUS = {
     "OPEN": State.ACKED,
@@ -55,6 +57,7 @@ class Oms:
         clock: Clock,
         policy: FailurePolicy | None = None,
         store: EventStore | None = None,
+        own_positions_only: bool = False,
     ) -> None:
         self.broker, self.risk, self.clock = broker, risk, clock
         self.policy = policy or FailurePolicy()
@@ -63,6 +66,9 @@ class Oms:
             self.store.load()
         )  # a restart replays every order
         self.orders: dict[str, Order] = {oid: replay(evs) for oid, evs in self.events.items()}
+        self.own_positions_only = (
+            own_positions_only  # live: never sell more than this strategy bought itself
+        )
         self.alerts: list[str] = []
         self.orphans: list[BrokerOrder] = []
         self.ignored = 0
@@ -83,6 +89,9 @@ class Oms:
         if existing is not None:  # the same intent again: never a second order
             return self.resolve_unknown(oid) if existing.state is State.UNKNOWN else existing
         decision = self.risk.approve(req, market, book, day, self.clock.now())
+        over_sold = (
+            self.own_positions_only and req.side is Side.SELL and req.qty > self._sellable(req)
+        )
         self._emit(
             oid,
             None,
@@ -95,6 +104,12 @@ class Oms:
         )
         if not decision.approved:
             return self._emit(oid, State.REJECTED, reason="risk: " + ", ".join(decision.codes))
+        if over_sold:
+            return self._emit(
+                oid,
+                State.REJECTED,
+                reason="own position: more than this strategy bought (shares held from elsewhere are never sold)",
+            )
         self._emit(oid, State.SUBMITTING)
         try:
             broker_id = self.broker.place_order(req, oid)
@@ -183,11 +198,31 @@ class Oms:
             raise OrderError(f"{order_id} is {o.state}, not UNKNOWN")
         return self._emit(order_id, State.CANCELLED, reason=f"confirmed not sent by {by}: {reason}")
 
-    def cancel_open(self, scope: str | None = None) -> list[str]:
-        """Ask the broker to cancel open orders (one strategy, or all). The order becomes CANCELLED when the broker says so."""
+    def _sellable(self, req: OrderRequest) -> int:
+        """What this strategy may still sell of the instrument: what it bought, less what it already has selling."""
+        held = self.positions().get((req.strategy_id, req.instrument_id), 0)
+        selling = sum(
+            o.qty - o.filled_qty
+            for o in self.orders.values()
+            if o.side is Side.SELL
+            and (o.strategy_id, o.instrument_id) == (req.strategy_id, req.instrument_id)
+            and (o.is_open or o.state in (State.SUBMITTING, State.UNKNOWN))
+        )
+        return held - selling
+
+    def positions(self) -> dict[tuple[str, int], int]:
+        """What the OMS's own orders add up to: signed filled quantity per (strategy, instrument), zero ones left out."""
+        out: dict[tuple[str, int], int] = {}
+        for o in self.orders.values():
+            key = (o.strategy_id, o.instrument_id)
+            out[key] = out.get(key, 0) + o.side.sign * o.filled_qty
+        return {k: q for k, q in out.items() if q != 0}
+
+    def cancel_open(self, scope: str | None = None, keep: Collection[str] = ()) -> list[str]:
+        """Ask the broker to cancel open orders (one strategy, or all), except the order ids in `keep`. The order becomes CANCELLED when the broker says so."""
         requested = []
         for o in list(self.orders.values()):
-            if o.is_open and (scope is None or o.strategy_id == scope):
+            if o.is_open and o.order_id not in keep and (scope is None or o.strategy_id == scope):
                 try:
                     self.broker.cancel_order(o.broker_order_id or "")
                 except BrokerError as e:
@@ -197,8 +232,8 @@ class Oms:
                 requested.append(o.order_id)
         return requested
 
-    def reconcile(self, threshold: int = 1) -> list[Mismatch]:
-        """Compare the OMS with the broker (the broker is the truth). At `threshold` mismatches trading is paused and an alert raised."""
+    def reconcile(self, threshold: int = 1, extra: Sequence[Mismatch] = ()) -> list[Mismatch]:
+        """Compare the OMS with the broker (the broker is the truth). `extra` are differences found elsewhere (positions, cash: see reconciler.compare) and count the same. At `threshold` mismatches trading is paused and an alert raised."""
         now = self.clock.now()
         try:
             remote = {b.client_order_id: b for b in self.broker.orders()}
@@ -231,10 +266,12 @@ class Oms:
                         f"the OMS filled {o.filled_qty}, the broker {b.filled_qty}",
                     )
                 )
+        out += list(extra)
         out += [
             Mismatch("ORPHAN", c, "the broker has an order the OMS never sent")
             for c in remote
             if c not in self.orders
+            and is_platform_tag(c)  # an order placed by hand is not ours to reconcile
         ]
         for m in out:
             if m.client_order_id in self.orders:

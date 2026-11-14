@@ -59,3 +59,20 @@ def test_the_log_cannot_be_edited_or_deleted_and_needs_a_who_and_a_why(db):
             "INSERT INTO kill_switch_event (ts, mode, by_who, reason) VALUES (%s,'PAUSE',' ','r')",
             (NOW,),
         )
+
+
+def test_changes_made_in_memory_by_a_policy_are_saved_from_where_the_database_left_off(db):
+    from algo.risk.killswitch import Failure, FailurePolicy
+
+    store.change(db, "pause", "s1", by="jane", reason="looking", now=NOW)
+    k = store.load(db)
+    known = len(k.events)
+    k.apply(
+        Failure.RECONCILIATION, FailurePolicy(), "s2", NOW
+    )  # the reconciler's answer, in memory only
+    assert store.load(db).mode("s2") is Mode.RUNNING
+    store.save_new(db, k, known)
+    reloaded = store.load(db)
+    assert (
+        reloaded.mode("s2") is Mode.PAUSE and len(reloaded.events) == 2
+    )  # s1's event is not written twice

@@ -213,8 +213,8 @@ def test_every_kind_of_mismatch_is_found_named_and_recorded_and_pauses_trading_a
     broker.move(b.order_id, "CANCELLED")  # the broker says cancelled, the OMS has SUBMITTED
     oms.on_update(broker.move(c.order_id, "PARTIAL", 2, D(100)))
     broker.move(c.order_id, "PARTIAL", 5, D(100))  # more filled at the broker than the OMS knows
-    broker.book["ORPHANTAG"] = BrokerOrder(
-        "B99", "ORPHANTAG", "OPEN"
+    broker.book["A" + "0" * 19] = BrokerOrder(
+        "B99", "A" + "0" * 19, "OPEN"
     )  # an order the OMS never sent
     found = oms.reconcile(threshold=4)
     assert sorted(m.kind for m in found) == [
@@ -321,3 +321,77 @@ def test_a_broker_reason_is_kept_on_the_order():
     o = submit(oms)
     done = oms.on_update(BrokerOrder("B1", o.order_id, "REJECTED", reason="not enough cash"))
     assert done.state is State.REJECTED and done.reason == "not enough cash"
+
+
+def test_the_oms_adds_up_its_own_fills_into_positions_and_a_cancel_can_spare_chosen_orders():
+    oms, broker, _ = build()
+    a, b, c = (
+        submit(oms, "a"),
+        submit(oms, "b", OrderRequest("s1", 7, Side.SELL, 4)),
+        submit(oms, "c", OrderRequest("s1", 8, Side.BUY, 1)),
+    )
+    oms.on_update(broker.move(a.order_id, "COMPLETE", 10, D(100)))
+    oms.on_update(broker.move(b.order_id, "COMPLETE", 4, D(100)))
+    assert oms.positions() == {("s1", 7): 6}  # 10 bought, 4 sold; c has not filled
+    assert oms.cancel_open("s1", keep={c.order_id}) == []
+    assert oms.cancel_open("s1") == [c.order_id]
+
+
+def test_differences_found_elsewhere_count_toward_the_threshold_like_order_mismatches():
+    from algo.execution.reconciler import Portfolio, compare
+
+    oms, broker, switch = build()
+    o = submit(oms)
+    oms.on_update(broker.orders()[0])  # the OMS has seen the broker's acknowledgement
+    assert o.order_id in oms.orders
+    extra = compare(Portfolio({7: 10}), Portfolio({7: 8}))
+    found = oms.reconcile(extra=extra)
+    assert [m.kind for m in found] == ["POSITION_MISMATCH"] and switch.mode("s1") is Mode.PAUSE
+    assert "POSITION_MISMATCH" in oms.alerts[-1]
+
+
+def test_an_order_placed_by_hand_is_never_cancelled_or_reconciled_but_a_platform_tag_we_do_not_know_is_reported():
+    from algo.execution.broker import MANUAL_PREFIX
+
+    oms, broker, switch = build()
+    o = submit(oms)
+    oms.on_update(broker.orders()[0])
+    broker.book[f"{MANUAL_PREFIX}9"] = BrokerOrder(
+        "B9", f"{MANUAL_PREFIX}9", "OPEN"
+    )  # the owner's own order in the Kite app
+    broker.book["someapp-77"] = BrokerOrder("B10", "someapp-77", "OPEN")  # another app's tag
+    assert oms.reconcile() == [] and switch.mode("s1") is Mode.RUNNING
+    assert oms.cancel_open("s1") == [o.order_id] and broker.cancel_calls == [
+        "B1"
+    ]  # only ours is cancelled
+    broker.book["A" + "F" * 19] = BrokerOrder(
+        "B11", "A" + "F" * 19, "OPEN"
+    )  # looks like ours, but the OMS never sent it
+    assert [m.kind for m in oms.reconcile()] == ["ORPHAN"]
+
+
+def test_a_live_oms_refuses_to_sell_more_than_the_strategy_bought_itself():
+    oms, broker, _ = build()
+    oms.own_positions_only = True
+
+    def sell(key, qty):
+        return oms.submit(
+            key, OrderRequest("s1", 7, Side.SELL, qty), MKT, Book(position_qty=1000), DAY0
+        )
+
+    r = sell("s0", 1)
+    assert (
+        r.state is State.REJECTED and "own position" in r.reason and broker.place_calls == 0
+    )  # nothing bought yet: all 1000 held are someone else's
+    buy = submit(oms, "b", OrderRequest("s1", 7, Side.BUY, 10))
+    oms.on_update(broker.move(buy.order_id, "COMPLETE", 10, D(100)))
+    first = sell("s1", 6)  # of the 10 it bought
+    assert first.state is State.SUBMITTED
+    assert sell("s2", 5).state is State.REJECTED  # 6 are already being sold: only 4 left to sell
+    assert sell("s3", 4).state is State.SUBMITTED
+    other = oms.submit("o", OrderRequest("s9", 7, Side.SELL, 1), MKT, Book(position_qty=5), DAY0)
+    assert other.state is State.REJECTED  # another strategy's holdings are not this one's either
+    oms.own_positions_only = False
+    assert (
+        sell("s4", 99).state is State.SUBMITTED
+    )  # the paper path keeps its own book and is unchanged

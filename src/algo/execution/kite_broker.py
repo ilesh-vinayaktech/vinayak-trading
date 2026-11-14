@@ -14,7 +14,13 @@ from collections.abc import Callable, Mapping
 from decimal import Decimal
 from typing import Any
 
-from algo.execution.broker import BrokerError, BrokerOrder, BrokerRejected, BrokerTimeout
+from algo.execution.broker import (
+    MANUAL_PREFIX,
+    BrokerError,
+    BrokerOrder,
+    BrokerRejected,
+    BrokerTimeout,
+)
 from algo.execution.live_gate import LiveGate, LiveRefused
 from algo.risk.model import OrderRequest
 
@@ -103,9 +109,56 @@ class KiteBroker:
         avg = Decimal(str(o["average_price"])) if o.get("average_price") else None
         return BrokerOrder(
             str(o["order_id"]),
-            o.get("tag") or f"MANUAL-{o['order_id']}",
+            o.get("tag") or f"{MANUAL_PREFIX}{o['order_id']}",
             status,
             filled,
             avg,
             str(o.get("status_message") or ""),
         )
+
+    # --- what the account holds (read only) ---------------------------------------------------------------------------
+    def _read(self, path: str, what: str) -> Any:
+        status, body = self._http("GET", f"{BASE}{path}", self._headers)
+        if status == 0:
+            raise BrokerTimeout(f"no answer reading {what}")
+        if status != 200:
+            raise BrokerError(f"HTTP {status} reading {what}")
+        return json.loads(body)["data"]
+
+    def holdings(self) -> dict[int, int]:
+        """Shares held in the demat account per instrument we trade: the settled quantity plus what was bought and has not settled yet.
+        This is everything the account holds, including shares bought outside the platform."""
+        by_symbol = {sym: iid for iid, sym in self.symbols.items()}
+        out: dict[int, int] = {}
+        for h in self._read("/portfolio/holdings", "holdings"):
+            iid = by_symbol.get(h["tradingsymbol"])
+            if iid is not None and h.get("exchange", self.exchange) == self.exchange:
+                out[iid] = (
+                    out.get(iid, 0) + int(h.get("quantity") or 0) + int(h.get("t1_quantity") or 0)
+                )
+        return out
+
+    def day_positions(self) -> dict[int, int]:
+        """Net quantity of today's delivery (CNC) trades per instrument we trade."""
+        by_symbol = {sym: iid for iid, sym in self.symbols.items()}
+        out: dict[int, int] = {}
+        for p in self._read("/portfolio/positions", "positions")["net"]:
+            iid = by_symbol.get(p["tradingsymbol"])
+            if (
+                iid is not None
+                and p.get("product") == self.product
+                and p.get("exchange", self.exchange) == self.exchange
+            ):
+                out[iid] = out.get(iid, 0) + int(p.get("quantity") or 0)
+        return out
+
+    def portfolio(self) -> dict[int, int]:
+        """The account's quantity per instrument we trade: the larger of the holdings figure and today's CNC position, so a purchase that Kite
+        shows in both (unsettled shares) is not counted twice. NOT yet confirmed against a same-day buy: the first supervised order must record both
+        responses and settle which layout Kite uses. Includes shares bought by hand, so compare it with `broker_may_hold_more=True`."""
+        held, today = self.holdings(), self.day_positions()
+        return {iid: max(held.get(iid, 0), today.get(iid, 0)) for iid in {*held, *today}}
+
+    def available_cash(self) -> Decimal:
+        """Equity cash the account can use now (`net` of the equity margin)."""
+        return Decimal(str(self._read("/user/margins", "margins")["equity"]["net"]))

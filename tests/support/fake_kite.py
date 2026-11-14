@@ -22,6 +22,7 @@ class FakeKite:
         self.book = []  # Kite's order dicts
         self.get_status = 200
         self.delete_status = 200
+        self.reads = {}  # path -> data, for the read-only account endpoints (/portfolio/holdings, /portfolio/positions, /user/margins)
 
     def __call__(self, method, url, headers, data=None):
         self.calls.append((method, url, headers, data))
@@ -60,6 +61,10 @@ class FakeKite:
                     else err(self.delete_status, "Order cannot be cancelled")
                 )
             return ok({"order_id": url.rsplit("/", 1)[1]})
+        if method == "GET" and url.split("kite.trade", 1)[1] in self.reads:
+            if self.get_status != 200:
+                return self.get_status, b"x"
+            return ok(self.reads[url.split("kite.trade", 1)[1]])
         if method == "GET":
             return (self.get_status, b"x") if self.get_status != 200 else ok(self.book)
         raise AssertionError(method)
