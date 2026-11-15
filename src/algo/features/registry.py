@@ -111,9 +111,9 @@ def _build() -> dict[str, FeatureDef]:
         {"n": 14},
         15,
         "price",
-        ["high", "low", "close"],
+        ["high", "low", "close", "raw_close"],
         price.atr(14),
-        "Wilder ATR: first value is the mean of the first 14 true ranges, then ATR[t] = (ATR[t-1] * 13 + TR[t]) / 14; a gap restarts the chain",
+        "Wilder ATR: first value is the mean of the first 14 true ranges, then ATR[t] = (ATR[t-1] * 13 + TR[t]) / 14; a gap restarts the chain; in price units as of t: multiplied by raw_close[t] / close[t] so a later split or bonus does not change it",
     )
     out["atr_pct_14d"] = _def(
         "atr_pct_14d",

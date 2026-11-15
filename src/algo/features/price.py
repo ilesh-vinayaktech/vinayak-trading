@@ -72,10 +72,14 @@ def _atr_chain(
 
 
 def atr(n: int) -> Callable[[Sequence[date], Mapping[date, SessionBar]], Result]:
-    """Wilder's average true range, in price units."""
+    """Wilder's average true range, in price units AS OF day t: the adjusted series is rescaled by raw_close[t] / close[t], which undoes any split or
+    bonus that takes effect after t (the adjusted series already carries it); on a day with no later action the factor is 1."""
 
     def f(sessions: Sequence[date], bars: Mapping[date, SessionBar]) -> Result:
-        return {d: (q(v), at) for d, (v, at) in _atr_chain(n, sessions, bars).items()}
+        return {
+            d: (q(v * bars[d].raw_close / bars[d].close), at)
+            for d, (v, at) in _atr_chain(n, sessions, bars).items()
+        }
 
     return f
 
