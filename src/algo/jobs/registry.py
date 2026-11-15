@@ -69,6 +69,13 @@ JOBS: tuple[Job, ...] = (
         "Every minute in market hours and once after the close (the half-minute keeps it clear of paper-orders): close the positions of an account whose kill switch is FLATTEN, then check the OMS log, the paper orders and the book against each other; a mismatch pauses the strategy and alerts",
     ),
     Job(
+        "compute-features",
+        "*-*-* 23:00 Asia/Kolkata",
+        ((*_PY, "scripts/compute_features.py", "--db", "{db}"),),
+        "Materialise every USABLE feature month by month against the newest data freeze; completed months are skipped, a paper run or market hours pause it at a month boundary, and it refuses when the input data is not ready",
+        timeout_s=6 * 3600,
+    ),
+    Job(
         "price-continuity",
         f"{WEEKDAYS} *-*-* 19:45 Asia/Kolkata",
         ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}"),),

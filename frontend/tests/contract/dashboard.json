@@ -118,6 +118,13 @@
    "name": "paper-reconcile"
   },
   {
+   "calendar": "*-*-* 23:00 Asia/Kolkata",
+   "description": "Materialise every USABLE feature month by month against the newest data freeze; completed months are skipped, a paper run or market hours pause it at a month boundary, and it refuses when the input data is not ready",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "compute-features"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 19:45 Asia/Kolkata",
    "description": "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
    "last_run": null,
@@ -263,7 +270,7 @@
    },
    {
     "level": "attention",
-    "text": "28 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 25 more."
+    "text": "29 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 26 more."
    }
   ],
   "status": "DOWN"
