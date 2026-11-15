@@ -1,0 +1,42 @@
+{
+ "description": "PEL rights issue of 2019-12-30 (11 shares for every 83 held at Rs 1,300, record date 2019-12-31). The factor is the issue's TERP computed from the terms (Rs 1,300 = face value 2 + premium 1,298) and the previous cum close from the bhavcopy; NSE's own F&O circular NSE/FAOP/43038 (122/2019) gives the same inputs and AF 0.976143. Recorded PROVISIONAL; the circular is the evidence for verification.",
+ "method": "rights",
+ "status": "provisional",
+ "expected_evidence_class": "PROVISIONAL_ISSUER_TERMS",
+ "note_prefix": "terms and NSE circular agree",
+ "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+ "calculation_version": "rights_terp_full_issue_price/1",
+ "resolutions": [
+  {
+   "symbol": "PEL",
+   "ex_date": "2019-12-30",
+   "kind": "rights",
+   "params": {
+    "new": "11",
+    "held": "83",
+    "subscription_price": "1300"
+   },
+   "expected_prev_close": "1632.90",
+   "payment": "Issue price Rs 1,300 per share (NSE circular 122/2019)",
+   "bhavcopy": {
+    "dataset": "nse/bhav",
+    "path": "data/lake/raw/nse/bhav/dt=2019-12-30/v0001.bin",
+    "sha256": "40071d699a638cf64bedb534592cc79b6f447df0d07885380eccf64bbd926c11",
+    "symbol_in_file": "PEL",
+    "series": "EQ",
+    "fields": {
+     "PREV_CLOSE": "1632.90"
+    }
+   },
+   "exchange_factor_reported": "0.976143",
+   "issuer_document": {
+    "document": "NSE F&O circular NSE/FAOP/43038 (122/2019), 2019-12-27: P = 1632.9, S = 1300, A = 11, B = 83, E = 38.96, AF = 0.976143",
+    "url": "https://nsearchives.nseindia.com/content/circulars/FAOP43038.pdf",
+    "stored_at": "data/evidence/rights/pel_2019_nse_circular_faop43038.pdf",
+    "sha256": "48c74801e5b79d1c2725d89f690f5dee91ea8dc1b1030d23bc580d27419e8fb3",
+    "retrieved": "2026-11-15"
+   },
+   "limitation": "the circular states the same P, S, A, B as the terms; its AF (0.976143) is the six-decimal rounding of the exact factor (0.97614282...). NOT yet verified: promote on the owner's decision."
+  }
+ ]
+}

@@ -26,14 +26,17 @@ Purpose: U2 needs bars for GSPL and PEL, and the bars were held until their corp
 | PEL Reg 30 filing, effectiveness | The scheme of merger became effective 2025-09-16; PEL merged into Piramal Finance and dissolved without winding up | `15debfc3cf283bd6` |
 | GSPL filing to NSE, 2026-04-29 | 10:13 ratio, record date 2026-05-12 | `946f56e683d1dd9c` |
 
-## Still missing
-**A complete list of NSE corporate actions for GSPL and PEL.** The sources above verify the named events; they do not show that no other split, bonus, rights issue or similar action occurred in 2019-10 to 2026. The lake holds action files for 2,634 symbols and none for these two, because `ingest_symbol` skips any symbol whose alias has ended. A scan of the stored bhavcopy files cannot prove absence (sessions after a missing file look like adjustments), so absence is not inferred.
+## The NSE action history, now loaded (2026-11-15, through the project's own `backfill_nse.py --stage actionssymbols`)
+Dev DB: GSPL 20 actions, PEL 29 (raw JSON kept in the lake, versioned). The ingest was changed to accept a symbol whose alias has ended (never guessing between two instruments), with tests.
+| Stock | Price-affecting actions in our bars (from 2019-10) | Everything else |
+|---|---|---|
+| **GSPL** | **none**: 20 dividends only (17 `ok`, 3 old ones `review` for 2006-2008, before our bars) | the earlier 2024-04-22 and 2024-08-26 moves are not corporate actions |
+| **PEL** | **rights ex 2019-12-30** (11:83 at Rs 1,300), **demerger ex 2022-08-30**, **buyback ex 2023-08-25** | before our bars: 2005 "other", 2008 arrangement, 2018-01-31 rights, 2005-2008 dividends (`review`); 18 dividends `ok` |
+- **PEL rights ex 2019-12-30**: my earlier scan missed it. NSE circular NSE/FAOP/43038 (122/2019, saved `data/evidence/rights/pel_2019_nse_circular_faop43038.pdf`, sha256 `48c74801e5b79d1c2725d89f690f5dee91ea8dc1b1030d23bc580d27419e8fb3`): P = 1,632.90 (equal to our bars' close of 2019-12-27), S = 1,300, 11:83, E = 38.96, **AF = 0.976143**. The same terms give 0.97614282... (the circular rounds). Primary evidence, same kind as the RELIANCE 2020 rights case.
+- **PEL buyback ex 2023-08-25**: no price adjustment is normal for a tender buyback; it follows the project's existing policy for the 277 resolved buybacks (ignored with reason).
+- **Pre-bar items** (2005-2018): nothing stored to adjust; same policy as the earlier ignored items.
+- **13 new items now sit in `review`** (7 old dividends, 2005 "other", 2008 arrangement, 2018 rights, plus the three above). Strict mode refuses PEL and GSPL while they are unresolved; research mode treats them as unresolved too, so loading bars is safe.
 
-## What I did not do, and why
-I tried to ask NSE's corporate-actions JSON for the two symbols directly. The environment refused it (scripted, browser-style access to NSE's website API), and I did not look for a way around that. The sanctioned route is the project's own job (`scripts/backfill_nse.py`, stage `actions`), which does exactly this fetch for the other 2,634 symbols.
+## Prepared, NOT applied (config in `config/action_resolutions/`, for `scripts/record_action_resolutions.py`)
+`pel_demerger_2022-08-30_recorded_2026-11-15.json` (base 1055.05, prev 1926.50) and `pel_rights_2019-12-30_recorded_2026-11-15.json`. That script checks the stored exchange file's hash and the database's previous close, so **it needs the PEL bars to exist first**: the bar stage you held. Order: load bars (identity application with `--with-bars`) -> dry-run both configs -> your decision on each provenance label -> apply -> resolve the buyback and the pre-bar items as "ignored with reason" -> U2/C1 re-read.
 
-## Proposed next steps (need the owner)
-1. **Load the two symbols' action history through the project's own ingest.** I can prepare the change (let `ingest_symbol` include a symbol whose alias has ended, add `--symbols`, tests first) and you run it, or you authorise me to run it.
-2. **PEL demerger**: record it from the exchange base price above (1055.05 / 1926.50) and decide its provenance label; it needs no gap estimate.
-3. **Bars**: load GSPL (1,639 rows, 2019-10-01..2026-05-11) and PEL (1,485 rows, ..2025-09-22) only after step 1; strict mode would still refuse PEL across 2022-08-30 until the base price is found. That would clear U2's "member without a bar" for GSPL fully, and for PEL in research mode.
-4. GSPL relationship: with the ratio now in a company filing, the relationship `AMALGAMATED_INTO GUJENERGY 10:13` can be proposed for verification (it is PROVISIONAL today).

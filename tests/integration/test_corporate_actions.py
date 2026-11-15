@@ -226,3 +226,46 @@ def test_rebuilding_an_issuers_rows_does_not_make_old_items_look_new(env):
     )  # what a refresh does per issuer: the ids all change
     load_actions(conn, acts, "sum", NOW)
     assert new_unresolved(conn, before) == []
+
+
+# ---- a symbol whose alias has ended (a stock that merged or delisted) ------------------------------------------------------
+def test_a_symbol_whose_alias_has_ended_is_skipped_unless_asked_for_by_name(env, tmp_path):
+    from algo.data.corporate_actions import ingest_symbol, reparse_symbol
+    from algo.data.lake import LocalLake
+
+    conn, ids = env
+    lake = LocalLake(tmp_path)
+    conn.execute(
+        "UPDATE instrument_alias SET valid_to='2025-01-01' WHERE source_symbol='BAJFINANCE'"
+    )
+    assert (
+        ingest_symbol(conn, lake, _fake_api, "BAJFINANCE", NOW) is None
+    )  # the daily job never sees it
+    r = ingest_symbol(conn, lake, _fake_api, "BAJFINANCE", NOW, include_ended=True)
+    assert r is not None and r.inserted > 0
+    assert conn.execute(
+        "SELECT count(DISTINCT instrument_id) FROM corporate_action WHERE instrument_id=%s",
+        (ids["BAJFINANCE"],),
+    ).fetchone() == (1,)
+    assert reparse_symbol(conn, lake, "BAJFINANCE", NOW) is None  # default behaviour unchanged
+    again = reparse_symbol(conn, lake, "BAJFINANCE", NOW, include_ended=True)
+    assert again is not None and again.inserted == r.inserted
+
+
+def test_a_symbol_that_belongs_to_two_instruments_is_refused_not_guessed(env, tmp_path):
+    from algo.data.corporate_actions import ingest_symbol
+    from algo.data.lake import LocalLake
+    from algo.data.store.instruments import InstrumentRepo
+
+    conn, _ = env
+    conn.execute(
+        "UPDATE instrument_alias SET valid_to='2024-01-01' WHERE source_symbol='BAJFINANCE'"
+    )
+    repo = InstrumentRepo(conn)
+    other = repo.add_instrument(
+        conn.execute("SELECT exchange_id FROM exchange WHERE mic='XNSE'").fetchone()[0],
+        "BAJFINANCE2",
+    )
+    repo.add_alias(other, "nse", "BAJFINANCE", date(2024, 1, 2), date(2025, 6, 30))
+    with pytest.raises(ValueError, match="more than one instrument"):
+        ingest_symbol(conn, LocalLake(tmp_path), _fake_api, "BAJFINANCE", NOW, include_ended=True)

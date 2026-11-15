@@ -239,6 +239,22 @@ def records_for(
 API = "https://www.nseindia.com/api/corporates-corporateActions"
 
 
+def _issuer(conn: psycopg.Connection, symbol: str, include_ended: bool) -> int | None:
+    """The instrument an NSE symbol belongs to. By default only a CURRENT alias counts (what
+    the daily job wants). `include_ended` also accepts a stock that has merged or delisted, but
+    only when the symbol names exactly one instrument: it is never guessed."""
+    sql = (
+        "SELECT DISTINCT instrument_id FROM instrument_alias "
+        "WHERE source='nse' AND source_symbol=%s"
+    )
+    rows = conn.execute(
+        sql if include_ended else sql + " AND valid_to IS NULL", (symbol,)
+    ).fetchall()
+    if len(rows) > 1:
+        raise ValueError(f"{symbol} belongs to more than one instrument: name the one you mean")
+    return int(rows[0][0]) if rows else None
+
+
 def ingest_symbol(
     conn: psycopg.Connection,
     lake: LocalLake,
@@ -246,14 +262,11 @@ def ingest_symbol(
     symbol: str,
     now: datetime,
     since: date = date(2005, 1, 1),
+    include_ended: bool = False,
 ) -> LoadResult | None:
     """Fetch one issuer's full action history, keep the raw JSON, parse, load. None = unknown."""
-    row = conn.execute(
-        "SELECT instrument_id FROM instrument_alias WHERE source='nse' AND source_symbol=%s "
-        "AND valid_to IS NULL",
-        (symbol,),
-    ).fetchone()
-    if row is None:
+    iid = _issuer(conn, symbol, include_ended)
+    if iid is None:
         return None
     today = require_utc(now).date()
     url = (
@@ -261,7 +274,7 @@ def ingest_symbol(
     )
     raw = get_json(url)
     m = lake.put("nse", f"corporate_actions_{symbol}", today, raw, url=url, fetched_at=now)
-    return _replace(conn, row[0], raw, m.checksum, now)
+    return _replace(conn, iid, raw, m.checksum, now)
 
 
 def _replace(
@@ -281,15 +294,15 @@ def _replace(
 
 
 def reparse_symbol(
-    conn: psycopg.Connection, lake: LocalLake, symbol: str, now: datetime
+    conn: psycopg.Connection,
+    lake: LocalLake,
+    symbol: str,
+    now: datetime,
+    include_ended: bool = False,
 ) -> LoadResult | None:
     """Rebuild from the newest raw JSON already in the lake (no network): use after parser fixes."""
-    row = conn.execute(
-        "SELECT instrument_id FROM instrument_alias WHERE source='nse' AND source_symbol=%s "
-        "AND valid_to IS NULL",
-        (symbol,),
-    ).fetchone()
+    iid = _issuer(conn, symbol, include_ended)
     m = lake.latest("nse", f"corporate_actions_{symbol}")
-    if row is None or m is None:
+    if iid is None or m is None:
         return None
-    return _replace(conn, row[0], lake.get(m), m.checksum, now)
+    return _replace(conn, iid, lake.get(m), m.checksum, now)

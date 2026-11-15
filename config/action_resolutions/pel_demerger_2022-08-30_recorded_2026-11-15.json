@@ -1,0 +1,36 @@
+{
+ "description": "PEL demerger of 2022-08-30 (4 Piramal Pharma shares per PEL share, record date 2022-09-01). Recorded PROVISIONAL, NOT verified. NSE circular NSE/CMTR/53437 (25 Aug 2022) ran a Pre-Open 2 call auction for PEL on 2022-08-30 and states 'Post price discovery, base price shall be the discovered price'; the base price is NSE's own ex-date open in the stored bhavcopy. The Rs 1,050 quoted by the press is BSE's price, not NSE's. Not a tax cost allocation (6.58%).",
+ "method": "exchange_adjusted_price",
+ "status": "provisional",
+ "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+ "calculation_version": "exchange_adjusted_price/1",
+ "resolutions": [
+  {
+   "symbol": "PEL",
+   "ex_date": "2022-08-30",
+   "kind": "demerger",
+   "base_price": "1055.05",
+   "expected_prev_close": "1926.50",
+   "entitlement_reported": "4 Piramal Pharma shares (Rs 10) per 1 PEL share (Rs 2); record date 2022-09-01 (PEL's own Reg 42 filing of 2022-08-18)",
+   "bhavcopy": {
+    "dataset": "nse/bhav",
+    "path": "data/lake/raw/nse/bhav/dt=2022-08-30/v0001.bin",
+    "sha256": "209b1e2e0335813c897ba11908774de05ea69d3f892f5357b2d7bded463cb05f",
+    "exchange_file": "sec_bhavdata_full_30082022.csv",
+    "symbol_in_file": "PEL",
+    "series": "EQ",
+    "fields": {
+     "OPEN_PRICE": "1055.05",
+     "PREV_CLOSE": "1926.50"
+    }
+   },
+   "reports": [],
+   "circular": {
+    "ref": "NSE/CMTR/53437, circular 93/2022, 2022-08-25",
+    "stored_at": "data/evidence/identity/nse_CMTR53437_pel_preopen_call_auction_2022-08-25.pdf",
+    "sha256": "f429671ffa307bf72058649dc41556b9a84e55b4b67869a10bd371b2a7421f6e"
+   },
+   "limitation": "primary rule (NSE/CMTR/53437) and the exchange's own bhavcopy open; no independent source confirms the number 1055.05 (BSE's price, Rs 1,050, is a different exchange's auction). PROVISIONAL until the owner decides its provenance."
+  }
+ ]
+}

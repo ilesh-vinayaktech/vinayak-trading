@@ -3,6 +3,8 @@
   actions   corporate actions for every Nifty 200 symbol (full history)
   actions500  as actions, for the Nifty 500 list in the lake; skips symbols with raw actions stored
   actionsall  as actions500, for every active equity in our instrument master (the whole market)
+  actionssymbols  the named symbols (--symbols), including a stock whose alias has ended (merged
+              or delisted); never guesses between two instruments sharing a symbol; no bars touched
   actionswindow  the whole market in one request, 14 days back to 120 ahead: past and today's join
               the table, announced future ones replace the `upcoming` table (the daily job)
   actionsrefresh  every active equity again (new actions, any never downloaded); a failed symbol
@@ -62,11 +64,13 @@ ap.add_argument(
         "actions500",
         "actionsall",
         "actionsrefresh",
+        "actionssymbols",
         "actionswindow",
         "reparse",
         "bars",
     ],
 )
+ap.add_argument("--symbols", nargs="+", help="NSE symbols for the actionssymbols stage")
 ap.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 10, 1))
 ap.add_argument("--to", dest="end", type=date.fromisoformat, default=datetime.now(UTC).date())
 ap.add_argument(
@@ -232,6 +236,34 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             "SELECT count(*) FROM corporate_action WHERE status='review'"
         ).fetchone()[0]
         log(f"{a.stage} done: inserted={tot_ins} failed={failed} review={n_review}")
+        finish_actions(conn, before, failed)
+
+    elif a.stage == "actionssymbols":
+        if not a.symbols:
+            sys.exit("error: --symbols is required for the actionssymbols stage")
+        client.warm(WARM)
+        before = review_keys(conn)
+        failed = 0
+        for sym in a.symbols:
+            try:
+                r = ingest_symbol(
+                    conn,
+                    lake,
+                    lambda u: client.get(u, accept="application/json"),
+                    sym,
+                    now,
+                    include_ended=True,
+                )
+            except Exception as e:
+                failed += 1
+                log(f"{sym} FAILED {type(e).__name__}: {e}")
+                fresh_session()
+                continue
+            if r is None:
+                failed += 1
+                log(f"{sym} is not in the instrument master")
+                continue
+            log(f"{sym}: inserted={r.inserted} unchanged={r.unchanged} replaced={r.replaced}")
         finish_actions(conn, before, failed)
 
     elif a.stage == "actionswindow":
