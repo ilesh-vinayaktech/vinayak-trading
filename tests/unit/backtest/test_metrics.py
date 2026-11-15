@@ -65,7 +65,7 @@ def test_sharpe_sign_follows_the_mean_return():
 
 
 def test_result_keys_are_stable():
-    keys = {"total_return", "cagr", "vol", "sharpe", "max_drawdown"}
+    keys = {"total_return", "cagr", "vol", "sharpe", "max_drawdown", "sortino", "calmar"}
     assert set(metrics(curve(100))) == keys and set(metrics(curve(100, 101, 102))) == keys
 
 
@@ -87,3 +87,23 @@ def test_a_wipe_out_is_reported_not_a_crash():
     m = metrics(curve(100, 50, 0, 0, 0))
     assert m["total_return"] == pytest.approx(-1.0) and m["max_drawdown"] == pytest.approx(-1.0)
     assert m["vol"] is not None and m["cagr"] == pytest.approx(-1.0)
+
+
+# ---- Sortino and Calmar ----------------------------------------------------------------------
+def test_sortino_and_calmar_match_a_hand_computation():
+    c = curve(100, 102, 99, 103, 101)  # returns +2%, -2.941176%, +4.040404%, -1.941748%
+    vals = [100, 102, 99, 103, 101]
+    rets = [b / a - 1 for a, b in zip(vals, vals[1:], strict=False)]
+    downside = math.sqrt(
+        sum(min(r, 0) ** 2 for r in rets) / len(rets)
+    )  # target 0, divided by ALL periods
+    m = metrics(c)
+    assert m["sortino"] == pytest.approx(sum(rets) / len(rets) / downside * math.sqrt(252))
+    assert m["calmar"] == pytest.approx(m["cagr"] / abs(m["max_drawdown"]))
+
+
+def test_sortino_and_calmar_are_none_when_there_is_no_downside_or_no_drawdown_and_in_short_curves():
+    up = metrics(curve(100, 101, 102, 104))
+    assert up["sortino"] is None and up["calmar"] is None and up["max_drawdown"] == 0
+    short = metrics(curve(100))
+    assert short["sortino"] is None and short["calmar"] is None
