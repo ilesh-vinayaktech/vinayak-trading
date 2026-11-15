@@ -13,7 +13,7 @@ autonomous live trading; that comes much later and behind the regulatory gate be
 | 2 | Holdout | **One globally locked, frozen holdout (2025-01-01 to 2026-11-13), evaluated ONCE, by one preregistered batch for the whole research programme (every family together). It is consumed by that evaluation.** No discovery worker, researcher or LLM can read it. See section 3. |
 | 3 | Compute | **One concurrent study worker.** Other experiments queue. Live ingestion first, then paper trading, then research. No separate worker pools yet. |
 | 4 | Reuse | **Extend the existing studies, trials, verdict, holdout, trial counter, stage lifecycle, `backtest_run` and audit log.** No parallel `vti_*` tables, no second promotion state machine. Code stays under `algo`. |
-| 5 | LLM | Optional and provider-isolated. Everything works without it. 250,000 tokens and Rs 1,000 a month, both enforced. Initial provider, if enabled: OpenAI. Never receives raw market data or holdout results. |
+| 5 | LLM | Optional and provider-isolated. Everything works without it. 2,000,000 tokens a day, enforced (owner decision 2026-11-15, replacing 250,000 tokens and Rs 1,000 a month); a rupee cap is optional and off until the owner sets one. Initial provider, if enabled: OpenAI. Never receives raw market data or holdout results. |
 | 6 | Users | **Personal capital only** for v1. The shared Kite account stays protected: the system manages only positions attributable to its own recorded fills. |
 | 7 | Timing | Phase 1 may run during the 8-week paper period, inside the limits in section 6. |
 

@@ -3,7 +3,8 @@
 
 Callers: tests/unit/learning/test_ai_gateway.py; no production caller yet. User's instruction: "do as much as you can do yourself, keep taking things one by
 one from @TODO.md and @plan.md ... keep things finishing with test". The provider is injected (a callable), so no network or key lives here.
-  * Budget: 250,000 tokens and Rs 1,000 a month, both enforced BEFORE the call (on the estimate) and the real usage is booked after.
+  * Budget: 2,000,000 tokens a DAY (owner decision 2026-11-15; was 250,000 a month), enforced BEFORE the call (on the estimate) and the real usage booked after. A rupee
+    cap is optional and OFF by default: the owner set no rupee figure for the daily budget (the earlier Rs 1,000 a month was for the old token budget).
   * Payload guard: raw market data and holdout results never leave. Forbidden key names (bars, ohlc, prices, holdout, ...) and any list of more than
     `MAX_SERIES` numbers are refused.
   * Isolation: a provider error, a refusal by the budget, or an output that fails its validator returns Outcome(ok=False); nothing is raised into trading code.
@@ -41,23 +42,23 @@ class PayloadRefused(ValueError):
 
 @dataclass(frozen=True)
 class Budget:
-    tokens: int = 250_000
-    rupees: Decimal = Decimal(1000)
+    tokens: int = 2_000_000  # per period (a day)
+    rupees: Decimal | None = None  # per period; None = no rupee cap
 
 
 @dataclass
 class Ledger:
-    """Insert-only usage by month ('2026-11')."""
+    """Insert-only usage by period (a day, '2026-11-15')."""
 
     rows: list[tuple[str, int, Decimal]] = field(default_factory=list)
 
-    def book(self, month: str, tokens: int, rupees: Decimal) -> None:
-        self.rows.append((month, tokens, rupees))
+    def book(self, period: str, tokens: int, rupees: Decimal) -> None:
+        self.rows.append((period, tokens, rupees))
 
-    def used(self, month: str) -> tuple[int, Decimal]:
+    def used(self, period: str) -> tuple[int, Decimal]:
         return (
-            sum(t for m, t, _ in self.rows if m == month),
-            sum((r for m, _, r in self.rows if m == month), Decimal(0)),
+            sum(t for m, t, _ in self.rows if m == period),
+            sum((r for m, _, r in self.rows if m == period), Decimal(0)),
         )
 
 
@@ -97,7 +98,7 @@ def ask(
     payload: dict[str, Any],
     *,
     ledger: Ledger,
-    month: str,
+    period: str,
     estimate_tokens: int,
     estimate_rupees: Decimal,
     validate: Callable[[str], Any],
@@ -109,23 +110,23 @@ def ask(
         guard(payload)
     except PayloadRefused as e:
         return Outcome(False, reason=f"payload refused: {e}")
-    tokens, rupees = ledger.used(month)
+    tokens, rupees = ledger.used(period)
     if tokens + estimate_tokens > budget.tokens:
         return Outcome(
             False,
-            reason=f"token budget: {tokens}+{estimate_tokens} would pass {budget.tokens} for {month}",
+            reason=f"token budget: {tokens}+{estimate_tokens} would pass {budget.tokens} for {period}",
         )
-    if rupees + estimate_rupees > budget.rupees:
+    if budget.rupees is not None and rupees + estimate_rupees > budget.rupees:
         return Outcome(
             False,
-            reason=f"rupee budget: {rupees}+{estimate_rupees} would pass {budget.rupees} for {month}",
+            reason=f"rupee budget: {rupees}+{estimate_rupees} would pass {budget.rupees} for {period}",
         )
     try:
         reply = provider(payload)
     except Exception as e:  # isolation: nothing a provider does may reach trading
         return Outcome(False, reason=f"provider failed: {type(e).__name__}")
     ledger.book(
-        month, reply.tokens, reply.rupees
+        period, reply.tokens, reply.rupees
     )  # booked even if the output is bad: it was paid for
     try:
         return Outcome(True, validate(reply.text))

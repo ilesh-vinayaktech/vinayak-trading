@@ -4,7 +4,7 @@ import pytest
 
 from algo.learning import ai_gateway as ai
 
-M = "2026-11"
+M = "2026-11-15"
 
 
 def ok_provider(tokens=100, rupees=D("0.5")):
@@ -15,7 +15,7 @@ def run(provider, payload=None, ledger=None, **kw):
     kw.setdefault("estimate_tokens", 100)
     kw.setdefault("estimate_rupees", D(1))
     return ai.ask(
-        provider, payload or {"q": "hi"}, ledger=ledger or ai.Ledger(), month=M, validate=int, **kw
+        provider, payload or {"q": "hi"}, ledger=ledger or ai.Ledger(), period=M, validate=int, **kw
     )
 
 
@@ -25,7 +25,7 @@ def test_a_good_call_returns_the_validated_value_and_books_real_usage():
     assert (
         out == ai.Outcome(True, 42, "")
         and led.used(M) == (120, D("0.7"))
-        and led.used("2026-12") == (0, D(0))
+        and led.used("2026-11-16") == (0, D(0))
     )
 
 
@@ -37,22 +37,23 @@ def test_token_and_rupee_budgets_are_enforced_before_the_call_at_the_edge():
     called = []
     prov = lambda p: called.append(1) or ai.Reply("1", 1, D(0))  # noqa: E731
     led = ai.Ledger()
-    led.book(M, 249_900, D(0))
-    assert run(prov, ledger=led).ok  # 249,900 + 100 = exactly the limit
+    led.book(M, 1_999_900, D(0))
+    assert run(prov, ledger=led).ok  # 1,999,900 + 100 = exactly the limit
     out = run(prov, ledger=led, estimate_tokens=100)
     assert not out.ok and "token budget" in out.reason and len(called) == 1
     led2 = ai.Ledger()
     led2.book(M, 0, D(999))
-    assert run(prov, ledger=led2, estimate_rupees=D(1)).ok
+    cap = ai.Budget(rupees=D(1000))
+    assert run(prov, ledger=led2, estimate_rupees=D(1), budget=cap).ok
     led3 = ai.Ledger()
     led3.book(M, 0, D(999))
-    out = run(prov, ledger=led3, estimate_rupees=D("1.01"))
+    out = run(prov, ledger=led3, estimate_rupees=D("1.01"), budget=cap)
     assert not out.ok and "rupee budget" in out.reason and len(called) == 2
 
 
-def test_last_months_spend_does_not_count():
+def test_yesterdays_spend_does_not_count():
     led = ai.Ledger()
-    led.book("2026-10", 250_000, D(1000))
+    led.book("2026-11-14", 2_000_000, D(1000))
     assert run(ok_provider(), ledger=led).ok
 
 
@@ -75,7 +76,7 @@ def test_provider_failure_is_contained_and_costs_nothing():
 def test_bad_output_is_rejected_but_still_paid_for():
     led = ai.Ledger()
     out = ai.ask(
-        lambda p: ai.Reply("not a number", 50, D(1)), {"q": 1}, ledger=led, month=M,
+        lambda p: ai.Reply("not a number", 50, D(1)), {"q": 1}, ledger=led, period=M,
         estimate_tokens=50, estimate_rupees=D(1), validate=int,
     )  # fmt: skip
     assert (
@@ -86,7 +87,7 @@ def test_bad_output_is_rejected_but_still_paid_for():
 
 
 def test_default_budget_is_the_decided_one():
-    assert ai.Budget() == ai.Budget(250_000, D(1000))
+    assert ai.Budget() == ai.Budget(2_000_000, None)
     with pytest.raises(AttributeError):
         ai.Budget().tokens = 1  # type: ignore[misc]
 
@@ -107,7 +108,7 @@ def test_refusals_name_the_path_and_say_false_and_the_provider_gets_the_payload(
     run(lambda p: seen.append(p) or ai.Reply("1", 1, D(0)), {"q": "hi"})
     assert seen == [{"q": "hi"}]
     led = ai.Ledger()
-    led.book(M, 250_000, D(0))
+    led.book(M, 2_000_000, D(0))
     bad_rows = [
         run(ok_provider(), {"bars": 1}),
         run(ok_provider(), ledger=led),
@@ -118,5 +119,11 @@ def test_refusals_name_the_path_and_say_false_and_the_provider_gets_the_payload(
     assert all(o.ok is False for o in bad_rows)
     boom = run(lambda p: 1 / 0)
     assert boom.ok is False
-    over = run(ok_provider(), estimate_rupees=D(1001))
+    over = run(ok_provider(), estimate_rupees=D(1001), budget=ai.Budget(rupees=D(1000)))
     assert over.ok is False
+
+
+def test_without_a_rupee_cap_only_tokens_limit_the_day():
+    led = ai.Ledger()
+    led.book(M, 10, D(1_000_000))
+    assert run(ok_provider(), ledger=led, estimate_rupees=D(5_000_000)).ok
