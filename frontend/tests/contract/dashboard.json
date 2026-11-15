@@ -118,7 +118,7 @@
    "name": "paper-reconcile"
   },
   {
-   "calendar": "*-*-* 23:00 Asia/Kolkata",
+   "calendar": "*-*-* 23:45 Asia/Kolkata",
    "description": "Materialise every USABLE feature month by month against the newest data freeze; completed months are skipped, a paper run or market hours pause it at a month boundary, and it refuses when the input data is not ready",
    "last_run": null,
    "last_success_at": null,
@@ -238,10 +238,17 @@
   },
   {
    "calendar": "*-*-* 23:00 Asia/Kolkata",
-   "description": "Nightly database dump, 14 days kept (the lake is not backed up: needs a destination)",
+   "description": "Nightly database dump, 14 days kept (the lake is mirrored by lake-backup once ALGO_LAKE_BACKUP_DIR is set)",
    "last_run": null,
    "last_success_at": null,
    "name": "db-backup"
+  },
+  {
+   "calendar": "*-*-* 23:15 Asia/Kolkata",
+   "description": "Mirror the raw lake to ALGO_LAKE_BACKUP_DIR (add-only, verified, a changed file is an error); alerts until a destination is set",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "lake-backup"
   },
   {
    "calendar": "Mon..Fri *-*-* 09:00 Asia/Kolkata",
@@ -270,7 +277,7 @@
    },
    {
     "level": "attention",
-    "text": "29 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 26 more."
+    "text": "30 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 27 more."
    }
   ],
   "status": "DOWN"

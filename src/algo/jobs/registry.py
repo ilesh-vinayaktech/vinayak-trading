@@ -70,7 +70,7 @@ JOBS: tuple[Job, ...] = (
     ),
     Job(
         "compute-features",
-        "*-*-* 23:00 Asia/Kolkata",
+        "*-*-* 23:45 Asia/Kolkata",
         ((*_PY, "scripts/compute_features.py", "--db", "{db}"),),
         "Materialise every USABLE feature month by month against the newest data freeze; completed months are skipped, a paper run or market hours pause it at a month boundary, and it refuses when the input data is not ready",
         timeout_s=6 * 3600,
@@ -264,7 +264,14 @@ JOBS: tuple[Job, ...] = (
                 "set -o pipefail; mkdir -p data/backups && docker exec algo-dev pg_dump -U postgres -Fc algo > data/backups/algo_{today}.part && mv data/backups/algo_{today}.part data/backups/algo_{today}.dump && find data/backups -name 'algo_*.dump' -mtime +14 -delete",
             ),
         ),
-        "Nightly database dump, 14 days kept (the lake is not backed up: needs a destination)",
+        "Nightly database dump, 14 days kept (the lake is mirrored by lake-backup once ALGO_LAKE_BACKUP_DIR is set)",
+    ),
+    Job(
+        "lake-backup",
+        "*-*-* 23:15 Asia/Kolkata",
+        ((*_PY, "scripts/backup_lake.py", "--lake", "data/lake"),),
+        "Mirror the raw lake to ALGO_LAKE_BACKUP_DIR (add-only, verified, a changed file is an error); alerts until a destination is set",
+        timeout_s=3 * 3600,
     ),
     Job(
         "data-freshness",
