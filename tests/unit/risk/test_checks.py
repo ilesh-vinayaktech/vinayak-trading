@@ -200,3 +200,114 @@ def test_a_reduce_only_order_must_shrink_the_position_and_skips_exposure_and_dai
     assert run(sell(10, reduce_only=True), Limits(restricted=frozenset({7})), book=bad_book) == [
         "RESTRICTED"
     ]
+
+
+# ---- found by mutation testing: what each refusal SAYS (an operator reads these), and the boundaries around reducing orders ----
+def why(order, limits=None, market=MKT, book=BOOK0, day=DAY0, now=NOW):
+    d = check(order, market, book, day, limits or Limits(), now)
+    return [(r.code, r.detail) for r in d.rejections]
+
+
+def test_every_refusal_says_in_exact_words_what_was_wrong():
+    L = Limits
+    assert why(buy(0)) == [("BAD_QTY", "quantity 0 is not positive")]
+    assert why(buy(), L(restricted=frozenset({7}))) == [
+        ("RESTRICTED", "instrument 7 is restricted")
+    ]
+    assert why(buy(), L(allowed=frozenset({1}))) == [
+        ("NOT_ALLOWED", "instrument 7 is not on the allow-list")
+    ]
+    assert why(buy(), market=Market(ltp=D(100), tradable=False)) == [
+        ("NOT_TRADABLE", "the instrument is not tradable now (expired, suspended or halted)")
+    ]
+    assert why(
+        buy(),
+        L(trading_hours=(time(9, 15), time(15, 30))),
+        now=datetime(2026, 11, 16, 11, 0, tzinfo=UTC),
+    ) == [("HOURS", "16:30 IST is outside 09:15-15:30")]
+    assert why(buy(11), L(max_order_qty=10)) == [("MAX_QTY", "11 shares is over 10")]
+    assert why(buy(11), L(max_order_value=D(1000))) == [
+        ("MAX_VALUE", "order value 1100 is over 1000")
+    ]
+    assert why(buy(), L(max_adv_fraction=D("0.00001")), market=Market(ltp=D(100), adv=None)) == [
+        ("ADV_UNKNOWN", "average daily volume is not known, so the size cannot be checked")
+    ]
+    assert why(buy(11), L(max_adv_fraction=D("0.00001"))) == [
+        ("ADV", "11 shares is over 0.00001 of the average daily volume 1000000")
+    ]
+    assert why(buy(10, D("120")), L(fat_finger_band=D("0.1"))) == [
+        ("FAT_FINGER", "limit 120 is more than 0.1 from the last price 100")
+    ]
+    assert why(buy(10), L(max_instrument_value=D(500))) == [
+        ("INSTRUMENT_LIMIT", "position would be 1000, over 500")
+    ]
+    assert why(buy(10), L(max_sector_value=D(500)), market=Market(ltp=D(100), sector=None)) == [
+        ("SECTOR_UNKNOWN", "the sector is not known, so the sector limit cannot be checked")
+    ]
+    assert why(buy(10), L(max_sector_value=D(500)), book=Book(sector_value=D(100))) == [
+        ("SECTOR_LIMIT", "sector exposure would be 1100, over 500")
+    ]
+    assert why(sell(10), L(max_sector_value=D(500)), book=Book(sector_value=D(-100))) == [
+        ("SECTOR_LIMIT", "sector exposure would be 1100, over 500")
+    ]  # a short adds exposure
+    assert why(buy(10), L(max_gross_value=D(500)), book=Book(gross_value=D(100))) == [
+        ("GROSS_LIMIT", "gross exposure would be 1100, over 500")
+    ]
+    assert why(buy(10), L(max_net_value=D(500)), book=Book(net_value=D(100))) == [
+        ("NET_LIMIT", "net exposure would be 1100, over 500")
+    ]
+    assert why(sell(10), L(max_net_value=D(500)), book=Book(net_value=D(-100))) == [
+        ("NET_LIMIT", "net exposure would be 1100, over 500")
+    ]
+    assert why(buy(10), L(check_margin=True), book=Book(margin_available=D(10))) == [
+        ("MARGIN", "the order needs 1000, margin available is 10")
+    ]
+    assert why(buy(), L(max_open_orders=3), book=Book(open_orders=3)) == [
+        ("OPEN_ORDERS", "3 orders are already open (limit 3)")
+    ]
+    assert why(buy(), L(max_daily_orders=5), day=Day(orders=5)) == [
+        ("DAILY_ORDERS", "5 orders today (limit 5)")
+    ]
+    assert why(buy(10), L(max_daily_turnover=D(1500)), day=Day(turnover=D(600))) == [
+        ("DAILY_TURNOVER", "turnover would be 1600, over 1500")
+    ]
+    assert why(buy(), L(max_daily_loss=D(500)), day=Day(pnl=D(-500))) == [
+        ("DAILY_LOSS", "today's loss 500 has reached 500")
+    ]
+    assert why(buy(), L(max_consecutive_failures=3), day=Day(consecutive_failures=3)) == [
+        ("CONSEC_FAILURES", "3 execution failures in a row (limit 3)")
+    ]
+
+
+def test_the_trading_hours_are_read_in_indian_time_whatever_the_machine_clock_says(monkeypatch):
+    import time as _time
+
+    monkeypatch.setenv("TZ", "UTC")
+    _time.tzset()
+    try:
+        lim = Limits(trading_hours=(time(9, 15), time(15, 30)))
+        assert (
+            run(buy(), lim, now=datetime(2026, 11, 16, 5, 0, tzinfo=UTC)) == []
+        )  # 10:30 IST (05:00 UTC) is inside
+        assert run(buy(), lim, now=datetime(2026, 11, 16, 10, 5, tzinfo=UTC)) == [
+            "HOURS"
+        ]  # 15:35 IST is after the close; local time here would be 10:05
+    finally:
+        monkeypatch.delenv("TZ")
+        _time.tzset()
+
+
+def test_a_reduce_only_order_of_one_share_is_a_reduction_and_a_zero_share_one_is_refused_twice_over():
+    assert run(sell(1, reduce_only=True), book=Book(position_qty=1)) == []
+    assert run(buy(1, reduce_only=True), book=Book(position_qty=-1)) == []
+    assert run(sell(0, reduce_only=True), book=Book(position_qty=5)) == [
+        "BAD_QTY",
+        "REDUCE_ONLY_VIOLATION",
+    ]
+    assert run(buy(0, reduce_only=True), book=Book(position_qty=-5)) == [
+        "BAD_QTY",
+        "REDUCE_ONLY_VIOLATION",
+    ]
+    assert why(sell(6, reduce_only=True), book=Book(position_qty=5)) == [
+        ("REDUCE_ONLY_VIOLATION", "a SELL of 6 does not reduce a position of 5")
+    ]

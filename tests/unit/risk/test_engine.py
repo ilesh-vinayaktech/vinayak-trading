@@ -81,3 +81,36 @@ def test_every_reason_is_reported_together():
     e = RiskEngine(Limits(max_order_qty=1), k)
     k.pause(None, by="jane", reason="r", now=NOW)
     assert approve(e, order()).codes == ["PAUSED", "MAX_QTY"]
+
+
+# ---- found by mutation testing ------------------------------------------------------------------------------------
+def test_the_pause_and_rate_refusals_say_in_exact_words_what_stopped_the_order():
+    k = KillSwitch()
+    e = RiskEngine(Limits(order_rate_per_s=D(1), order_burst=1), k)
+    k.pause("s1", by="jane", reason="r", now=NOW)
+    assert [(r.code, r.detail) for r in approve(e, order()).rejections] == [
+        ("PAUSED", "the kill switch is PAUSE for s1")
+    ]
+    k.resume("s1", by="jane", reason="ok", now=NOW)
+    assert approve(e, order()).approved  # the only token
+    assert [(r.code, r.detail) for r in approve(e, order()).rejections] == [
+        ("RATE", "more than 1 orders a second")
+    ]
+
+
+def test_the_day_and_the_time_reach_the_checks_not_just_the_order():
+    e = RiskEngine(
+        Limits(
+            max_daily_orders=1,
+            trading_hours=(
+                NOW.time().replace(hour=9, minute=15),
+                NOW.time().replace(hour=15, minute=30),
+            ),
+        ),
+        KillSwitch(),
+    )
+    assert approve(e, order(), day=Day(orders=1)).codes == [
+        "DAILY_ORDERS"
+    ]  # the day's activity is used
+    late = NOW.replace(hour=11)  # 16:30 IST
+    assert approve(e, order(), now=late).codes == ["HOURS"]  # and so is the clock

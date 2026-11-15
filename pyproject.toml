@@ -107,6 +107,11 @@ paths_to_mutate = [
   "src/algo/core/logs.py",
   "src/algo/api/scorecards.py",
   "src/algo/paper/tracking.py",
+  "src/algo/risk/checks.py",
+  "src/algo/risk/engine.py",
+  "src/algo/risk/killswitch.py",
+  "src/algo/risk/limits.py",
+  "src/algo/risk/realtime.py",
 ]
 tests_dir = ["tests/unit/"]
 # The sandbox clears the environment in its worker, which removes the variable mutmut's instrumented code reads: those tests crash under mutation

@@ -36,3 +36,36 @@ def test_limits_load_from_plain_config_values():
 def test_an_unknown_key_is_refused_not_ignored():
     with pytest.raises(LimitsError, match="unknown limit.*max_order_valu"):
         Limits.from_mapping({"max_order_valu": 1})
+
+
+# ---- found by mutation testing -----------------------------------------------------------------------------------------
+def test_every_integer_limit_loads_as_an_integer_from_text_and_several_unknown_names_are_all_listed():
+    got = Limits.from_mapping(
+        {
+            "max_order_qty": "500",
+            "order_burst": "3",
+            "max_open_orders": "7",
+            "max_daily_orders": "40",
+            "max_consecutive_failures": "4",
+        }
+    )
+    assert (
+        got.max_order_qty,
+        got.order_burst,
+        got.max_open_orders,
+        got.max_daily_orders,
+        got.max_consecutive_failures,
+    ) == (500, 3, 7, 40, 4)
+    assert all(
+        type(v) is int
+        for v in (
+            got.max_order_qty,
+            got.order_burst,
+            got.max_open_orders,
+            got.max_daily_orders,
+            got.max_consecutive_failures,
+        )
+    )
+    with pytest.raises(LimitsError) as e:
+        Limits.from_mapping({"zeta": 1, "alpha": 2})
+    assert str(e.value) == "unknown limit(s): alpha, zeta"

@@ -100,3 +100,45 @@ def test_the_switch_can_be_rebuilt_from_its_log_with_the_latest_event_per_scope_
     ]
     k = KillSwitch.from_events(log)
     assert k.mode("a") is Mode.CANCEL and k.mode("b") is Mode.RUNNING and k.events == log
+
+
+# ---- found by mutation testing: the whole record of every operation, and the exact words of the refusal ----------------
+LATER = datetime(2026, 11, 16, 6, 30, tzinfo=UTC)
+
+
+def test_every_operation_records_when_where_who_and_why_in_full():
+    k = KillSwitch()
+    k.pause("s1", by="jane", reason="looking", now=NOW)
+    k.cancel("s2", by="joe", reason="data", now=LATER)
+    k.flatten("s3", by="amy", reason="fire", now=NOW, emergency_override=True)
+    k.resume("s1", by="jane", reason="ok", now=LATER)
+    got = [(e.ts, e.scope, e.mode, e.by, e.reason) for e in k.events]
+    assert got == [
+        (NOW, "s1", Mode.PAUSE, "jane", "looking"),
+        (LATER, "s2", Mode.CANCEL, "joe", "data"),
+        (NOW, "s3", Mode.FLATTEN, "amy", "fire"),
+        (LATER, "s1", Mode.RUNNING, "jane", "ok"),
+    ]
+
+
+def test_the_flatten_refusal_says_exactly_what_is_missing():
+    with pytest.raises(KillSwitchError) as e:
+        KillSwitch().flatten("a", by="jane", reason="x", now=NOW)
+    assert str(e.value) == "FLATTEN needs an explicit emergency override"
+
+
+def test_a_failure_is_recorded_as_the_policy_with_the_failure_named_and_an_equal_response_adds_nothing():
+    k = KillSwitch()
+    assert k.apply(Failure.DATA_STALE, FailurePolicy(), "s1", NOW) is Mode.PAUSE
+    assert [(e.ts, e.scope, e.mode, e.by, e.reason) for e in k.events] == [
+        (NOW, "s1", Mode.PAUSE, "policy:DATA_STALE", "DATA_STALE")
+    ]
+    assert (
+        k.apply(Failure.BROKER_DOWN, FailurePolicy(), "s1", LATER) is Mode.PAUSE
+    )  # already paused: no second event, no new time
+    assert len(k.events) == 1
+    stronger = FailurePolicy(actions={Failure.RECONCILIATION: Mode.CANCEL})
+    assert k.apply(Failure.RECONCILIATION, stronger, "s1", LATER) is Mode.CANCEL
+    assert (
+        k.events[-1].ts == LATER and k.events[-1].reason == "RECONCILIATION" and len(k.events) == 2
+    )

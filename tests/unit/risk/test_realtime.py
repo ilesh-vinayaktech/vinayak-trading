@@ -76,3 +76,58 @@ def test_post_trade_flags_slippage_over_the_tolerance_and_a_low_fill_rate():
     assert [f.code for f in post_trade(fills, ordered_qty=20, model_bps=D(1), limits=Limits())] == [
         "SLIPPAGE"
     ]  # the 2x default
+
+
+# ---- found by mutation testing: the words of each breach and flag, and the one-unit boundaries ----------------------
+def test_each_breach_says_in_exact_words_what_happened():
+    lim = Limits(max_daily_loss=D(1000), max_drawdown=D("0.1"), max_data_age_s=D(60))
+    live = Live(
+        day_pnl=D(-1500),
+        equity=D(80000),
+        peak_equity=D(100000),
+        data_age_s=D(90),
+        broker_connected=False,
+    )
+    assert [(b.failure, b.detail) for b in monitor(live, lim)] == [
+        (Failure.DAILY_LOSS, "today's loss 1500 has reached 1000"),
+        (Failure.DRAWDOWN, "equity is 20.00% below its peak (limit 10.00%)"),
+        (Failure.DATA_STALE, "no fresh data for 90 s (limit 60)"),
+        (Failure.BROKER_DOWN, "the broker connection is down"),
+    ]
+    never = Live(
+        day_pnl=D(0), equity=D(1), peak_equity=D(1), data_age_s=None, broker_connected=True
+    )
+    assert [b.detail for b in monitor(never, Limits(max_data_age_s=D(60)))] == [
+        "no fresh data for None s (limit 60)"
+    ]
+
+
+def test_a_peak_of_exactly_one_is_still_measured_for_drawdown():
+    lim = Limits(max_drawdown=D("0.5"))
+    assert [b.failure for b in monitor(Live(D(0), D("0.5"), D(1), None, True), lim)] == [
+        Failure.DRAWDOWN
+    ]
+    assert (
+        monitor(Live(D(0), D(0), D(0), None, True), lim) == []
+    )  # no peak: nothing to measure against
+
+
+def test_post_trade_flags_say_what_was_realised_and_a_fill_rate_exactly_at_the_floor_passes():
+    lim = Limits(slippage_tolerance=D(2), min_fill_rate=D("0.9"))
+    fills = [Fill(Side.BUY, 10, D(100), D("100.10"))]  # 10 bps worse
+    assert [
+        (f.code, f.detail) for f in post_trade(fills, ordered_qty=10, model_bps=D(4), limits=lim)
+    ] == [("SLIPPAGE", "realised 10.0 bps against the model's 4 bps")]
+    assert [
+        (f.code, f.detail)
+        for f in post_trade(
+            [Fill(Side.BUY, 8, D(100), D(100))], ordered_qty=10, model_bps=D(4), limits=lim
+        )
+    ] == [("FILL_RATE", "8 of 10 shares filled, below 90%")]
+    nine_of_ten = [Fill(Side.BUY, 9, D(100), D(100))]
+    assert (
+        post_trade(nine_of_ten, ordered_qty=10, model_bps=D(4), limits=lim) == []
+    )  # 0.9 is not below 0.9
+    assert [f.code for f in post_trade([], ordered_qty=1, model_bps=D(4), limits=lim)] == [
+        "FILL_RATE"
+    ]  # a single share ordered and none filled
