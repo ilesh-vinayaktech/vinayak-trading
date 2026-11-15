@@ -17,6 +17,17 @@ Workload: N instruments x one-minute bars over 375-minute sessions, synthetic pr
 A criterion that is missed is reported as FAIL with the number; it is not adjusted afterwards. The 100-million-row scale the TODO names is a run of the same script
 with `--rows 100000000` on the production host; results at smaller sizes are labelled with the size they were measured at.
 
+## Added before the TimescaleDB run (2026-11-15; written before that run, which is why they sit above the results)
+
+Run with `--timescale` where the extension is installed. The table becomes a hypertable (90-day chunks, as `bar_1m`), compression is enabled (segment by instrument,
+order by time), every chunk is compressed, and a continuous aggregate of daily bars is created and refreshed.
+
+| # | Measure | Pass criterion |
+|---|---|---|
+| 6 | Compression ratio, uncompressed total size over compressed total size | at least 4x (synthetic prices compress differently from real ones: reported with that caveat) |
+| 7 | Continuous aggregate (daily bars) initial refresh | at most 5 s per million rows |
+| 8 | Criteria 2-4 again on the compressed table | the same limits |
+
 ## Results
 
 **2026-11-15, 2,000,000 rows, 500 instruments, plain PostgreSQL on the development machine (no TimescaleDB, no compression):** ingest 127,000 rows/s (PASS),
