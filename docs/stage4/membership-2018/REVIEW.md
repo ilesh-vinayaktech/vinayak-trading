@@ -1,7 +1,7 @@
 # Review pack: Nifty 200 membership 2018-04-02 to 2026-11-07 (revision 4 candidate)
 
-For the owner, to sign off. About 15 minutes: four decisions and six spot checks. Nothing here is loaded into the database yet; your sign-off is
-what lets me load it and declare coverage, and until then no Nifty 200 experiment can be registered as point-in-time.
+For the owner, to sign off. About 15 minutes: four decisions and six spot checks. UPDATE 2026-11-15: the identities of D2/D3 are applied to the dev DB and the reconstruction is loaded as PROVISIONAL (566 events, one coverage). Your sign-off is
+what lets me mark it VERIFIED; until then no strict-mode (point-in-time) Nifty 200 experiment can be registered. 10 listing handovers (D5) are stored effective on the day they were announced, not the earlier true date.
 
 ## What you are signing
 That the reconstructed membership (`membership_intervals.csv`, 391 intervals) is an accurate record of who was in the Nifty 200 on each day, except where
@@ -66,5 +66,4 @@ Person verification itself: until you sign, everything is PROVISIONAL.
 
 ## After you answer
 Reply with a line per decision, for example "D2 approve, D3 approve, D4 accept, D5 accept". Then, in this order: apply the GSPL and PEL identity per its package (with the usual
-backup and dry run), extend it to BHARATFIN and HEXAWARE, **build the loader that turns this reconstruction into the stored membership events and the declared coverage** (not built yet: the
-older loader does not see the voids or revocations), record your verification with your name and the decision list, and re-run the readiness check. If a spot check fails, tell me the symbol and what you expected.
+backup and dry run), extend it to BHARATFIN and HEXAWARE, **build the loader that turns this reconstruction into the stored membership events and the declared coverage** (built and run as PROVISIONAL, `scripts/load_membership.py`), record your verification with your name and the decision list, and re-run the readiness check. If a spot check fails, tell me the symbol and what you expected.
