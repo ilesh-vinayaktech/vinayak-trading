@@ -1097,6 +1097,9 @@ export const intelProgressSchema = z.object({
       quiet_s: z.number().nullable(),
       alive: z.boolean().nullable(),
       stalled: z.boolean(),
+      estimate: z.enum(["none", "uneven", "waiting", "overrun", "ok"]),
+      per_step_s: z.number().nullable(),
+      eta_s: z.number().nullable(),
     }),
   ),
 });
@@ -1117,3 +1120,30 @@ export const intelFunnelSchema = z.object({
   ),
 });
 export type IntelFunnel = z.infer<typeof intelFunnelSchema>;
+
+const featureCheckSchema = z.object({ ok: z.boolean(), detail: z.string() });
+export const intelFeaturesSchema = z.object({
+  features: z.array(
+    z.object({
+      name: z.string(),
+      version: z.string(),
+      family: z.string(),
+      measures: z.string(),
+      unit: z.string(),
+      inputs: z.array(z.string()),
+      warmup: z.number(),
+      status: z.enum(["NOT_REGISTERED", "DRAFT", "USABLE", "BLOCKED"]),
+      status_reason: z.string().nullable(),
+      validations: z.number(),
+      validation: z
+        .object({
+          passed: z.boolean(),
+          reasons: z.array(z.string()),
+          at: z.string().nullable(),
+          checks: z.object({ coverage: featureCheckSchema, reproducible: featureCheckSchema, stored_match: featureCheckSchema, no_lookahead: featureCheckSchema }),
+        })
+        .nullable(),
+    }),
+  ),
+});
+export type IntelFeatures = z.infer<typeof intelFeaturesSchema>;

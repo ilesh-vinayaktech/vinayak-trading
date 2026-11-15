@@ -791,6 +791,31 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
         "d" * 64,
         now,
     )
+    from psycopg.types.json import Jsonb
+
+    fids = dict(conn.execute("SELECT name, feature_id FROM feature_definition").fetchall())
+
+    def report(passed, reasons, share, violations):
+        return {"passed": passed, "reasons": reasons, "min_coverage": "0.90", "coverage": {"share": share, "eligible": 100, "valued": 99},
+                "recompute": {"identical": True, "months": 3, "stored_months_checked": 2, "stored_match": True}, "lookahead": {"cuts": [], "checks": 40, "violations": violations}}  # fmt: skip
+
+    conn.execute(
+        "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'USABLE','validated','agent',%s)",
+        (fids["ret_5d"], now),
+    )
+    for name, rep in (
+        ("ret_5d", report(True, [], "0.989657", 0)),
+        (
+            "vol_20d",
+            report(
+                False, ["look-ahead: 3 value(s) changed when later data was removed"], "0.95", 3
+            ),
+        ),
+    ):
+        conn.execute(
+            "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,%s,%s,'agent',%s)",
+            (fids[name], "a" * 64, rep["passed"], Jsonb(rep), now),
+        )
     memory.add(
         conn,
         "DECISION",
@@ -829,6 +854,7 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
     shots = {
         "intel_progress": c.get("/api/intel/progress"),
         "intel_funnel": c.get("/api/intel/funnel"),
+        "intel_features": c.get("/api/intel/features"),
         "intel_overview": c.get("/api/intel/overview"),
         "intel_alpha": c.get("/api/intel/alpha"),
         "intel_notes": c.get("/api/intel/notes"),

@@ -154,3 +154,41 @@ def test_a_job_that_only_learns_its_step_count_after_starting_can_set_the_total(
         p.step("x", total=0)
     with pytest.raises(ValueError, match="outside 0..24"):
         p.step("x", done=25)
+
+
+def test_the_times_of_the_first_and_latest_finished_step_are_kept_for_estimating(conn):
+    migrate(conn)
+    clock = SimClock(T0)
+    p = progress.Progress(conn, clock, "j", "A job", 5)
+    p.start()
+
+    def times():
+        return conn.execute(
+            "SELECT first_done_at, last_done_at FROM job_progress WHERE run_id=%s", (p.run_id,)
+        ).fetchone()
+
+    assert times() == (None, None)
+    clock.advance(timedelta(minutes=3))
+    p.step("working", "no count given")  # a message alone finishes no step
+    p.step("working", done=0)
+    assert times() == (None, None)
+    p.step("working", done=1)
+    assert times() == (T0 + timedelta(minutes=3),) * 2
+    clock.advance(timedelta(minutes=2))
+    p.step("working", "same count again", done=1)  # not a new step
+    assert times() == (T0 + timedelta(minutes=3),) * 2
+    p.step("working", done=2)
+    assert times() == (T0 + timedelta(minutes=3), T0 + timedelta(minutes=5))
+    clock.advance(timedelta(minutes=4))
+    p.step("working", done=4)  # two steps at once still count as new work
+    assert times() == (T0 + timedelta(minutes=3), T0 + timedelta(minutes=9))
+
+
+def test_a_job_whose_steps_differ_a_lot_says_so(conn):
+    migrate(conn)
+    even = progress.Progress(conn, SimClock(T0), "j", "Even", 2)
+    uneven = progress.Progress(conn, SimClock(T0), "j", "Uneven", 2, uniform=False)
+    even.start()
+    uneven.start()
+    got = dict(conn.execute("SELECT label, uniform FROM job_progress").fetchall())
+    assert got == {"Even": True, "Uneven": False}

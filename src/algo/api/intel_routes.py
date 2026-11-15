@@ -121,6 +121,27 @@ def allocations(conn: WConn, limit: int = Query(20, ge=1, le=100)) -> dict[str, 
     }  # fmt: skip
 
 
+def _estimate(r: dict[str, Any], now: Any) -> tuple[str, int | None, int | None]:
+    """Time remaining from how long the finished steps took, counted from the first step the job was seen to finish (so its start-up is left out; it needs one full step after that).
+    Returns (state, seconds per step, seconds left): none (not running), uneven (steps differ too much to average), waiting (not enough finished steps yet), overrun (the current step
+    has already taken longer than the average), ok."""
+    if r["status"] != "RUNNING":
+        return "none", None, None
+    if not r["uniform"]:
+        return "uneven", None, None
+    first = r["first_done_count"]
+    if (
+        first is None
+        or r["done"] <= first
+        or r["first_done_at"] is None
+        or r["last_done_at"] is None
+    ):
+        return "waiting", None, None
+    per_step = (r["last_done_at"] - r["first_done_at"]).total_seconds() / (r["done"] - first)
+    left = per_step * (r["total"] - r["done"]) - (now - r["last_done_at"]).total_seconds()
+    return ("ok", int(per_step), int(left)) if left > 0 else ("overrun", int(per_step), None)
+
+
 @router.get("/progress")
 def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50)) -> dict[str, Any]:
     """What the long jobs are doing now: running ones first, then the latest finished. `alive` says whether the job's process still exists; `stalled` that a running job has been quiet too long."""
@@ -129,6 +150,7 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
     for r in job_progress.recent(conn, limit):
         running = r["status"] == "RUNNING"
         quiet = int((now - r["updated_at"]).total_seconds())
+        est, per_step, eta = _estimate(r, now)
         jobs.append(
             {
                 "id": r["run_id"], "job": r["job"], "label": r["label"], "status": r["status"], "done": r["done"], "total": r["total"],
@@ -136,6 +158,7 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
                 "elapsed_s": int(((r["finished_at"] or now) - r["started_at"]).total_seconds()),
                 "quiet_s": quiet if running else None,
                 "alive": job_progress.alive(r["pid"]) if running else None,
+                "estimate": est, "per_step_s": per_step, "eta_s": eta,
                 "stalled": running and (quiet > STALLED_AFTER_S or not job_progress.alive(r["pid"])),
             }
         )  # fmt: skip
@@ -204,3 +227,63 @@ def funnel(conn: WConn) -> dict[str, Any]:
             _stage("paper", "Paper trading", "strategies", 0, 0, [], "Strategies that passed validation and run on a paper account. Nothing reaches here automatically yet.", connected=False),
         ]
     }  # fmt: skip
+
+
+@router.get("/features")
+def features(conn: WConn) -> dict[str, Any]:
+    """Every feature defined in code, with what it measures, its status and the outcome of its latest validation: the four checks and the reasons for a failure. A feature defined in
+    code but not yet stored shows as NOT_REGISTERED. Features are defined in code (algo.features.registry); this only reads."""
+    from algo.features import registry as feature_registry
+
+    stored = {
+        (r[0], r[1]): r[2:]
+        for r in conn.execute(
+            "SELECT d.name, d.version, d.feature_id,"
+            " (SELECT status FROM feature_status s WHERE s.feature_id = d.feature_id ORDER BY status_id DESC LIMIT 1),"
+            " (SELECT reason FROM feature_status s WHERE s.feature_id = d.feature_id ORDER BY status_id DESC LIMIT 1),"
+            " (SELECT report FROM feature_validation v WHERE v.feature_id = d.feature_id ORDER BY report_id DESC LIMIT 1),"
+            " (SELECT created_at FROM feature_validation v WHERE v.feature_id = d.feature_id ORDER BY report_id DESC LIMIT 1),"
+            " (SELECT count(*) FROM feature_validation v WHERE v.feature_id = d.feature_id)"
+            " FROM feature_definition d"
+        ).fetchall()
+    }
+    out = []
+    for d in feature_registry.DEFINITIONS.values():
+        row = stored.get((d.name, d.version))
+        report = row[3] if row else None
+        validation = None
+        if report is not None:
+            validation = {
+                "passed": bool(report["passed"]),
+                "reasons": list(report["reasons"]),
+                "at": row[4].isoformat() if row else None,
+                "checks": {
+                    "coverage": {
+                        "ok": not any(x.startswith("coverage") for x in report["reasons"]),
+                        "detail": f"{float(report['coverage']['share']):.2%} of eligible days have a value (minimum {float(report['min_coverage']):.0%})",
+                    },
+                    "reproducible": {
+                        "ok": bool(report["recompute"]["identical"]),
+                        "detail": "recomputing from an independent read of the prices gave the same values"
+                        if report["recompute"]["identical"]
+                        else "recomputing from an independent read gave different values",
+                    },
+                    "stored_match": {
+                        "ok": bool(report["recompute"]["stored_match"]),
+                        "detail": f"{report['recompute']['stored_months_checked']} stored month(s) compared with the recomputation",
+                    },
+                    "no_lookahead": {
+                        "ok": report["lookahead"]["violations"] == 0,
+                        "detail": f"{report['lookahead']['violations']} value(s) changed when later data was removed, in {report['lookahead']['checks']} checks",
+                    },
+                },
+            }
+        out.append(
+            {
+                "name": d.name, "version": d.version, "family": d.family, "measures": d.manifest["definition"], "unit": d.manifest["unit"],
+                "inputs": list(d.manifest["inputs"]), "warmup": int(d.manifest["warmup_bars"]),
+                "status": row[1] if row and row[1] else "NOT_REGISTERED", "status_reason": row[2] if row else None,
+                "validations": int(row[5]) if row else 0, "validation": validation,
+            }
+        )  # fmt: skip
+    return {"features": out}

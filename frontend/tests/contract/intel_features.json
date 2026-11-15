@@ -1,0 +1,236 @@
+{
+ "features": [
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / close[t-n] - 1",
+   "name": "ret_5d",
+   "status": "USABLE",
+   "status_reason": "validated",
+   "unit": "fraction",
+   "validation": {
+    "at": "<at>",
+    "checks": {
+     "coverage": {
+      "detail": "98.97% of eligible days have a value (minimum 90%)",
+      "ok": true
+     },
+     "no_lookahead": {
+      "detail": "0 value(s) changed when later data was removed, in 40 checks",
+      "ok": true
+     },
+     "reproducible": {
+      "detail": "recomputing from an independent read of the prices gave the same values",
+      "ok": true
+     },
+     "stored_match": {
+      "detail": "2 stored month(s) compared with the recomputation",
+      "ok": true
+     }
+    },
+    "passed": true,
+    "reasons": []
+   },
+   "validations": 1,
+   "version": "1",
+   "warmup": 6
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / close[t-n] - 1",
+   "name": "ret_20d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 21
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / close[t-n] - 1",
+   "name": "ret_60d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 61
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / close[t-n] - 1",
+   "name": "ret_120d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 121
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / close[t-n] - 1",
+   "name": "ret_252d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 253
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "sample standard deviation (ddof = 1) of the last n daily simple returns, not annualised",
+   "name": "vol_20d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": {
+    "at": "<at>",
+    "checks": {
+     "coverage": {
+      "detail": "95.00% of eligible days have a value (minimum 90%)",
+      "ok": true
+     },
+     "no_lookahead": {
+      "detail": "3 value(s) changed when later data was removed, in 40 checks",
+      "ok": false
+     },
+     "reproducible": {
+      "detail": "recomputing from an independent read of the prices gave the same values",
+      "ok": true
+     },
+     "stored_match": {
+      "detail": "2 stored month(s) compared with the recomputation",
+      "ok": true
+     }
+    },
+    "passed": false,
+    "reasons": [
+     "look-ahead: 3 value(s) changed when later data was removed"
+    ]
+   },
+   "validations": 1,
+   "version": "1",
+   "warmup": 21
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "sample standard deviation (ddof = 1) of the last n daily simple returns, not annualised",
+   "name": "vol_60d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 61
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "high",
+    "low",
+    "close",
+    "raw_close"
+   ],
+   "measures": "Wilder ATR: first value is the mean of the first 14 true ranges, then ATR[t] = (ATR[t-1] * 13 + TR[t]) / 14; a gap restarts the chain; in price units as of t: multiplied by raw_close[t] / close[t] so a later split or bonus does not change it",
+   "name": "atr_14d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "price",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 15
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "high",
+    "low",
+    "close"
+   ],
+   "measures": "atr_14d / close[t]",
+   "name": "atr_pct_14d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 15
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / mean(close[t-n+1..t]) - 1",
+   "name": "dist_sma_50d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 50
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / mean(close[t-n+1..t]) - 1",
+   "name": "dist_sma_200d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 200
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "raw_close",
+    "raw_volume"
+   ],
+   "measures": "mean over the last 20 sessions of raw close times raw volume",
+   "name": "traded_value_20d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "rupees",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 20
+  }
+ ]
+}

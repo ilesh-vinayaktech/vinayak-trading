@@ -27,7 +27,8 @@
  },
  "features": {
   "by_status": {
-   "DRAFT": 12
+   "DRAFT": 11,
+   "USABLE": 1
   }
  },
  "health": [

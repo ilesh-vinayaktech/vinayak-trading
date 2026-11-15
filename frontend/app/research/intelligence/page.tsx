@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { FeatureList } from "@/components/research/Features";
 import { Funnel, PipelineStrip } from "@/components/research/Pipeline";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
@@ -39,6 +40,30 @@ const noteColumns: Column<Note>[] = [
   { key: "at", header: "When", hideBelow: "md", cell: (n) => day(n.at) },
 ];
 
+/** Time left, from how long the finished steps actually took. It says plainly when it cannot give one, instead of showing a made-up number. */
+function Estimate({ j }: { j: Job }) {
+  if (j.estimate === "ok" && j.eta_s !== null && j.per_step_s !== null) {
+    const at = new Date(Date.now() + j.eta_s * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return (
+      <p className="text-xs text-ink-soft" data-testid="estimate">
+        About {duration(j.eta_s)} left, around {at}. Based on {duration(j.per_step_s)} per finished step; later steps may differ.
+      </p>
+    );
+  }
+  const why = {
+    waiting: "Estimating: needs two finished steps to predict the rest.",
+    uneven: "No estimate: this job's steps are very different in size.",
+    overrun: j.per_step_s !== null ? `Taking longer than the average step (${duration(j.per_step_s)}), so no reliable estimate.` : "Taking longer than the average step.",
+    none: "",
+    ok: "",
+  }[j.estimate];
+  return why ? (
+    <p className="text-xs text-ink-faint" data-testid="estimate">
+      {why}
+    </p>
+  ) : null;
+}
+
 /** One long job: where it is (steps done of total), what it is doing right now, how long it has run, and a warning when it has gone quiet or its process is gone. */
 function JobRow({ j }: { j: Job }) {
   const share = j.total > 0 ? Math.round((j.done / j.total) * 100) : 0;
@@ -63,6 +88,7 @@ function JobRow({ j }: { j: Job }) {
         {j.phase}
         {j.message ? `: ${j.message}` : ""}
       </p>
+      {j.status === "RUNNING" ? <Estimate j={j} /> : null}
       {j.status === "RUNNING" && j.alive === false ? <p className="text-xs text-red-700">The process running this job is gone, so it did not finish.</p> : null}
       {j.status === "RUNNING" && j.alive !== false && j.stalled ? <p className="text-xs text-red-700">No update for {duration(j.quiet_s ?? 0)}. It may be stuck, or in a slow step.</p> : null}
     </li>
@@ -88,6 +114,33 @@ function PipelinePanel() {
         {funnel.isLoading ? <Loading what="the funnel" /> : funnel.error ? <ErrorBox error={funnel.error} what="the funnel" /> : funnel.data ? <Funnel stages={funnel.data.stages} /> : null}
       </div>
     </Card>
+  );
+}
+
+/** Every feature, what it measures and how its last validation went. It refreshes every 4 seconds while a validation is running, so each result appears as it is recorded. */
+function FeaturesPanel() {
+  const jobs = useJobs();
+  const validating = jobs.data?.jobs.some((j) => j.job === "feature_validation" && j.status === "RUNNING") ?? false;
+  const features = useQuery({ queryKey: ["intel", "features"], queryFn: api.intelFeatures, refetchInterval: validating ? 4000 : 20000 });
+  return (
+    <Panel title="Features" actions={<span className="text-xs text-ink-faint">{validating ? "validation running · updates every 4 seconds" : "refreshes every 20 seconds"}</span>}>
+      {features.isLoading ? (
+        <p className="px-5 py-4 text-sm text-ink-soft" role="status">
+          Loading features…
+        </p>
+      ) : features.error ? (
+        <div className="px-5 py-4">
+          <ErrorBox error={features.error} what="the features" />
+        </div>
+      ) : features.data ? (
+        <>
+          <p className="border-b border-line px-5 py-3 text-xs text-ink-soft">
+            Features are defined in code, each with a version and a fingerprint, so a changed definition cannot slip in unnoticed. A new feature is a code change, not a setting on this page. Four checks decide whether a feature may be used: enough values, the same values on a second independent read, stored months that agree, and no look-ahead.
+          </p>
+          <FeatureList features={features.data.features} jobs={jobs.data?.jobs ?? []} />
+        </>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -192,6 +245,7 @@ export default function IntelligencePage() {
       <PageHeader title="Research intelligence" subtitle="Features, alpha tests, strategy health, research notes and capital allocation advice, as recorded so far. Read-only." />
       <PipelinePanel />
       <JobsPanel />
+      <FeaturesPanel />
       {overview.isLoading ? <Loading what="the research overview" /> : overview.error ? <ErrorBox error={overview.error} what="the research overview" /> : overview.data ? <Overview o={overview.data} /> : null}
       <Panel
         title="Alpha tests"

@@ -31,11 +31,15 @@ class Progress:
         total: int,
         *,
         pid: int | None = None,
+        uniform: bool = True,
     ) -> None:
         if total < 1:
             raise ValueError("a job has at least one step")
         self.conn, self.clock, self.job, self.label, self.total = conn, clock, job, label, total
         self.pid = os.getpid() if pid is None else pid
+        self.uniform = (
+            uniform  # False when the steps differ a lot in size, so no time estimate is offered
+        )
         self.run_id: int | None = None
 
     def start(self, phase: str = "starting") -> int:
@@ -45,8 +49,8 @@ class Progress:
             (now, KEEP_DAYS),
         )
         row = self.conn.execute(
-            "INSERT INTO job_progress (job, label, pid, status, done, total, phase, started_at, updated_at) VALUES (%s,%s,%s,'RUNNING',0,%s,%s,%s,%s) RETURNING run_id",
-            (self.job, self.label, self.pid, self.total, phase, now, now),
+            "INSERT INTO job_progress (job, label, pid, status, done, total, phase, started_at, updated_at, uniform) VALUES (%s,%s,%s,'RUNNING',0,%s,%s,%s,%s,%s) RETURNING run_id",
+            (self.job, self.label, self.pid, self.total, phase, now, now, self.uniform),
         ).fetchone()
         assert row is not None
         self.run_id = int(row[0])
@@ -64,9 +68,14 @@ class Progress:
         limit = self.total if total is None else total
         if done is not None and not 0 <= done <= limit:
             raise ValueError(f"done {done} is outside 0..{limit}")
+        now = self.clock.now()
+        # the right-hand sides see the OLD row, so `done` below is the count before this update
         self.conn.execute(
-            "UPDATE job_progress SET phase=%s, message=%s, done=coalesce(%s, done), total=%s, updated_at=%s WHERE run_id=%s AND status='RUNNING'",
-            (phase, message[:500], done, limit, self.clock.now(), self.run_id),
+            "UPDATE job_progress SET phase=%s, message=%s, total=%s, updated_at=%s,"
+            " first_done_at = CASE WHEN first_done_at IS NULL AND %s::int > 0 THEN %s ELSE first_done_at END,"
+            " last_done_at = CASE WHEN %s::int > done THEN %s ELSE last_done_at END,"
+            " done = coalesce(%s::int, done) WHERE run_id=%s AND status='RUNNING'",
+            (phase, message[:500], limit, now, done, now, done, now, done, self.run_id),
         )
         self.total = limit
 
@@ -143,6 +152,10 @@ def recent(conn: psycopg.Connection, limit: int = 10) -> list[dict[str, Any]]:
         "started_at",
         "updated_at",
         "finished_at",
+        "first_done_at",
+        "last_done_at",
+        "first_done_count",
+        "uniform",
     )
     rows = conn.execute(
         f"SELECT {', '.join(cols)} FROM job_progress ORDER BY (status = 'RUNNING') DESC, started_at DESC LIMIT %s",

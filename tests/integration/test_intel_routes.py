@@ -295,3 +295,194 @@ def test_the_funnel_counts_what_moved_on_and_why_the_rest_dropped(client):
         for s in body["stages"]
         if s["connected"]
     )
+
+
+def test_the_estimate_comes_from_how_long_finished_steps_took_and_says_when_it_cannot_give_one(
+    client,
+):
+    import os
+    from datetime import timedelta
+
+    c, conn = client
+    now = c.app.state.portal.clock.now()
+    me = os.getpid()
+
+    def add(job, status, done, total, first, last, uniform=True):
+        conn.execute(
+            "INSERT INTO job_progress (job, label, pid, status, done, total, phase, message, started_at, updated_at, finished_at, first_done_at, last_done_at, first_done_count, uniform) VALUES (%s,%s,%s,%s,%s,%s,'p','',%s,%s,%s,%s,%s,%s,%s)",
+            (
+                job,
+                job,
+                me,
+                status,
+                done,
+                total,
+                now - timedelta(hours=1),
+                now - timedelta(seconds=5),
+                None if status == "RUNNING" else now,
+                first,
+                last,
+                None if first is None else 1,
+                uniform,
+            ),
+        )
+
+    m = timedelta(minutes=1)
+    add(
+        "ok", "RUNNING", 4, 12, now - 40 * m, now - 10 * m
+    )  # 3 gaps in 30 min: 10 min a step; 8 steps left minus 10 min already spent in this one
+    add("waiting", "RUNNING", 1, 12, now - 10 * m, now - 10 * m)
+    add("none_yet", "RUNNING", 0, 12, None, None)
+    add("uneven", "RUNNING", 3, 4, now - 30 * m, now - 5 * m, uniform=False)
+    add(
+        "overrun", "RUNNING", 3, 4, now - 20 * m, now - 12 * m
+    )  # 4 min a step, but this step has run 12 min
+    add("finished", "DONE", 12, 12, now - 50 * m, now - 5 * m)
+    conn.commit()
+    jobs = {j["job"]: j for j in c.get("/api/intel/progress").json()["jobs"]}
+    assert (jobs["ok"]["estimate"], jobs["ok"]["per_step_s"], jobs["ok"]["eta_s"]) == (
+        "ok",
+        600,
+        8 * 600 - 600,
+    )
+    assert (
+        jobs["waiting"]["estimate"],
+        jobs["waiting"]["per_step_s"],
+        jobs["waiting"]["eta_s"],
+    ) == ("waiting", None, None)
+    assert jobs["none_yet"]["estimate"] == "waiting"
+    assert (jobs["uneven"]["estimate"], jobs["uneven"]["eta_s"]) == ("uneven", None)
+    assert (
+        jobs["overrun"]["estimate"],
+        jobs["overrun"]["per_step_s"],
+        jobs["overrun"]["eta_s"],
+    ) == ("overrun", 240, None)
+    assert (jobs["finished"]["estimate"], jobs["finished"]["eta_s"]) == ("none", None)
+
+
+def _report(passed, reasons, share="0.989657", identical=True, stored_ok=True, violations=0):
+    return {
+        "passed": passed, "reasons": reasons, "min_coverage": "0.90",
+        "coverage": {"share": share, "eligible": 100, "valued": 99},
+        "recompute": {"identical": identical, "months": 3, "stored_months_checked": 2, "stored_match": stored_ok},
+        "lookahead": {"cuts": [], "checks": 40, "violations": violations},
+    }  # fmt: skip
+
+
+def test_the_features_list_shows_what_each_measures_its_status_and_why_the_last_validation_passed_or_failed(
+    client,
+):
+    from psycopg.types.json import Jsonb
+
+    from algo.features import registry as feature_registry
+
+    c, conn = client
+    body = c.get("/api/intel/features").json()["features"]
+    assert len(body) == len(feature_registry.DEFINITIONS) == 12
+    assert all(
+        f["status"] == "NOT_REGISTERED" and f["validation"] is None and f["validations"] == 0
+        for f in body
+    )  # defined in code, nothing stored yet
+    ret5 = next(f for f in body if f["name"] == "ret_5d")
+    assert (
+        ret5["measures"] == "close[t] / close[t-n] - 1"
+        and ret5["unit"] == "fraction"
+        and ret5["inputs"] == ["close"]
+        and ret5["warmup"] == 6
+    )
+
+    feature_store.register_all(conn, NOW)
+    ids = dict(conn.execute("SELECT name, feature_id FROM feature_definition").fetchall())
+    conn.execute(
+        "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'USABLE','validated','agent',%s)",
+        (ids["ret_5d"], NOW),
+    )
+    good = _report(True, [])
+    bad = _report(
+        False,
+        [
+            "coverage 0.8000 is below the minimum 0.90",
+            "look-ahead: 3 value(s) changed when later data was removed",
+        ],
+        share="0.800000",
+        violations=3,
+    )
+    for name, rep in (("ret_5d", good), ("vol_20d", bad)):
+        conn.execute(
+            "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,%s,%s,'agent',%s)",
+            (ids[name], "a" * 64, rep["passed"], Jsonb(rep), NOW),
+        )
+    conn.execute(
+        "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,FALSE,%s,'agent',%s)",
+        (ids["vol_20d"], "a" * 64, Jsonb(_report(False, ["old failure"])), NOW),
+    )
+    conn.commit()
+    by = {f["name"]: f for f in c.get("/api/intel/features").json()["features"]}
+    ok = by["ret_5d"]
+    assert (ok["status"], ok["status_reason"], ok["validations"]) == ("USABLE", "validated", 1)
+    assert (
+        ok["validation"]["passed"] is True
+        and ok["validation"]["reasons"] == []
+        and all(chk["ok"] for chk in ok["validation"]["checks"].values())
+    )
+    assert (
+        ok["validation"]["checks"]["coverage"]["detail"]
+        == "98.97% of eligible days have a value (minimum 90%)"
+    )
+    assert (
+        ok["validation"]["checks"]["no_lookahead"]["detail"]
+        == "0 value(s) changed when later data was removed, in 40 checks"
+    )
+    failed = by["vol_20d"]
+    assert (failed["status"], failed["validations"]) == (
+        "DRAFT",
+        2,
+    )  # registered, never made usable, validated twice
+    v = failed["validation"]
+    assert v["passed"] is False and v["reasons"] == ["old failure"]  # the LATEST report wins
+    assert (
+        by["ret_20d"]["status"] == "DRAFT"
+        and by["ret_20d"]["validation"] is None
+        and by["ret_20d"]["validations"] == 0
+    )
+
+
+def test_the_failure_reasons_light_up_exactly_the_checks_that_failed(client):
+    from psycopg.types.json import Jsonb
+
+    c, conn = client
+    feature_store.register_all(conn, NOW)
+    fid = conn.execute("SELECT feature_id FROM feature_definition WHERE name='ret_20d'").fetchone()[
+        0
+    ]
+    rep = _report(
+        False,
+        [
+            "coverage 0.8000 is below the minimum 0.90",
+            "recomputing from an independent read gave different values",
+            "a materialised month differs from the recomputation",
+            "look-ahead: 3 value(s) changed when later data was removed",
+        ],
+        share="0.8",
+        identical=False,
+        stored_ok=False,
+        violations=3,
+    )
+    conn.execute(
+        "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,FALSE,%s,'agent',%s)",
+        (fid, "a" * 64, Jsonb(rep), NOW),
+    )
+    conn.commit()
+    checks = next(
+        f for f in c.get("/api/intel/features").json()["features"] if f["name"] == "ret_20d"
+    )["validation"]["checks"]
+    assert {k: v["ok"] for k, v in checks.items()} == {
+        "coverage": False,
+        "reproducible": False,
+        "stored_match": False,
+        "no_lookahead": False,
+    }
+    assert (
+        checks["reproducible"]["detail"]
+        == "recomputing from an independent read gave different values"
+    )

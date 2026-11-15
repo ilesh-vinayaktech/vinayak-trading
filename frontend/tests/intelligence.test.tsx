@@ -6,6 +6,7 @@ import allocationsFixture from "./contract/intel_allocations.json";
 import alphaFixture from "./contract/intel_alpha.json";
 import notesFixture from "./contract/intel_notes.json";
 import overview from "./contract/intel_overview.json";
+import featuresFixture from "./contract/intel_features.json";
 import funnel from "./contract/intel_funnel.json";
 import progressFixture from "./contract/intel_progress.json";
 
@@ -28,12 +29,12 @@ const empty = {
   notes: { notes: [] },
 };
 const seen: string[] = [];
-function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown; funnel?: unknown }) {
+function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown; funnel?: unknown; features?: unknown }) {
   seen.length = 0;
   vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = new URL(String(input));
     seen.push(url.pathname + url.search);
-    const body = { "/api/auth/me": who, "/api/intel/overview": table.overview, "/api/intel/alpha": table.alpha, "/api/intel/notes": table.notes, "/api/intel/allocations": allocations, "/api/intel/progress": table.progress ?? { jobs: [] }, "/api/intel/funnel": table.funnel ?? funnel }[url.pathname];
+    const body = { "/api/auth/me": who, "/api/intel/overview": table.overview, "/api/intel/alpha": table.alpha, "/api/intel/notes": table.notes, "/api/intel/allocations": allocations, "/api/intel/progress": table.progress ?? { jobs: [] }, "/api/intel/funnel": table.funnel ?? funnel, "/api/intel/features": table.features ?? featuresFixture }[url.pathname];
     if (body === undefined) return new Response(JSON.stringify({ detail: "no route" }), { status: 404 });
     return new Response(JSON.stringify(body), { status: 200 });
   });
@@ -46,7 +47,7 @@ describe("Research intelligence", () => {
     backend({ overview, alpha, notes });
     mount();
     expect(await screen.findByText("Where the research stands")).toBeTruthy();
-    expect(screen.getByText("12 draft")).toBeTruthy();
+    expect(screen.getByText("11 draft, 1 usable")).toBeTruthy();
     expect(screen.getByText("Alpha tests ever run")).toBeTruthy();
     expect(screen.getByText("Degraded")).toBeTruthy();
     expect(screen.getByText(/DEGRADED: mean return/)).toBeTruthy();
@@ -141,6 +142,68 @@ describe("Research intelligence", () => {
     mount();
     await waitFor(() => expect(screen.getByTestId("step-0").getAttribute("data-state")).toBe("stuck"));
     expect(screen.getByTestId("step-1").getAttribute("data-state")).toBe("failed");
+  });
+
+  it("gives a time estimate when it has one, and says why when it does not", async () => {
+    const job = (over: object) => ({ ...progress.jobs[0], status: "RUNNING", stalled: false, alive: true, ...over });
+    backend({
+      overview, alpha, notes,
+      progress: {
+        jobs: [
+          job({ id: 1, job: "feature_validation", estimate: "ok", per_step_s: 600, eta_s: 4320 }),
+          job({ id: 2, job: "feature_computation", estimate: "waiting" }),
+          job({ id: 3, job: "alpha_discovery", estimate: "uneven" }),
+          job({ id: 4, job: "other", estimate: "overrun", per_step_s: 240 }),
+        ],
+      },
+    });
+    mount();
+    const ok = within(await screen.findByTestId("job-feature_validation"));
+    expect(ok.getByTestId("estimate").textContent).toMatch(/About 1h 12m left, around \d.*Based on 10m 00s per finished step; later steps may differ\./);
+    expect(within(screen.getByTestId("job-feature_computation")).getByText(/Estimating: needs two finished steps/)).toBeTruthy();
+    expect(within(screen.getByTestId("job-alpha_discovery")).getByText(/No estimate: this job's steps are very different in size/)).toBeTruthy();
+    expect(within(screen.getByTestId("job-other")).getByText(/Taking longer than the average step \(4m 00s\)/)).toBeTruthy();
+  });
+
+  it("shows no estimate line for a finished job", async () => {
+    backend({ overview, alpha, notes, progress });
+    mount();
+    const done = within(await screen.findByTestId("job-alpha_discovery"));
+    expect(done.queryByTestId("estimate")).toBeNull();
+  });
+
+  it("lists every feature with what it measures, and why the last validation passed or failed", async () => {
+    backend({ overview, alpha, notes });
+    mount();
+    const list = within(await screen.findByRole("list", { name: "Features" }));
+    expect(list.getAllByTestId(/^feature-/).length).toBe(12);
+    const good = within(list.getByTestId("feature-ret_5d"));
+    expect(good.getByText("Usable")).toBeTruthy();
+    expect(good.getByText(/close\[t\] \/ close\[t-n\] - 1/)).toBeTruthy();
+    expect(good.getAllByText(/^✓/).length).toBe(4);
+    expect(good.getByText(/98.97% of eligible days have a value/)).toBeTruthy();
+    const bad = within(list.getByTestId("feature-vol_20d"));
+    expect(bad.getByText("Failed")).toBeTruthy();
+    expect(bad.getByText(/look-ahead: 3 value\(s\) changed when later data was removed/)).toBeTruthy();
+    expect(bad.getByText(/^✗ No look-ahead/)).toBeTruthy();
+    expect(bad.getAllByText(/^✓/).length).toBe(3);
+    const fresh = within(list.getByTestId("feature-ret_20d"));
+    expect(fresh.getByText("Not validated yet")).toBeTruthy();
+    expect(fresh.getByText(/never validated/)).toBeTruthy();
+    expect(screen.getByText(/A new feature is a code change, not a setting on this page/)).toBeTruthy();
+  });
+
+  it("marks the feature being validated right now and shows its current step", async () => {
+    const job = { ...progress.jobs[0], id: 1, job: "feature_validation", status: "RUNNING", phase: "checking ret_20d", message: "look-ahead test 2 of 5 (cut at 2023-01-02)", stalled: false, alive: true };
+    backend({ overview, alpha, notes, progress: { jobs: [job] } });
+    mount();
+    const row = await screen.findByTestId("feature-ret_20d");
+    await waitFor(() => expect(row.getAttribute("data-state")).toBe("checking"));
+    expect(within(row).getByText("Checking now")).toBeTruthy();
+    expect(within(row).getByText(/Being checked now: look-ahead test 2 of 5/)).toBeTruthy();
+    expect(screen.getByTestId("feature-ret_60d").getAttribute("data-state")).toBe("unchecked");
+    expect(screen.getByTestId("feature-ret_5d").getAttribute("data-state")).toBe("passed");
+    expect(screen.getByText(/validation running · updates every 4 seconds/)).toBeTruthy();
   });
 
   it("says so when no job has reported yet", async () => {
