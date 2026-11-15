@@ -76,3 +76,38 @@ def test_dividend_yield_counts_only_the_last_twelve_months_up_to_the_day():
         "2.5"
     )  # (2 + 3) / 200
     assert book().ratios(1, NOW, D(200), LAST)["dividend_yield"] is None
+
+
+def test_a_reporting_lag_delays_a_filing_and_the_boundary_is_exact():
+    qs = quarters(10)
+    newest = qs[0].filed_at  # the filing the four-quarter ratio needs
+    lag = timedelta(days=1)
+    b = FundamentalsBook({(1, "CONSOLIDATED"): qs}, {1: []}, {1: []}, lag=lag)
+    just_before, exactly = newest + lag - timedelta(seconds=1), newest + lag
+    assert b.ratios(1, just_before, D(200), just_before.date())["pe"] is None
+    assert b.ratios(1, exactly, D(200), exactly.date())["pe"] == D(5)
+    assert book().lag == timedelta(0)  # no lag by default: unchanged behaviour
+
+
+def test_a_negative_lag_is_refused():
+    import pytest
+
+    with pytest.raises(ValueError, match="cannot be negative"):
+        FundamentalsBook({}, {}, {}, lag=-timedelta(seconds=1))
+
+
+def test_a_restatement_replaces_the_figure_only_from_the_moment_it_is_filed_plus_the_lag():
+    original = quarters(10)
+    restated = [
+        Quarter(q.period_end, q.filed_at + timedelta(days=30), q.bank, {**q.quarter, EPS: D(20)})
+        for q in original[:1]
+    ]
+    b = FundamentalsBook(
+        {(1, "CONSOLIDATED"): [*original, *restated]}, {1: []}, {1: []}, lag=timedelta(days=2)
+    )
+    when = restated[0].filed_at
+    before, after = when + timedelta(days=2) - timedelta(seconds=1), when + timedelta(days=2)
+    assert b.ratios(1, before, D(200), before.date())["pe"] == D(5)  # the original eps still stands
+    assert b.ratios(1, after, D(200), after.date())["pe"] != D(
+        5
+    )  # the restated one, once it is usable

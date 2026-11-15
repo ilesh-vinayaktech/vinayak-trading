@@ -17,7 +17,11 @@ from algo.strategies.fundamentals import FundamentalsBook
 
 
 def load(
-    conn: psycopg.Connection, ids: Sequence[int], since: date, until: date
+    conn: psycopg.Connection,
+    ids: Sequence[int],
+    since: date,
+    until: date,
+    lag: timedelta = timedelta(0),
 ) -> FundamentalsBook:
     """Filings from `FILING_YEARS` before `since` (ratios look back several quarters), up to `until`."""
     start = since - timedelta(days=365 * FILING_YEARS)
@@ -39,4 +43,4 @@ def load(
         (list(ids), start, until),
     ):
         dividends[iid].append((ex, amount))
-    return FundamentalsBook(quarters, dict(splits), dict(dividends))
+    return FundamentalsBook(quarters, dict(splits), dict(dividends), lag)

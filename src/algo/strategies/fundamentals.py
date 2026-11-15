@@ -21,7 +21,11 @@ class FundamentalsBook:
         quarters: dict[tuple[int, str], list[fr.Quarter]],
         splits: dict[int, list[date]],
         dividends: dict[int, list[tuple[date, Decimal]]],
+        lag: timedelta = timedelta(0),
     ) -> None:
+        if lag < timedelta(0):
+            raise ValueError("the reporting lag cannot be negative")
+        self.lag = lag  # a filing is usable only `lag` after it was filed (0 = from the moment it was broadcast)
         self.quarters, self.splits, self.dividends = (
             quarters,
             splits,
@@ -32,10 +36,11 @@ class FundamentalsBook:
         self, iid: int, now: datetime, price: Decimal, price_date: date
     ) -> dict[str, Decimal | None]:
         """Every ratio of this stock known at `now`, priced at `price` (the raw close of `price_date`); {} when nothing is filed yet."""
+        known_at = now - self.lag
         day = price_date  # ponytail: no cache (millions of stock-days); each trial recomputes, add one if studies get slow
         known = fr.known_quarters(
-            self.quarters.get((iid, "CONSOLIDATED"), []), now
-        ) or fr.known_quarters(self.quarters.get((iid, "STANDALONE"), []), now)
+            self.quarters.get((iid, "CONSOLIDATED"), []), known_at
+        ) or fr.known_quarters(self.quarters.get((iid, "STANDALONE"), []), known_at)
         if not known:
             return {}
         splits = self.splits.get(iid, [])
