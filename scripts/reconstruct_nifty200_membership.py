@@ -50,7 +50,11 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--lake", type=Path, default=Path("data/lake"))
 ap.add_argument("--start", default="2020-10-01")
-ap.add_argument("--anchor-date", default="2026-11-07", help="the snapshot date the walk starts from: every component snapshot must exist for it (the default is the date revision 3 was built on)")
+ap.add_argument(
+    "--anchor-date",
+    default="2026-11-07",
+    help="the snapshot date the walk starts from: every component snapshot must exist for it (the default is the date revision 3 was built on)",
+)
 ap.add_argument("--out", type=Path, default=Path("docs/stage4/membership"))
 a = ap.parse_args()
 START = date.fromisoformat(a.start)
@@ -78,7 +82,9 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
             "SELECT instrument_id, symbol, name, isin, delisted_on, status, listed_on FROM instrument"
         )
     }
-    anchor_date = date.fromisoformat(a.anchor_date)  # pinned: a newer Nifty 200 snapshot without its components would break the walk
+    anchor_date = date.fromisoformat(
+        a.anchor_date
+    )  # pinned: a newer Nifty 200 snapshot without its components would break the walk
 
     def current(idx: str) -> frozenset[str]:
         return frozenset(
