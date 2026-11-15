@@ -13,6 +13,12 @@ definition (Nifty 50 + Next 50 + Midcap 100) began; before it the index was buil
    release had no Nifty-component change for 27 March). Listed in `membership_voids.csv`. The 19 March Nifty 50 change that took effect on 19 March stands.
    Rerunning the 2020-10-01 window with this code gives byte-identical revision 3 files.
 
+3. **The explicit Nifty 100 sections are part of the union.** NSE lists Tata Motors DVR (TATAMTRDVR) as a 101st member of the Nifty 100 that is in none of the Nifty 50, Next 50 or
+   Midcap 100 sections, so a union of those three missed it. NSE's own releases (all in our lake) give its whole history: member to 2020-06-25 (excluded by the 10 June 2020 release),
+   out until 2023-09-28, member again from 2023-09-29 (included by the 17 Aug 2023 release), excluded from 2024-08-30 (the 23 Aug 2024 release: its shares were cancelled in a capital
+   reduction). The derived union now includes the explicit Nifty 100 walk, and the regression test pins this timeline.
+   **Revision 3 (`docs/stage4/membership/`) has this defect for 2023-09-29..2024-08-29 (one member missing, 11 months); it is left as it was and superseded by this revision.**
+
 ## Agreement with the independent monthly constituent snapshots (2018-04 onward)
 | Check | Result |
 |---|---|
@@ -20,13 +26,13 @@ definition (Nifty 50 + Next 50 + Midcap 100) began; before it the index was buil
 | Nifty Next 50 | 79 of 79 |
 | Nifty Midcap 100 | 48 of 48 (before the void fix: 25 of 48, all the Yes Bank March 2020 episode) |
 | Explicit Nifty 100 and Nifty 200 sections of the releases | 48 of 48 each |
-| Derived Nifty 200 / Nifty 100 | 22 of 48: every one of the 26 differing months (2018-04-30 to 2020-05-29) differs by ONE stock, TATAMTRDVR |
+| Derived Nifty 200 | **48 of 48** (was 22 of 48 before the DVR fix) |
+| N50 + Next 50 only, against the month-end Nifty 100 lists | 22 of 48: by design, the month-end Nifty 100 lists include the DVR as a 101st member (the explicit Nifty 100 sections match 48 of 48) |
 | Walk consistency (a transition undone from a state that contradicts it) | 0 (was 56) |
 
-## Exceptions (16)
+## Exceptions (15)
 | Kind | Entities | Needs |
 |---|---|---|
-| SNAPSHOT_MISMATCH_BLOCK (1) | TATAMTRDVR (Tata Motors DVR), blocked 2018-04-02..2020-06-30 | evidence for its exit: it is in the monthly Nifty 100 and Nifty 200 snapshots through 2020-05-29 and gone by 2020-06-30, but no captured release names it (the 10 June 2020 review and the 13 May release do not), and the monthly Next 50 lists do not show it although Nifty 100 does. Strict mode blocks the stock for that span; nothing is guessed |
 | MEMBER_WITHOUT_INSTRUMENT (6) | BHARATFIN (to 2018-12-28), HEXAWARE (to 2020-09-25), GSPL (to 2023-03-31), JIOFIN pre-listing, PEL twice | instrument identity. GSPL and PEL: a review package and a built, dry-run-only identity application exist (`docs/stage4/identity/GSPL_PEL_REVIEW.md`, not applied). BHARATFIN and HEXAWARE (new in this window): proposals only (`docs/stage4/apply_proposals/proposals.md`). JIOFIN pre-listing: as in revision 3 |
 | PLACEHOLDER_NOT_TRADABLE (9) | the DUMMY* demerger placeholders (2025-2026) | non-tradable by design, as in revision 3 |
 

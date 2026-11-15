@@ -1,11 +1,11 @@
 # Review pack: Nifty 200 membership 2018-04-02 to 2026-11-07 (revision 4 candidate)
 
-For the owner, to sign off. About 20 minutes: five decisions and six spot checks. Nothing here is loaded into the database yet; your sign-off is
+For the owner, to sign off. About 15 minutes: four decisions and six spot checks. Nothing here is loaded into the database yet; your sign-off is
 what lets me load it and declare coverage, and until then no Nifty 200 experiment can be registered as point-in-time.
 
 ## What you are signing
 That the reconstructed membership (`membership_intervals.csv`, 391 intervals) is an accurate record of who was in the Nifty 200 on each day, except where
-this pack says a stock is blocked or has no instrument. The evidence for it is that it matches every independent source we hold:
+this pack says a stock has no instrument. The evidence for it is that it matches every independent source we hold:
 
 | Independent source | Agreement |
 |---|---|
@@ -13,17 +13,17 @@ this pack says a stock is blocked or has no instrument. The evidence for it is t
 | Month-end constituent lists, Nifty Next 50 | 79 of 79 |
 | Month-end constituent lists, Nifty Midcap 100 | 48 of 48 |
 | The releases' own explicit Nifty 100 and Nifty 200 tables | 48 of 48 each |
-| Derived Nifty 200 against the month-end Nifty 200 lists | 22 of 48; all 26 other months differ by one stock, TATAMTRDVR (decision D1) |
+| Derived Nifty 200 against the month-end Nifty 200 lists | **48 of 48** |
 
 Member counts: 200 on every checked date; 196 are tradable instruments on 2018-04-02 and 197 in 2019-2020, the rest are the stocks in D2 and D3 (no instrument yet).
 
 ## Decisions
 
-**D1. TATAMTRDVR (Tata Motors DVR) is blocked from 2018-04-02 to 2020-06-30.** It is in the month-end Nifty 100 and 200 lists through 2020-05-29 and gone by 2020-06-30,
-but none of the NSE releases we hold names its exit (not the 10 June 2020 review, not the 13 May release), and the month-end Next 50 lists do not show it although
-the Nifty 100 list does. Strict mode treats it as unusable for that span. The block costs little: 553 sessions are blocked, but we only have prices for 183 of
-them (our NSE prices start 2019-10-01).
-- Accept the block (my recommendation), or send me the NSE release that removed it and I give it a proper date.
+**D1. TATAMTRDVR (Tata Motors DVR): resolved, no decision needed.** It was blocked for 26 months because the derived list followed only the Nifty 50, Next 50 and Midcap 100 sections. NSE lists
+this stock as a 101st member of the Nifty 100 outside those, and its whole history is in NSE's own releases already in our lake: member to 2020-06-25 (10 June 2020 release), out until
+2023-09-28, member again from 2023-09-29 (17 Aug 2023 release), excluded from 2024-08-30 (23 Aug 2024 release, capital reduction cancelling the DVR shares). It is now two ordinary intervals,
+and the derived Nifty 200 matches all 48 month-end lists. **Side effect to know about:** revision 3 was missing this stock for 2023-09-29 to 2024-08-29 (11 months); this revision fixes it.
+- Just confirm it in the spot check below.
 
 **D2. BHARATFIN and HEXAWARE have no instrument** (both new in this window; proposals only, no apply script yet). Stored proposals (`docs/stage4/apply_proposals/proposals.md`): each becomes
 its own historical instrument, with its merger as a dated relationship, not an alias. BHARATFIN: member 2018-04-02 to 2018-12-28 (184 sessions), merged into IndusInd Bank on
@@ -56,13 +56,13 @@ Open `membership_intervals.csv` and filter on the symbol; compare with the NSE i
 | ASHOKLEY | member the whole window | stays in through the 2020 review (it moved between Next 50 and Midcap 100) |
 | IDEA | member the whole window | |
 | HEXAWARE | member to 2020-09-25, no instrument | gone from the index in the September 2020 review |
-| TATAMTRDVR | blocked 2018-04-02 to 2020-06-30 | D1 |
+| TATAMTRDVR | member 2018-04-02 to 2020-06-26 (exclusive) and 2023-09-29 to 2024-08-30 (exclusive) | out in June 2020, back in the September 2023 review, out when the DVR shares were cancelled |
 
 ## What this does not cover
 Anything before 2018-04-02 (the index was built differently and needs its own derivation). Prices for members that delisted before 2019-10 (older NSE price files are not loaded).
 Person verification itself: until you sign, everything is PROVISIONAL.
 
 ## After you answer
-Reply with a line per decision, for example "D1 accept, D2 approve, D3 approve, D4 accept, D5 accept". Then, in this order: apply the GSPL and PEL identity per its package (with the usual
+Reply with a line per decision, for example "D2 approve, D3 approve, D4 accept, D5 accept". Then, in this order: apply the GSPL and PEL identity per its package (with the usual
 backup and dry run), extend it to BHARATFIN and HEXAWARE, **build the loader that turns this reconstruction into the stored membership events and the declared coverage** (not built yet: the
 older loader does not see the voids or revocations), record your verification with your name and the decision list, and re-run the readiness check. If a spot check fails, tell me the symbol and what you expected.

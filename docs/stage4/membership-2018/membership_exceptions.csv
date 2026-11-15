@@ -1,5 +1,4 @@
 kind,entity,symbol,component,action,doc_id,announced,effective,detail,blocked
-SNAPSHOT_MISMATCH_BLOCK,i:2647,TATAMTRDVR,N200,,,,,reconstruction disagrees with an independent snapshot; blocked from the last agreeing snapshot to the next. Unparsed releases mentioning it: none found,2018-04-02..2020-06-30
 PLACEHOLDER_NOT_TRADABLE,p:DUMMYABFRL,DUMMYABFRL,N200,,,,2025-05-22,"member 2025-05-22..2025-06-23: no tradable instrument, so the investable universe is incomplete on these dates",
 PLACEHOLDER_NOT_TRADABLE,p:DUMMYHDLVR,DUMMYHDLVR,N200,,,,2025-12-05,"member 2025-12-05..2026-02-16: no tradable instrument, so the investable universe is incomplete on these dates",
 PLACEHOLDER_NOT_TRADABLE,p:DUMMYITC,DUMMYITC,N200,,,,2025-01-06,"member 2025-01-06..2025-01-29: no tradable instrument, so the investable universe is incomplete on these dates",

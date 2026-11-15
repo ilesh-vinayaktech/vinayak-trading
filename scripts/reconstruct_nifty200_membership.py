@@ -68,7 +68,8 @@ COMP = {
     "NIFTY_100": "N100x",
     "NIFTY_200": "N200x",
 }
-DERIVED = ["N50", "NEXT50", "MID100"]
+# N100x (the explicit Nifty 100 sections) is part of the union: NSE lists Tata Motors DVR as a 101st member of the Nifty 100 that is in none of the other three
+DERIVED = ["N50", "NEXT50", "MID100", "N100x"]
 
 with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
     inst = {
@@ -236,7 +237,9 @@ synth100 = {
     d: fz["N50"][d] | fz["NEXT50"][d] for d in fz.get("N50", {}) if d in fz.get("NEXT50", {})
 }  # N100 = N50 + Next 50, same date
 
-derived = walk_back({"N50": n50, "NEXT50": nx50, "MID100": mid}, trs, START, anchor_date)
+derived = walk_back(
+    {"N50": n50, "NEXT50": nx50, "MID100": mid, "N100x": n50 | nx50}, trs, START, anchor_date
+)
 exp200 = walk_back({"N200x": n200}, trs, START, anchor_date)
 exp100 = walk_back({"N100x": n50 | nx50}, trs, START, anchor_date)
 

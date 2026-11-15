@@ -510,3 +510,24 @@ def test_a_void_that_matches_nothing_is_reported_never_silently_dropped_and_noth
     kept, voided, unmatched = apply_voids(trs, [Void("pr_zzz", D(2020, 3, 27), "pr_13052020")])
     assert kept == trs and voided == [] and [u.doc_id for u in unmatched] == ["pr_zzz"]
     assert apply_voids([], [])[0] == []
+
+
+def test_a_stock_the_nifty_100_sections_name_but_the_three_components_never_do_is_a_member_through_all_its_spans():
+    """Tata Motors DVR, from NSE's own releases: in the Nifty 100 until 2020-06-25, out, back in from 2023-09-29, out again from 2024-08-30. It is never in the
+    Nifty 50, Next 50 or Midcap 100 sections (NSE lists it as a 101st member of the Nifty 100), so a union of those three alone misses it entirely."""
+    dvr = "i:2647"
+    trs = [
+        t("N100x", dvr, "EXCLUDED", D(2020, 6, 26), doc="pr_10062020"),
+        t("N100x", dvr, "INCLUDED", D(2023, 9, 29), doc="pr_17082023"),
+        t("N100x", dvr, "EXCLUDED", D(2024, 8, 30), doc="pr_23082024"),
+    ]
+    start, anchor = D(2018, 4, 2), D(2026, 11, 7)
+    members = {"N50": frozenset({"i:1"}), "NEXT50": frozenset({"i:2"}), "MID100": frozenset({"i:3"}), "N100x": frozenset({"i:1", "i:2"})}
+    without = walk_back({k: v for k, v in members.items() if k != "N100x"}, trs, start, anchor)
+    assert dvr not in state_on(without, ["N50", "NEXT50", "MID100"], D(2019, 1, 1))  # the old derivation: never a member
+    full = walk_back(members, trs, start, anchor)
+    comps = ["N50", "NEXT50", "MID100", "N100x"]
+    spans = [(D(2018, 4, 2), True), (D(2020, 6, 25), True), (D(2020, 6, 26), False), (D(2023, 9, 28), False), (D(2023, 9, 29), True), (D(2024, 8, 29), True), (D(2024, 8, 30), False), (D(2026, 11, 7), False)]
+    assert [(d, dvr in state_on(full, comps, d)) for d, _ in spans] == spans
+    ivs = [(i.entity, i.start, i.end) for i in intervals_from(full, comps, start, anchor) if i.entity == dvr]
+    assert ivs == [(dvr, D(2018, 4, 2), D(2020, 6, 26)), (dvr, D(2023, 9, 29), D(2024, 8, 30))]
