@@ -522,12 +522,32 @@ def test_a_stock_the_nifty_100_sections_name_but_the_three_components_never_do_i
         t("N100x", dvr, "EXCLUDED", D(2024, 8, 30), doc="pr_23082024"),
     ]
     start, anchor = D(2018, 4, 2), D(2026, 11, 7)
-    members = {"N50": frozenset({"i:1"}), "NEXT50": frozenset({"i:2"}), "MID100": frozenset({"i:3"}), "N100x": frozenset({"i:1", "i:2"})}
+    members = {
+        "N50": frozenset({"i:1"}),
+        "NEXT50": frozenset({"i:2"}),
+        "MID100": frozenset({"i:3"}),
+        "N100x": frozenset({"i:1", "i:2"}),
+    }
     without = walk_back({k: v for k, v in members.items() if k != "N100x"}, trs, start, anchor)
-    assert dvr not in state_on(without, ["N50", "NEXT50", "MID100"], D(2019, 1, 1))  # the old derivation: never a member
+    assert dvr not in state_on(
+        without, ["N50", "NEXT50", "MID100"], D(2019, 1, 1)
+    )  # the old derivation: never a member
     full = walk_back(members, trs, start, anchor)
     comps = ["N50", "NEXT50", "MID100", "N100x"]
-    spans = [(D(2018, 4, 2), True), (D(2020, 6, 25), True), (D(2020, 6, 26), False), (D(2023, 9, 28), False), (D(2023, 9, 29), True), (D(2024, 8, 29), True), (D(2024, 8, 30), False), (D(2026, 11, 7), False)]
+    spans = [
+        (D(2018, 4, 2), True),
+        (D(2020, 6, 25), True),
+        (D(2020, 6, 26), False),
+        (D(2023, 9, 28), False),
+        (D(2023, 9, 29), True),
+        (D(2024, 8, 29), True),
+        (D(2024, 8, 30), False),
+        (D(2026, 11, 7), False),
+    ]
     assert [(d, dvr in state_on(full, comps, d)) for d, _ in spans] == spans
-    ivs = [(i.entity, i.start, i.end) for i in intervals_from(full, comps, start, anchor) if i.entity == dvr]
+    ivs = [
+        (i.entity, i.start, i.end)
+        for i in intervals_from(full, comps, start, anchor)
+        if i.entity == dvr
+    ]
     assert ivs == [(dvr, D(2018, 4, 2), D(2020, 6, 26)), (dvr, D(2023, 9, 29), D(2024, 8, 30))]
