@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -27,10 +27,9 @@ from algo.features import registry, store
 from algo.features._shared import SessionBar
 from algo.research import holdout_lock
 from algo.research.holdout_lock import ResearchReader
+from algo.research.slot import busy_reason  # noqa: F401  (re-exported: the script and the tests call job.busy_reason)
 
 IST = ZoneInfo("Asia/Kolkata")
-MARKET = (time(9, 0), time(15, 45))  # the live feed and paper orders run in this window
-YIELD_TO = ("run_paper.py", "paper_orders.py")  # processes that outrank the feature job
 
 
 class JobRefused(Exception):
@@ -45,18 +44,6 @@ class Report:
     failed: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)  # features that are not USABLE
     paused_because: str = ""
-
-
-def busy_reason(now: datetime, commandlines: Iterable[str]) -> str | None:
-    """Why the machine belongs to something else right now, or None."""
-    for line in commandlines:
-        for name in YIELD_TO:
-            if name in line:
-                return f"{name} is running"
-    local = now.astimezone(IST)
-    if local.weekday() < 5 and MARKET[0] <= local.time() <= MARKET[1]:
-        return "market hours"
-    return None
 
 
 def months_through(first: date, end: date) -> list[date]:

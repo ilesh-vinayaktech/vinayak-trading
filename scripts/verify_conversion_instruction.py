@@ -27,6 +27,7 @@ from algo.backtest.costs.policy import CostModel
 from algo.backtest.engine import BacktestConfig, run_backtest
 from algo.data.conversions import conversion_ref, load_conversions, store_conversion
 from algo.data.store.migrate import migrate
+from algo.research import slot
 from algo.strategy.base import Strategy, StrategyParams
 
 ap = argparse.ArgumentParser()
@@ -200,7 +201,10 @@ def verify(conn: psycopg.Connection) -> None:
         )
 
 
-with psycopg.connect(a.db, autocommit=True) as conn:
+with (
+    psycopg.connect(a.db, autocommit=True) as conn,
+    slot.hold(conn, "conversion verification", nice=10),
+):
     if a.mode == "dry-run":
         before = fingerprints(conn)
         checks["precondition: migration 025 not yet applied"] = (

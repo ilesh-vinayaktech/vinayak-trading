@@ -16,6 +16,7 @@ import psycopg
 
 from algo.research import holdout_batch as hb
 from algo.research import holdout_evaluator as ev
+from algo.research import slot
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -58,7 +59,8 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                 raise SystemExit(
                     "this spends the one holdout and cannot be repeated: pass --yes to go ahead"
                 )
-            ev.run_batch(conn, a.batch, now)
+            with slot.hold(conn, "holdout evaluation", nice=10):
+                ev.run_batch(conn, a.batch, now)
             print("evaluated: the holdout is consumed; read the verdicts with `verdicts`")
         else:
             for row in hb.read_verdicts(conn):

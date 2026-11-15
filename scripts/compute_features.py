@@ -14,6 +14,7 @@ from uuid import UUID
 import psycopg
 
 from algo.features import job
+from algo.research import slot
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -35,7 +36,7 @@ def commandlines() -> list[str]:
 commit = subprocess.run(
     ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
 ).stdout.strip()
-with psycopg.connect(a.db, autocommit=True) as conn:
+with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "feature job", nice=10):
     fid = (
         a.freeze
         or (
