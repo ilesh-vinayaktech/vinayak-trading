@@ -1,0 +1,77 @@
+{
+ "description": "Reviewed historical-instrument applications for BHARATFIN (decision 2, KEEP_SEPARATE: merged into IndusInd Bank) and HEXAWARE (decision 13, NO_SUCCESSOR). Each creates ONE delisted historical instrument with its own ISIN and alias. BHARATFIN also gets ONE effective-dated relationship; HEXAWARE gets none. No alias onto a successor, no membership transfer. NOT applied by committing this file.",
+ "guards": {
+  "BHARATFIN": "merged into IndusInd Bank (INDUSINDBK) on 2019-07-04 at 639:1000; the relationship is AMALGAMATED_INTO, never an alias; no membership transfer",
+  "HEXAWARE": "owner decision 13 is NO_SUCCESSOR: the 2025 relisting of the same issuer as HEXT (ISIN INE093A01041, a new IPO) is deliberately NOT linked; the old security stays on its own"
+ },
+ "targets_expected": {
+  "INDUSINDBK": "INE095A01012"
+ },
+ "applications": [
+  {
+   "item_id": "symbol:BHARATFIN",
+   "decision_id": 2,
+   "name": "Bharat Financial Inclusion Limited",
+   "instrument": {
+    "symbol": "BHARATFIN",
+    "isin": "INE180K01011",
+    "status": "delisted",
+    "listed_on": null,
+    "first_observed_on": "2016-07-01",
+    "last_traded_on": "2019-07-02",
+    "delisted_on": null
+   },
+   "alias": {
+    "instrument_id": "<new>",
+    "source": "nse",
+    "source_symbol": "BHARATFIN",
+    "valid_from": "2016-07-01",
+    "valid_from_basis": "FIRST_OBSERVED",
+    "valid_to": "2019-07-03",
+    "valid_to_basis": "LAST_OBSERVED"
+   },
+   "relationship": {
+    "relationship_type": "AMALGAMATED_INTO",
+    "source_instrument_id": "<new>",
+    "target_symbol": "INDUSINDBK",
+    "appointed_date": null,
+    "effective_date": "2019-07-04",
+    "ratio_num": 639,
+    "ratio_den": 1000,
+    "known_at": null,
+    "evidence": [
+     "NSE Indices press release Dec 2018 (https://www.niftyindices.com/Press_Release/ind_prs14122018.pdf, read in full): BHARATFIN excluded from several indices effective 2018-12-28 (close 2018-12-27) for the scheme of amalgamation of Bharat Financial Inclusion Ltd into IndusInd Bank Ltd. Our exchange files: ISIN INE180K01011, 2016-07-01..2019-07-02. IndusInd Bank announcement: merger effective 2019-07-04, 639 IndusInd : 1000 BFIL.",
+     "IndusInd Bank announcement (effective date and ratio not re-read from the primary page)",
+     "IndusInd Bank FAQ on the amalgamation (https://www.indusind.bank.in/content/dam/indusind-corporate/corporate-announcement/CompositeSchemeofArrangementMergerofBharatFinancialInclusionLimited/FAQ-on-AmalgamationShareholders.pdf, search excerpt only, 2026-11-15): effective date 2019-07-04 and 639 IndusInd shares for every 1,000 Bharat Financial shares; the document itself was not read in full, so the relationship stays PROVISIONAL"
+    ],
+    "verification_status": "PROVISIONAL",
+    "review_decision_id": 2
+   }
+  },
+  {
+   "item_id": "symbol:HEXAWARE",
+   "decision_id": 13,
+   "name": "Hexaware Technologies Limited",
+   "instrument": {
+    "symbol": "HEXAWARE",
+    "isin": "INE093A01033",
+    "status": "delisted",
+    "listed_on": null,
+    "first_observed_on": "2002-06-14",
+    "last_traded_on": "2020-10-30",
+    "delisted_on": "2020-11-09"
+   },
+   "alias": {
+    "instrument_id": "<new>",
+    "source": "nse",
+    "source_symbol": "HEXAWARE",
+    "valid_from": "2002-06-14",
+    "valid_from_basis": "FIRST_OBSERVED",
+    "valid_to": "2020-10-31",
+    "valid_to_basis": "LAST_OBSERVED"
+   },
+   "relationship": null,
+   "reference_symbol": "INFY"
+  }
+ ]
+}

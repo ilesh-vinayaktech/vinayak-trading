@@ -1,0 +1,303 @@
+{
+ "mode": "dry_run_identity_only",
+ "config_sha256": "0b05256e88d1fc9d1f4245cd5eb8ec59a4075bc408b912aee41f6e0207face0b",
+ "applications": [
+  {
+   "item_id": "symbol:BHARATFIN",
+   "instrument_id": 2667,
+   "relationship_id": 10,
+   "target_instrument_id": 1078
+  },
+  {
+   "item_id": "symbol:HEXAWARE",
+   "instrument_id": 2668,
+   "relationship_id": null,
+   "target_instrument_id": null
+  }
+ ],
+ "counts_before": {
+  "instrument": 2654,
+  "instrument_alias": 3103,
+  "corporate_action_relationship": 1,
+  "bar_1d": 7570830,
+  "partition_load": 2933,
+  "index_release_row": 146462,
+  "index_monthly_constituent": 45590
+ },
+ "counts_after_inside_transaction": {
+  "instrument": 2656,
+  "instrument_alias": 3105,
+  "corporate_action_relationship": 2,
+  "bar_1d": 7570830,
+  "partition_load": 2933,
+  "index_release_row": 146462,
+  "index_monthly_constituent": 45590
+ },
+ "counts_persisted_now": {
+  "instrument": 2654,
+  "instrument_alias": 3103,
+  "corporate_action_relationship": 1,
+  "bar_1d": 7570830,
+  "partition_load": 2933,
+  "index_release_row": 146462,
+  "index_monthly_constituent": 45590
+ },
+ "release_rows_remapped": 218,
+ "monthly_constituents_remapped": 202,
+ "unmapped_before_(release_rows,monthly)": {
+  "BHARATFIN": [
+   89,
+   94
+  ],
+  "HEXAWARE": [
+   129,
+   108
+  ]
+ },
+ "new_rows": {
+  "instrument": [
+   [
+    "2667",
+    "BHARATFIN",
+    "INE180K01011",
+    "Bharat Financial Inclusion Limited",
+    "delisted",
+    "None",
+    "None",
+    "2016-07-01",
+    "2019-07-02",
+    "1"
+   ],
+   [
+    "2668",
+    "HEXAWARE",
+    "INE093A01033",
+    "Hexaware Technologies Limited",
+    "delisted",
+    "None",
+    "2020-11-09",
+    "2002-06-14",
+    "2020-10-30",
+    "1"
+   ]
+  ],
+  "instrument_alias": [
+   [
+    "2667",
+    "nse",
+    "BHARATFIN",
+    "2016-07-01",
+    "FIRST_OBSERVED",
+    "2019-07-03",
+    "LAST_OBSERVED"
+   ],
+   [
+    "2668",
+    "nse",
+    "HEXAWARE",
+    "2002-06-14",
+    "FIRST_OBSERVED",
+    "2020-10-31",
+    "LAST_OBSERVED"
+   ]
+  ],
+  "corporate_action_relationship": [
+   [
+    "10",
+    "AMALGAMATED_INTO",
+    "2667",
+    "1078",
+    "INDUSINDBK",
+    "2019-07-04",
+    "2019-07-02",
+    "639",
+    "1000",
+    "PROVISIONAL",
+    "2"
+   ]
+  ]
+ },
+ "release_rows_after": [
+  [
+   "BHARATFIN",
+   "MIDCAP_100",
+   "EXCLUDED",
+   "MAPPED",
+   "7",
+   "2018-12-28",
+   "2018-12-28"
+  ],
+  [
+   "BHARATFIN",
+   "NIFTY_200",
+   "EXCLUDED",
+   "MAPPED",
+   "7",
+   "2018-12-28",
+   "2018-12-28"
+  ],
+  [
+   "BHARATFIN",
+   "None",
+   "EXCLUDED",
+   "MAPPED",
+   "56",
+   "2017-05-26",
+   "2018-12-28"
+  ],
+  [
+   "BHARATFIN",
+   "None",
+   "INCLUDED",
+   "MAPPED",
+   "19",
+   "2017-04-17",
+   "2018-06-29"
+  ],
+  [
+   "HEXAWARE",
+   "MIDCAP_100",
+   "EXCLUDED",
+   "MAPPED",
+   "3",
+   "2020-09-25",
+   "2020-09-25"
+  ],
+  [
+   "HEXAWARE",
+   "NIFTY_200",
+   "EXCLUDED",
+   "MAPPED",
+   "3",
+   "2020-09-25",
+   "2020-09-25"
+  ],
+  [
+   "HEXAWARE",
+   "None",
+   "EXCLUDED",
+   "MAPPED",
+   "74",
+   "2017-03-31",
+   "2020-09-25"
+  ],
+  [
+   "HEXAWARE",
+   "None",
+   "INCLUDED",
+   "MAPPED",
+   "49",
+   "2017-03-31",
+   "2020-06-26"
+  ]
+ ],
+ "monthly_after": [
+  [
+   "BHARATFIN",
+   "NIFTY 200",
+   "MAPPED",
+   "22",
+   "2017-07-31",
+   "2018-11-30"
+  ],
+  [
+   "BHARATFIN",
+   "NIFTY Free Float Midcap 100",
+   "MAPPED",
+   "14",
+   "2017-07-31",
+   "2018-03-28"
+  ],
+  [
+   "BHARATFIN",
+   "NIFTY Full Midcap 100",
+   "MAPPED",
+   "14",
+   "2017-07-31",
+   "2018-03-28"
+  ],
+  [
+   "BHARATFIN",
+   "NIFTY Midcap 100",
+   "MAPPED",
+   "8",
+   "2018-04-30",
+   "2018-11-30"
+  ],
+  [
+   "BHARATFIN",
+   "Nifty 200",
+   "MAPPED",
+   "16",
+   "2017-01-31",
+   "2017-10-31"
+  ],
+  [
+   "BHARATFIN",
+   "Nifty Free Float Midcap 100",
+   "MAPPED",
+   "4",
+   "2017-08-31",
+   "2017-10-31"
+  ],
+  [
+   "BHARATFIN",
+   "Nifty Full Midcap 100",
+   "MAPPED",
+   "4",
+   "2017-08-31",
+   "2017-10-31"
+  ],
+  [
+   "BHARATFIN",
+   "Nifty Midcap 100",
+   "MAPPED",
+   "12",
+   "2017-01-31",
+   "2017-06-30"
+  ],
+  [
+   "HEXAWARE",
+   "NIFTY 200",
+   "MAPPED",
+   "44",
+   "2017-07-31",
+   "2020-08-31"
+  ],
+  [
+   "HEXAWARE",
+   "NIFTY Full Midcap 100",
+   "MAPPED",
+   "14",
+   "2017-07-31",
+   "2018-03-28"
+  ],
+  [
+   "HEXAWARE",
+   "NIFTY Midcap 100",
+   "MAPPED",
+   "30",
+   "2018-04-30",
+   "2020-08-31"
+  ],
+  [
+   "HEXAWARE",
+   "Nifty 200",
+   "MAPPED",
+   "16",
+   "2017-01-31",
+   "2017-10-31"
+  ],
+  [
+   "HEXAWARE",
+   "Nifty Full Midcap 100",
+   "MAPPED",
+   "4",
+   "2017-08-31",
+   "2017-10-31"
+  ]
+ ],
+ "bars_after": [],
+ "bar_load_status": {},
+ "fingerprint_changes_outside_the_intended_set": {}
+}

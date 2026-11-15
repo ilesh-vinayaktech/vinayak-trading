@@ -28,7 +28,8 @@ and the derived Nifty 200 matches all 48 month-end lists. **Side effect to know 
 **D2. BHARATFIN and HEXAWARE have no instrument** (both new in this window; proposals only, no apply script yet). Stored proposals (`docs/stage4/apply_proposals/proposals.md`): each becomes
 its own historical instrument, with its merger as a dated relationship, not an alias. BHARATFIN: member 2018-04-02 to 2018-12-28 (184 sessions), merged into IndusInd Bank on
 2019-07-04, last traded 2019-07-02, so **we have no prices for it** (before 2019-10). HEXAWARE: member to 2020-09-25 (616 sessions), delisted 2020-11-09, its prices from 2019-10 are in the stored raw files.
-- Approve creating both from the proposals (my recommendation); I extend the existing identity-application script to them. BHARATFIN's sessions stay incomplete until older prices are loaded.
+- **Dry run done 2026-11-15** (`docs/stage4/identity/2026-11-15_bharatfin_hexaware_dry_run.md`, config `config/identity_applications/bharatfin_hexaware.json`, rolled back, nothing persisted): +2 instruments, +2 aliases, +1 relationship (BHARATFIN into IndusInd Bank, 639:1000 effective 2019-07-04, now also confirmed by IndusInd's own FAQ, still PROVISIONAL; HEXAWARE has none, per your decision 13: the 2025 HEXT relisting is deliberately not linked), 218 release rows and 202 monthly rows re-mapped (exactly the unmapped counts), every unrelated record set byte-identical.
+- Approve applying both (my recommendation). BHARATFIN's sessions stay incomplete until older prices are loaded.
 
 **D3. GSPL and PEL have no instrument; a full review package already exists: `docs/stage4/identity/GSPL_PEL_REVIEW.md`** (built, tested, dry-run only, nothing applied). GSPL is a member
 2018-04-02 to 2023-03-31 (1,240 sessions); PEL 2018-04-02 to 2022-08-08 and 2023-03-31 to 2024-09-30 (1,451 sessions). Both traded throughout: a naming gap, not a missing company. That
@@ -36,6 +37,7 @@ package makes each its own historical instrument (GSPL, INE246F01010, merged int
 unmapped release and snapshot rows, and moves no membership to the successors. Its own recommendation, which I share: **apply the identity and re-map now, hold the price bars** until their corporate
 actions are loaded (PEL closes fall by 45% on 2022-08-30, the Piramal Pharma demerger, with no action recorded). The GSPL merger ratio (10:13) is from search results only, so that relationship is PROVISIONAL.
 About 370 sessions of each fall before our NSE prices begin.
+- **Dry run re-done 2026-11-15** (`docs/stage4/identity/2026-11-15_gspl_pel_dry_run.md`, rolled back): +2 instruments, +2 aliases, +2 relationships, 566 release rows and 417 monthly rows re-mapped, every unrelated record set (including GNRL, GUJENERGY, PIRAMALFIN) byte-identical.
 - Approve applying the identity and re-map (not the bars), as that package proposes.
 
 **D4. Nine placeholders** (DUMMYITC, DUMMYTATAM, DUMMYHDLVR, DUMMYSIEMS, DUMMYABFRL, DUMMYVEDL1 to 4; 2025 and 2026). They are not tradable by design and are replaced by the real

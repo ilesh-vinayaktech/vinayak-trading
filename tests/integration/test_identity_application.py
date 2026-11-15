@@ -256,3 +256,77 @@ def test_remap_can_be_limited_to_the_symbols_of_one_application(env):
         == 1
     )
     assert (remap(conn), remap_monthly(conn)) == (1, 1)  # unrestricted keeps its old behaviour
+
+
+def hexaware(**over):
+    base = {
+        "item_id": "symbol:HEXAWARE", "name": "Hexaware Technologies Limited", "reference_symbol": "GUJENERGY",
+        "instrument": {"symbol": "HEXAWARE", "isin": "INE093A01033", "status": "delisted", "listed_on": None,
+                       "first_observed_on": "2002-06-14", "last_traded_on": "2020-10-30", "delisted_on": "2020-11-09"},
+        "alias": {"source": "nse", "source_symbol": "HEXAWARE", "valid_from": "2002-06-14", "valid_from_basis": "FIRST_OBSERVED",
+                  "valid_to": "2020-10-31", "valid_to_basis": "LAST_OBSERVED"},
+        "relationship": None,
+    }  # fmt: skip
+    base.update(over)
+    return base
+
+
+def decide(conn, item, decision):
+    conn.execute(
+        "INSERT INTO review_decision (item_id, decision, effective_date, evidence_ref, note, reviewer, decided_at)"
+        " VALUES (%s,%s,NULL,'e','n','tester',%s)", (item, decision, NOW))  # fmt: skip
+    return conn.execute("SELECT max(decision_id) FROM review_decision").fetchone()[0]
+
+
+def test_a_company_with_no_successor_gets_an_instrument_and_an_alias_and_no_relationship(env):
+    conn, target, other, _ = env
+    did = decide(conn, "symbol:HEXAWARE", "NO_SUCCESSOR")
+    before = conn.execute("SELECT count(*) FROM corporate_action_relationship").fetchone()[0]
+    r = apply_historical_instrument(conn, hexaware(decision_id=did), TARGETS, NOW)
+    assert (r.relationship_id, r.target_instrument_id) == (None, None)
+    assert (
+        conn.execute("SELECT count(*) FROM corporate_action_relationship").fetchone()[0] == before
+    )  # none written
+    row = conn.execute("SELECT symbol, isin, status, delisted_on, last_traded_on, exchange_id, quote_currency FROM instrument WHERE instrument_id=%s", (r.instrument_id,)).fetchone()  # fmt: skip
+    ref = conn.execute(
+        "SELECT exchange_id, quote_currency FROM instrument WHERE instrument_id=%s", (target,)
+    ).fetchone()
+    assert row == (
+        "HEXAWARE",
+        "INE093A01033",
+        "delisted",
+        date(2020, 11, 9),
+        date(2020, 10, 30),
+        ref[0],
+        ref[1],
+    )
+    assert conn.execute("SELECT valid_from, valid_to FROM instrument_alias WHERE instrument_id=%s", (r.instrument_id,)).fetchall() == [(date(2002, 6, 14), date(2020, 10, 31))]  # fmt: skip
+
+
+def test_the_decision_must_match_the_kind_of_application(env):
+    conn, *_ = env
+    keep = decide(
+        conn, "symbol:HEXAWARE", "KEEP_SEPARATE"
+    )  # a successor was decided, but the application says there is none
+    with pytest.raises(IdentityApplicationError, match="no NO_SUCCESSOR review decision"):
+        apply_historical_instrument(conn, hexaware(decision_id=keep), TARGETS, NOW)
+    none = decide(
+        conn, "symbol:GSPL", "NO_SUCCESSOR"
+    )  # no successor was decided, but the application names one
+    wrong = app(decision_id=none)
+    wrong["relationship"] = {**wrong["relationship"], "review_decision_id": none}
+    with pytest.raises(IdentityApplicationError, match="no KEEP_SEPARATE review decision"):
+        apply_historical_instrument(conn, wrong, TARGETS, NOW)
+
+
+def test_an_application_without_a_successor_needs_a_reference_stock_that_exists(env):
+    conn, *_ = env
+    did = decide(conn, "symbol:HEXAWARE", "NO_SUCCESSOR")
+    with pytest.raises(IdentityApplicationError, match="reference_symbol"):
+        apply_historical_instrument(
+            conn, hexaware(decision_id=did, reference_symbol=None), TARGETS, NOW
+        )
+    with pytest.raises(IdentityApplicationError, match="does not exist"):
+        apply_historical_instrument(
+            conn, hexaware(decision_id=did, reference_symbol="NOSUCH"), TARGETS, NOW
+        )

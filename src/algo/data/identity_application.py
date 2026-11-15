@@ -24,8 +24,8 @@ class IdentityApplicationError(Exception):
 @dataclass(frozen=True)
 class AppliedIdentity:
     instrument_id: int
-    relationship_id: int
-    target_instrument_id: int
+    relationship_id: int | None  # None for a company with no successor
+    target_instrument_id: int | None
 
 
 def _d(value: str | None) -> date | None:
@@ -38,18 +38,26 @@ def apply_historical_instrument(
     reviewed_targets: Mapping[str, str],
     now: datetime,
 ) -> AppliedIdentity:
-    inst, alias, rel = app["instrument"], app["alias"], app["relationship"]
+    inst, alias, rel = app["instrument"], app["alias"], app.get("relationship")
+    kind = (
+        "KEEP_SEPARATE" if rel else "NO_SUCCESSOR"
+    )  # a successor was decided, or the owner decided there is none
     with conn.transaction():
         decided = conn.execute(
-            "SELECT 1 FROM review_decision WHERE decision_id=%s AND item_id=%s AND decision='KEEP_SEPARATE'",
-            (app["decision_id"], app["item_id"]),
+            "SELECT 1 FROM review_decision WHERE decision_id=%s AND item_id=%s AND decision=%s",
+            (app["decision_id"], app["item_id"], kind),
         ).fetchone()
         if decided is None:
             raise IdentityApplicationError(
-                f"no KEEP_SEPARATE review decision {app['decision_id']} for {app['item_id']}"
+                f"no {kind} review decision {app['decision_id']} for {app['item_id']}"
             )
-        sym = rel["target_symbol"]
-        if sym not in reviewed_targets:
+        # the successor, or for a company without one the reference stock whose exchange and currency the new instrument shares
+        sym = rel["target_symbol"] if rel else app.get("reference_symbol")
+        if not sym:
+            raise IdentityApplicationError(
+                "an application without a relationship needs a reference_symbol"
+            )
+        if rel and sym not in reviewed_targets:
             raise IdentityApplicationError(f"target {sym} is not in the reviewed targets")
         target = conn.execute(
             "SELECT instrument_id, isin, exchange_id, quote_currency FROM instrument WHERE symbol=%s",
@@ -57,7 +65,7 @@ def apply_historical_instrument(
         ).fetchone()
         if target is None:
             raise IdentityApplicationError(f"target {sym} does not exist")
-        if target[1] != reviewed_targets[sym]:
+        if rel and target[1] != reviewed_targets[sym]:
             raise IdentityApplicationError(
                 f"target {sym} has ISIN {target[1]} which is not the reviewed {reviewed_targets[sym]}"
             )
@@ -94,6 +102,8 @@ def apply_historical_instrument(
             (iid, alias["source"], alias["source_symbol"], valid_from, alias["valid_from_basis"], valid_to,
              alias["valid_to_basis"]),
         )  # fmt: skip
+        if rel is None:
+            return AppliedIdentity(int(iid), None, None)
         rid = conn.execute(
             "INSERT INTO corporate_action_relationship (relationship_type, source_instrument_id,"
             " target_instrument_id, target_symbol, appointed_date, effective_date, last_source_session,"
