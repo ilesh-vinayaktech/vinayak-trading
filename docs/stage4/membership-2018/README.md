@@ -27,8 +27,11 @@ definition (Nifty 50 + Next 50 + Midcap 100) began; before it the index was buil
 | Kind | Entities | Needs |
 |---|---|---|
 | SNAPSHOT_MISMATCH_BLOCK (1) | TATAMTRDVR (Tata Motors DVR), blocked 2018-04-02..2020-06-30 | evidence for its exit: it is in the monthly Nifty 100 and Nifty 200 snapshots through 2020-05-29 and gone by 2020-06-30, but no captured release names it (the 10 June 2020 review and the 13 May release do not), and the monthly Next 50 lists do not show it although Nifty 100 does. Strict mode blocks the stock for that span; nothing is guessed |
-| MEMBER_WITHOUT_INSTRUMENT (6) | BHARATFIN (to 2018-12-28), HEXAWARE (to 2020-09-25), GSPL (to 2023-03-31), JIOFIN pre-listing, PEL twice | instrument identity (delisted names with no instrument; the apply step is not built). BHARATFIN and HEXAWARE are new in this window |
+| MEMBER_WITHOUT_INSTRUMENT (6) | BHARATFIN (to 2018-12-28), HEXAWARE (to 2020-09-25), GSPL (to 2023-03-31), JIOFIN pre-listing, PEL twice | instrument identity. GSPL and PEL: a review package and a built, dry-run-only identity application exist (`docs/stage4/identity/GSPL_PEL_REVIEW.md`, not applied). BHARATFIN and HEXAWARE (new in this window): proposals only (`docs/stage4/apply_proposals/proposals.md`). JIOFIN pre-listing: as in revision 3 |
 | PLACEHOLDER_NOT_TRADABLE (9) | the DUMMY* demerger placeholders (2025-2026) | non-tradable by design, as in revision 3 |
+
+## Review
+The sign-off pack with five decisions and six spot checks is `REVIEW.md`.
 
 ## Limits
 - Not done: before 2018-04-02; prices for members that delisted before the NSE bars begin (2019-10) are not loaded, so those sessions stay incomplete until the older bhavcopy is.

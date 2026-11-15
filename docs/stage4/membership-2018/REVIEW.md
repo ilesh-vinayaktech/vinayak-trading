@@ -1,0 +1,68 @@
+# Review pack: Nifty 200 membership 2018-04-02 to 2026-11-07 (revision 4 candidate)
+
+For the owner, to sign off. About 20 minutes: five decisions and six spot checks. Nothing here is loaded into the database yet; your sign-off is
+what lets me load it and declare coverage, and until then no Nifty 200 experiment can be registered as point-in-time.
+
+## What you are signing
+That the reconstructed membership (`membership_intervals.csv`, 391 intervals) is an accurate record of who was in the Nifty 200 on each day, except where
+this pack says a stock is blocked or has no instrument. The evidence for it is that it matches every independent source we hold:
+
+| Independent source | Agreement |
+|---|---|
+| Month-end constituent lists, Nifty 50 | 103 of 103 months |
+| Month-end constituent lists, Nifty Next 50 | 79 of 79 |
+| Month-end constituent lists, Nifty Midcap 100 | 48 of 48 |
+| The releases' own explicit Nifty 100 and Nifty 200 tables | 48 of 48 each |
+| Derived Nifty 200 against the month-end Nifty 200 lists | 22 of 48; all 26 other months differ by one stock, TATAMTRDVR (decision D1) |
+
+Member counts: 200 on every checked date; 196 are tradable instruments on 2018-04-02 and 197 in 2019-2020, the rest are the stocks in D2 and D3 (no instrument yet).
+
+## Decisions
+
+**D1. TATAMTRDVR (Tata Motors DVR) is blocked from 2018-04-02 to 2020-06-30.** It is in the month-end Nifty 100 and 200 lists through 2020-05-29 and gone by 2020-06-30,
+but none of the NSE releases we hold names its exit (not the 10 June 2020 review, not the 13 May release), and the month-end Next 50 lists do not show it although
+the Nifty 100 list does. Strict mode treats it as unusable for that span. The block costs little: 553 sessions are blocked, but we only have prices for 183 of
+them (our NSE prices start 2019-10-01).
+- Accept the block (my recommendation), or send me the NSE release that removed it and I give it a proper date.
+
+**D2. BHARATFIN and HEXAWARE have no instrument** (both new in this window; proposals only, no apply script yet). Stored proposals (`docs/stage4/apply_proposals/proposals.md`): each becomes
+its own historical instrument, with its merger as a dated relationship, not an alias. BHARATFIN: member 2018-04-02 to 2018-12-28 (184 sessions), merged into IndusInd Bank on
+2019-07-04, last traded 2019-07-02, so **we have no prices for it** (before 2019-10). HEXAWARE: member to 2020-09-25 (616 sessions), delisted 2020-11-09, its prices from 2019-10 are in the stored raw files.
+- Approve creating both from the proposals (my recommendation); I extend the existing identity-application script to them. BHARATFIN's sessions stay incomplete until older prices are loaded.
+
+**D3. GSPL and PEL have no instrument; a full review package already exists: `docs/stage4/identity/GSPL_PEL_REVIEW.md`** (built, tested, dry-run only, nothing applied). GSPL is a member
+2018-04-02 to 2023-03-31 (1,240 sessions); PEL 2018-04-02 to 2022-08-08 and 2023-03-31 to 2024-09-30 (1,451 sessions). Both traded throughout: a naming gap, not a missing company. That
+package makes each its own historical instrument (GSPL, INE246F01010, merged into GUJENERGY on 2026-05-01; PEL, INE140A01024, merged into PIRAMALFIN on 2025-09-16), re-maps their
+unmapped release and snapshot rows, and moves no membership to the successors. Its own recommendation, which I share: **apply the identity and re-map now, hold the price bars** until their corporate
+actions are loaded (PEL closes fall by 45% on 2022-08-30, the Piramal Pharma demerger, with no action recorded). The GSPL merger ratio (10:13) is from search results only, so that relationship is PROVISIONAL.
+About 370 sessions of each fall before our NSE prices begin.
+- Approve applying the identity and re-map (not the bars), as that package proposes.
+
+**D4. Nine placeholders** (DUMMYITC, DUMMYTATAM, DUMMYHDLVR, DUMMYSIEMS, DUMMYABFRL, DUMMYVEDL1 to 4; 2025 and 2026). They are not tradable by design and are replaced by the real
+listing on its listing date. Same as revision 3.
+- Accept.
+
+**D5. Retrospective listing handovers.** For ENRIN, ABLBL and the Vedanta securities, the only evidence of the listing-date handover is a later release, so it is
+not proof the handover was publicly known on that day. We keep the announcement date as the date the platform "knew" it.
+- Accept this limit, or ask me to fetch the NSE listing notices first.
+
+## Spot checks (10 minutes)
+Open `membership_intervals.csv` and filter on the symbol; compare with the NSE index factsheet or press release you trust. `end_exclusive` is the first day the stock is no longer a member.
+
+| Symbol | The file says | What to check |
+|---|---|---|
+| YESBANK | member 2018-04-02 to 2020-03-19 (exclusive), member again from 2020-09-25 | removed from the index on 2020-03-19 after the Yes Bank reconstruction scheme |
+| IRCTC | member from 2020-06-26 | added in the June 2020 review |
+| ASHOKLEY | member the whole window | stays in through the 2020 review (it moved between Next 50 and Midcap 100) |
+| IDEA | member the whole window | |
+| HEXAWARE | member to 2020-09-25, no instrument | gone from the index in the September 2020 review |
+| TATAMTRDVR | blocked 2018-04-02 to 2020-06-30 | D1 |
+
+## What this does not cover
+Anything before 2018-04-02 (the index was built differently and needs its own derivation). Prices for members that delisted before 2019-10 (older NSE price files are not loaded).
+Person verification itself: until you sign, everything is PROVISIONAL.
+
+## After you answer
+Reply with a line per decision, for example "D1 accept, D2 approve, D3 approve, D4 accept, D5 accept". Then, in this order: apply the GSPL and PEL identity per its package (with the usual
+backup and dry run), extend it to BHARATFIN and HEXAWARE, **build the loader that turns this reconstruction into the stored membership events and the declared coverage** (not built yet: the
+older loader does not see the voids or revocations), record your verification with your name and the decision list, and re-run the readiness check. If a spot check fails, tell me the symbol and what you expected.
