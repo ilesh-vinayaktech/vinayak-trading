@@ -11,12 +11,17 @@ def test_defaults_are_the_safe_ones_and_everything_is_read_from_the_environment(
         "research",
         True,
         False,
-        "kite",
+        "bhavcopy",
     )
     assert s.cors_origins == ("http://localhost:3000",) and s.live is False
     t = Settings.from_env({**BASE, "ALGO_MODE": "paper", "ALGO_COOKIE_SECURE": "0", "ALGO_TRUST_PROXY": "1",
-                           "ALGO_CORS_ORIGINS": "https://a.example, https://b.example", "ALGO_PRICE_SOURCE": "nse"})  # fmt: skip
-    assert (t.mode, t.cookie_secure, t.trust_proxy, t.price_source) == ("paper", False, True, "nse")
+                           "ALGO_CORS_ORIGINS": "https://a.example, https://b.example", "ALGO_PRICE_SOURCE": "kite"})  # fmt: skip
+    assert (t.mode, t.cookie_secure, t.trust_proxy, t.price_source) == (
+        "paper",
+        False,
+        True,
+        "kite",
+    )
     assert t.cors_origins == ("https://a.example", "https://b.example")
 
 
@@ -27,7 +32,7 @@ def test_defaults_are_the_safe_ones_and_everything_is_read_from_the_environment(
         ({"ALGO_DB_URL": "mysql://x"}, "ALGO_DB_URL"),
         ({**BASE, "ALGO_MODE": "yolo"}, "ALGO_MODE"),
         ({**BASE, "ALGO_COOKIE_SECURE": "maybe"}, "ALGO_COOKIE_SECURE"),
-        ({**BASE, "ALGO_PRICE_SOURCE": "bse"}, "ALGO_PRICE_SOURCE"),
+        ({**BASE, "ALGO_PRICE_SOURCE": "nse"}, "ALGO_PRICE_SOURCE"),
         ({**BASE, "ALGO_CORS_ORIGINS": " , "}, "ALGO_CORS_ORIGINS"),
     ],
 )

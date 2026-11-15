@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 LIVE_CONFIRM = "I-ACCEPT-REAL-ORDERS"
 MODES = ("research", "paper", "live")
-PRICE_SOURCES = ("kite", "nse")
+PRICE_SOURCES = ("kite", "bhavcopy")
 
 
 class ConfigError(ValueError):
@@ -63,7 +63,7 @@ class Settings:
         if not origins:
             raise ConfigError("ALGO_CORS_ORIGINS must list at least one origin")
         return cls(
-            db, mode, _choice(env, "ALGO_PRICE_SOURCE", PRICE_SOURCES, "kite"),
+            db, mode, _choice(env, "ALGO_PRICE_SOURCE", PRICE_SOURCES, "bhavcopy"),
             _flag(env, "ALGO_COOKIE_SECURE", True), _flag(env, "ALGO_TRUST_PROXY", False),
             env.get("ALGO_PUBLIC_URL", "http://localhost:3000"), origins,
         )  # fmt: skip

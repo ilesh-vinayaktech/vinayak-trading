@@ -19,33 +19,29 @@ from fastapi import FastAPI
 from algo.api.app import create_app
 from algo.api.security import PortalSettings
 from algo.core.clock import SystemClock
+from algo.core.settings import Settings
 from algo.portal.crypto import KeyRing
 from algo.portal.passwords import Hasher
 
 
 def build() -> FastAPI:
-    dsn = os.environ.get("ALGO_DB_URL")
-    if not dsn:
+    if not os.environ.get("ALGO_DB_URL"):
         raise RuntimeError("ALGO_DB_URL is not set")
+    cfg = Settings.from_env(os.environ)  # refuses an invalid value, naming the variable
     docs = Path(os.environ.get("ALGO_DOCS_DIR", "docs"))
-    origins = tuple(
-        o.strip()
-        for o in os.environ.get("ALGO_CORS_ORIGINS", "http://localhost:3000").split(",")
-        if o.strip()
-    )
     portal = PortalSettings(
         hasher=Hasher(),
         ring=KeyRing.from_env(os.environ),  # refuses to start without a valid key ring
         clock=SystemClock(),
-        origins=origins,
-        cookie_secure=os.environ.get("ALGO_COOKIE_SECURE", "1") != "0",
-        trust_proxy=os.environ.get("ALGO_TRUST_PROXY") == "1",
-        public_url=os.environ.get("ALGO_PUBLIC_URL", "http://localhost:3000"),
+        origins=cfg.cors_origins,
+        cookie_secure=cfg.cookie_secure,
+        trust_proxy=cfg.trust_proxy,
+        public_url=cfg.public_url,
     )
     return create_app(
-        dsn,
+        cfg.db_url,
         docs,
-        origins,
+        cfg.cors_origins,
         portal=portal,
         interactive_docs=os.environ.get("ALGO_API_DOCS") == "1",
         review_writes=os.environ.get("ALGO_REVIEW_WRITES") == "1",

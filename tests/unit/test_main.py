@@ -66,3 +66,16 @@ def test_cookie_and_proxy_settings_default_to_the_safe_choice(monkeypatch):
     monkeypatch.setenv("ALGO_TRUST_PROXY", "1")
     st = build().state.portal
     assert st.cookie_secure is False and st.trust_proxy is True and st.cookie_name == "session"
+
+
+def test_an_invalid_setting_stops_the_app_naming_the_variable(monkeypatch):
+    from algo.core.settings import ConfigError
+
+    monkeypatch.setenv("ALGO_DB_URL", "postgresql://u@h/db")
+    monkeypatch.setenv("ALGO_COOKIE_SECURE", "maybe")
+    with pytest.raises(ConfigError, match="ALGO_COOKIE_SECURE"):
+        build()
+    monkeypatch.setenv("ALGO_COOKIE_SECURE", "1")
+    monkeypatch.setenv("ALGO_MODE", "live")  # no confirmation phrase
+    with pytest.raises(ConfigError, match="ALGO_LIVE_CONFIRM"):
+        build()
