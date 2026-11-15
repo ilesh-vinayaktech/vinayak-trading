@@ -12,6 +12,17 @@ jobs:
       - run: sudo apt-get install -y poppler-utils  # pdftotext, used to read NSE press releases
       - run: uv sync --frozen
       - run: make check
+      - name: Coverage summary on the run page (T0.10)
+        if: always()
+        run: uv run coverage report --format=markdown --skip-covered >> "$GITHUB_STEP_SUMMARY"
+      - name: Coverage report as HTML
+        if: always()
+        run: uv run coverage html -d htmlcov
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html
+          path: htmlcov
   frontend:  # the same steps as `make console-check`: types, lint, tests, production build
     runs-on: ubuntu-latest
     defaults:

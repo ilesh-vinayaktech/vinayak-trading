@@ -82,8 +82,8 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 - [ ] T0.6 Test markers: `unit` (<1s each, no I/O), `integration`, `e2e`, `slow`, `fault`. PR runs all except `slow`; nightly runs all + mutation.
 - [x] (2026-11-15, agent: ruff DTZ on, pytest-randomly installed, `tests/unit/test_no_system_clock_in_src.py` bans wall-clock reads in src except `core/clock.py`; monotonic timers are allowed) T0.7 Deterministic by default: injected `Clock`, seeded RNG, `pytest-randomly` on, ban `datetime.now()`/`time.time()` in `src/` via ruff rule (DTZ) + custom lint test.
 - [ ] T0.8 Fixtures: small sample dataset (10 instruments, 20 days, 1m bars, one split, one bonus, one dividend, one halt, one delisting, one holiday) committed under `tests/data/` with raw files + manifest. Used by unit, integration, golden and e2e.
-- [ ] T0.9 Bug policy: every defect gets a failing regression test first, then the fix.
-- [ ] T0.10 Coverage report published per PR (html artifact + summary comment); trend tracked.
+- [x] (2026-11-15: written in `.claude/skills/algo-testing/SKILL.md` rule 1 and followed this session: the flatten, overfill and mutation-found fixes each had a failing test first) T0.9 Bug policy: every defect gets a failing regression test first, then the fix.
+- [~] (2026-11-15, agent: CI now writes the coverage table into every run's summary page and uploads the HTML report as the `coverage-html` artifact, even when the gate fails (`.github\/workflows\/ci.yml`, tested by tests\/unit\/test_ci_workflow.py for its shape; NOT seen to run on GitHub). NOT done: a comment on the pull request and a trend over time) T0.10 Coverage report published per PR (html artifact + summary comment); trend tracked.
 - [~] (2026-11-15: `.githooks/pre-commit` runs the secret scan, ruff check and ruff format on staged Python files; enable with scripts/install_hooks.sh. mypy and a fast unit subset are not in the hook: `make quick` does those) T0.11 Pre-commit: ruff, ruff-format, mypy, fast unit subset. CI is the source of truth.
 - [x] T0.12 Test-the-tests: a meta-test that fails if any module in `src/algo` has no test file (import-graph check).
 
