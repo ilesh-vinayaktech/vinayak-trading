@@ -120,6 +120,8 @@ paths_to_mutate = [
   "src/algo/execution/live_reconcile.py",
   "src/algo/alpha/stats.py",
   "src/algo/alpha/discover.py",
+  "src/algo/factory/dsl.py",
+  "src/algo/factory/interpreter.py",
 ]
 tests_dir = ["tests/unit/"]
 # The sandbox clears the environment in its worker, which removes the variable mutmut's instrumented code reads: those tests crash under mutation
