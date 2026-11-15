@@ -207,3 +207,11 @@ def test_a_study_may_not_reach_into_the_global_research_holdout():
     check(
         ok, today=TODAY, development_end=date(2024, 12, 31)
     )  # the last development day itself is allowed
+
+
+def test_the_filing_lag_defaults_to_zero_is_bounded_and_enters_the_locked_document():
+    assert spec().filing_lag_days == 0
+    assert spec(filing_lag_days=45).model_dump(mode="json")["filing_lag_days"] == 45
+    for bad in (-1, 366):
+        with pytest.raises(ValueError):
+            spec(filing_lag_days=bad)

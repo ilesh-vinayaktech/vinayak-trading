@@ -124,7 +124,7 @@ def _candidate(
     begin = max(m.date_from, first)
     setup = Setup(
         membership, coverage, begin, m.date_to, cost_policy(conn, spec), readers(known_at),
-        fundamentals_book.load(conn, membership.ever(), begin, m.date_to) if spec.screen is not None and spec.screen.needs_fundamentals() else None,
+        fundamentals_book.load(conn, membership.ever(), begin, m.date_to, lag=timedelta(days=spec.filing_lag_days)) if spec.screen is not None and spec.screen.needs_fundamentals() else None,
     )  # fmt: skip
     cfg = BacktestConfig(
         start=begin, end=m.date_to, initial_cash=spec.capital, cost=setup.policy,

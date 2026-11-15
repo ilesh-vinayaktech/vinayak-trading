@@ -665,3 +665,55 @@ def test_a_study_that_reaches_into_the_global_holdout_is_not_run_and_the_reader_
     # a study that ends in development gets the guard, not a bare BarReader
     setup = study_runner.prepare(conn, small_spec(end=DAYS[-4].isoformat()), sid)
     assert isinstance(setup.reader, ResearchReader)
+
+
+def test_the_studys_filing_lag_reaches_the_fundamentals_book_in_research_and_in_the_holdout_evaluator(
+    env, monkeypatch
+):
+    conn, owner = env
+    seen = []
+    monkeypatch.setattr(
+        study_runner.fundamentals_book,
+        "load",
+        lambda *a, **k: seen.append((a[3], k.get("lag"))) or None,
+    )
+    screen = {
+        "conditions": [{"field": "pe", "op": "lt", "value": 15}],
+        "sort": "pe",
+        "descending": False,
+    }
+    sid = registered(
+        conn,
+        owner,
+        strategy_id="screener",
+        grid={"max_positions": [5]},
+        screen=screen,
+        filing_lag_days=7,
+    )
+    study_runner.prepare(
+        conn,
+        small_spec(
+            strategy_id="screener", grid={"max_positions": [5]}, screen=screen, filing_lag_days=7
+        ),
+        sid,
+    )
+    assert [lag for _, lag in seen] == [timedelta(days=7)]
+    seen.clear()
+    sid0 = registered(
+        conn,
+        owner,
+        name="nolag",
+        strategy_id="screener",
+        grid={"max_positions": [5]},
+        screen=screen,
+    )
+    study_runner.prepare(
+        conn,
+        small_spec(
+            name="nolag", strategy_id="screener", grid={"max_positions": [5]}, screen=screen
+        ),
+        sid0,
+    )
+    assert [lag for _, lag in seen] == [
+        timedelta(0)
+    ]  # studies registered before the field existed keep running exactly as they did

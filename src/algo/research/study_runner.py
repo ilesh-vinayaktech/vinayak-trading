@@ -182,7 +182,9 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         ResearchReader(
             BarReader(conn, source="kite", publish_lag=timedelta(0), known_at=known_at), lock
         ),
-        fundamentals_book.load(conn, membership.ever(), start, research_end)
+        fundamentals_book.load(
+            conn, membership.ever(), start, research_end, lag=timedelta(days=spec.filing_lag_days)
+        )
         if spec.screen is not None and spec.screen.needs_fundamentals()
         else None,
     )
