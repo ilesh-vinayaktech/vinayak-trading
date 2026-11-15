@@ -377,7 +377,7 @@ def test_scorecard_signals_report_missing_evidence_as_missing_and_survive_a_miss
     migrate(conn)
     empty = queries.scorecard_signals(conn)
     assert empty == {
-        "dq": {"completeness": None, "continuity": None},
+        "dq": {"completeness": None, "continuity": None, "freshness": None, "kite_reconcile": None},
         "latest_run": None,
         "validation": {"reports": 0, "passed": 0, "holdout_consumed": False},
     }
@@ -388,4 +388,4 @@ def test_scorecard_signals_report_missing_evidence_as_missing_and_survive_a_miss
     conn.execute(
         "DROP TABLE dq_result"
     )  # a database that has not had migration 075 yet must still serve the dashboard
-    assert queries.scorecard_signals(conn)["dq"] == {"completeness": None, "continuity": None}
+    assert set(queries.scorecard_signals(conn)["dq"].values()) == {None}

@@ -785,7 +785,7 @@ def scorecard_signals(conn: psycopg.Connection) -> dict[str, Any]:
         False,
     )
     return {
-        "dq": {"completeness": newest("completeness"), "continuity": newest("continuity")},
+        "dq": {k: newest(k) for k in ("completeness", "continuity", "freshness", "kite_reconcile")},
         "latest_run": None
         if run is None
         else {

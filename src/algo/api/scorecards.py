@@ -50,6 +50,11 @@ def build(
     p = [
         _check("bar completeness", "completeness", dq.get("completeness")),
         _check("price continuity", "continuity", dq.get("continuity")),
+        _check("data freshness", "freshness", dq.get("freshness")),
+        _check("Kite against bhavcopy", "reconciliation", dq.get("kite_reconcile")),
+    ]
+        _check("bar completeness", "completeness", dq.get("completeness")),
+        _check("price continuity", "continuity", dq.get("continuity")),
     ]
     p.append(
         _item(

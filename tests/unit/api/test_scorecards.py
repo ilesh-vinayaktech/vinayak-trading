@@ -2,7 +2,13 @@ from algo.api import scorecards
 
 
 def dq(**kw):
-    return {"completeness": "PASS", "continuity": "PASS", **kw}
+    return {
+        "completeness": "PASS",
+        "continuity": "PASS",
+        "freshness": "PASS",
+        "kite_reconcile": "PASS",
+        **kw,
+    }
 
 
 def build(**over):
@@ -51,6 +57,9 @@ def test_platform_correctness_fails_on_a_failed_check_or_an_unreconciled_ledger_
         build(latest_run=None)["platform_correctness"]["status"] == "INCOMPLETE"
     )  # no backtest has produced a ledger yet
     assert build(dq=dq(completeness=None))["platform_correctness"]["status"] == "INCOMPLETE"
+    assert build(dq=dq(freshness="FAIL"))["platform_correctness"]["status"] == "FAIL"
+    assert build(dq=dq(kite_reconcile="FAIL"))["platform_correctness"]["status"] == "FAIL"
+    assert build(dq=dq(kite_reconcile=None))["platform_correctness"]["status"] == "INCOMPLETE"
 
 
 def test_strategy_validity_says_how_much_evidence_exists_and_never_calls_nothing_a_pass():
