@@ -1,0 +1,9 @@
+#!/bin/sh
+# Enabled by scripts/install_hooks.sh. Fast checks only (CI and `make check` are the full gate).
+set -e
+uv run python scripts/scan_secrets.py
+py=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+if [ -n "$py" ]; then
+  uv run ruff check $py
+  uv run ruff format --check $py
+fi
