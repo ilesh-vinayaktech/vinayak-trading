@@ -14,6 +14,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -68,6 +69,19 @@ def dataset_sha256(conn: psycopg.Connection, freeze_id: UUID, instruments: list[
     return hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
 
 
+def open_reader(
+    conn: psycopg.Connection, f: dict[str, Any], lock: holdout_lock.Lock
+) -> ResearchReader:
+    """The only reader a feature computation uses: pinned to what the database held when the freeze was taken, and unable to see the holdout."""
+    inner = BarReader(
+        conn,
+        source=f["source"],
+        publish_lag=timedelta(0) if f["source"] == "kite" else timedelta(hours=3),
+        known_at=f["taken_at"],
+    )
+    return ResearchReader(inner, lock)
+
+
 def run(
     conn: psycopg.Connection, freeze_id: UUID, first_month: date, now: datetime, code_commit: str,
     *, busy: Callable[[datetime], str | None] = lambda _: None,
@@ -95,10 +109,7 @@ def run(
             out.skipped.append(name)
     if not months or not usable:
         return out
-    reader = ResearchReader(
-        BarReader(conn, source=f["source"], publish_lag=timedelta(0) if f["source"] == "kite" else timedelta(hours=3), known_at=f["taken_at"]),
-        lock,
-    )  # fmt: skip
+    reader = open_reader(conn, f, lock)
     sha = dataset_sha256(conn, freeze_id, instruments)
     bars: dict[int, dict[date, SessionBar]] | None = None
     for month in months:

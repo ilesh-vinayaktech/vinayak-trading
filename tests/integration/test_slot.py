@@ -98,7 +98,7 @@ def test_busy_reason_on_an_injected_clock_and_process_list():
 ROOT = Path(__file__).parents[2]
 # what makes a script a research entry point: it runs a backtest, a study, the holdout evaluation or the feature job
 RESEARCH = re.compile(
-    r"\b(run_backtest|run_study|study_runner|holdout_evaluator|features import job|materialise_month)\b"
+    r"\b(run_backtest|run_study|study_runner|holdout_evaluator|features import [^\n]*\b(?:job|validation)\b|materialise_month)\b"
 )
 
 

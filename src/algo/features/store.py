@@ -146,6 +146,31 @@ def _month_end(month: date) -> date:
     return nxt - timedelta(days=1)
 
 
+Row = tuple[int, date, Decimal, datetime]
+
+
+def compute_rows(
+    name: str, month: date, bars_by_instrument: Mapping[int, Mapping[date, SessionBar]]
+) -> list[Row]:
+    """One feature's rows for one calendar month, in the order they are stored and hashed. Pure: nothing is read or written."""
+    end = _month_end(month)
+    fn = registry.DEFINITIONS[name].compute
+    sessions = [d for d in registry.sessions_from(bars_by_instrument) if d <= end]
+    rows: list[Row] = []
+    for iid in sorted(bars_by_instrument):
+        for day, (value, available_at) in fn(sessions, bars_by_instrument[iid]).items():
+            if month <= day <= end:
+                rows.append((iid, day, value, available_at))
+    rows.sort(key=lambda r: (r[0], r[1]))
+    return rows
+
+
+def rows_sha256(rows: list[Row]) -> str:
+    return hashlib.sha256(
+        json.dumps([[i, d.isoformat(), str(v), a.isoformat()] for i, d, v, a in rows]).encode()
+    ).hexdigest()
+
+
 def materialise_month(
     conn: psycopg.Connection, name: str, version: str, month: date, *, dataset_sha256: str, code_commit: str,
     bars_by_instrument: Mapping[int, Mapping[date, SessionBar]], now: datetime,
@@ -167,24 +192,15 @@ def materialise_month(
         (fid, month, dataset_sha256),
     ).fetchone():
         return None
-    fn = registry.DEFINITIONS[name].compute
     try:
-        sessions = [d for d in registry.sessions_from(bars_by_instrument) if d <= end]
-        rows = []
-        for iid in sorted(bars_by_instrument):
-            for day, (value, available_at) in fn(sessions, bars_by_instrument[iid]).items():
-                if month <= day <= end:
-                    rows.append((iid, day, value, available_at))
-        rows.sort(key=lambda r: (r[0], r[1]))
+        rows = compute_rows(name, month, bars_by_instrument)
     except Exception as e:
         conn.execute(
             "INSERT INTO feature_run (feature_id, month, dataset_sha256, code_commit, status, started_at, finished_at, error) VALUES (%s,%s,%s,%s,'failed',%s,%s,%s)",
             (fid, month, dataset_sha256, code_commit, now, now, str(e)),
         )
         raise FeatureError(f"{name}@{version} {month:%Y-%m} failed: {e}") from e
-    digest = hashlib.sha256(
-        json.dumps([[i, d.isoformat(), str(v), a.isoformat()] for i, d, v, a in rows]).encode()
-    ).hexdigest()
+    digest = rows_sha256(rows)
     with conn.transaction():
         run = conn.execute(
             "INSERT INTO feature_run (feature_id, month, dataset_sha256, code_commit, status, rows, result_sha256, started_at, finished_at) VALUES (%s,%s,%s,%s,'complete',%s,%s,%s,%s) RETURNING run_id",
