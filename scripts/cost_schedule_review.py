@@ -36,13 +36,22 @@ lines += ["## Coverage", f"{len(sch)} delivery periods, {sch[0]['valid_from']} t
 for s in sch:
     needed = (s["valid_until"] is None) or s["valid_until"] >= a.window_from
     lines += [f"## {s['valid_from']} to {s['valid_until'] or 'open'} ({s['id']}, v{s['version']}){'' if needed else '  [before the research window]'}", "",
-              "| Component | Side | Rate or amount | Source key | Quote from the source | Where |", "|---|---|---|---|---|---|"]  # fmt: skip
+              "| Component | Side | Rate or amount | In GST base | Source key | Quote from the source | Where |", "|---|---|---|---|---|---|---|"]  # fmt: skip
     for c in s["components"]:
-        rate = f"{c['rate_pct']}% of value" if "rate_pct" in c else f"Rs {c['amount']} per scrip"
+        if (
+            c["basis"] == "GST_BASE"
+        ):  # a rule, not a percentage of value: it applies to the components flagged below
+            rate = f"{c['rate_pct']}% of the GST base (sum of components marked yes)"
+        elif "rate_pct" in c:
+            rate = f"{c['rate_pct']}% of value"
+        else:
+            rate = f"Rs {c['amount']} per scrip" + (
+                " (GST included)" if c.get("gst_inclusive") else ""
+            )
         src = s["sources"].get(c["source"], {})
         quote = (src.get("quote") or "no quote on record").replace("|", "/")
         lines.append(
-            f"| {c['type']} | {c['side']} | {rate} | `{c['source']}` | {quote[:170]} | {src.get('locator', '')[:110].replace('|', '/')} ({src.get('url', 'no url')}) |"
+            f"| {c['type']} | {c['side']} | {rate} | {'yes' if c.get('taxable_for_gst') else ''} | `{c['source']}` | {quote[:170]} | {src.get('locator', '')[:110].replace('|', '/')} ({src.get('url', 'no url')}) |"
         )
     if s.get("assumptions"):
         lines += ["", "Assumptions (not evidenced):", *[f"- {x}" for x in s["assumptions"]]]
