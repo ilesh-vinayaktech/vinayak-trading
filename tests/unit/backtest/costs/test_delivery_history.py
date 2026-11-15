@@ -110,10 +110,12 @@ def test_assumed_components_are_labelled_where_the_evidence_stops_and_name_what_
     assert (
         assumed(date(2016, 6, 1)) == both and assumed(date(2018, 1, 1)) == both
     )  # state stamp duty, unevidenced client fee, DP
+    assert (
+        assumed(date(2020, 6, 15)) == both
+    )  # before 1 Jul 2020 and before Zerodha's own page of 2020-09-29
     assert assumed(date(2020, 9, 1)) == [
-        "DP_CHARGE",
-        "EXCHANGE_TRANSACTION",
-    ]  # stamp duty is uniform from 1 Jul 2020
+        "DP_CHARGE"
+    ]  # the exchange fee is on Zerodha's page of 2020-09-29; stamp duty is uniform from 1 Jul 2020
     for day in (
         date(2021, 1, 1),
         date(2022, 7, 18),
@@ -135,7 +137,7 @@ def test_assumed_components_are_labelled_where_the_evidence_stops_and_name_what_
             date(2022, 8, 1),
         )
     }
-    assert [len(v) for v in listed.values()] == [4, 3, 2, 2, 1]
+    assert [len(v) for v in listed.values()] == [4, 3, 3, 2, 1]
     assert not BOOK.for_date(date(2025, 1, 1)).assumptions
     joined = " ".join(" ".join(v) for v in listed.values())
     for topic in (
@@ -170,10 +172,14 @@ def test_assumed_components_are_labelled_where_the_evidence_stops_and_name_what_
     [
         (date(2017, 6, 30), "118.35", "13.5"),   # no GST yet; exchange fee 3.25 (assumed)
         (date(2017, 7, 1), "118.94", "15.93"),   # GST 0.585 rounds half-up to 0.59; DP Rs 13.50 + GST
-        (date(2020, 6, 30), "118.94", "15.93"),
-        (date(2020, 7, 1), "118.94", "15.93"),   # same assumed 3.25 on both sides of 1 Jul 2020 (stamp duty is 0.015% in both)
-        (date(2020, 12, 31), "118.94", "15.93"),
-        (date(2021, 1, 1), "119.17", "15.93"),   # NSE/FA/46730: 3.45, GST 0.621
+        (date(2020, 5, 31), "118.94", "15.93"),
+        (date(2020, 6, 1), "118.89", "15.93"),   # SEBI fee halved (Rs 5 per crore: 0.05); GST is on the exchange fee only
+        (date(2020, 6, 30), "118.89", "15.93"),
+        (date(2020, 7, 1), "118.89", "15.93"),   # stamp duty is 0.015% on both sides of 1 Jul 2020 (assumed before it)
+        (date(2020, 12, 31), "118.89", "15.93"),
+        (date(2021, 1, 1), "119.12", "15.93"),   # NSE/FA/46730: 3.45, GST 0.621
+        (date(2021, 3, 31), "119.12", "15.93"),
+        (date(2021, 4, 1), "119.17", "15.93"),   # SEBI fee back to Rs 10 per crore
         (date(2022, 7, 17), "119.17", "15.93"),
         (date(2022, 7, 18), "119.19", "15.93"),  # SEBI fee now in the GST base: 0.18 x (3.45 + 0.10) = 0.639
         (date(2023, 3, 31), "119.19", "15.93"),
@@ -222,3 +228,20 @@ def test_the_charges_on_a_one_lakh_trade_match_a_hand_calculation_for_every_regi
         D("15.93"),
         D("15.34"),
     )  # the depository fee on the sell only
+
+
+@pytest.mark.parametrize(
+    ("day", "rate", "gst_on_it"),
+    [
+        (date(2017, 7, 1), "0.0001", False), (date(2020, 5, 31), "0.0001", False),
+        (date(2020, 6, 1), "0.00005", False),   # SEBI/LAD-NRO/GN/2020/011: brokers pay 50% from 1 Jun 2020 ...
+        (date(2021, 3, 31), "0.00005", False),  # ... to 31 Mar 2021
+        (date(2021, 4, 1), "0.0001", False), (date(2022, 7, 17), "0.0001", False),
+        (date(2022, 7, 18), "0.0001", True),    # GST on fees payable to SEBI from 18 Jul 2022
+    ],
+)  # fmt: skip
+def test_the_sebi_turnover_fee_is_halved_for_ten_months_and_taxed_only_from_july_2022(
+    day, rate, gst_on_it
+):
+    c = comp(day, "SEBI_TURNOVER")
+    assert (c.rate_pct, c.taxable_for_gst) == (D(rate), gst_on_it)

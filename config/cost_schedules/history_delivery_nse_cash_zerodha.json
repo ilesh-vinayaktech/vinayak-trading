@@ -87,6 +87,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -282,6 +296,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -337,12 +379,12 @@
       "instrument_type": "EQUITY",
       "product": "DELIVERY",
       "valid_from": "2017-07-01",
-      "valid_until": "2020-06-30",
+      "valid_until": "2020-05-31",
       "currency": "INR",
       "status": "extracted_unverified",
       "verified_by": null,
       "verified_at": null,
-      "notes": "HISTORICAL delivery rates for 2017-07-01 to 2020-06-30. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. GST 18% on brokerage and the exchange fee from 1 Jul 2017; the SEBI fee is outside GST until 18 Jul 2022 (SEBI circular). Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption.",
+      "notes": "HISTORICAL delivery rates for 2017-07-01 to 2020-05-31. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. GST 18% on brokerage and the exchange fee from 1 Jul 2017; the SEBI fee is outside GST until 18 Jul 2022 (SEBI circular; Zerodha's own page of 2020-09-29 also bases GST on brokerage and transaction charges only). Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption.",
       "contract_note_min_brokerage": "0.01",
       "components": [
         {
@@ -424,6 +466,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -626,6 +682,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -670,7 +754,7 @@
       ]
     },
     {
-      "id": "nse-cash-delivery-zerodha-2020-07-01",
+      "id": "nse-cash-delivery-zerodha-2020-06-01",
       "version": "2026-11-15.1",
       "account_scope": "RESIDENT_INDIVIDUAL_RETAIL",
       "name": "NSE cash equity delivery via Zerodha",
@@ -679,13 +763,13 @@
       "segment": "CASH",
       "instrument_type": "EQUITY",
       "product": "DELIVERY",
-      "valid_from": "2020-07-01",
-      "valid_until": "2020-12-31",
+      "valid_from": "2020-06-01",
+      "valid_until": "2020-06-30",
       "currency": "INR",
       "status": "extracted_unverified",
       "verified_by": null,
       "verified_at": null,
-      "notes": "HISTORICAL delivery rates for 2020-07-01 to 2020-12-31. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. The SEBI fee is outside GST until 18 Jul 2022 (SEBI circular). The exchange fee in this period is an assumption (see the assumptions).",
+      "notes": "HISTORICAL delivery rates for 2020-06-01 to 2020-06-30. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. The SEBI turnover fee is halved from 1 Jun 2020 (SEBI notification). Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption.",
       "contract_note_min_brokerage": "0.01",
       "components": [
         {
@@ -728,9 +812,9 @@
           "taxable_for_gst": false,
           "gst_inclusive": false,
           "rounding": "HALF_UP_2DP",
-          "source": "zerodha_sebi",
+          "source": "nse_FA44514_sebi_half_fee",
           "evidence": "EXTRACTED_UNVERIFIED",
-          "rate_pct": "0.0001"
+          "rate_pct": "0.00005"
         },
         {
           "type": "STAMP_DUTY",
@@ -740,7 +824,7 @@
           "gst_inclusive": false,
           "rounding": "HALF_UP_2DP",
           "source": "nse_stamp_duty",
-          "evidence": "EXTRACTED_UNVERIFIED",
+          "evidence": "ASSUMED",
           "rate_pct": "0.015"
         },
         {
@@ -767,6 +851,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -970,12 +1068,33 @@
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
         },
-        "zerodha_sebi": {
-          "url": "https://zerodha.com/charges",
-          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
-          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
-          "quote": "Charged at ₹10 per crore + GST by Securities and Exchange Board of India",
-          "locator": "Other charges > SEBI Charges"
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi_pending_note": {
           "url": "https://zerodha.com/charges",
@@ -1007,8 +1126,388 @@
         }
       },
       "assumptions": [
+        "Stamp duty before 1 July 2020 was set by each state. The uniform 0.015% is applied instead as a modelling assumption: it may overstate the cost, and the state treatment is not recovered.",
         "For 1 July 2020 to 31 December 2020 and every earlier period the exchange fee is taken as 0.00325%: NSE's MEMBER tariff before circular NSE/FA/46730 took effect (Rs 3.25 per lakh, first slab). That is an ASSUMPTION about the Zerodha client rate, not evidence of it. A temporary concession for EQ-series stocks outside Nifty 50 and Next 50 (FA45147 from 1 Aug 2020, extended by FA47844, FA49796 and FA51855) is unresolved: whether it reached Zerodha clients is not known.",
-        "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and September 2017; its continuation unchanged to 31 May 2024 is an assumption."
+        "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and September 2017; its continuation unchanged to 31 May 2024 is an assumption.",
+        "The SEBI turnover fee is Rs 5 per crore from 1 June 2020 to 31 March 2021 (SEBI notification SEBI/LAD-NRO/GN/2020/011, via NSE/FA/44514, and Zerodha's page of 2020-09-29). Zerodha kept billing Rs 5 until 4 May 2021 and then charged the April to May difference to the ledger (a Zerodha staff reply on its forum), so from 1 April 2021 the schedule uses Rs 10."
+      ]
+    },
+    {
+      "id": "nse-cash-delivery-zerodha-2020-07-01",
+      "version": "2026-11-15.1",
+      "account_scope": "RESIDENT_INDIVIDUAL_RETAIL",
+      "name": "NSE cash equity delivery via Zerodha",
+      "broker": "zerodha",
+      "exchange": "NSE",
+      "segment": "CASH",
+      "instrument_type": "EQUITY",
+      "product": "DELIVERY",
+      "valid_from": "2020-07-01",
+      "valid_until": "2020-12-31",
+      "currency": "INR",
+      "status": "extracted_unverified",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "HISTORICAL delivery rates for 2020-07-01 to 2020-12-31. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. The SEBI fee is halved (SEBI notification) and outside GST until 18 Jul 2022. The exchange fee and the Rs 13.50 depository charge are on Zerodha's own page of 2020-09-29.",
+      "contract_note_min_brokerage": "0.01",
+      "components": [
+        {
+          "type": "BROKERAGE",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": true,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_zero_brokerage_since_2015",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0"
+        },
+        {
+          "type": "STT",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_stt_delivery",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.1"
+        },
+        {
+          "type": "EXCHANGE_TRANSACTION",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": true,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_page_2020_09_29_txn",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.00325"
+        },
+        {
+          "type": "SEBI_TURNOVER",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "nse_FA44514_sebi_half_fee",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.00005"
+        },
+        {
+          "type": "STAMP_DUTY",
+          "basis": "TRADE_VALUE",
+          "side": "BUY",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "nse_stamp_duty",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.015"
+        },
+        {
+          "type": "DP_CHARGE",
+          "basis": "PER_SCRIP",
+          "side": "SELL",
+          "taxable_for_gst": false,
+          "gst_inclusive": true,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_page_2020_09_29_dp",
+          "evidence": "ASSUMED",
+          "amount": "15.93"
+        },
+        {
+          "type": "GST",
+          "basis": "GST_BASE",
+          "side": "BOTH",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_gst",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "18"
+        }
+      ],
+      "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
+        "nse_FA46730_cash_market": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "a9ff85ab4deec82e02bb1e3fc213a2bbc02a72e9edb7b36cdf1568aeb792febf",
+          "quote": "Upto 1250 Crores Rs 3.25 each side Rs 3.45 each side",
+          "locator": "Cash Market table, first slab: existing vs revised MEMBER tariff (per lakh of traded value), not a client rate"
+        },
+        "nse_FA46730_effective": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "a9ff85ab4deec82e02bb1e3fc213a2bbc02a72e9edb7b36cdf1568aeb792febf",
+          "quote": "The above revision in transaction charges will be applicable with effect from January 01, 2021.",
+          "locator": "Circular NSE/FA/46730 dated 18 Dec 2020"
+        },
+        "nse_FA56129_member_slabs": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA56129.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "ec260386adbcf3a0c3326d7d8b3b45b15ba693c55081fdc78fb05b83a5ee93e0",
+          "quote": "Up to 1250 Crores Rs 3.45 each side Rs 3.25 each side",
+          "locator": "Cash Market slab table: a MEMBER tariff by monthly turnover - not a client rate"
+        },
+        "nse_FA73061_cash_market": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+          "quote": "Cash Market Rs. 297 Rs. 10 each Rs. 307 each Rs. 306.99 Rs. 0.01 each Rs. 307 each",
+          "locator": "Table: existing vs revised outflow, Cash Market row (total unchanged at Rs 307 per crore per side)"
+        },
+        "nse_FA73061_effective": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+          "quote": "The above revision will be applicable with effect from March 1, 2026.",
+          "locator": "Circular NSE/FA/73061 dated 27 Feb 2026"
+        },
+        "nse_FATAX32385_cash_unchanged": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX32385.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "5776f2d28399c2b7547886957b000a6a16ba6eb4fe172a6168b28bf0b3a4ebd9",
+          "quote": "Sale of an equity share in a 0.1 per cent 0.1 per cent Seller",
+          "locator": "Circular NSE/FATAX/32385, 16 May 2016 (effective 1 Jun 2016): delivery sell 0.1%, (No Change)"
+        },
+        "nse_FATAX56235_cash_unchanged": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX56235.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "ed11c6c149730167faab6b6079fcc475a8fe2ffe93cf594c39aca1ab157d99f4",
+          "quote": "Sale of an equity share in a 0.1 per cent 0.1 per cent Seller",
+          "locator": "Circular NSE/FATAX/56235, 1 Apr 2023: delivery sell 0.1%, (No Change)"
+        },
+        "nse_FATAX63809_cash_unchanged": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX63809.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "e72218a4aaffccfc5ea485c714bf83d019c2bb0a5ebb4724029552b0cd7fc31f",
+          "quote": "Sale of an equity share in a 0.1 per cent 0.1 per cent Seller",
+          "locator": "Circular NSE/FATAX/63809, 9 Sep 2024: delivery sell 0.1%, (No Change)"
+        },
+        "nse_FATAX73524_delivery": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX73524.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "f4cbd1f917f88dcb9d59b95e0e9ef8bbb98017edbbdd16669a3d40776416a9f6",
+          "quote": "Purchase of an equity share in a company or a unit 0.1 per cent 0.1 per cent Purchaser",
+          "locator": "Table row 1 (delivery buy 0.1%, purchaser; unchanged)"
+        },
+        "nse_FATAX73524_intraday": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX73524.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "f4cbd1f917f88dcb9d59b95e0e9ef8bbb98017edbbdd16669a3d40776416a9f6",
+          "quote": "Sale of an equity share in a company or a unit of 0.025 per cent 0.025 per cent Seller",
+          "locator": "Table row 3 (settled otherwise than by delivery: 0.025%, seller; unchanged)"
+        },
+        "nse_gst": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "74f5056795ab40ee8aedc22b7824f7df702f1b0f92454f95df8d9842788f1b68",
+          "quote": "Stock brokers Services 18.00% (GST) Brokers and collected from their clients.",
+          "locator": "GST table (page undated)"
+        },
+        "nse_sebi_turnover_fee": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "74f5056795ab40ee8aedc22b7824f7df702f1b0f92454f95df8d9842788f1b68",
+          "quote": "All sale and purchase transactions in securities other than debt securities 0.0001 per cent of the price at which the securities are purchased or sold (Rs.10 per crore)",
+          "locator": "SEBI Turnover fees table (page undated)"
+        },
+        "nse_stamp_duty": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-stamp-duty-charges-taxes",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "75812ddbf64a9a41a02537db0d40ead87ba5c74017e665e8fb6a49c8eb7fc532",
+          "quote": "Transfer of Security other than debenture on delivery basis 0.015% Buyer Transfer of Security other than debenture on non-delivery basis 0.003% Buyer",
+          "locator": "Stamp Duty table"
+        },
+        "nse_stamp_duty_effective": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-stamp-duty-charges-taxes",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "75812ddbf64a9a41a02537db0d40ead87ba5c74017e665e8fb6a49c8eb7fc532",
+          "quote": "with effect from July 1, 2020, being the notified date, stamp duty is levied and collected by Clearing Corporations",
+          "locator": "Stamp Duty note"
+        },
+        "sebi_gst_circular_effective": {
+          "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2022/1658208863370.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "26a0d8241096e69e389d5c30ae23f29877a0b1657c075feefdba902da5c57fae",
+          "quote": "with effect from July 18, 2022.",
+          "locator": "Same circular: fees payable to SEBI are subject to GST at 18% from this date"
+        },
+        "sebi_gst_circular_subject": {
+          "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2022/1658208863370.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "26a0d8241096e69e389d5c30ae23f29877a0b1657c075feefdba902da5c57fae",
+          "quote": "Levy of Goods & Services Tax (GST) on the fees payable to SEBI",
+          "locator": "Circular SEBI/HO/GSD/TAD/CIR/P/2022/0097 dated 18 Jul 2022, subject line"
+        },
+        "zerodha_bulletin_2023_04_effective": {
+          "url": "https://zerodha.com/marketintel/bulletin/347967/revision-in-transaction-charges-and-stt-from-1st-april-2023",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2d2a9aa01d53240a82cf420da7a9777512ed7c425741936cab6b20cefbffdeb3",
+          "quote": "There is also a revision in Securities Transaction Tax (STT) with effect from April 1, 2023.",
+          "locator": "Same bulletin (title: from 1st April 2023). The 0.00345% before it is the 'old' rate; its own start date is not stated"
+        },
+        "zerodha_bulletin_2023_04_txn": {
+          "url": "https://zerodha.com/marketintel/bulletin/347967/revision-in-transaction-charges-and-stt-from-1st-april-2023",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2d2a9aa01d53240a82cf420da7a9777512ed7c425741936cab6b20cefbffdeb3",
+          "quote": "NSE Equity – Delivery 0.00345% 0.00325%",
+          "locator": "Bulletin 'Revision in transaction charges and STT from 1st April 2023': delivery 0.00345% -> 0.00325%, with effect from April 1, 2023"
+        },
+        "zerodha_bulletin_2024_04_effective": {
+          "url": "https://zerodha.com/marketintel/bulletin/373933/revision-in-nse-transaction-charges-from-april-1-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2c183dde54b3cc43631c279676ae265e540c6205fda62349feb06cbe498ac00c",
+          "quote": "Revision in NSE transaction charges from April 1, 2024",
+          "locator": "Bulletin title"
+        },
+        "zerodha_bulletin_2024_04_txn": {
+          "url": "https://zerodha.com/marketintel/bulletin/373933/revision-in-nse-transaction-charges-from-april-1-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2c183dde54b3cc43631c279676ae265e540c6205fda62349feb06cbe498ac00c",
+          "quote": "NSE Equity Delivery 0.00325% 0.00322%",
+          "locator": "Bulletin 'Revision in NSE transaction charges from April 1, 2024': delivery 0.00325% -> 0.00322%"
+        },
+        "zerodha_bulletin_2024_10_dp_fee": {
+          "url": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "1d80d7bdb10285c376aa46f34def46a913f1146338fa69197950b81f6f074a8e",
+          "quote": "Debit transactions in the demat account are charged a fee of ₹13 per debit. Effective October 1, 2024, the composition of this fee has been revised from ₹5 depository fee + ₹8 depository participant fee to ₹3.5 depository fee + ₹9.5 depository participant fee.",
+          "locator": "Same bulletin: the fee was Rs 13 per debit before and after 1 Oct 2024 (only its split changed). Rs 13 + 18% GST = Rs 15.34. Not evidenced before the period this bulletin describes"
+        },
+        "zerodha_bulletin_2024_10_effective": {
+          "url": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "1d80d7bdb10285c376aa46f34def46a913f1146338fa69197950b81f6f074a8e",
+          "quote": "Revision in transaction charges and STT from 1st October 2024",
+          "locator": "Bulletin title"
+        },
+        "zerodha_bulletin_2024_10_txn": {
+          "url": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "1d80d7bdb10285c376aa46f34def46a913f1146338fa69197950b81f6f074a8e",
+          "quote": "NSE Equity Delivery 0.00322% (or ₹3.22 per lakh) 0.00297% (or ₹2.97 per lakh)",
+          "locator": "Bulletin 'Revision in transaction charges and STT from 1st October 2024': delivery 0.00322% -> 0.00297%"
+        },
+        "zerodha_contract_note_minimum": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "For Delivery based trades, a minimum of ₹0.01 will be charged per contract note.",
+          "locator": "Disclaimer"
+        },
+        "zerodha_forum_dp_2016": {
+          "url": "https://tradingqna.com/t/dp-charges-and-stt-charges/5637",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "382e5189f1994cfb8b42270465cc9452c8ce31abb105264623dc845bb17fb861",
+          "quote": "At Zerodha DP charge is a flat Rs 13.5 per scrip per day sold (irrespective of the quantity sold).",
+          "locator": "Zerodha's founder answering on Zerodha's official forum, March 2016 (taxes additional; Rs 8 Zerodha + Rs 5.5 CDSL)"
+        },
+        "zerodha_forum_dp_2017": {
+          "url": "https://tradingqna.com/t/dp-charges-i-think-there-is-some-mistake-in-the-website-please-confirm-me/19962",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "94ab5ec6c8865fe5045dbf1486e3fa85530954f4de278cbfc65e61420a235038",
+          "quote": "only on the day you sell you are charged Rs 13.5",
+          "locator": "Zerodha's founder, same forum, September 2017"
+        },
+        "zerodha_forum_dp_2024": {
+          "url": "https://tradingqna.com/t/cdsl-reduced-charges-will-zerodha-too/165314",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "eedd42132cff8c02ff96be51fce05debcd673c3c985f66e8149b8ade59bf3273",
+          "quote": "effective June 01, 2024, the DP charges will be reduced from Rs.13.5 to Rs.13",
+          "locator": "Forum thread of May 2024, reply by a Zerodha team member relaying CDSL's 50-paise reduction: secondhand, no CDSL or Zerodha dated notice"
+        },
+        "zerodha_gst": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "18% of ( brokerage + SEBI charges + transaction charges)",
+          "locator": "Other charges > GST"
+        },
+        "zerodha_ipft": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
+          "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
+        },
+        "zerodha_sebi_pending_note": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "*SEBI charges will be reduced to ₹15 per crore once the regulator announces a date.",
+          "locator": "Equity table footnote (recorded verbatim; wording unexplained, not applied)"
+        },
+        "zerodha_stt_delivery": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "0.1% on buy & sell",
+          "locator": "Equity table > STT/CTT > Equity delivery"
+        },
+        "zerodha_support_dp_once_per_scrip_per_day": {
+          "url": "https://support.zerodha.com/category/account-opening/resident-individual/ri-charges/articles/what-do-dp-charges-mean",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "0cbb56cbbb2a22e40921c654cf70071bf545349dddd63d4f1c49cf62340ca92a",
+          "quote": "2:00 PM: You sell another 50 shares of Reliance. DP charges: ₹13 + 18% GST = ₹15.34.",
+          "locator": "Zerodha support page, worked example: two sales of one scrip on one day are charged the depository fee once"
+        },
+        "zerodha_zero_brokerage_since_2015": {
+          "url": "https://zerodha.com/z-connect/trending/brokerage-edge",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "aaaf7a8634659c492f015aad7ac56e71a2f315c002e781c2885f667d20c9c841",
+          "quote": "Starting 1st December 2015, all investments at Zerodha will be absolutely free.",
+          "locator": "Zerodha blog: Brokerage Edge (equity delivery: zero brokerage from 1 Dec 2015; no later change recorded)"
+        }
+      },
+      "assumptions": [
+        "The exchange fee of 0.00325% is read from Zerodha's own charges page of 2020-09-29 (archived). That it applied for the whole of 1 July to 31 December 2020 is an inference: NSE moved its member tariff only on 1 January 2021 (NSE/FA/46730). The temporary EQ-series concession (FA45147, FA47844) is unresolved: whether it reached clients is not known.",
+        "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and September 2017; its continuation unchanged to 31 May 2024 is an assumption.",
+        "The SEBI turnover fee is Rs 5 per crore from 1 June 2020 to 31 March 2021 (SEBI notification SEBI/LAD-NRO/GN/2020/011, via NSE/FA/44514, and Zerodha's page of 2020-09-29). Zerodha kept billing Rs 5 until 4 May 2021 and then charged the April to May difference to the ledger (a Zerodha staff reply on its forum), so from 1 April 2021 the schedule uses Rs 10."
       ]
     },
     {
@@ -1022,12 +1521,390 @@
       "instrument_type": "EQUITY",
       "product": "DELIVERY",
       "valid_from": "2021-01-01",
+      "valid_until": "2021-03-31",
+      "currency": "INR",
+      "status": "extracted_unverified",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "HISTORICAL delivery rates for 2021-01-01 to 2021-03-31. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. The SEBI fee is halved until 31 Mar 2021 (SEBI notification) and outside GST until 18 Jul 2022. 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date; NSE/FA/46730 dates NSE's own change to 1 Jan 2021.",
+      "contract_note_min_brokerage": "0.01",
+      "components": [
+        {
+          "type": "BROKERAGE",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": true,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_zero_brokerage_since_2015",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0"
+        },
+        {
+          "type": "STT",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_stt_delivery",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.1"
+        },
+        {
+          "type": "EXCHANGE_TRANSACTION",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": true,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_bulletin_2023_04_txn",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.00345"
+        },
+        {
+          "type": "SEBI_TURNOVER",
+          "basis": "TRADE_VALUE",
+          "side": "BOTH",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "nse_FA44514_sebi_half_fee",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.00005"
+        },
+        {
+          "type": "STAMP_DUTY",
+          "basis": "TRADE_VALUE",
+          "side": "BUY",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "nse_stamp_duty",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "0.015"
+        },
+        {
+          "type": "DP_CHARGE",
+          "basis": "PER_SCRIP",
+          "side": "SELL",
+          "taxable_for_gst": false,
+          "gst_inclusive": true,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_forum_dp_2017",
+          "evidence": "ASSUMED",
+          "amount": "15.93"
+        },
+        {
+          "type": "GST",
+          "basis": "GST_BASE",
+          "side": "BOTH",
+          "taxable_for_gst": false,
+          "gst_inclusive": false,
+          "rounding": "HALF_UP_2DP",
+          "source": "zerodha_gst",
+          "evidence": "EXTRACTED_UNVERIFIED",
+          "rate_pct": "18"
+        }
+      ],
+      "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
+        "nse_FA46730_cash_market": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "a9ff85ab4deec82e02bb1e3fc213a2bbc02a72e9edb7b36cdf1568aeb792febf",
+          "quote": "Upto 1250 Crores Rs 3.25 each side Rs 3.45 each side",
+          "locator": "Cash Market table, first slab: existing vs revised MEMBER tariff (per lakh of traded value), not a client rate"
+        },
+        "nse_FA46730_effective": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "a9ff85ab4deec82e02bb1e3fc213a2bbc02a72e9edb7b36cdf1568aeb792febf",
+          "quote": "The above revision in transaction charges will be applicable with effect from January 01, 2021.",
+          "locator": "Circular NSE/FA/46730 dated 18 Dec 2020"
+        },
+        "nse_FA56129_member_slabs": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA56129.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "ec260386adbcf3a0c3326d7d8b3b45b15ba693c55081fdc78fb05b83a5ee93e0",
+          "quote": "Up to 1250 Crores Rs 3.45 each side Rs 3.25 each side",
+          "locator": "Cash Market slab table: a MEMBER tariff by monthly turnover - not a client rate"
+        },
+        "nse_FA73061_cash_market": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+          "quote": "Cash Market Rs. 297 Rs. 10 each Rs. 307 each Rs. 306.99 Rs. 0.01 each Rs. 307 each",
+          "locator": "Table: existing vs revised outflow, Cash Market row (total unchanged at Rs 307 per crore per side)"
+        },
+        "nse_FA73061_effective": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+          "quote": "The above revision will be applicable with effect from March 1, 2026.",
+          "locator": "Circular NSE/FA/73061 dated 27 Feb 2026"
+        },
+        "nse_FATAX32385_cash_unchanged": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX32385.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "5776f2d28399c2b7547886957b000a6a16ba6eb4fe172a6168b28bf0b3a4ebd9",
+          "quote": "Sale of an equity share in a 0.1 per cent 0.1 per cent Seller",
+          "locator": "Circular NSE/FATAX/32385, 16 May 2016 (effective 1 Jun 2016): delivery sell 0.1%, (No Change)"
+        },
+        "nse_FATAX56235_cash_unchanged": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX56235.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "ed11c6c149730167faab6b6079fcc475a8fe2ffe93cf594c39aca1ab157d99f4",
+          "quote": "Sale of an equity share in a 0.1 per cent 0.1 per cent Seller",
+          "locator": "Circular NSE/FATAX/56235, 1 Apr 2023: delivery sell 0.1%, (No Change)"
+        },
+        "nse_FATAX63809_cash_unchanged": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX63809.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "e72218a4aaffccfc5ea485c714bf83d019c2bb0a5ebb4724029552b0cd7fc31f",
+          "quote": "Sale of an equity share in a 0.1 per cent 0.1 per cent Seller",
+          "locator": "Circular NSE/FATAX/63809, 9 Sep 2024: delivery sell 0.1%, (No Change)"
+        },
+        "nse_FATAX73524_delivery": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX73524.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "f4cbd1f917f88dcb9d59b95e0e9ef8bbb98017edbbdd16669a3d40776416a9f6",
+          "quote": "Purchase of an equity share in a company or a unit 0.1 per cent 0.1 per cent Purchaser",
+          "locator": "Table row 1 (delivery buy 0.1%, purchaser; unchanged)"
+        },
+        "nse_FATAX73524_intraday": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FATAX73524.pdf",
+          "retrieved_at": "2026-11-13T03:07:56.794152+00:00",
+          "sha256": "f4cbd1f917f88dcb9d59b95e0e9ef8bbb98017edbbdd16669a3d40776416a9f6",
+          "quote": "Sale of an equity share in a company or a unit of 0.025 per cent 0.025 per cent Seller",
+          "locator": "Table row 3 (settled otherwise than by delivery: 0.025%, seller; unchanged)"
+        },
+        "nse_gst": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "74f5056795ab40ee8aedc22b7824f7df702f1b0f92454f95df8d9842788f1b68",
+          "quote": "Stock brokers Services 18.00% (GST) Brokers and collected from their clients.",
+          "locator": "GST table (page undated)"
+        },
+        "nse_sebi_turnover_fee": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "74f5056795ab40ee8aedc22b7824f7df702f1b0f92454f95df8d9842788f1b68",
+          "quote": "All sale and purchase transactions in securities other than debt securities 0.0001 per cent of the price at which the securities are purchased or sold (Rs.10 per crore)",
+          "locator": "SEBI Turnover fees table (page undated)"
+        },
+        "nse_stamp_duty": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-stamp-duty-charges-taxes",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "75812ddbf64a9a41a02537db0d40ead87ba5c74017e665e8fb6a49c8eb7fc532",
+          "quote": "Transfer of Security other than debenture on delivery basis 0.015% Buyer Transfer of Security other than debenture on non-delivery basis 0.003% Buyer",
+          "locator": "Stamp Duty table"
+        },
+        "nse_stamp_duty_effective": {
+          "url": "https://www.nseindia.com/static/invest/first-time-investor-stamp-duty-charges-taxes",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "75812ddbf64a9a41a02537db0d40ead87ba5c74017e665e8fb6a49c8eb7fc532",
+          "quote": "with effect from July 1, 2020, being the notified date, stamp duty is levied and collected by Clearing Corporations",
+          "locator": "Stamp Duty note"
+        },
+        "sebi_gst_circular_effective": {
+          "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2022/1658208863370.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "26a0d8241096e69e389d5c30ae23f29877a0b1657c075feefdba902da5c57fae",
+          "quote": "with effect from July 18, 2022.",
+          "locator": "Same circular: fees payable to SEBI are subject to GST at 18% from this date"
+        },
+        "sebi_gst_circular_subject": {
+          "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2022/1658208863370.pdf",
+          "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
+          "sha256": "26a0d8241096e69e389d5c30ae23f29877a0b1657c075feefdba902da5c57fae",
+          "quote": "Levy of Goods & Services Tax (GST) on the fees payable to SEBI",
+          "locator": "Circular SEBI/HO/GSD/TAD/CIR/P/2022/0097 dated 18 Jul 2022, subject line"
+        },
+        "zerodha_bulletin_2023_04_effective": {
+          "url": "https://zerodha.com/marketintel/bulletin/347967/revision-in-transaction-charges-and-stt-from-1st-april-2023",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2d2a9aa01d53240a82cf420da7a9777512ed7c425741936cab6b20cefbffdeb3",
+          "quote": "There is also a revision in Securities Transaction Tax (STT) with effect from April 1, 2023.",
+          "locator": "Same bulletin (title: from 1st April 2023). The 0.00345% before it is the 'old' rate; its own start date is not stated"
+        },
+        "zerodha_bulletin_2023_04_txn": {
+          "url": "https://zerodha.com/marketintel/bulletin/347967/revision-in-transaction-charges-and-stt-from-1st-april-2023",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2d2a9aa01d53240a82cf420da7a9777512ed7c425741936cab6b20cefbffdeb3",
+          "quote": "NSE Equity – Delivery 0.00345% 0.00325%",
+          "locator": "Bulletin 'Revision in transaction charges and STT from 1st April 2023': delivery 0.00345% -> 0.00325%, with effect from April 1, 2023"
+        },
+        "zerodha_bulletin_2024_04_effective": {
+          "url": "https://zerodha.com/marketintel/bulletin/373933/revision-in-nse-transaction-charges-from-april-1-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2c183dde54b3cc43631c279676ae265e540c6205fda62349feb06cbe498ac00c",
+          "quote": "Revision in NSE transaction charges from April 1, 2024",
+          "locator": "Bulletin title"
+        },
+        "zerodha_bulletin_2024_04_txn": {
+          "url": "https://zerodha.com/marketintel/bulletin/373933/revision-in-nse-transaction-charges-from-april-1-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "2c183dde54b3cc43631c279676ae265e540c6205fda62349feb06cbe498ac00c",
+          "quote": "NSE Equity Delivery 0.00325% 0.00322%",
+          "locator": "Bulletin 'Revision in NSE transaction charges from April 1, 2024': delivery 0.00325% -> 0.00322%"
+        },
+        "zerodha_bulletin_2024_10_dp_fee": {
+          "url": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "1d80d7bdb10285c376aa46f34def46a913f1146338fa69197950b81f6f074a8e",
+          "quote": "Debit transactions in the demat account are charged a fee of ₹13 per debit. Effective October 1, 2024, the composition of this fee has been revised from ₹5 depository fee + ₹8 depository participant fee to ₹3.5 depository fee + ₹9.5 depository participant fee.",
+          "locator": "Same bulletin: the fee was Rs 13 per debit before and after 1 Oct 2024 (only its split changed). Rs 13 + 18% GST = Rs 15.34. Not evidenced before the period this bulletin describes"
+        },
+        "zerodha_bulletin_2024_10_effective": {
+          "url": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "1d80d7bdb10285c376aa46f34def46a913f1146338fa69197950b81f6f074a8e",
+          "quote": "Revision in transaction charges and STT from 1st October 2024",
+          "locator": "Bulletin title"
+        },
+        "zerodha_bulletin_2024_10_txn": {
+          "url": "https://zerodha.com/marketintel/bulletin/391488/revision-in-transactions-charges-from-1st-october-2024",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "1d80d7bdb10285c376aa46f34def46a913f1146338fa69197950b81f6f074a8e",
+          "quote": "NSE Equity Delivery 0.00322% (or ₹3.22 per lakh) 0.00297% (or ₹2.97 per lakh)",
+          "locator": "Bulletin 'Revision in transaction charges and STT from 1st October 2024': delivery 0.00322% -> 0.00297%"
+        },
+        "zerodha_contract_note_minimum": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "For Delivery based trades, a minimum of ₹0.01 will be charged per contract note.",
+          "locator": "Disclaimer"
+        },
+        "zerodha_forum_dp_2016": {
+          "url": "https://tradingqna.com/t/dp-charges-and-stt-charges/5637",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "382e5189f1994cfb8b42270465cc9452c8ce31abb105264623dc845bb17fb861",
+          "quote": "At Zerodha DP charge is a flat Rs 13.5 per scrip per day sold (irrespective of the quantity sold).",
+          "locator": "Zerodha's founder answering on Zerodha's official forum, March 2016 (taxes additional; Rs 8 Zerodha + Rs 5.5 CDSL)"
+        },
+        "zerodha_forum_dp_2017": {
+          "url": "https://tradingqna.com/t/dp-charges-i-think-there-is-some-mistake-in-the-website-please-confirm-me/19962",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "94ab5ec6c8865fe5045dbf1486e3fa85530954f4de278cbfc65e61420a235038",
+          "quote": "only on the day you sell you are charged Rs 13.5",
+          "locator": "Zerodha's founder, same forum, September 2017"
+        },
+        "zerodha_forum_dp_2024": {
+          "url": "https://tradingqna.com/t/cdsl-reduced-charges-will-zerodha-too/165314",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "eedd42132cff8c02ff96be51fce05debcd673c3c985f66e8149b8ade59bf3273",
+          "quote": "effective June 01, 2024, the DP charges will be reduced from Rs.13.5 to Rs.13",
+          "locator": "Forum thread of May 2024, reply by a Zerodha team member relaying CDSL's 50-paise reduction: secondhand, no CDSL or Zerodha dated notice"
+        },
+        "zerodha_gst": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "18% of ( brokerage + SEBI charges + transaction charges)",
+          "locator": "Other charges > GST"
+        },
+        "zerodha_ipft": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
+          "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
+        },
+        "zerodha_sebi_pending_note": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "*SEBI charges will be reduced to ₹15 per crore once the regulator announces a date.",
+          "locator": "Equity table footnote (recorded verbatim; wording unexplained, not applied)"
+        },
+        "zerodha_stt_delivery": {
+          "url": "https://zerodha.com/charges",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
+          "quote": "0.1% on buy & sell",
+          "locator": "Equity table > STT/CTT > Equity delivery"
+        },
+        "zerodha_support_dp_once_per_scrip_per_day": {
+          "url": "https://support.zerodha.com/category/account-opening/resident-individual/ri-charges/articles/what-do-dp-charges-mean",
+          "retrieved_at": "2026-11-15T06:19:14.203426+00:00",
+          "sha256": "0cbb56cbbb2a22e40921c654cf70071bf545349dddd63d4f1c49cf62340ca92a",
+          "quote": "2:00 PM: You sell another 50 shares of Reliance. DP charges: ₹13 + 18% GST = ₹15.34.",
+          "locator": "Zerodha support page, worked example: two sales of one scrip on one day are charged the depository fee once"
+        },
+        "zerodha_zero_brokerage_since_2015": {
+          "url": "https://zerodha.com/z-connect/trending/brokerage-edge",
+          "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
+          "sha256": "aaaf7a8634659c492f015aad7ac56e71a2f315c002e781c2885f667d20c9c841",
+          "quote": "Starting 1st December 2015, all investments at Zerodha will be absolutely free.",
+          "locator": "Zerodha blog: Brokerage Edge (equity delivery: zero brokerage from 1 Dec 2015; no later change recorded)"
+        }
+      },
+      "assumptions": [
+        "The Zerodha client rate is taken to have moved to 0.00345% on 1 January 2021, the day NSE's member tariff did (NSE/FA/46730). Zerodha's own notice of that change was not found.",
+        "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and September 2017; its continuation unchanged to 31 May 2024 is an assumption.",
+        "The SEBI turnover fee is Rs 5 per crore from 1 June 2020 to 31 March 2021 (SEBI notification SEBI/LAD-NRO/GN/2020/011, via NSE/FA/44514, and Zerodha's page of 2020-09-29). Zerodha kept billing Rs 5 until 4 May 2021 and then charged the April to May difference to the ledger (a Zerodha staff reply on its forum), so from 1 April 2021 the schedule uses Rs 10."
+      ]
+    },
+    {
+      "id": "nse-cash-delivery-zerodha-2021-04-01",
+      "version": "2026-11-15.1",
+      "account_scope": "RESIDENT_INDIVIDUAL_RETAIL",
+      "name": "NSE cash equity delivery via Zerodha",
+      "broker": "zerodha",
+      "exchange": "NSE",
+      "segment": "CASH",
+      "instrument_type": "EQUITY",
+      "product": "DELIVERY",
+      "valid_from": "2021-04-01",
       "valid_until": "2022-07-17",
       "currency": "INR",
       "status": "extracted_unverified",
       "verified_by": null,
       "verified_at": null,
-      "notes": "HISTORICAL delivery rates for 2021-01-01 to 2022-07-17. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. The SEBI fee is outside GST until 18 Jul 2022 (SEBI circular). 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date; NSE/FA/46730 dates NSE's own change to 1 Jan 2021.",
+      "notes": "HISTORICAL delivery rates for 2021-04-01 to 2022-07-17. Evidenced from stored documents: STT 0.1% each side (NSE circulars 2016/2023/2024/2026: no change), zero delivery brokerage (Zerodha, from 1 Dec 2015), the NSE transaction rate and the dates it changed (Zerodha bulletins Apr 2023, Apr 2024, Oct 2024; NSE circulars Dec 2020 and Mar 2026), stamp duty 0.015% on the buy side from 1 Jul 2020 (NSE), GST on fees payable to SEBI from 18 Jul 2022 (SEBI circular), SEBI fee Rs 10/crore and GST 18% (Zerodha and NSE pages, undated: read on the retrieval date), DP fee Rs 13 per debit just before and after 1 Oct 2024 (Zerodha bulletin). Each component carries its own evidence status; a schedule can be verified only when none is ASSUMED. The SEBI fee is back to Rs 10 per crore from 1 Apr 2021 and outside GST until 18 Jul 2022 (SEBI circular). 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date.",
       "contract_note_min_brokerage": "0.01",
       "components": [
         {
@@ -1109,6 +1986,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -1311,6 +2202,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -1451,6 +2370,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -1653,6 +2586,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -1792,6 +2753,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -1994,6 +2969,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -2133,6 +3136,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -2335,6 +3352,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -2474,6 +3519,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -2676,6 +3735,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -2815,6 +3902,20 @@
         }
       ],
       "sources": {
+        "nse_FA44514_sebi_half_fee": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "pay only 50% (fifty percent) of fees as calculated therein",
+          "locator": "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)"
+        },
+        "nse_FA44514_sebi_half_fee_period": {
+          "url": "https://nsearchives.nseindia.com/content/circulars/FA44514.pdf",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "52dff21f8c2a13798d7994646befcd8e5a1f6b183afcee47601acf1705ec3ec7",
+          "quote": "for the period June 01, 2020 to March 31, 2021",
+          "locator": "Same clause: the dates of the reduction"
+        },
         "nse_FA46730_cash_market": {
           "url": "https://nsearchives.nseindia.com/content/circulars/FA46730.pdf",
           "retrieved_at": "2026-11-15T06:09:44.437363+00:00",
@@ -3017,6 +4118,34 @@
           "sha256": "7669a39166bc99161167cb0d54cb645bd5a9592ae2a4463245556f667362fb7f",
           "quote": "Equity and Futures - ₹0.01 per crore + GST of the traded value.",
           "locator": "Other charges > IPFT (not modelled separately: NSE's 0.00307% total already includes its 0.01/crore contribution)"
+        },
+        "zerodha_page_2020_09_29_dp": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2020-09-29"
+        },
+        "zerodha_page_2020_09_29_gst": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "GST 18% on (brokerage + transaction charges)",
+          "locator": "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee"
+        },
+        "zerodha_page_2020_09_29_sebi": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: the halved SEBI fee"
+        },
+        "zerodha_page_2020_09_29_txn": {
+          "url": "https://web.archive.org/web/20200929233945id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:28:15.579223+00:00",
+          "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
+          "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",

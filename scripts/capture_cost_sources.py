@@ -40,6 +40,8 @@ SOURCES = {
     "zerodha_forum_dp_2016": "https://tradingqna.com/t/dp-charges-and-stt-charges/5637",  # Zerodha's founder on Zerodha's forum, Mar 2016: Rs 13.5 per scrip per day
     "zerodha_forum_dp_2017": "https://tradingqna.com/t/dp-charges-i-think-there-is-some-mistake-in-the-website-please-confirm-me/19962",  # Sep 2017: Rs 13.5 only on the day you sell
     "zerodha_forum_dp_2024": "https://tradingqna.com/t/cdsl-reduced-charges-will-zerodha-too/165314",  # May 2024: a Zerodha reply that from 1 Jun 2024 DP falls from Rs 13.5 to Rs 13
+    "nse_FA44514": f"{ARCH}/FA44514.pdf",  # SEBI (Payment of Fees) (Amendment) Regulations 2020: brokers pay 50% of the turnover fee from 1 Jun 2020 to 31 Mar 2021
+    # zerodha_charges_wayback_2020_09_29: the Internet Archive copy of zerodha.com/charges of 2020-09-29 (web.archive.org/web/20200929233945id_/https://zerodha.com/charges), stored from a download
     "cdsl_dp_tariff_2024_10": "https://www.cdslindia.com/eservices/Downloads/CDSL-DP-Tariff-structure_Oct-2024.pdf",
 }
 

@@ -299,6 +299,43 @@ s_dp_once = src(
     "Zerodha support page, worked example: two sales of one scrip on one day are charged the depository fee once",
 )
 
+s_sebi_50 = src(
+    "nse_FA44514_sebi_half_fee",
+    "nse_FA44514",
+    "pay only 50% (fifty percent) of fees as calculated therein",
+    "SEBI notification SEBI/LAD-NRO/GN/2020/011 of 8 May 2020 (in force 1 Jun 2020), clause (1A): brokers pay half the turnover fee for the period 1 Jun 2020 to 31 Mar 2021 (the turnover fee is Rs 10 per crore)",
+)
+s_sebi_50_period = src(
+    "nse_FA44514_sebi_half_fee_period",
+    "nse_FA44514",
+    "for the period June 01, 2020 to March 31, 2021",
+    "Same clause: the dates of the reduction",
+)
+s_z2020_txn = src(
+    "zerodha_page_2020_09_29_txn",
+    "zerodha_charges_wayback_2020_09_29",
+    "Transaction charges NSE: 0.00325% BSE: 0.003%",
+    "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column",
+)
+s_z2020_sebi = src(
+    "zerodha_page_2020_09_29_sebi",
+    "zerodha_charges_wayback_2020_09_29",
+    "SEBI charges ₹5 / crore",
+    "Same archived page: the halved SEBI fee",
+)
+s_z2020_dp = src(
+    "zerodha_page_2020_09_29_dp",
+    "zerodha_charges_wayback_2020_09_29",
+    "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+    "Same archived page: the depository charge on 2020-09-29",
+)
+s_z2020_gst = src(
+    "zerodha_page_2020_09_29_gst",
+    "zerodha_charges_wayback_2020_09_29",
+    "GST 18% on (brokerage + transaction charges)",
+    "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee",
+)
+
 
 def comp(
     type_,
@@ -338,6 +375,8 @@ def delivery_components(
     stamp_src: str,
     ev: dict[str, str] | None = None,
     dp_src: str | None = None,
+    sebi_rate: str = "0.0001",
+    sebi_src: str | None = None,
 ) -> list[dict]:
     """One dated delivery schedule: the rates that changed over time are arguments, the rest is as in the current schedule."""
     ev = ev or {}
@@ -357,9 +396,9 @@ def delivery_components(
             "SEBI_TURNOVER",
             "TRADE_VALUE",
             "BOTH",
-            rate="0.0001",
+            rate=sebi_rate,
             gst=gst and sebi_gst,
-            source=s_sebi,
+            source=sebi_src or s_sebi,
         ),
         comp(
             "STAMP_DUTY",
@@ -476,6 +515,14 @@ A_TXN_PRE2021 = (
     "FA49796 and FA51855) is unresolved: whether it reached Zerodha clients is not known."
 )
 A_TXN_2021 = "The Zerodha client rate is taken to have moved to 0.00345% on 1 January 2021, the day NSE's member tariff did (NSE/FA/46730). Zerodha's own notice of that change was not found."
+A_TXN_2020 = (
+    "The exchange fee of 0.00325% is read from Zerodha's own charges page of 2020-09-29 (archived). That it applied for the whole of 1 July to 31 December 2020 is an inference: "
+    "NSE moved its member tariff only on 1 January 2021 (NSE/FA/46730). The temporary EQ-series concession (FA45147, FA47844) is unresolved: whether it reached clients is not known."
+)
+A_SEBI_2020 = (
+    "The SEBI turnover fee is Rs 5 per crore from 1 June 2020 to 31 March 2021 (SEBI notification SEBI/LAD-NRO/GN/2020/011, via NSE/FA/44514, and Zerodha's page of 2020-09-29). "
+    "Zerodha kept billing Rs 5 until 4 May 2021 and then charged the April to May difference to the ledger (a Zerodha staff reply on its forum), so from 1 April 2021 the schedule uses Rs 10."
+)
 A_DP = (
     "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and "
     "September 2017; its continuation unchanged to 31 May 2024 is an assumption."
@@ -489,15 +536,21 @@ PERIODS = [
     ("2016-01-01", "2016-01-01", "2017-06-30", "0.00325", s_fa46730, False, False, ("13.5", False), s_stamp_nse,
      {E: A, "STAMP_DUTY": A, "DP_CHARGE": A}, [A_STAMP, A_SERVICE_TAX, A_TXN_PRE2021, A_DP], s_dp_2016,
      "Before GST (1 Jul 2017) service tax applied; it is NOT modelled. Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption."),
-    ("2017-07-01", "2017-07-01", "2020-06-30", "0.00325", s_fa46730, True, False, ("15.93", True), s_stamp_nse,
+    ("2017-07-01", "2017-07-01", "2020-05-31", "0.00325", s_fa46730, True, False, ("15.93", True), s_stamp_nse,
      {E: A, "STAMP_DUTY": A, "DP_CHARGE": A}, [A_STAMP, A_TXN_PRE2021, A_DP], s_dp_2017,
-     "GST 18% on brokerage and the exchange fee from 1 Jul 2017; the SEBI fee is outside GST until 18 Jul 2022 (SEBI circular). Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption."),
-    ("2020-07-01", "2020-07-01", "2020-12-31", "0.00325", s_fa46730, True, False, ("15.93", True), s_stamp_nse,
-     {E: A, "DP_CHARGE": A}, [A_TXN_PRE2021, A_DP], s_dp_2017,
-     "The SEBI fee is outside GST until 18 Jul 2022 (SEBI circular). The exchange fee in this period is an assumption (see the assumptions)."),
-    ("2021-01-01", "2021-01-01", "2022-07-17", "0.00345", s_txn_2023, True, False, ("15.93", True), s_stamp_nse,
+     "GST 18% on brokerage and the exchange fee from 1 Jul 2017; the SEBI fee is outside GST until 18 Jul 2022 (SEBI circular; Zerodha's own page of 2020-09-29 also bases GST on brokerage and transaction charges only). Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption."),
+    ("2020-06-01", "2020-06-01", "2020-06-30", "0.00325", s_fa46730, True, False, ("15.93", True), s_stamp_nse,
+     {E: A, "STAMP_DUTY": A, "DP_CHARGE": A}, [A_STAMP, A_TXN_PRE2021, A_DP, A_SEBI_2020], s_dp_2017,
+     "The SEBI turnover fee is halved from 1 Jun 2020 (SEBI notification). Stamp duty before 1 Jul 2020 was state-specific: the uniform 0.015% is an assumption."),
+    ("2020-07-01", "2020-07-01", "2020-12-31", "0.00325", s_z2020_txn, True, False, ("15.93", True), s_stamp_nse,
+     {"DP_CHARGE": A}, [A_TXN_2020, A_DP, A_SEBI_2020], s_z2020_dp,
+     "The SEBI fee is halved (SEBI notification) and outside GST until 18 Jul 2022. The exchange fee and the Rs 13.50 depository charge are on Zerodha's own page of 2020-09-29."),
+    ("2021-01-01", "2021-01-01", "2021-03-31", "0.00345", s_txn_2023, True, False, ("15.93", True), s_stamp_nse,
+     {"DP_CHARGE": A}, [A_TXN_2021, A_DP, A_SEBI_2020], s_dp_2017,
+     "The SEBI fee is halved until 31 Mar 2021 (SEBI notification) and outside GST until 18 Jul 2022. 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date; NSE/FA/46730 dates NSE's own change to 1 Jan 2021."),
+    ("2021-04-01", "2021-04-01", "2022-07-17", "0.00345", s_txn_2023, True, False, ("15.93", True), s_stamp_nse,
      {"DP_CHARGE": A}, [A_TXN_2021, A_DP], s_dp_2017,
-     "The SEBI fee is outside GST until 18 Jul 2022 (SEBI circular). 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date; NSE/FA/46730 dates NSE's own change to 1 Jan 2021."),
+     "The SEBI fee is back to Rs 10 per crore from 1 Apr 2021 and outside GST until 18 Jul 2022 (SEBI circular). 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date."),
     ("2022-07-18", "2022-07-18", "2023-03-31", "0.00345", s_txn_2023, True, True, ("15.93", True), s_stamp_nse,
      {"DP_CHARGE": A}, [A_DP], s_dp_2017, "GST on the SEBI fee from 18 Jul 2022 (SEBI circular)."),
     ("2023-04-01", "2023-04-01", "2024-03-31", "0.00325", s_txn_2023, True, True, ("15.93", True), s_stamp_nse,
@@ -513,7 +566,9 @@ HISTORY_SOURCES = ["zerodha_zero_brokerage_since_2015", "zerodha_bulletin_2023_0
                    "zerodha_bulletin_2024_04_txn", "zerodha_bulletin_2024_04_effective", "zerodha_bulletin_2024_10_txn",
                    "zerodha_bulletin_2024_10_effective", "zerodha_bulletin_2024_10_dp_fee", "nse_FA46730_cash_market",
                    "nse_FA46730_effective", "sebi_gst_circular_subject", "sebi_gst_circular_effective",
-                   "zerodha_forum_dp_2016", "zerodha_forum_dp_2017", "zerodha_forum_dp_2024", "zerodha_support_dp_once_per_scrip_per_day"]  # fmt: skip
+                   "zerodha_forum_dp_2016", "zerodha_forum_dp_2017", "zerodha_forum_dp_2024", "zerodha_support_dp_once_per_scrip_per_day",
+                   "nse_FA44514_sebi_half_fee", "nse_FA44514_sebi_half_fee_period", "zerodha_page_2020_09_29_txn", "zerodha_page_2020_09_29_sebi",
+                   "zerodha_page_2020_09_29_dp", "zerodha_page_2020_09_29_gst"]  # fmt: skip
 history = []
 for suffix, frm, until, txn, txn_src, gst, sebi_gst, (
     dp,
@@ -529,6 +584,8 @@ for suffix, frm, until, txn, txn_src, gst, sebi_gst, (
         stamp_src=stamp_src,
         ev=ev,
         dp_src=dp_src,
+        sebi_rate="0.00005" if frm >= "2020-06-01" and until <= "2021-03-31" else "0.0001",
+        sebi_src=s_sebi_50 if frm >= "2020-06-01" and until <= "2021-03-31" else None,
     )
     entry = schedule("DELIVERY", id_=f"nse-cash-delivery-zerodha-{suffix}", valid_from=frm, valid_until=until, status="extracted_unverified",
                      notes=("HISTORICAL delivery rates for " + f"{frm} to {until}. " + EVIDENCE + (caveat or "Every rate in this period is evidenced as above.")),

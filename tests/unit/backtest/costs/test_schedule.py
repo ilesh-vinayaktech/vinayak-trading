@@ -40,8 +40,8 @@ def err(d, match):
 def test_committed_files_load_and_every_component_cites_a_real_source():
     schedules = load_schedules(CFG)
     assert (
-        len(schedules) == 12
-    )  # delivery: 9 dated history periods + current; intraday: assumed + current
+        len(schedules) == 14
+    )  # delivery: 11 dated history periods + current; intraday: assumed + current
     for s in schedules:
         pre_gst = s.valid_until is not None and s.valid_until < date(
             2017, 7, 1
