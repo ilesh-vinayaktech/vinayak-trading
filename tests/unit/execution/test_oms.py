@@ -471,3 +471,18 @@ def test_an_unsent_order_found_on_restart_is_not_sent_when_the_strategy_has_been
     again, broker = crashed_then_restarted(store, switch=switch)
     again.recover()
     assert again.orders[REQ_ID].state is State.REJECTED and broker.place_calls == 0
+
+
+def test_a_just_submitted_order_that_the_broker_lists_as_open_is_not_a_mismatch():
+    oms, broker, switch = build()
+    o = submit(oms)
+    assert (
+        oms.orders[o.order_id].state is State.SUBMITTED and broker.book[o.order_id].status == "OPEN"
+    )
+    assert (
+        oms.reconcile() == [] and switch.mode("s1") is Mode.RUNNING
+    )  # it only has not had its first update yet
+    broker.move(o.order_id, "CANCELLED")
+    assert [m.kind for m in oms.reconcile(threshold=9)] == [
+        "STATE_MISMATCH"
+    ]  # a real difference is still found

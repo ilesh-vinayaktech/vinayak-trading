@@ -39,6 +39,12 @@ JOBS: tuple[Job, ...] = (
         "Alert when a regulatory rule live trading needs (order-rate limit, order types, tagging, static IP) is not recorded or was last verified over 30 days ago: live stays blocked until it is checked and recorded again",
     ),
     Job(
+        "platform-boot",
+        f"{WEEKDAYS} *-*-* 08:50 Asia/Kolkata",
+        ((*_PY, "scripts/platform_boot.py", "--db", "{db}"),),
+        "Before the market opens: INITIALIZING -> DATA_VALIDATION -> READY -> PAPER, each step recorded, only if the daily data is current, a Kite session exists and the order log, orders and positions all agree; alerts when the platform does not reach PAPER (a strategy then cannot propose while ALGO_REQUIRE_PLATFORM_READY=1)",
+    ),
+    Job(
         "heartbeat-check",
         f"{WEEKDAYS} *-*-* 09..15:*:00 Asia/Kolkata",
         ((*_PY, "scripts/check_heartbeats.py", "--db", "{db}"),),

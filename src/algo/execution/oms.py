@@ -303,7 +303,10 @@ class Oms:
                         f"the OMS has it {o.state}, the broker does not know it",
                     )
                 )
-            elif STATUS.get(b.status) is not o.state:
+            elif not (
+                STATUS.get(b.status) is o.state
+                or (STATUS.get(b.status) is State.ACKED and o.state is State.SUBMITTED)
+            ):  # OPEN at the broker is a submitted order that has not had its first update yet
                 out.append(
                     Mismatch("STATE_MISMATCH", oid, f"the OMS has {o.state}, the broker {b.status}")
                 )

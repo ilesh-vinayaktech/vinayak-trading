@@ -2,6 +2,8 @@
 """Decide for every enabled paper account on the newest session (run after the evening data jobs). Exit 1 when there is no session to decide
 on (the data is not current), or an account's run ended in ERROR (data not ready, strategy failed or halted); SKIPPED accounts (switched off,
 paused, kill switch) are normal. Safe to repeat: a day already proposed returns the same proposals.
+With ALGO_REQUIRE_PLATFORM_READY=1 it also refuses (exit 1) unless today's platform boot reached PAPER or LIVE (job platform-boot): the
+state machine's rule that targets are emitted only in a trading state. Off by default until the boot job has been installed.
 usage: run_paper.py [--db URL] [--lake data/lake] [--sandbox]"""
 
 import argparse
@@ -14,6 +16,7 @@ import psycopg
 
 from algo.paper import jobs
 from algo.paper.runner import SandboxConfig
+from algo.platform_state import store as platform_state
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -26,6 +29,10 @@ if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 now = datetime.now(UTC)
 with psycopg.connect(a.db, autocommit=True) as conn:
+    if os.environ.get("ALGO_REQUIRE_PLATFORM_READY") == "1":
+        blocked = platform_state.trading_blocked(conn, now)
+        if blocked:
+            sys.exit(f"no proposals: {blocked}")
     day = jobs.decision_day(conn, now)
     if day is None:
         sys.exit("no session to decide on: the newest bars are not the latest published session")

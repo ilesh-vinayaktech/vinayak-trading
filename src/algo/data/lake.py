@@ -69,9 +69,24 @@ class LocalLake:
             source, dataset, d.isoformat(), version, checksum, url,
             require_utc(fetched_at).isoformat(), ingest_kind, len(data),
         )  # fmt: skip
-        with open(base / f"v{version:04d}.bin", "xb") as f:  # "x": never overwrite
-            f.write(data)
-        (base / f"v{version:04d}.manifest.json").write_text(json.dumps(asdict(m)))
+        final = base / f"v{version:04d}.bin"
+        # A version exists only once its manifest does. A crash or a full disk can leave a
+        # half-written payload, so write to a temporary name, move it into place, then write the
+        # manifest last; leftovers of an earlier failed attempt carry no manifest and are cleared.
+        for stale in (*base.glob("*.tmp"), final):
+            if not (base / f"v{version:04d}.manifest.json").exists():
+                stale.unlink(missing_ok=True)
+        tmp = base / f"v{version:04d}.bin.tmp"
+        try:
+            with open(tmp, "xb") as f:  # "x": never overwrite
+                f.write(data)
+            tmp.replace(final)
+            manifest_tmp = base / f"v{version:04d}.manifest.json.tmp"
+            manifest_tmp.write_text(json.dumps(asdict(m)))
+            manifest_tmp.replace(base / f"v{version:04d}.manifest.json")
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
         return m
 
     def get(self, m: Manifest) -> bytes:

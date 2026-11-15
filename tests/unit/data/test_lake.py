@@ -63,3 +63,22 @@ def test_latest_skips_an_empty_partition_directory(tmp_path):
     m = lake.put("nse", "bhav", date(2026, 1, 5), b"a", url="u", fetched_at=NOW)
     (tmp_path / "raw/nse/bhav/dt=2026-02-01").mkdir()  # newer folder with no files in it
     assert lake.latest("nse", "bhav") == m
+
+
+def test_debris_from_a_failed_write_never_blocks_the_retry_and_a_version_exists_only_with_its_manifest(
+    tmp_path,
+):
+    from datetime import UTC, date, datetime
+
+    from algo.data.lake import LocalLake
+
+    lake = LocalLake(tmp_path)
+    day, now = date(2026, 11, 13), datetime(2026, 11, 16, tzinfo=UTC)
+    base = tmp_path / "raw" / "s" / "d" / "dt=2026-11-13"
+    base.mkdir(parents=True)
+    (base / "v0001.bin").write_bytes(b"half")  # a payload whose manifest was never written
+    (base / "v0001.bin.tmp").write_bytes(b"x")
+    assert lake.versions("s", "d", day) == []  # not a version yet
+    m = lake.put("s", "d", day, b"whole", url="u", fetched_at=now)
+    assert m.version == 1 and lake.get(m) == b"whole" and list(base.glob("*.tmp")) == []
+    assert lake.put("s", "d", day, b"whole", url="u", fetched_at=now) == m  # still idempotent

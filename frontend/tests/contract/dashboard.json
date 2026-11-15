@@ -83,6 +83,13 @@
    "name": "regulatory-check"
   },
   {
+   "calendar": "Mon..Fri *-*-* 08:50 Asia/Kolkata",
+   "description": "Before the market opens: INITIALIZING -> DATA_VALIDATION -> READY -> PAPER, each step recorded, only if the daily data is current, a Kite session exists and the order log, orders and positions all agree; alerts when the platform does not reach PAPER (a strategy then cannot propose while ALGO_REQUIRE_PLATFORM_READY=1)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "platform-boot"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 09..15:*:00 Asia/Kolkata",
    "description": "Every minute in market hours: alert when a process that should be running (the live feed, and the study worker where it is expected) has never reported, gone silent, is degraded or has stopped",
    "last_run": null,
@@ -256,7 +263,7 @@
    },
    {
     "level": "attention",
-    "text": "27 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 24 more."
+    "text": "28 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 25 more."
    }
   ],
   "status": "DOWN"

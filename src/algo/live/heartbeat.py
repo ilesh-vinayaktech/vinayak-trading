@@ -36,6 +36,8 @@ class Expectation:
     )
 
 
+CLOCK_TOLERANCE_S = 60.0  # a beat from the future by more than this means the clocks disagree
+
 DEFAULT_EXPECTED = {
     "feed": Expectation("feed", timedelta(seconds=120), session_only=True),
     "study_worker": Expectation("study_worker", timedelta(seconds=300), session_only=False),
@@ -79,7 +81,11 @@ def assess(
             problems.append(f"{e.process} has never reported")
             continue
         silent = (now - b.beat_at).total_seconds()
-        if b.state == "STOPPED":
+        if silent < -CLOCK_TOLERANCE_S:
+            problems.append(
+                f"{e.process}'s heartbeat is {-silent:.0f} s ahead of this clock: clock skew, so silence cannot be judged"
+            )
+        elif b.state == "STOPPED":
             problems.append(
                 f"{e.process} is STOPPED (last beat {silent:.0f} s ago) but should be running"
             )

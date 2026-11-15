@@ -76,3 +76,18 @@ def test_which_processes_are_expected_comes_from_the_environment_and_defaults_to
     with pytest.raises(ValueError, match="unknown process"):
         expected_from_env({"ALGO_EXPECT_PROCESSES": "feed,nope"})
     assert set(DEFAULT_EXPECTED) == {"feed", "study_worker"}
+
+
+def test_a_beat_dated_ahead_of_this_clock_is_clock_skew_and_a_small_difference_is_tolerated():
+    ahead = {"feed": Beat("feed", "RUNNING", "", NOW + timedelta(minutes=10))}
+    (problem,) = assess(ahead, [FEED], NOW, in_session=True)
+    assert "600 s ahead of this clock" in problem
+    assert (
+        assess(
+            {"feed": Beat("feed", "RUNNING", "", NOW + timedelta(seconds=60))},
+            [FEED],
+            NOW,
+            in_session=True,
+        )
+        == []
+    )
