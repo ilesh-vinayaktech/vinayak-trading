@@ -39,6 +39,9 @@ class Limits:
     max_daily_loss: Decimal | None = None  # a positive number: the loss at which trading stops
     max_consecutive_failures: int | None = None
     max_drawdown: Decimal | None = None  # fraction of peak equity, e.g. 0.1
+    max_trade_loss: Decimal | None = Decimal(
+        "0.02"
+    )  # per open position: the adverse move from its entry price at which `trade_stops` says exit (owner, 2026-11-15: 2% by default; None switches it off)
     max_data_age_s: Decimal | None = None  # no fresh bar or quote for this long halts the strategy
     min_fill_rate: Decimal | None = None  # post-trade: filled / ordered quantity
     slippage_tolerance: Decimal = Decimal(

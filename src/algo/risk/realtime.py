@@ -61,6 +61,44 @@ def monitor(live: Live, limits: Limits) -> list[Breach]:
 
 
 @dataclass(frozen=True)
+class OpenPosition:
+    instrument_id: int
+    qty: int  # signed: long > 0, short < 0
+    entry_price: Decimal  # volume-weighted average entry
+    last_price: Decimal
+
+
+@dataclass(frozen=True)
+class Stop:
+    instrument_id: int
+    loss: Decimal  # adverse move from the entry price as a fraction, positive
+    detail: str
+
+
+def trade_stops(positions: list[OpenPosition], limits: Limits) -> list[Stop]:
+    """Positions that have moved against their entry by at least `limits.max_trade_loss` (owner decision: a PER-TRADE loss limit). A stop means 'exit this position'; it does not
+    halt the strategy, and nothing here places the order. Switched off when the limit is None. Flat positions are skipped; a non-positive price is refused, not guessed."""
+    if limits.max_trade_loss is None:
+        return []
+    out: list[Stop] = []
+    for p in positions:
+        if p.entry_price <= 0 or p.last_price <= 0:
+            raise ValueError(f"instrument {p.instrument_id}: prices must be positive")
+        if p.qty == 0:
+            continue
+        adverse = (p.entry_price - p.last_price) / p.entry_price * (1 if p.qty > 0 else -1)
+        if adverse >= limits.max_trade_loss:
+            out.append(
+                Stop(
+                    p.instrument_id,
+                    adverse,
+                    f"{'long' if p.qty > 0 else 'short'} {abs(p.qty)} is {adverse:.2%} against its entry {p.entry_price} (limit {limits.max_trade_loss:.2%})",
+                )
+            )
+    return out
+
+
+@dataclass(frozen=True)
 class Fill:
     side: Side
     qty: int

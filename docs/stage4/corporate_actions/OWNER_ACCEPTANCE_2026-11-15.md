@@ -1,7 +1,7 @@
-# Owner acceptance of five provisional corporate actions (2026-11-15)
+# Owner acceptance of six provisional corporate actions (2026-11-15)
 
-**Decision (owner, 2026-11-15):** the five exchange-derived factors below cannot be verified from an independent source, and are ACCEPTED for use in backtests.
-NMDC is NOT accepted yet and needs a further look. This is an acceptance, not a verification: the database status stays `provisional`.
+**Decision (owner, 2026-11-15):** the six exchange-derived factors below cannot be verified from an independent source, and are ACCEPTED for use in backtests.
+NMDC was accepted last, later the same day, after the further look recorded at the end. This is an acceptance, not a verification: the database status stays `provisional`.
 
 ## What acceptance does and does not change
 
@@ -22,7 +22,7 @@ NMDC is NOT accepted yet and needs a further look. This is an acceptance, not a 
 
 Sources searched: Business Standard, ICICI Direct, Zee Business, IIFL, Trendlyne, NSE circular CMTR50943.
 
-## NMDC (2022-10-27, demerger of NMDC Steel): NOT accepted, further look done, decision left open
+## NMDC (2022-10-27, demerger of NMDC Steel): ACCEPTED by the owner after the further look below
 
 Stored factor 0.70554 = NSE's discovered price 92.25 over the previous close 130.75. What the web adds:
 
@@ -33,4 +33,4 @@ Stored factor 0.70554 = NSE's discovered price 92.25 over the previous close 130
 * The BSE-based factor would be about 0.7166, 1.6% away. Which exchange's price should drive an NSE-traded stock's adjustment is the open question. The NSE circular for that day
   was not retrieved, so the NSE base price is still unconfirmed from the original source.
 
-Left provisional and not accepted until the owner decides.
+**Owner decision (2026-11-15, later): ACCEPT it,** with the stored NSE-based factor 0.70554 (NSE's own price for an NSE-traded stock). The BSE-based figure (about 0.7166) is recorded above as a known 1.6% uncertainty; the original NSE circular is still not retrieved, so the status stays `provisional` like the other five.

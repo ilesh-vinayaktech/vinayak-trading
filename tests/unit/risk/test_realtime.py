@@ -131,3 +131,63 @@ def test_post_trade_flags_say_what_was_realised_and_a_fill_rate_exactly_at_the_f
     assert [f.code for f in post_trade([], ordered_qty=1, model_bps=D(4), limits=lim)] == [
         "FILL_RATE"
     ]  # a single share ordered and none filled
+
+
+def test_a_long_position_is_stopped_exactly_at_two_percent_by_default():
+    from algo.risk.realtime import OpenPosition, trade_stops
+
+    lim = Limits()
+    assert lim.max_trade_loss == D("0.02")
+    just_inside = OpenPosition(1, 10, D(100), D("98.01"))
+    at_limit = OpenPosition(2, 10, D(100), D(98))
+    assert trade_stops([just_inside], lim) == []
+    (stop,) = trade_stops([at_limit], lim)
+    assert (stop.instrument_id, stop.loss) == (2, D("0.02"))
+    assert "long 10 is 2.00% against its entry 100 (limit 2.00%)" == stop.detail
+
+
+def test_a_short_is_stopped_when_the_price_rises_and_a_winner_never_is():
+    from algo.risk.realtime import OpenPosition, trade_stops
+
+    lim = Limits()
+    short_hit = OpenPosition(3, -5, D(200), D(204))
+    short_ok = OpenPosition(4, -5, D(200), D("203.99"))
+    long_win = OpenPosition(5, 5, D(100), D(150))
+    short_win = OpenPosition(6, -5, D(100), D(50))
+    out = trade_stops([short_hit, short_ok, long_win, short_win], lim)
+    assert [s.instrument_id for s in out] == [3] and out[0].detail.startswith("short 5 is 2.00%")
+
+
+def test_the_limit_can_be_changed_or_switched_off_and_bad_prices_are_refused():
+    import pytest
+
+    from algo.risk.realtime import OpenPosition, trade_stops
+
+    p = OpenPosition(1, 10, D(100), D(95))
+    assert trade_stops([p], Limits(max_trade_loss=D("0.05")))[0].loss == D("0.05")
+    assert trade_stops([p], Limits(max_trade_loss=D("0.06"))) == []
+    assert trade_stops([p], Limits(max_trade_loss=None)) == []
+    assert trade_stops([OpenPosition(1, 0, D(100), D(1))], Limits()) == []  # flat: nothing to stop
+    for bad in (
+        OpenPosition(1, 1, D(0), D(1)),
+        OpenPosition(1, 1, D(1), D(0)),
+        OpenPosition(1, 1, D(-1), D(1)),
+    ):
+        with pytest.raises(ValueError, match="prices must be positive"):
+            trade_stops([bad], Limits())
+    assert Limits.from_mapping({"max_trade_loss": "0.03"}).max_trade_loss == D("0.03")
+
+
+def test_one_share_positions_a_price_of_one_and_a_flat_position_before_a_real_stop():
+    from algo.risk.realtime import OpenPosition, trade_stops
+
+    flat_first = [
+        OpenPosition(1, 0, D(100), D(1)),
+        OpenPosition(2, 1, D(100), D(90)),
+        OpenPosition(3, -1, D(100), D(110)),
+    ]
+    out = trade_stops(flat_first, Limits())
+    assert [(s.instrument_id, s.detail[:6]) for s in out] == [(2, "long 1"), (3, "short ")]
+    assert trade_stops([OpenPosition(4, 5, D(1), D("0.97"))], Limits())[0].loss == D(
+        "0.03"
+    )  # a stock priced at 1 is fine
