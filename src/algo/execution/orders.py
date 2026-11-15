@@ -120,10 +120,15 @@ def apply(order: Order | None, ev: OrderEvent) -> Order:
     if ev.state not in ALLOWED[order.state]:
         raise OrderError(f"{order.order_id}: {order.state} cannot become {ev.state}")
     d = ev.data
+    filled = d.get("filled_qty", order.filled_qty)
+    if not 0 <= filled <= order.qty:
+        raise OrderError(
+            f"{order.order_id}: a fill of {filled} exceeds the {order.qty} ordered (or is negative)"
+        )
     return replace(
         out,
         state=ev.state,
-        filled_qty=d.get("filled_qty", order.filled_qty),
+        filled_qty=filled,
         avg_price=d.get("avg_price", order.avg_price),
         broker_order_id=d.get("broker_order_id", order.broker_order_id),
         reason=d.get("reason", order.reason),

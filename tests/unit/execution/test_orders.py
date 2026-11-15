@@ -171,3 +171,15 @@ def test_a_state_change_that_says_nothing_about_price_or_reason_keeps_what_the_o
         Decimal("99.5"),
         "partial",
     )
+
+
+def test_a_fill_larger_than_the_order_or_below_zero_is_refused_with_its_numbers_and_an_exact_fill_is_fine():
+    o = apply(None, ev(0, None, "NEW", **NEW))  # 10 shares
+    o = apply(o, ev(1, State.SUBMITTING))
+    o = apply(o, ev(2, State.SUBMITTED, broker_order_id="B1"))
+    with pytest.raises(OrderError) as e:
+        apply(o, ev(3, State.FILLED, filled_qty=11))
+    assert str(e.value) == f"{o.order_id}: a fill of 11 exceeds the 10 ordered (or is negative)"
+    with pytest.raises(OrderError, match="a fill of -1 exceeds"):
+        apply(o, ev(3, State.PARTIALLY_FILLED, filled_qty=-1))
+    assert apply(o, ev(3, State.FILLED, filled_qty=10)).filled_qty == 10
