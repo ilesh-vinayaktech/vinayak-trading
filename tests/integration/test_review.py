@@ -529,3 +529,27 @@ def test_evidence_class_never_lets_a_gap_estimate_look_like_exchange_evidence(
     status, method, expected
 ):
     assert evidence_class(status, method) == expected
+
+
+def test_verify_can_replace_the_note_and_record_the_verification_evidence_apart_from_the_calculation(
+    env,
+):
+    conn, _ = env
+    demerger(conn)
+    before = conn.execute(
+        "SELECT factor, inputs FROM action_resolution ORDER BY id DESC"
+    ).fetchone()
+    do_verify(
+        conn,
+        note="verified: EXCHANGE_DERIVED_PRESS_CORROBORATED",
+        evidence={"provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"},
+    )
+    factor, inputs, note, status = conn.execute(
+        "SELECT factor, inputs, note, status FROM action_resolution ORDER BY id DESC"
+    ).fetchone()
+    assert (status, note) == ("verified", "verified: EXCHANGE_DERIVED_PRESS_CORROBORATED")
+    assert factor == before[0]  # the factor is never touched by verification
+    assert inputs["verification"] == {"provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"}
+    assert {k: v for k, v in inputs.items() if k != "verification"} == before[
+        1
+    ]  # the calculation inputs are unchanged

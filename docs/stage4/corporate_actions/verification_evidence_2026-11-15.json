@@ -1,0 +1,937 @@
+{
+ "decision": {
+  "decided": "2026-11-15",
+  "decided_by": "owner",
+  "methodology": {
+   "demerger": "MARKET_VALUE_ADJUSTMENT: factor = exchange-derived adjusted base price / previous close, applied to the parent's pre-demerger prices. The tax cost-allocation ratio is separate tax metadata, never the price factor. The demerged company's shares are modelled separately for shareholder total return."
+  },
+  "provenance_labels": {
+   "ISSUER_TERMS_KITE_CORROBORATED": "rights factor from issuer terms (TERP), independently corroborated by Kite's adjustment (within 0.15%)",
+   "EXCHANGE_DERIVED_PRESS_CORROBORATED": "factor from the special pre-open session price in the stored NSE bhavcopy (ex-date OPEN), corroborated by press reports; NOT verified against the original NSE circular"
+  },
+  "approved": [
+   {
+    "symbol": "SHRIRAMFIN",
+    "ex_date": "2020-07-09",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "LTF",
+    "ex_date": "2021-01-21",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "BHARTIARTL",
+    "ex_date": "2021-09-27",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "INDHOTEL",
+    "ex_date": "2021-11-11",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "SUZLON",
+    "ex_date": "2022-10-03",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "GRASIM",
+    "ex_date": "2024-01-10",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "TATACONSUM",
+    "ex_date": "2024-07-26",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "UPL",
+    "ex_date": "2024-11-26",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "ADANIENT",
+    "ex_date": "2025-11-17",
+    "kind": "rights",
+    "group": "A",
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   },
+   {
+    "symbol": "HINDUNILVR",
+    "ex_date": "2025-12-05",
+    "kind": "demerger",
+    "group": "A",
+    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   },
+   {
+    "symbol": "RELIANCE",
+    "ex_date": "2023-07-20",
+    "kind": "demerger",
+    "group": "B",
+    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   },
+   {
+    "symbol": "ITC",
+    "ex_date": "2025-01-06",
+    "kind": "demerger",
+    "group": "B",
+    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   },
+   {
+    "symbol": "SIEMENS",
+    "ex_date": "2025-04-07",
+    "kind": "demerger",
+    "group": "B",
+    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   },
+   {
+    "symbol": "TMPV",
+    "ex_date": "2025-10-14",
+    "kind": "demerger",
+    "group": "B",
+    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   },
+   {
+    "symbol": "VEDL",
+    "ex_date": "2026-04-30",
+    "kind": "demerger",
+    "group": "B",
+    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   }
+  ],
+  "kept_provisional": [
+   {
+    "symbol": "NMDC",
+    "ex_date": "2022-10-27",
+    "kind": "demerger",
+    "reason": "suspected incorrect (press implies an exchange base near 93.70, factor about 0.717, stored 0.7914): obtain the NSE adjusted base price, then correct"
+   },
+   {
+    "symbol": "GMRAIRPORT",
+    "ex_date": "2022-01-11",
+    "kind": "demerger",
+    "reason": "exchange adjusted base price not established"
+   },
+   {
+    "symbol": "MOTHERSON",
+    "ex_date": "2022-01-14",
+    "kind": "demerger",
+    "reason": "exchange adjusted base price not established"
+   },
+   {
+    "symbol": "ABB",
+    "ex_date": "2019-12-20",
+    "kind": "demerger",
+    "reason": "exchange adjusted base price not established"
+   },
+   {
+    "symbol": "RELIANCE",
+    "ex_date": "2020-05-13",
+    "kind": "rights",
+    "reason": "applicable NSE adjustment evidence not obtained"
+   }
+  ],
+  "strict_mode": "C1 stays failing until the five kept-provisional actions are resolved; the reader's rule is not weakened."
+ },
+ "generated": "2026-11-15T05:44:13.987276+00:00",
+ "records": [
+  {
+   "symbol": "SHRIRAMFIN",
+   "ex_date": "2020-07-09",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 77,
+   "method": "rights",
+   "stored_factor": "0.9743529079898630972150816002",
+   "recomputed_factor": "0.9743529079898630972150816002",
+   "calculation": {
+    "new": "3",
+    "held": "26",
+    "subscription_price": "570",
+    "prev_close": "757.90",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/shriram-transport-finance-company-letter-of-offer.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "fully paid (Shriram Transport Finance)",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2020-07-09/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "757.90"
+     },
+     "series": "EQ",
+     "sha256": "c54645249aaf4f06fa612edd38ae10f8f792ee0cdb3a3c000fdf96a9644f1198",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "SRTRANSFIN"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+    "prev_close_cum": "757.90",
+    "issuer_document": {
+     "url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/shriram-transport-finance-company-letter-of-offer.pdf",
+     "sha256": "fa3a59f289dec35841d2159a5b05afc40fac25eb4d53682b12087ad7d94dd3a9",
+     "document": "Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/shriramfin_lof.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.974268",
+   "kite_over_stored": "0.9999"
+  },
+  {
+   "symbol": "LTF",
+   "ex_date": "2021-01-21",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 78,
+   "method": "rights",
+   "stored_factor": "0.9301136994926113847635272767",
+   "recomputed_factor": "0.9301136994926113847635272767",
+   "calculation": {
+    "new": "17",
+    "held": "74",
+    "subscription_price": "65",
+    "prev_close": "103.85",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/l-t-finance-holdings-rights-issue-abridged-letter-of-offer.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "fully paid (L&T Finance Holdings)",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2021-01-21/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "103.85"
+     },
+     "series": "EQ",
+     "sha256": "0d95166754967df0b95a5ee001685808b312b2ad3bab10d90dcb82fd70e32fea",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "L&TFH"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+    "prev_close_cum": "103.85",
+    "issuer_document": {
+     "url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/l-t-finance-holdings-rights-issue-abridged-letter-of-offer.pdf",
+     "sha256": "1648b198cee937161c675a6eea5ebd286ecffa3b379ab9282b3c6eb41cce706f",
+     "document": "Abridged Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/ltf_abridged_lof.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.930188",
+   "kite_over_stored": "1.0001"
+  },
+  {
+   "symbol": "BHARTIARTL",
+   "ex_date": "2021-09-27",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 79,
+   "method": "rights",
+   "stored_factor": "0.9815706428635830853845460283",
+   "recomputed_factor": "0.9815706428635830853845460283",
+   "calculation": {
+    "new": "1",
+    "held": "14",
+    "subscription_price": "535",
+    "prev_close": "739.40",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/BHARTI-AIRTEL-LIMITED-Rights-Issue-Abridged-Letter-of-offer.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "PARTLY PAID: Rs 133.75 on application (25%), balance in calls; the partly paid shares listed separately",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2021-09-27/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "739.40"
+     },
+     "series": "EQ",
+     "sha256": "df4b8964b47c41bdc890c580b03e8f65b9b67a849d0b5e0eb4d6c8b85193acb0",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "BHARTIARTL"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+    "prev_close_cum": "739.40",
+    "issuer_document": {
+     "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/BHARTI-AIRTEL-LIMITED-Rights-Issue-Abridged-Letter-of-offer.pdf",
+     "sha256": "4bc9374983ec9c9de11865bdcc1a1030fdf215d4759ad12a7ed8d13c12c1c3bf",
+     "document": "Abridged Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/bhartiartl_abridged_lof.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "exchange_factor_reported": {
+     "note": "equal to the proposed factor to 6 decimals; a secondary report, not exchange verification",
+     "value": "0.981571",
+     "source": "MSE (Metropolitan Stock Exchange) circular 10921 (as summarised by a search; not retrieved and read)"
+    },
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.981539",
+   "kite_over_stored": "1.0000"
+  },
+  {
+   "symbol": "INDHOTEL",
+   "ex_date": "2021-11-11",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 80,
+   "method": "rights",
+   "stored_factor": "0.9696702275894101254064096609",
+   "recomputed_factor": "0.9696702275894101254064096609",
+   "calculation": {
+    "new": "1",
+    "held": "9",
+    "subscription_price": "150",
+    "prev_close": "215.30",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "fully paid",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2021-11-11/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "215.30"
+     },
+     "series": "EQ",
+     "sha256": "c955168b53b887c8ec98f34c86eb760726383cdc28bfbd78e1c403bf728e63a2",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "INDHOTEL"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+    "prev_close_cum": "215.30",
+    "issuer_document": {
+     "url": "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf",
+     "sha256": "59e7e7cde8479e61d7b9cec43dbd9612a85fe8d8f96e1e707683873b96a421c1",
+     "document": "Abridged Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/indhotel_abridged_lof.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.969577",
+   "kite_over_stored": "0.9999"
+  },
+  {
+   "symbol": "SUZLON",
+   "ex_date": "2022-10-03",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 130,
+   "method": "rights",
+   "stored_factor": "0.9182139699381078691423519009",
+   "recomputed_factor": "0.9182139699381078691423519009",
+   "calculation": {
+    "new": "5",
+    "held": "21",
+    "subscription_price": "5",
+    "prev_close": "8.70",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://www.business-standard.com/amp/article/companies/suzlon-energy-rights-issue-of-rs-1-200-crore-to-open-on-october-11-122092800979_1.html",
+   "evidence_on_record": {},
+   "kite_implied_factor": "0.919540",
+   "kite_over_stored": "1.0014"
+  },
+  {
+   "symbol": "GRASIM",
+   "ex_date": "2024-01-10",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 81,
+   "method": "rights",
+   "stored_factor": "0.9960395365448537610064704852",
+   "recomputed_factor": "0.9960395365448537610064704852",
+   "calculation": {
+    "new": "6",
+    "held": "179",
+    "subscription_price": "1812",
+    "prev_close": "2064.05",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "PARTLY PAID: Rs 453 on application, balance Rs 1,359 in calls",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2024-01-10/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "2064.05"
+     },
+     "series": "EQ",
+     "sha256": "93f25cb682042e43b4f980a8304db43714e637338b4ef71177a5d6b76d886b9e",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "GRASIM"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+    "prev_close_cum": "2064.05",
+    "issuer_document": {
+     "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf",
+     "sha256": "fdfbf3d4921cc22ca72c3771b971e7f6f585cc787a23e333aa62ee252258d583",
+     "document": "Abridged Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/grasim_abridged_lof.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "exchange_factor_reported": {
+     "note": "equal to the proposed factor to 6 decimals; a secondary report, not exchange verification",
+     "value": "0.996040",
+     "source": "Zerodha bulletin copy of the exchange F&O adjustment (secondary; exchange circular not retrieved)"
+    },
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.996051",
+   "kite_over_stored": "1.0000"
+  },
+  {
+   "symbol": "TATACONSUM",
+   "ex_date": "2024-07-26",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 87,
+   "method": "rights",
+   "stored_factor": "0.9877229305146925284225055394",
+   "recomputed_factor": "0.9877229305146925284225055394",
+   "calculation": {
+    "new": "1",
+    "held": "26",
+    "subscription_price": "818",
+    "prev_close": "1223.60",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "FULLY PAID: all Rs 818 on application (abridged letter of offer); the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2024-07-26/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "1223.60"
+     },
+     "series": "EQ",
+     "sha256": "b831ab462ee021099f6a4bd6002c2798b1e1697b326a71723c0f7ea67d6f17e6",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "TATACONSUM"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified. Supersedes the 2026-11-09 issuer-terms row for the same action only to record the owner-accepted explanation of the evidence conflict; the factor is unchanged.",
+    "prev_close_cum": "1223.60",
+    "issuer_document": {
+     "url": "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf",
+     "sha256": "3a5c268e6cbc343c25df99d0fcaf4345228c58339ce6cf67b7d18f7fae3461b3",
+     "document": "Abridged Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/tataconsum_abridged_lof.pdf"
+    },
+    "superseded_method": "rights",
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "supersedes_resolution_id": 82,
+    "unresolved_evidence_conflicts": [
+     {
+      "note": "the exchange example may use a different reference price; not established as interchangeable; the recorded factor is NOT described as matching the exchange adjustment",
+      "what": "cum-rights reference price",
+      "status": "EXPLAINED_BY_REFERENCE_DATE (owner-accepted 2026-11-09); not exchange-verified",
+      "explanation": "MSE circular MSE/TRD/15709/2024 (2024-07-25, created 09:50 IST, before that day's close) used P = 1231.25, the 2024-07-24 close, labelled 'last cum date'; AF 0.987569 equals the same formula at 1231.25. The recorded factor uses the actual last cum-date close 1223.60 (2024-07-25).",
+      "proposed_factor": "0.9877229305146925284225055394",
+      "exchange_document": {
+       "url": "https://msei.in/SX-Content/Circulars/2024/July/Circular-15709.pdf",
+       "sha256": "567f38c1fbeaef66de830130d4ecbc998bb9a2476905b88a12ba317d74f67dd8",
+       "states": {
+        "E": "15.30555556",
+        "P": "1231.25 ('Underlying close price on the last cum date')",
+        "S": "818",
+        "AF": "0.987569",
+        "A:B": "1:26",
+        "revised_lot": "456"
+       },
+       "document": "MSE (Metropolitan Stock Exchange of India) circular MSE/TRD/15709/2024 dated 2024-07-25 (exchange document; created 09:50 IST)",
+       "retrieved": "2026-11-09",
+       "stored_at": "data/evidence/rights/msei_15709_tataconsum.pdf"
+      },
+      "bhavcopy_prev_close": "1223.60",
+      "exchange_example_cum_price": "1231.25 (Zerodha bulletin copy of the exchange F&O adjustment example; not retrieved from the exchange)"
+     }
+    ]
+   },
+   "kite_implied_factor": "0.987741",
+   "kite_over_stored": "1.0000"
+  },
+  {
+   "symbol": "UPL",
+   "ex_date": "2024-11-26",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 88,
+   "method": "rights",
+   "stored_factor": "0.9592432992309872091773419713",
+   "recomputed_factor": "0.9592432992309872091773419713",
+   "calculation": {
+    "new": "1",
+    "held": "8",
+    "subscription_price": "360",
+    "prev_close": "568.55",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://www.upl-ltd.com/downloads/right-issues-pdf/FAQs_Rights_issue.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "PARTLY PAID: Rs 90 on application, balance in calls",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2024-11-26/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "568.55"
+     },
+     "series": "EQ",
+     "sha256": "ed333291256cbf0f6492b315b186d0b805329d59f8bdc42eba82a1535b95fdcb",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "UPL"
+    },
+    "limitation": "terms from the issuer's FAQ on the rights issue (not the letter of offer and not an exchange adjustment circular; stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price). NOT verified. Supersedes the 2026-11-09 issuer-terms row for the same action only to record the owner-accepted explanation of the evidence conflict; the factor is unchanged.",
+    "prev_close_cum": "568.55",
+    "issuer_document": {
+     "url": "https://www.upl-ltd.com/downloads/right-issues-pdf/FAQs_Rights_issue.pdf",
+     "sha256": "5bd97bfbe2b174f43354e6241dd3061c5e9f02f61241c9f558296a250e3eca28",
+     "document": "Company FAQ on the rights issue (not the letter of offer)",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/upl_rights_faq.pdf"
+    },
+    "superseded_method": "rights",
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "supersedes_resolution_id": 83,
+    "unresolved_evidence_conflicts": [
+     {
+      "note": "neither figure selected over the other; the recorded factor is the TERP from the issuer terms and the bhavcopy cum close; it is NOT described as matching the exchange adjustment",
+      "what": "exchange F&O adjustment factor",
+      "status": "EXPLAINED_BY_REFERENCE_DATE (owner-accepted 2026-11-09); not exchange-verified; NSE circular 149/2024 itself NOT retrieved",
+      "circular": "NSE F&O circular 149/2024 dated 2024-11-22, as reported; not retrieved",
+      "explanation": "0.959510 equals the same formula at P = 566.40, the 2024-11-22 close (the circular's own date); NSE's indicative note FAOP65222 used 568.55 (the actual last cum-date close, 2024-11-25) and gave 0.959243, the recorded factor.",
+      "proposed_factor": "0.9592432992309872091773419713",
+      "nse_circular_factor_reported": "0.959510",
+      "nse_indicative_factor_reported": "0.959243 at a pre-ex-date close of 568.55 (NSE FAOP65222, as reported; described there as indicative)"
+     }
+    ]
+   },
+   "kite_implied_factor": "0.959282",
+   "kite_over_stored": "1.0000"
+  },
+  {
+   "symbol": "ADANIENT",
+   "ex_date": "2025-11-17",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "resolution_id": 84,
+   "method": "rights",
+   "stored_factor": "0.9694850603941513032422123331",
+   "recomputed_factor": "0.9694850603941513032422123331",
+   "calculation": {
+    "new": "3",
+    "held": "25",
+    "subscription_price": "1800",
+    "prev_close": "2516.80",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "issuer_document",
+   "source_url": "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf",
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "PARTLY PAID: Rs 900 on application, balance in two calls (record dates 2025-12-23 and 2026-02-13)",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2025-11-17/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "2516.80"
+     },
+     "series": "EQ",
+     "sha256": "c8b46755536d96c4f5fa325a044dc8489f6a043f466ed8bd032d20ff4e027cb8",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "ADANIENT"
+    },
+    "limitation": "terms from the issuer's FAQ on the rights issue (not the letter of offer and not an exchange adjustment circular; stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price). NOT verified.",
+    "prev_close_cum": "2516.80",
+    "issuer_document": {
+     "url": "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf",
+     "sha256": "05fd744c872f061cb1b317a9a09147c6e9758d0f02b4a72f06a7d2982406cf5e",
+     "document": "Company FAQ on the partly paid rights shares (not the letter of offer)",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/adanient_rights_faq.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "exchange_factor_reported": {
+     "note": "equal to the proposed factor to 6 decimals; a secondary report, not exchange verification",
+     "value": "0.969485",
+     "source": "forum copy of the exchange F&O notice (secondary; exchange circular not retrieved)"
+    },
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.969485",
+   "kite_over_stored": "1.0000"
+  },
+  {
+   "symbol": "HINDUNILVR",
+   "ex_date": "2025-12-05",
+   "kind": "demerger",
+   "group": "A",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED",
+   "resolution_id": 59,
+   "method": "exchange_adjusted_price",
+   "stored_factor": "0.9836731378442043700755421980",
+   "recomputed_factor": "0.9836731378442043700755421980",
+   "calculation": {
+    "base_price": "2422.00",
+    "prev_close": "2462.20",
+    "formula": "base_price / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://www.outlookbusiness.com/corporate/kwality-walls-india-debuts-26-below-issue-price-gains-in-intraday-trade",
+   "evidence_on_record": {
+    "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+    "reports": [
+     {
+      "url": "https://www.outlookbusiness.com/corporate/kwality-walls-india-debuts-26-below-issue-price-gains-in-intraday-trade",
+      "quote": "opening at \u20b92,422 on December 5, about 2% (\u20b940.20) lower than the previous closing price of \u20b92,462.20.",
+      "published": "2026-02-16T11:49+05:30",
+      "publisher": "Outlook Business"
+     },
+     {
+      "url": "https://www.samco.in/knowledge-center/?p=65895",
+      "quote": "That is how the adjusted prices of \u20b940.20 (NSE) and \u20b938.15 (BSE) were determined for Kwality Wall's share price.",
+      "published": "2026-02-16 (page 'created' date)",
+      "publisher": "Samco"
+     }
+    ],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2025-12-05/v0001.bin",
+     "fields": {
+      "OPEN_PRICE": "2422.00",
+      "PREV_CLOSE": "2462.20"
+     },
+     "series": "EQ",
+     "sha256": "878cc00f7f71b39dfa6d882ac9867e11cebf42f0979d1dcd48b0cc438e2539b3",
+     "dataset": "nse/bhav",
+     "exchange_file": "sec_bhavdata_full_05122025.csv",
+     "symbol_in_file": "HINDUNILVR"
+    },
+    "limitation": "original NSE/BSE special pre-open circular not yet obtained; base price observed in the stored NSE bhavcopy (exchange-originated) and corroborated by press reports. NOT verified.",
+    "ex_date_open": "2422.00",
+    "prev_close_cum": "2462.20",
+    "superseded_method": "gap",
+    "calculation_version": "exchange_adjusted_price/1",
+    "entitlement_reported": "1 Kwality Wall's (India) share per HUL share",
+    "supersedes_resolution_id": 11
+   },
+   "kite_implied_factor": "0.980911",
+   "kite_over_stored": "0.9972"
+  },
+  {
+   "symbol": "RELIANCE",
+   "ex_date": "2023-07-20",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED",
+   "resolution_id": 55,
+   "method": "exchange_adjusted_price",
+   "stored_factor": "0.9078593169942115171455214033",
+   "recomputed_factor": "0.9078593169942115171455214033",
+   "calculation": {
+    "base_price": "2580.00",
+    "prev_close": "2841.85",
+    "formula": "base_price / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://www.businesstoday.in/markets/company-stock/story/ril-share-price-settles-at-rs-2580-in-special-pre-open-session-jio-financial-at-rs-26185-390530-2023-07-20",
+   "evidence_on_record": {
+    "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+    "reports": [
+     {
+      "url": "https://www.businesstoday.in/markets/company-stock/story/ril-share-price-settles-at-rs-2580-in-special-pre-open-session-jio-financial-at-rs-26185-390530-2023-07-20",
+      "quote": "Shares of Reliance Industries Ltd (RIL) settled at Rs 2,580 in the special pre-open session on Thursday.",
+      "published": "2023-07-20T09:56+05:30",
+      "publisher": "Business Today"
+     }
+    ],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2023-07-20/v0001.bin",
+     "fields": {
+      "OPEN_PRICE": "2580.00",
+      "PREV_CLOSE": "2841.85"
+     },
+     "series": "EQ",
+     "sha256": "60afba4661bc75fd3c5c0556f3c2db1541eeb81f86b2139ee2d92403d8ac5f31",
+     "dataset": "nse/bhav",
+     "exchange_file": "sec_bhavdata_full_20072023.csv",
+     "symbol_in_file": "RELIANCE"
+    },
+    "limitation": "original NSE/BSE special pre-open circular not yet obtained; base price observed in the stored NSE bhavcopy (exchange-originated) and corroborated by press reports. NOT verified.",
+    "ex_date_open": "2580.00",
+    "prev_close_cum": "2841.85",
+    "superseded_method": "gap",
+    "calculation_version": "exchange_adjusted_price/1",
+    "entitlement_reported": "1 Jio Financial Services share per Reliance share",
+    "supersedes_resolution_id": 7
+   },
+   "kite_implied_factor": "0.953200",
+   "kite_over_stored": "1.0499"
+  },
+  {
+   "symbol": "ITC",
+   "ex_date": "2025-01-06",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED",
+   "resolution_id": 56,
+   "method": "exchange_adjusted_price",
+   "stored_factor": "0.9460132890365448504983388704",
+   "recomputed_factor": "0.9460132890365448504983388704",
+   "calculation": {
+    "base_price": "455.60",
+    "prev_close": "481.60",
+    "formula": "base_price / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://www.venturasecurities.com/news/stocks/itc-share-price-adjusted-for-demerger-of-hotels-business/",
+   "evidence_on_record": {
+    "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+    "reports": [
+     {
+      "url": "https://www.venturasecurities.com/news/stocks/itc-share-price-adjusted-for-demerger-of-hotels-business/",
+      "quote": "it was \u20b9455.6 per share on the National Stock Exchange (NSE)",
+      "published": "2025-01-06",
+      "publisher": "Ventura Securities"
+     }
+    ],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2025-01-06/v0001.bin",
+     "fields": {
+      "OPEN_PRICE": "455.60",
+      "PREV_CLOSE": "481.60"
+     },
+     "series": "EQ",
+     "sha256": "9dc1eb315195c68bbf2a30719f07d56ecd6dedc1f00190bbf68ad02152aa82b4",
+     "dataset": "nse/bhav",
+     "exchange_file": "sec_bhavdata_full_06012025.csv",
+     "symbol_in_file": "ITC"
+    },
+    "limitation": "original NSE/BSE special pre-open circular not yet obtained; base price observed in the stored NSE bhavcopy (exchange-originated) and corroborated by press reports. NOT verified.",
+    "ex_date_open": "455.60",
+    "prev_close_cum": "481.60",
+    "superseded_method": "gap",
+    "calculation_version": "exchange_adjusted_price/1",
+    "entitlement_reported": "1 ITC Hotels share per 10 ITC shares",
+    "supersedes_resolution_id": 8
+   },
+   "kite_implied_factor": "0.865006",
+   "kite_over_stored": "0.9144"
+  },
+  {
+   "symbol": "SIEMENS",
+   "ex_date": "2025-04-07",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED",
+   "resolution_id": 57,
+   "method": "exchange_adjusted_price",
+   "stored_factor": "0.4971439586863224536590809939",
+   "recomputed_factor": "0.4971439586863224536590809939",
+   "calculation": {
+    "base_price": "2450.00",
+    "prev_close": "4928.15",
+    "formula": "base_price / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://www.angelone.in/news/stocks-share-market/siemens-share-price-drops-50-percent-post-demerger-with-siemens-energy-india",
+   "evidence_on_record": {
+    "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+    "reports": [
+     {
+      "url": "https://www.angelone.in/news/stocks-share-market/siemens-share-price-drops-50-percent-post-demerger-with-siemens-energy-india",
+      "quote": "On April 7, 2025, Siemens share price opened at \u20b92,450.00, down from its previous close of \u20b94,928.15.",
+      "published": "2025-04-07T10:02+05:30",
+      "publisher": "Angel One"
+     }
+    ],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2025-04-07/v0001.bin",
+     "fields": {
+      "OPEN_PRICE": "2450.00",
+      "PREV_CLOSE": "4928.15"
+     },
+     "series": "EQ",
+     "sha256": "9a5b9c52a10cf32222e1d1f6de2f76a925265e04aea1918841b7e6e3208c75d0",
+     "dataset": "nse/bhav",
+     "exchange_file": "sec_bhavdata_full_07042025.csv",
+     "symbol_in_file": "SIEMENS"
+    },
+    "limitation": "original NSE/BSE special pre-open circular not yet obtained; base price observed in the stored NSE bhavcopy (exchange-originated) and corroborated by press reports. NOT verified.",
+    "ex_date_open": "2450.00",
+    "prev_close_cum": "4928.15",
+    "superseded_method": "gap",
+    "calculation_version": "exchange_adjusted_price/1",
+    "entitlement_reported": "1 Siemens Energy India share per Siemens share",
+    "supersedes_resolution_id": 9
+   },
+   "kite_implied_factor": "0.761797",
+   "kite_over_stored": "1.5323"
+  },
+  {
+   "symbol": "TMPV",
+   "ex_date": "2025-10-14",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED",
+   "resolution_id": 58,
+   "method": "exchange_adjusted_price",
+   "stored_factor": "0.6053726825576995838062807416",
+   "recomputed_factor": "0.6053726825576995838062807416",
+   "calculation": {
+    "base_price": "400.00",
+    "prev_close": "660.75",
+    "formula": "base_price / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://upstox.com/news/market-news/stocks/tata-motors-demerger-why-stock-is-down-40-from-previous-close-all-you-need-to-know/article-182991",
+   "evidence_on_record": {
+    "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+    "reports": [
+     {
+      "url": "https://upstox.com/news/market-news/stocks/tata-motors-demerger-why-stock-is-down-40-from-previous-close-all-you-need-to-know/article-182991",
+      "quote": "Tata Motors shares were discovered at \u20b9400 each during a special pre-open session",
+      "published": "2025-10-14T11:31+05:30 (updated)",
+      "publisher": "Upstox"
+     },
+     {
+      "url": "https://www.samco.in/knowledge-center/articles/tata-motors-demerger-passenger-vehicle-share-price-and-key-updates/",
+      "quote": "The ex-CV entity was valued around \u20b9400 per share.",
+      "published": "2025-10-14 (page 'created' date)",
+      "publisher": "Samco"
+     }
+    ],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2025-10-14/v0001.bin",
+     "fields": {
+      "OPEN_PRICE": "400.00",
+      "PREV_CLOSE": "660.75"
+     },
+     "series": "EQ",
+     "sha256": "d72fcbad87c23165dd64a0c7f21f72392d96a7b1b2a58a3dca2c681850d8ab03",
+     "dataset": "nse/bhav",
+     "exchange_file": "sec_bhavdata_full_14102025.csv",
+     "symbol_in_file": "TATAMOTORS"
+    },
+    "limitation": "original NSE/BSE special pre-open circular not yet obtained; base price observed in the stored NSE bhavcopy (exchange-originated) and corroborated by press reports. NOT verified.",
+    "ex_date_open": "400.00",
+    "prev_close_cum": "660.75",
+    "superseded_method": "gap",
+    "calculation_version": "exchange_adjusted_price/1",
+    "entitlement_reported": "1 TML Commercial Vehicles share per Tata Motors share",
+    "supersedes_resolution_id": 10
+   },
+   "kite_implied_factor": "0.688536",
+   "kite_over_stored": "1.1374"
+  },
+  {
+   "symbol": "VEDL",
+   "ex_date": "2026-04-30",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED",
+   "resolution_id": 60,
+   "method": "exchange_adjusted_price",
+   "stored_factor": "0.3742244053774560496380558428",
+   "recomputed_factor": "0.3742244053774560496380558428",
+   "calculation": {
+    "base_price": "289.50",
+    "prev_close": "773.60",
+    "formula": "base_price / prev_close"
+   },
+   "source_type": "press_report",
+   "source_url": "https://www.arihantcapital.com/company-information/companynewsdetails/25120010239",
+   "evidence_on_record": {
+    "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+    "reports": [
+     {
+      "url": "https://www.arihantcapital.com/company-information/companynewsdetails/25120010239",
+      "quote": "The stock's ex-demerger price was discovered at Rs 289.5 during a special pre-open session conducted by exchanges today.",
+      "published": "2026-04-30",
+      "publisher": "Arihant Capital"
+     }
+    ],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2026-04-30/v0001.bin",
+     "fields": {
+      "OPEN_PRICE": "289.50",
+      "PREV_CLOSE": "773.60"
+     },
+     "series": "EQ",
+     "sha256": "215b10ba246b88b61630900a18ce011fce694e29453d0e0fd7c322da7b15c5be",
+     "dataset": "nse/bhav",
+     "exchange_file": "sec_bhavdata_full_30042026.csv",
+     "symbol_in_file": "VEDL"
+    },
+    "limitation": "original NSE/BSE special pre-open circular not yet obtained; base price observed in the stored NSE bhavcopy (exchange-originated) and corroborated by press reports. NOT verified.",
+    "ex_date_open": "289.50",
+    "prev_close_cum": "773.60",
+    "superseded_method": "gap",
+    "calculation_version": "exchange_adjusted_price/1",
+    "entitlement_reported": "1 share each of four demerged Vedanta companies per Vedanta share",
+    "supersedes_resolution_id": 12
+   },
+   "kite_implied_factor": "0.523397",
+   "kite_over_stored": "1.3986"
+  }
+ ],
+ "problems": []
+}

@@ -1,0 +1,151 @@
+{
+ "decided": "2026-11-15",
+ "decided_by": "owner",
+ "methodology": {
+  "demerger": "MARKET_VALUE_ADJUSTMENT: factor = exchange-derived adjusted base price / previous close, applied to the parent's pre-demerger prices. The tax cost-allocation ratio is separate tax metadata, never the price factor. The demerged company's shares are modelled separately for shareholder total return."
+ },
+ "provenance_labels": {
+  "ISSUER_TERMS_KITE_CORROBORATED": "rights factor from issuer terms (TERP), independently corroborated by Kite's adjustment (within 0.15%)",
+  "EXCHANGE_DERIVED_PRESS_CORROBORATED": "factor from the special pre-open session price in the stored NSE bhavcopy (ex-date OPEN), corroborated by press reports; NOT verified against the original NSE circular"
+ },
+ "approved": [
+  {
+   "symbol": "SHRIRAMFIN",
+   "ex_date": "2020-07-09",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "LTF",
+   "ex_date": "2021-01-21",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "BHARTIARTL",
+   "ex_date": "2021-09-27",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "INDHOTEL",
+   "ex_date": "2021-11-11",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "SUZLON",
+   "ex_date": "2022-10-03",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "GRASIM",
+   "ex_date": "2024-01-10",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "TATACONSUM",
+   "ex_date": "2024-07-26",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "UPL",
+   "ex_date": "2024-11-26",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "ADANIENT",
+   "ex_date": "2025-11-17",
+   "kind": "rights",
+   "group": "A",
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+  },
+  {
+   "symbol": "HINDUNILVR",
+   "ex_date": "2025-12-05",
+   "kind": "demerger",
+   "group": "A",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  },
+  {
+   "symbol": "RELIANCE",
+   "ex_date": "2023-07-20",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  },
+  {
+   "symbol": "ITC",
+   "ex_date": "2025-01-06",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  },
+  {
+   "symbol": "SIEMENS",
+   "ex_date": "2025-04-07",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  },
+  {
+   "symbol": "TMPV",
+   "ex_date": "2025-10-14",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  },
+  {
+   "symbol": "VEDL",
+   "ex_date": "2026-04-30",
+   "kind": "demerger",
+   "group": "B",
+   "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  }
+ ],
+ "kept_provisional": [
+  {
+   "symbol": "NMDC",
+   "ex_date": "2022-10-27",
+   "kind": "demerger",
+   "reason": "suspected incorrect (press implies an exchange base near 93.70, factor about 0.717, stored 0.7914): obtain the NSE adjusted base price, then correct"
+  },
+  {
+   "symbol": "GMRAIRPORT",
+   "ex_date": "2022-01-11",
+   "kind": "demerger",
+   "reason": "exchange adjusted base price not established"
+  },
+  {
+   "symbol": "MOTHERSON",
+   "ex_date": "2022-01-14",
+   "kind": "demerger",
+   "reason": "exchange adjusted base price not established"
+  },
+  {
+   "symbol": "ABB",
+   "ex_date": "2019-12-20",
+   "kind": "demerger",
+   "reason": "exchange adjusted base price not established"
+  },
+  {
+   "symbol": "RELIANCE",
+   "ex_date": "2020-05-13",
+   "kind": "rights",
+   "reason": "applicable NSE adjustment evidence not obtained"
+  }
+ ],
+ "strict_mode": "C1 stays failing until the five kept-provisional actions are resolved; the reader's rule is not weakened."
+}

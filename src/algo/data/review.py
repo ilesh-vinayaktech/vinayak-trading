@@ -360,9 +360,13 @@ def verify(
     source_type: str,
     source_url: str,
     source_hash: str | None = None,
+    note: str | None = None,
+    evidence: Mapping[str, Any] | None = None,
 ) -> None:
     """Promote the latest resolution to verified / no_adjustment_verified, citing the authority
     (company filing, exchange notice). Appends a new row, so the earlier state stays as audit.
+    `note` replaces the earlier note (which may say "NOT verified"); `evidence` is kept under
+    inputs["verification"], apart from the calculation inputs. The factor is never changed here.
     Estimates made with method=gap can never be verified: re-resolve with an exact method."""
     iid = _instrument(conn, symbol)
     row = conn.execute(
@@ -373,17 +377,20 @@ def verify(
     ).fetchone()
     if row is None or row[7] in ("verified", "no_adjustment_verified", "rejected"):
         raise ResolveError(f"nothing to verify for {symbol} {kind} {ex_date}")
-    treatment, factor, method, inputs, note, resolved_by, resolved_at, _ = row
+    treatment, factor, method, inputs, old_note, resolved_by, resolved_at, _ = row
     if method == "gap":
         raise ResolveError("a gap estimate cannot be verified: re-resolve with an exact method")
     _need_source(source_type, source_url)
+    if evidence is not None:
+        inputs = {**inputs, "verification": dict(evidence)}
     new_status = "verified" if treatment == "factor" else "no_adjustment_verified"
     conn.execute(
         "INSERT INTO action_resolution (instrument_id,ex_date,kind,treatment,factor,method,inputs,"
         "note,resolved_by,resolved_at,status,source_type,source_url,source_hash,confirmed_by,"
         "confirmed_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (iid, ex_date, kind, treatment, factor, method, Jsonb(inputs), note, resolved_by,
-         resolved_at, new_status, source_type, source_url, source_hash, by, require_utc(now)),
+        (iid, ex_date, kind, treatment, factor, method, Jsonb(inputs),
+         old_note if note is None else note, resolved_by, resolved_at, new_status, source_type,
+         source_url, source_hash, by, require_utc(now)),
     )  # fmt: skip
 
 
