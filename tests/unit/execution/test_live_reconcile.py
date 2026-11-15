@@ -5,7 +5,7 @@ from algo.core.clock import SimClock
 from algo.execution.broker import BrokerError, BrokerTimeout
 from algo.execution.kite_account import Account, HoldingRow
 from algo.execution.live_reconcile import reconcile_live
-from algo.execution.oms import Oms
+from algo.execution.oms import Mismatch, Oms
 from algo.risk.engine import RiskEngine
 from algo.risk.killswitch import KillSwitch, Mode
 from algo.risk.limits import Limits
@@ -64,3 +64,36 @@ def test_an_account_that_cannot_be_read_halts_trading_like_an_unreadable_order_l
         found = reconcile_live(oms, Reader(error=err), SYMBOLS)
         assert [m.kind for m in found] == ["BROKER_UNREACHABLE"]
         assert switch.mode("s1") is not Mode.RUNNING
+
+
+# ---- found by mutation testing -------------------------------------------------------------------------------------
+def test_an_unreadable_account_is_one_unreachable_mismatch_with_the_reason_and_no_order_id():
+    oms, _ = oms_that_bought(10)
+    found = reconcile_live(oms, Reader(error=BrokerTimeout("no answer")), SYMBOLS)
+    assert found == [Mismatch("BROKER_UNREACHABLE", "", "the account could not be read: no answer")]
+
+
+def test_several_rows_of_one_symbol_add_up_and_a_symbol_the_account_lacks_counts_as_zero():
+    oms, _ = oms_that_bought(10)
+    two_rows = Reader(
+        [holding("INFY", 4, 0), holding("INFY", 3, 3)]
+    )  # 7 + 3 (t+1) = 10: exactly what we bought
+    assert reconcile_live(oms, two_rows, SYMBOLS) == []
+    short = reconcile_live(
+        oms, Reader([holding("INFY", 4), holding("INFY", 3)]), SYMBOLS
+    )  # 7 held, 10 bought
+    assert [m.detail for m in short] == ["instrument 7: we hold 10, the broker 7"]
+
+
+def test_the_positions_of_two_strategies_in_one_stock_are_added_before_the_comparison():
+    broker, switch = FakeBroker(), KillSwitch()
+    oms = Oms(broker, RiskEngine(Limits(), switch), SimClock(NOW))
+    for strategy, qty in (("s1", 6), ("s2", 4)):
+        o = oms.submit(
+            "k", OrderRequest(strategy, 7, Side.BUY, qty), Market(ltp=D(100)), Book(), Day()
+        )
+        oms.on_update(broker.move(o.order_id, "COMPLETE", qty, D(100)))
+    assert reconcile_live(oms, Reader([holding("INFY", 10)]), SYMBOLS) == []  # 6 + 4 = 10
+    assert [m.detail for m in reconcile_live(oms, Reader([holding("INFY", 9)]), SYMBOLS)] == [
+        "instrument 7: we hold 10, the broker 9"
+    ]

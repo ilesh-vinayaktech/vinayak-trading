@@ -117,3 +117,58 @@ def test_flatten_never_closes_shares_the_strategy_did_not_buy_even_when_given_th
     r = run(oms, {("s1", 7): 1685, ("s1", 8): 50, ("s1", 9): -3})
     assert [(o.instrument_id, o.side, o.qty) for o in r.orders] == [(7, Side.SELL, 10)]
     assert broker.place_calls == 2  # the buy and the one closing order
+
+
+# ---- found by mutation testing ---------------------------------------------------------------------------------------
+def test_a_strategy_that_is_not_flattening_or_a_zero_position_does_not_stop_the_ones_after_it():
+    oms, broker, switch = build()
+    hold(oms, broker, "s2", 7, 10)
+    hold(oms, broker, "s2", 9, 3)
+    switch.flatten("s2", by="jane", reason="fire", now=NOW, emergency_override=True)
+    r = run(
+        oms, {("s1", 1): 5, ("s2", 5): 0, ("s2", 7): 10, ("s2", 9): 3}
+    )  # s1 sorts first and is not flattening; (s2, 5) is zero
+    assert sorted(o.instrument_id for o in r.orders) == [7, 9] and r.skipped == ["s1"]
+
+
+def test_a_zero_input_never_closes_what_the_oms_owns_and_a_single_share_closes_by_selling_one():
+    oms, broker, switch = build()
+    hold(oms, broker, "s1", 7, 10)
+    switch.flatten("s1", by="jane", reason="fire", now=NOW, emergency_override=True)
+    assert run(oms, {("s1", 7): 0}).orders == []  # told there is nothing: nothing is sent
+    r = run(
+        oms, {("s1", 7): 1}
+    )  # the caller says 1 share; the OMS owns 10: only the 1 is closed, and it is a SELL
+    assert [(o.side, o.qty) for o in r.orders] == [(Side.SELL, 1)]
+
+
+def test_each_closing_order_carries_its_strategy_the_pricing_callback_gets_instrument_and_side_and_the_checks_get_the_day_and_market():
+    oms, broker, switch = build()
+    hold(oms, broker, "s1", 7, 10)
+    switch.flatten("s1", by="jane", reason="fire", now=NOW, emergency_override=True)
+    asked = []
+    markets = []
+    r = flatten(
+        oms,
+        {("s1", 7): 10},
+        market_of=lambda i: markets.append(i) or Market(ltp=D(100)),
+        book_of=lambda s, i: Book(position_qty=10),
+        day=Day(),
+        price_of=lambda i, side: asked.append((i, side)) or D(99),
+    )
+    assert asked == [(7, Side.SELL)] and markets == [7]
+    assert [(o.strategy_id, o.instrument_id, o.price) for o in r.orders] == [("s1", 7, D(99))]
+
+
+def test_a_later_flatten_of_another_strategy_does_not_make_this_strategys_closing_order_new():
+    oms, broker, switch = build()
+    hold(oms, broker, "s1", 7, 10)
+    hold(oms, broker, "s2", 8, 5)
+    switch.flatten("s1", by="jane", reason="fire", now=NOW, emergency_override=True)
+    run(oms, {("s1", 7): 10})
+    sent = broker.place_calls
+    switch.flatten(
+        "s2", by="jane", reason="fire", now=NOW + timedelta(hours=1), emergency_override=True
+    )
+    run(oms, {("s1", 7): 10})  # s1's own FLATTEN event is unchanged: nothing new is sent for it
+    assert broker.place_calls == sent

@@ -34,3 +34,37 @@ def test_on_an_account_with_shares_bought_by_hand_more_at_the_broker_is_fine_and
     found = compare(ours, theirs, broker_may_hold_more=True)
     assert [m.detail for m in found] == ["instrument 8: we hold 5, the broker 3"]
     assert len(compare(ours, theirs)) == 3  # the strict comparison reports all three
+
+
+# ---- found by mutation testing: a position missing on one side counts as exactly zero, the cash boundary, the owner's-shares rule ----
+def test_a_zero_position_is_not_a_difference_whichever_side_leaves_it_out():
+    assert compare(Portfolio({7: 0}), Portfolio({})) == []
+    assert compare(Portfolio({}), Portfolio({7: 0})) == []
+
+
+def test_a_position_missing_on_one_side_is_a_difference_of_its_whole_size_even_when_that_size_is_one():
+    assert [m.detail for m in compare(Portfolio({}), Portfolio({7: 1}))] == [
+        "instrument 7: we hold 0, the broker 1"
+    ]
+    assert [m.detail for m in compare(Portfolio({7: 1}), Portfolio({}))] == [
+        "instrument 7: we hold 1, the broker 0"
+    ]
+
+
+def test_with_shares_bought_by_hand_a_missing_position_of_ours_is_fine_only_when_the_broker_holds_more_than_zero():
+    assert (
+        compare(Portfolio({}), Portfolio({7: 1}), broker_may_hold_more=True) == []
+    )  # the owner's own share
+    assert [
+        m.detail for m in compare(Portfolio({}), Portfolio({7: -1}), broker_may_hold_more=True)
+    ] == ["instrument 7: we hold 0, the broker -1"]  # a short we never took
+    assert [
+        m.detail for m in compare(Portfolio({7: 1}), Portfolio({}), broker_may_hold_more=True)
+    ] == ["instrument 7: we hold 1, the broker 0"]  # ours are gone
+
+
+def test_cash_exactly_at_the_tolerance_is_not_a_difference_and_a_hair_over_is():
+    assert compare(Portfolio({}, D(1000)), Portfolio({}, D(1001))) == []
+    assert compare(Portfolio({}, D(1000)), Portfolio({}, D("1001.01"))) == [
+        Mismatch("CASH_MISMATCH", "", "we have 1000, the broker 1001.01")
+    ]

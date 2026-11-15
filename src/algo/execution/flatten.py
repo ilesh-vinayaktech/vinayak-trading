@@ -58,13 +58,15 @@ def flatten(
             if strategy not in report.skipped:
                 report.skipped.append(strategy)
             continue
+        if qty == 0:
+            continue  # the broker says nothing is held there: there is nothing to close, whatever the OMS's own fold says
         qty = (
             min(qty, own.get((strategy, iid), 0))
             if qty > 0
             else max(qty, own.get((strategy, iid), 0))
         )
-        if qty == 0 or qty * own.get((strategy, iid), 0) < 0:
-            continue
+        if qty == 0:
+            continue  # the OMS owns none of it (min/max above leave a quantity of the OMS's own sign, or zero)
         side = Side.SELL if qty > 0 else Side.BUY
         plan.append(
             (

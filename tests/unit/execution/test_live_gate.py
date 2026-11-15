@@ -46,3 +46,21 @@ def test_a_stale_or_missing_regulatory_rule_blocks_live_and_is_reported_with_the
     assert mode(ON, "LIVE", True, why) == "PAPER"
     with pytest.raises(LiveRefused, match="ALGO_LIVE.*regulatory: ops_limit"):
         open_gate({}, "LIVE", True, why)
+
+
+# ---- found by mutation testing: what the refusal says is what an operator reads -----------------------------------------
+def test_every_reason_live_is_refused_is_in_exact_words_joined_in_order():
+    from algo.execution.live_gate import LiveRefused, open_gate, problems
+
+    assert problems({}, "PAPER", False, ["a rule is stale"]) == [
+        "ALGO_LIVE=1 is not set",
+        "the strategy is in the PAPER stage, not the LIVE stage",
+        "there is no valid broker session",
+        "a rule is stale",
+    ]
+    with pytest.raises(LiveRefused) as e:
+        open_gate({}, "PAPER", False, ["a rule is stale"])
+    assert str(e.value) == (
+        "live trading is refused: ALGO_LIVE=1 is not set; the strategy is in the PAPER stage, not the LIVE stage; "
+        "there is no valid broker session; a rule is stale"
+    )
