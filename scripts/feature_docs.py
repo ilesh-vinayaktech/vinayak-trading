@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """docs/features.md from the registry. usage: feature_docs.py check|write"""
 
 import sys
