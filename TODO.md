@@ -99,7 +99,7 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 - [x] (file written, CI smoke test pending) `docker-compose.dev.yml`: timescaledb, redis, minio. Healthchecks. T: compose-up smoke test in CI.
 - [ ] Secrets policy: SOPS/age config, `.gitignore`, pre-commit secret scan (gitleaks). T: CI fails on seeded fake secret.
 - [x] (2026-11-15, agent: `algo/core/logs.py`, JSON lines, injected clock, `correlate()` restricted to run_id/strategy_id/instrument_id/order_id; wiring it into each entry point is not done) Structured JSON logging + correlation-id helper (`run_id, strategy_id, instrument_id, order_id`). T: log schema test.
-- [ ] ADR folder; write ADR-001 (Python), ADR-002 (modular monolith + isolated OMS/reconciler/sandbox processes), ADR-003 (Timescale + Parquet + DuckDB, no ClickHouse/Kafka v1).
+- [x] (2026-11-15, agent: `docs/adr/`, ADR-001..003 written from the code as built; ADR-003 says no Parquet/DuckDB layer exists) ADR folder; write ADR-001 (Python), ADR-002 (modular monolith + isolated OMS/reconciler/sandbox processes), ADR-003 (Timescale + Parquet + DuckDB, no ClickHouse/Kafka v1).
 
 ### 0.2 Spikes (time-boxed, each ends with a written pass/fail ADR)
 
