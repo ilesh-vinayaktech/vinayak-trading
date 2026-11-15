@@ -142,7 +142,7 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 ### 1.4 Calendars
 
 - [x] (NSE + special sessions done; fake US/crypto calendars pending) `ExchangeCalendar` adapter: NSE (holidays, 09:15–15:30 IST, special sessions e.g. Muhurat), a fake US (DST) and 24/7 crypto calendar for tests. API: `is_open`, `next_bar_boundary`, `session_bars(date)`, `prev_session`. 2026-11-12: `market_session` table (closed days, special sessions, IST), weekly NSE holiday sync (starred days flagged as needing hours), bar builder and feed follow the day's windows, audited calendar API and portal page.
-- [ ] T: 375 bars per NSE day; half-day sessions; holiday suppression; DST spring/fall transitions; crypto no gaps; property test: `next_bar_boundary` always > t and aligned.
+- [~] (2026-11-15 re-check: 375 bars, half-day/special sessions, holiday suppression and the next_bar_boundary property test exist in tests/unit/core/test_calendar.py; DST and crypto cases are not built because only NSE is traded) T: 375 bars per NSE day; half-day sessions; holiday suppression; DST spring/fall transitions; crypto no gaps; property test: `next_bar_boundary` always > t and aligned.
 
 **Exit gate 1:** Instrument + calendar correct for sample data; DB constraints tested; 100% branch on `platform_state` and `core` money types; coverage ≥ 90%.
 
