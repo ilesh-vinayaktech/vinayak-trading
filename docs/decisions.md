@@ -9,7 +9,7 @@ runs without it (paper only, no real capital), and the answer changes what is al
 | Build or adopt a trading framework | Decided as built: build; no spike was run | `docs/adr/004-build-not-adopt.md` |
 | Storage and messaging | Decided: PostgreSQL/TimescaleDB, raw file lake, no Kafka/Redis for anything durable | `docs/adr/003-storage.md`, `TODO.md` 5.3 |
 | Free or paid data | In practice FREE so far: NSE bhavcopy and public documents, Zerodha Kite Connect for candles. No paid vendor is wired. Whether to buy a vendor feed: **OWNER** | the providers in `src/algo/data/providers/` |
-| Personal or commercial | Personal use only, per the project brief (the portal's roles are for the owner and invited people, not clients). Confirm: **OWNER** | `CLAUDE.md`, `docs/console-security-review.md` |
+| Strictly personal or not | **OWNER.** Not stated in the repository. The code has invited-user roles and a portal (`docs/console-security-review.md`), which a personal-only system would not need; whether other people may ever use it, or trade through it, is not decided here. | spec §15 lists it as a decision |
 | Capital to deploy | **OWNER.** Not recorded anywhere. Paper accounts use whatever starting cash the account is created with. | |
 | Maximum acceptable drawdown | **OWNER.** The validation gates use the benchmark-relative bar in `config/validation_thresholds.json` (provisional); the spec also requires the owner's own tolerance on top (`holdout_drawdown` gate). | `config/validation_thresholds.json` |
 | Hours per week available | **OWNER.** Affects how many strategies can be supervised; the system is built to need a person only for decisions (approving paper orders, verifying corporate actions, registering hypotheses). | |
