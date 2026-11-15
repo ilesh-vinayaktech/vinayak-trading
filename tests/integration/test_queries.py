@@ -364,3 +364,28 @@ def test_weekly_indicators_are_computed_on_the_weekly_bars_over_the_whole_histor
     values = ind["indicators"][0]["outputs"][0]["values"]
     closes = [D(b["close"]) for b in weekly["bars"]]
     assert values[0] is None and D(values[-1]) == (closes[-1] + closes[-2]) / 2
+
+
+def test_scorecard_signals_report_missing_evidence_as_missing_and_survive_a_missing_table(conn):
+    from datetime import UTC, datetime
+
+    from algo.api import queries
+    from algo.data.quality import results
+    from algo.data.quality.completeness import Report
+    from algo.data.store.migrate import migrate
+
+    migrate(conn)
+    empty = queries.scorecard_signals(conn)
+    assert empty == {
+        "dq": {"completeness": None, "continuity": None},
+        "latest_run": None,
+        "validation": {"reports": 0, "passed": 0, "holdout_consumed": False},
+    }
+    results.record_completeness(
+        conn, Report(), datetime(2026, 11, 1, tzinfo=UTC).date(), datetime(2026, 11, 15, tzinfo=UTC)
+    )
+    assert queries.scorecard_signals(conn)["dq"]["completeness"] == "PASS"
+    conn.execute(
+        "DROP TABLE dq_result"
+    )  # a database that has not had migration 075 yet must still serve the dashboard
+    assert queries.scorecard_signals(conn)["dq"] == {"completeness": None, "continuity": None}

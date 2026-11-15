@@ -35,6 +35,7 @@ export type ScheduledJob = z.infer<typeof scheduledJob>;
 
 export const dashboardSchema = z.object({
   platform: z.object({ status: z.enum(["OK", "ATTENTION", "DOWN"]), reasons: z.array(z.object({ level: z.enum(["attention", "down"]), text: z.string() })) }),
+  scorecards: z.object({ platform_correctness: z.object({ status: z.enum(["OK", "ATTENTION", "FAIL", "INCOMPLETE"]), items: z.array(z.object({ name: z.string(), status: z.enum(["PASS", "WARN", "FAIL", "UNKNOWN"]), detail: z.string() })) }), strategy_validity: z.object({ status: z.enum(["OK", "ATTENTION", "FAIL", "INCOMPLETE"]), items: z.array(z.object({ name: z.string(), status: z.enum(["PASS", "WARN", "FAIL", "UNKNOWN"]), detail: z.string() })) }), operational_reliability: z.object({ status: z.enum(["OK", "ATTENTION", "FAIL", "INCOMPLETE"]), items: z.array(z.object({ name: z.string(), status: z.enum(["PASS", "WARN", "FAIL", "UNKNOWN"]), detail: z.string() })) }) }).optional(),
   data: z.object({
     bars: z.number(),
     instruments_with_bars: z.number(),

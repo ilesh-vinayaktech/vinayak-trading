@@ -295,6 +295,68 @@
   "validation_reports": 0,
   "validation_reports_passed": 0
  },
+ "scorecards": {
+  "operational_reliability": {
+   "items": [
+    {
+     "detail": "none of the 30 jobs has run yet",
+     "name": "scheduled jobs",
+     "status": "UNKNOWN"
+    },
+    {
+     "detail": "no expected process is silent",
+     "name": "running processes",
+     "status": "PASS"
+    },
+    {
+     "detail": "the Kite session is not connected",
+     "name": "Kite session",
+     "status": "WARN"
+    }
+   ],
+   "status": "ATTENTION"
+  },
+  "platform_correctness": {
+   "items": [
+    {
+     "detail": "the completeness check has never run",
+     "name": "bar completeness",
+     "status": "UNKNOWN"
+    },
+    {
+     "detail": "the continuity check has never run",
+     "name": "price continuity",
+     "status": "UNKNOWN"
+    },
+    {
+     "detail": "none",
+     "name": "quarantined loads",
+     "status": "PASS"
+    },
+    {
+     "detail": "the newest backtest's ledger reconciles",
+     "name": "ledger reconciliation",
+     "status": "PASS"
+    }
+   ],
+   "status": "INCOMPLETE"
+  },
+  "strategy_validity": {
+   "items": [
+    {
+     "detail": "no validation report exists yet",
+     "name": "development evidence",
+     "status": "UNKNOWN"
+    },
+    {
+     "detail": "the holdout has not been evaluated: no result is proven out of sample",
+     "name": "holdout",
+     "status": "UNKNOWN"
+    }
+   ],
+   "status": "INCOMPLETE"
+  }
+ },
  "strategies": {
   "note": "strategy lifecycle states are not stored yet",
   "persisted": false

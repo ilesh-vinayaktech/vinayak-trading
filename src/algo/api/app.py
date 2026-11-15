@@ -4,6 +4,7 @@ and says plainly what is not persisted yet instead of inventing it. No writes, n
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
@@ -30,6 +31,7 @@ from algo.api import (
     queries,
     reviews,
     risk_routes,
+    scorecards,
     screener_routes,
     strategy_routes,
     study_routes,
@@ -42,6 +44,7 @@ from algo.data import benchmark_gate
 from algo.data.review_worklist import worklist
 from algo.indicators.catalog import IndicatorError, parse_spec
 from algo.jobs import history as job_history
+from algo.live import heartbeat
 from algo.portal import kite_vault
 
 Adjust = Literal["none", "split", "total_return"]
@@ -184,6 +187,15 @@ def create_app(
                 freshness=data["freshness"],
                 jobs=jobs,
                 quarantined=data["quarantined_partitions"],
+                kite_state=None if feed is None else feed["state"],
+            ),
+            "scorecards": scorecards.build(
+                **queries.scorecard_signals(c),
+                quarantined=data["quarantined_partitions"],
+                jobs=jobs,
+                heartbeat_problems=heartbeat.check(
+                    c, clock.now(), heartbeat.expected_from_env(os.environ)
+                ),
                 kite_state=None if feed is None else feed["state"],
             ),
             "data": data,

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge, Eligibility, Flag } from "@/components/status/Badge";
+import { Scorecards } from "@/components/status/Scorecards";
 import { StateChip } from "@/components/status/StateChip";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { api } from "@/lib/api/client";
@@ -112,6 +113,8 @@ export default function DashboardPage() {
         subtitle="Ingested, technically validated, research-eligible and gate-eligible are four different things; they are shown separately below."
         actions={bars.freshness ? <FreshnessPanel f={bars.freshness} /> : null}
       />
+
+      {d.scorecards ? <Scorecards cards={d.scorecards} /> : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card title="Platform status" note="Worked out live from how current the data is, how the scheduled jobs last ended, load quarantines and the Kite connection.">

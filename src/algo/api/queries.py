@@ -756,3 +756,45 @@ def instrument_ratios(
         price=None if market.price is None else {"value": text(market.price), "date": _iso(market.price_date)},  # noqa: E501
     )  # fmt: skip
     return out
+
+
+def _try(conn: psycopg.Connection, fn: Any, default: Any) -> Any:
+    """Run a read that needs a table a database may not have yet (a migration not applied),
+    inside its own savepoint: a missing table costs the answer, not the request."""
+    try:
+        with conn.transaction():
+            return fn()
+    except psycopg.errors.UndefinedTable:
+        return default
+
+
+def scorecard_signals(conn: psycopg.Connection) -> dict[str, Any]:
+    """What the three scorecards (algo.api.scorecards) are built from, as stored.
+    A signal that has never been recorded is None, not a pass."""
+    from algo.data.quality import results
+
+    def newest(check: str) -> str | None:
+        got = _try(conn, lambda: results.latest(conn, check), None)
+        return None if got is None else str(got[0])
+
+    health = research_health(conn)
+    run = health["latest_run"]
+    consumed = _try(
+        conn,
+        lambda: _one(conn, "SELECT EXISTS (SELECT 1 FROM holdout_batch WHERE state='CONSUMED')")[0],
+        False,
+    )
+    return {
+        "dq": {"completeness": newest("completeness"), "continuity": newest("continuity")},
+        "latest_run": None
+        if run is None
+        else {
+            "accounting_complete": run["accounting_complete"],
+            "ledger_reconciled": run["ledger_reconciled"],
+        },
+        "validation": {
+            "reports": health["validation_reports"],
+            "passed": health["validation_reports_passed"],
+            "holdout_consumed": bool(consumed),
+        },
+    }
