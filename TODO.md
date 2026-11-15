@@ -84,7 +84,7 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 - [ ] T0.8 Fixtures: small sample dataset (10 instruments, 20 days, 1m bars, one split, one bonus, one dividend, one halt, one delisting, one holiday) committed under `tests/data/` with raw files + manifest. Used by unit, integration, golden and e2e.
 - [ ] T0.9 Bug policy: every defect gets a failing regression test first, then the fix.
 - [ ] T0.10 Coverage report published per PR (html artifact + summary comment); trend tracked.
-- [ ] T0.11 Pre-commit: ruff, ruff-format, mypy, fast unit subset. CI is the source of truth.
+- [~] (2026-11-15: `.githooks/pre-commit` runs the secret scan, ruff check and ruff format on staged Python files; enable with scripts/install_hooks.sh. mypy and a fast unit subset are not in the hook: `make quick` does those) T0.11 Pre-commit: ruff, ruff-format, mypy, fast unit subset. CI is the source of truth.
 - [x] T0.12 Test-the-tests: a meta-test that fails if any module in `src/algo` has no test file (import-graph check).
 
 ---
