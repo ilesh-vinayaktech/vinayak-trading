@@ -356,7 +356,7 @@ Historical data → validation → Timescale → strategy (sandboxed) → backte
 - [ ] `tests/e2e/test_full_journey.py`: from raw sample files through ingest, DQ, snapshot, backtest, then replay same bars through paper runner; assert (a) decisions identical to backtest, (b) ledger P&L == backtest P&L within modelled-slippage tolerance, (c) dashboard SQL returns expected numbers, (d) rerun is byte-identical.
 - [ ] `tests/e2e/test_restart_recovery.py` and `test_killswitch.py` through the real compose stack.
 - [ ] Weekly live-vs-backtest tracking job (paper period) + report.
-- [ ] Runbooks: token-refresh failure, reconciliation mismatch, kill-switch drill, restore from backup. Drill each once; record in `docs/drills/`. Done: restore from backup, with its drill record (`docs/runbooks/restore-from-backup.md`, 2026-11-13). Open: the other three.
+- [ ] Runbooks: token-refresh failure, reconciliation mismatch, kill-switch drill, restore from backup. Drill each once; record in `docs/drills/`. Done: restore from backup, with its drill record (`docs/runbooks/restore-from-backup.md`, 2026-11-13). 2026-11-15: the other three are written, each from the code, with a drill on the dev DB: `docs/runbooks/kite-token-refresh-failure.md`, `reconciliation-mismatch.md`, `kill-switch.md`, record `docs/drills/2026-11-15-drills.md` (token alert and exit 75 observed; kill switch pause/cancel/refused flatten/resume observed, ended RUNNING; clean reconcile). Not drilled: the manual login, an injected reconciliation mismatch on the dev DB (covered by tests), FLATTEN with the override; the monthly staging drill (5.7) needs a staging environment.
 
 ### 5.7 Paper period
 
