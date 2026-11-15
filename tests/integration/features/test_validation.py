@@ -220,3 +220,98 @@ def test_a_feature_that_does_not_recompute_identically_fails(world, monkeypatch)
         and r["passed"] is False
         and any("independent read" in x for x in r["reasons"])
     )
+
+
+def test_reads_shared_across_features_give_the_same_report_and_are_read_only_once(
+    world, monkeypatch
+):
+    conn, ids, fid = world
+    alone = {n: validate(conn, fid, n) for n in ("ret_5d", "ret_20d")}
+    reads_made = []
+    real = validation._bars
+    monkeypatch.setattr(validation, "_bars", lambda *a, **k: reads_made.append(1) or real(*a, **k))
+    reads = validation.read_bars(conn, fid, JAN)
+    assert len(reads_made) == 2  # the two independent reads, once
+    shared = {n: validate(conn, fid, n, reads=reads) for n in ("ret_5d", "ret_20d")}
+    assert len(reads_made) == 2  # no feature read prices again
+    assert shared == alone and all(r["recompute"]["identical"] for r in shared.values())
+
+
+def test_progress_is_reported_for_reads_months_and_each_look_ahead_test(world):
+    conn, ids, fid = world
+    seen = []
+    validate(conn, fid, report=lambda phase, msg: seen.append((phase, msg)))
+    phases = [p for p, _ in seen]
+    assert (
+        phases[:2] == ["reading prices", "reading prices"]
+        and "first of two" in seen[0][1]
+        and "second of two" in seen[1][1]
+        and "2 instruments" in seen[0][1]
+    )
+    assert ("checking ret_5d", "recomputing month 1 of 2") in seen and (
+        "checking ret_5d",
+        "recomputing month 2 of 2",
+    ) in seen
+    cuts = [m for p, m in seen if m.startswith("look-ahead test")]
+    assert (
+        cuts
+        and cuts[0].startswith("look-ahead test 1 of ")
+        and all("(cut at 20" in m for m in cuts)
+    )
+    quiet = []
+    validation.read_bars(conn, fid, JAN, report=None)
+    assert quiet == []  # reporting is optional
+
+
+def test_reading_for_a_freeze_or_window_that_does_not_exist_is_refused(world):
+    conn, ids, fid = world
+    with pytest.raises(validation.ValidationError, match="no such freeze"):
+        validation.read_bars(conn, __import__("uuid").uuid4(), JAN)
+    with pytest.raises(validation.ValidationError, match="no whole month"):
+        validation.read_bars(conn, fid, date(2030, 1, 1))
+
+
+def test_the_script_validates_every_feature_from_one_shared_read_and_records_live_progress(
+    world, pg_url, monkeypatch, capsys
+):
+    import runpy
+    import sys
+    from pathlib import Path
+
+    conn, ids, fid = world
+    conn.commit()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "validate_features.py",
+            "--db",
+            pg_url,
+            "--from",
+            "2026-01-01",
+            "--dry-run",
+            "ret_5d",
+            "ret_20d",
+        ],
+    )
+    reads_made = []
+    real = validation._bars
+    monkeypatch.setattr(validation, "_bars", lambda *a, **k: reads_made.append(1) or real(*a, **k))
+    with pytest.raises(SystemExit) as stop:
+        runpy.run_path(
+            str(Path(__file__).parents[3] / "scripts/validate_features.py"), run_name="__main__"
+        )
+    assert (
+        stop.value.code == 0 and len(reads_made) == 2
+    )  # two reads for the two features together, not four
+    out = capsys.readouterr().out
+    assert "ret_5d: PASS" in out and "ret_20d: PASS" in out
+    status, done, total, phase, message, label = conn.execute(
+        "SELECT status, done, total, phase, message, label FROM job_progress"
+    ).fetchone()
+    assert (status, done, total, phase) == (
+        "DONE",
+        2,
+        2,
+        "finished",
+    ) and label == "Feature validation (dry run)"

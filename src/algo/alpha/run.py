@@ -12,7 +12,7 @@ alpha_hypothesis (through algo.alpha.registry). User's instruction: "do as much 
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -38,6 +38,7 @@ def measure(
     *,
     horizons: Sequence[int],
     min_names: int,
+    report: Callable[[str, str], None] | None = None,
 ) -> list[discover.Evidence]:
     f = freeze_mod.get(conn, freeze_id)
     if f is None:
@@ -57,6 +58,8 @@ def measure(
         raise DiscoveryError("no USABLE feature to examine")
     sha = job.dataset_sha256(conn, freeze_id, instruments)
     reader = job.open_reader(conn, f, lock)
+    if report:
+        report("reading prices", f"{len(instruments)} instruments")
     bars = {i: store.bars_from_reader(reader, i, last) for i in instruments}
     closes: dict[int, dict[date, Decimal]] = {
         i: {d: b.close for d, b in series.items()} for i, series in bars.items()
@@ -64,9 +67,13 @@ def measure(
     sessions = [d for d in feature_registry.sessions_from(bars) if d <= last]
     end = store._month_end(months[-1])
     features: dict[tuple[str, str], dict[tuple[int, date], Decimal]] = {}
-    for name, version in usable:
+    for k, (name, version) in enumerate(usable, 1):
+        if report:
+            report("loading features", f"{name} ({k} of {len(usable)})")
         rows = store.read_features(conn, name, version, sha, instruments, months[0], end)
         features[(name, version)] = {key: value for key, (value, _available_at) in rows.items()}
+    if report:
+        report("testing", f"{len(usable)} features at {len(horizons)} horizons")
     return discover.discover(
         features, closes, sessions, horizons=horizons, last_allowed=last, min_names=min_names
     )
@@ -81,10 +88,15 @@ def run_discovery(
     horizons: Sequence[int],
     min_names: int,
     context: dict[str, Any] | None = None,
+    report: Callable[[str, str], None] | None = None,
 ) -> list[int]:
     """Measure, then record the whole batch (failures included). Returns the hypothesis ids."""
-    evidences = measure(conn, freeze_id, first_month, horizons=horizons, min_names=min_names)
+    evidences = measure(
+        conn, freeze_id, first_month, horizons=horizons, min_names=min_names, report=report
+    )
     f = freeze_mod.get(conn, freeze_id)
     assert f is not None
     sha = job.dataset_sha256(conn, freeze_id, [i["instrument_id"] for i in f["items"]])
+    if report:
+        report("recording", f"{len(evidences)} results, failures included")
     return registry.record(conn, evidences, sha, now, context=context)

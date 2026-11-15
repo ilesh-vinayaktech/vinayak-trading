@@ -108,3 +108,69 @@ def test_without_a_usable_feature_or_a_whole_development_month_there_is_nothing_
     with pytest.raises(run.DiscoveryError, match="no USABLE feature"):
         run.run_discovery(conn, fid, JAN, NOW, horizons=(1,), min_names=5)
     assert conn.execute("SELECT count(*) FROM alpha_hypothesis").fetchone() == (0,)
+
+
+def test_discovery_reports_each_phase_in_order(world):
+    conn, ids, fid = world
+    seen = []
+    run.run_discovery(
+        conn,
+        fid,
+        JAN,
+        NOW,
+        horizons=(1,),
+        min_names=5,
+        report=lambda phase, msg: seen.append((phase, msg)),
+    )
+    phases = [p for p, _ in seen]
+    assert phases == [
+        "reading prices",
+        "loading features",
+        "loading features",
+        "testing",
+        "recording",
+    ]
+    assert (
+        seen[1][1].endswith("(1 of 2)")
+        and seen[2][1].endswith("(2 of 2)")
+        and seen[3][1] == "2 features at 1 horizons"
+        and seen[4][1] == "2 results, failures included"
+    )
+
+
+def test_the_discovery_script_reports_live_progress(world, pg_url, monkeypatch, capsys):
+    import runpy
+    import sys
+    from pathlib import Path
+
+    conn, ids, fid = world
+    conn.commit()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "discover_alpha.py",
+            "--db",
+            pg_url,
+            "--from",
+            "2026-01-01",
+            "--horizons",
+            "1",
+            "--min-names",
+            "5",
+        ],
+    )
+    runpy.run_path(
+        str(Path(__file__).parents[3] / "scripts/discover_alpha.py"), run_name="__main__"
+    )  # it ends by falling off the end, not by sys.exit
+    assert "hypotheses recorded" in capsys.readouterr().out
+    status, done, total, phase, message = conn.execute(
+        "SELECT status, done, total, phase, message FROM job_progress"
+    ).fetchone()
+    assert (status, done, total, phase, message) == (
+        "DONE",
+        4,
+        4,
+        "finished",
+        "2 hypotheses recorded",
+    )

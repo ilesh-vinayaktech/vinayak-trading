@@ -1,0 +1,36 @@
+{
+ "jobs": [
+  {
+   "alive": true,
+   "done": 3,
+   "elapsed_s": 0,
+   "id": 0,
+   "job": "feature_validation",
+   "label": "Feature validation",
+   "message": "look-ahead test 2 of 5 (cut at 2024-03-01)",
+   "phase": "checking ret_20d",
+   "quiet_s": 0,
+   "stalled": false,
+   "started_at": "<at>",
+   "status": "RUNNING",
+   "total": 12,
+   "updated_at": "<at>"
+  },
+  {
+   "alive": null,
+   "done": 4,
+   "elapsed_s": 0,
+   "id": 0,
+   "job": "alpha_discovery",
+   "label": "Alpha discovery",
+   "message": "4 hypotheses recorded",
+   "phase": "finished",
+   "quiet_s": null,
+   "stalled": false,
+   "started_at": "<at>",
+   "status": "DONE",
+   "total": 4,
+   "updated_at": "<at>"
+  }
+ ]
+}

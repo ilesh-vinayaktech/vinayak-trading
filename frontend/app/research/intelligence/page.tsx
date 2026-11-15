@@ -8,14 +8,16 @@ import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Panel, StatusPill } from "@/components/ui/Layout";
 import { inputFull } from "@/components/ui/styles";
 import { api } from "@/lib/api/client";
-import type { IntelAlpha, IntelNotes, IntelOverview } from "@/lib/schemas";
+import type { IntelAlpha, IntelNotes, IntelOverview, IntelProgress } from "@/lib/schemas";
 
 type Hypothesis = IntelAlpha["hypotheses"][number];
 type Note = IntelNotes["notes"][number];
+type Job = IntelProgress["jobs"][number];
 
 const day = (iso: string) => iso.replace("T", " ").slice(0, 16);
 const num = (v: number | null, digits = 4) => (v === null ? "–" : v.toFixed(digits));
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+const duration = (s: number) => (s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s` : `${s}s`);
 const KIND_TONE = { FINDING: "good", FAILURE: "bad", DECISION: "info", LESSON: "neutral" } as const;
 
 const hypothesisColumns: Column<Hypothesis>[] = [
@@ -35,6 +37,66 @@ const noteColumns: Column<Note>[] = [
   { key: "by", header: "By", hideBelow: "md", cell: (n) => n.by },
   { key: "at", header: "When", hideBelow: "md", cell: (n) => day(n.at) },
 ];
+
+/** One long job: where it is (steps done of total), what it is doing right now, how long it has run, and a warning when it has gone quiet or its process is gone. */
+function JobRow({ j }: { j: Job }) {
+  const share = j.total > 0 ? Math.round((j.done / j.total) * 100) : 0;
+  const tone = j.status === "FAILED" || j.stalled ? "bad" : j.status === "DONE" ? "good" : "info";
+  const word = j.status === "RUNNING" ? (j.stalled ? "May be stuck" : "Running") : j.status === "DONE" ? "Finished" : "Failed";
+  return (
+    <li className="space-y-2 px-5 py-4 text-sm" data-testid={`job-${j.job}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <StatusPill tone={tone}>{word}</StatusPill>
+        <span className="font-medium">{j.label}</span>
+        <span className="text-ink-soft">
+          {j.done} of {j.total} done
+        </span>
+        <span className="ml-auto text-xs text-ink-faint">
+          {j.status === "RUNNING" ? `running for ${duration(j.elapsed_s)}` : `took ${duration(j.elapsed_s)}`}
+        </span>
+      </div>
+      <div role="progressbar" aria-label={`${j.label} progress`} aria-valuemin={0} aria-valuemax={j.total} aria-valuenow={j.done} className="h-2 overflow-hidden rounded-full bg-slate-200">
+        <div className={`h-full ${tone === "bad" ? "bg-red-500" : tone === "good" ? "bg-emerald-500" : "bg-blue-500"}`} style={{ width: `${share}%` }} />
+      </div>
+      <p className="text-ink-soft">
+        {j.phase}
+        {j.message ? `: ${j.message}` : ""}
+      </p>
+      {j.status === "RUNNING" && j.alive === false ? <p className="text-xs text-red-700">The process running this job is gone, so it did not finish.</p> : null}
+      {j.status === "RUNNING" && j.alive !== false && j.stalled ? <p className="text-xs text-red-700">No update for {duration(j.quiet_s ?? 0)}. It may be stuck, or in a slow step.</p> : null}
+    </li>
+  );
+}
+
+function JobsPanel() {
+  const jobs = useQuery({
+    queryKey: ["intel", "progress"],
+    queryFn: api.intelProgress,
+    refetchInterval: (q) => (q.state.data?.jobs.some((j) => j.status === "RUNNING") ? 3000 : 15000),
+  });
+  const running = jobs.data?.jobs.filter((j) => j.status === "RUNNING").length ?? 0;
+  return (
+    <Panel title="Running jobs" actions={<span className="text-xs text-ink-faint">{running > 0 ? `${running} running · updates every 3 seconds` : "refreshes every 15 seconds"}</span>}>
+      {jobs.isLoading ? (
+        <p className="px-5 py-4 text-sm text-ink-soft" role="status">
+          Loading jobs…
+        </p>
+      ) : jobs.error ? (
+        <div className="px-5 py-4">
+          <ErrorBox error={jobs.error} what="the job progress" />
+        </div>
+      ) : jobs.data && jobs.data.jobs.length > 0 ? (
+        <ul className="divide-y divide-line">
+          {jobs.data.jobs.map((j) => (
+            <JobRow key={j.id} j={j} />
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="No job has reported progress yet">Feature validation, feature computation and alpha discovery show here while they run.</EmptyState>
+      )}
+    </Panel>
+  );
+}
 
 function Counts({ label, counts }: { label: string; counts: Record<string, number> }) {
   const entries = Object.entries(counts);
@@ -109,6 +171,7 @@ export default function IntelligencePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Research intelligence" subtitle="Features, alpha tests, strategy health, research notes and capital allocation advice, as recorded so far. Read-only." />
+      <JobsPanel />
       {overview.isLoading ? <Loading what="the research overview" /> : overview.error ? <ErrorBox error={overview.error} what="the research overview" /> : overview.data ? <Overview o={overview.data} /> : null}
       <Panel
         title="Alpha tests"

@@ -10,7 +10,7 @@ Eligible days are the days an instrument has a bar; the absent ones are split in
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -45,13 +45,17 @@ def _bars(
     return {i: store.bars_from_reader(reader, i, last) for i in instruments}
 
 
-def validate(
-    conn: psycopg.Connection, name: str, version: str, freeze_id: UUID, first_month: date, *, min_coverage: Decimal = MIN_COVERAGE
-) -> dict[str, Any]:  # fmt: skip
+Report = Callable[
+    [str, str], None
+]  # (phase, message): lets a caller show what a long validation is doing
+
+
+def _window(
+    conn: psycopg.Connection, freeze_id: UUID, first_month: date
+) -> tuple[dict[str, Any], holdout_lock.Lock, list[date], list[int], date]:
     f = freeze_mod.get(conn, freeze_id)
     if f is None:
         raise ValidationError(f"no such freeze {freeze_id}")
-    d = registry.DEFINITIONS[name]
     lock = holdout_lock.require(conn)
     last = min(f["through_date"], lock.development_end)
     months = job.months_through(first_month, last)
@@ -59,15 +63,35 @@ def validate(
         raise ValidationError(
             f"no whole month from {first_month} to {last} (the holdout is never read)"
         )
-    instruments = [i["instrument_id"] for i in f["items"]]
-    end = store._month_end(months[-1])
+    return f, lock, months, [i["instrument_id"] for i in f["items"]], store._month_end(months[-1])
+
+
+def read_bars(
+    conn: psycopg.Connection, freeze_id: UUID, first_month: date, report: Report | None = None
+) -> tuple[Bars, Bars]:
+    """The freeze's prices read TWICE, independently (the repeat is what proves the same inputs give the same digests). Read once and passed to every
+    feature's `validate`, this replaces two full reads per feature."""
+    f, lock, _, instruments, end = _window(conn, freeze_id, first_month)
+    if report:
+        report("reading prices", f"first of two independent reads, {len(instruments)} instruments")
     bars = _bars(conn, f, lock, end, instruments)
-    again = _bars(
-        conn, f, lock, end, instruments
-    )  # an independent read: the same inputs must give the same digests
+    if report:
+        report("reading prices", f"second of two independent reads, {len(instruments)} instruments")
+    return bars, _bars(conn, f, lock, end, instruments)
+
+
+def validate(
+    conn: psycopg.Connection, name: str, version: str, freeze_id: UUID, first_month: date, *, min_coverage: Decimal = MIN_COVERAGE,
+    reads: tuple[Bars, Bars] | None = None, report: Report | None = None,
+) -> dict[str, Any]:  # fmt: skip
+    f, lock, months, instruments, end = _window(conn, freeze_id, first_month)
+    d = registry.DEFINITIONS[name]
+    bars, again = reads if reads is not None else read_bars(conn, freeze_id, first_month, report)
     warm = int(d.manifest["warmup_bars"])
     first_day, rows_by_month, identical = months[0], {}, True
-    for m in months:
+    for k, m in enumerate(months, 1):
+        if report:
+            report(f"checking {name}", f"recomputing month {k} of {len(months)}")
         rows_by_month[m] = store.compute_rows(name, m, bars)
         identical &= store.rows_sha256(rows_by_month[m]) == store.rows_sha256(
             store.compute_rows(name, m, again)
@@ -104,7 +128,9 @@ def validate(
         if len(sessions) > CUTS
         else []
     )
-    for cut in cut_days:
+    for n, cut in enumerate(cut_days, 1):
+        if report:
+            report(f"checking {name}", f"look-ahead test {n} of {len(cut_days)} (cut at {cut})")
         short_sessions = [s for s in sessions if s <= cut]
         for series in bars.values():
             full = d.compute(sessions, series)

@@ -112,3 +112,104 @@ def test_bad_filters_are_refused_and_nothing_can_be_written_through_this_api(cli
         assert c.post(f"/api/intel/{path}", json={}).status_code == 405
         assert c.delete(f"/api/intel/{path}").status_code == 405
     assert conn.execute("SELECT count(*) FROM research_note").fetchone() == (0,)
+
+
+def test_progress_shows_running_jobs_first_with_elapsed_quiet_time_and_whether_the_process_is_alive(
+    client,
+):
+    import os
+    from datetime import timedelta
+
+    c, conn = client
+    assert c.get("/api/intel/progress").json() == {"jobs": []}
+    now = c.app.state.portal.clock.now()
+    mine, gone = os.getpid(), 2**22 + 99
+    rows = [
+        (
+            "done_job",
+            "Finished job",
+            mine,
+            "DONE",
+            3,
+            3,
+            "finished",
+            "ok",
+            now - timedelta(hours=2),
+            now - timedelta(hours=1),
+            now - timedelta(hours=1),
+        ),
+        (
+            "live",
+            "Live job",
+            mine,
+            "RUNNING",
+            2,
+            12,
+            "checking ret_5d",
+            "look-ahead test 1 of 5",
+            now - timedelta(minutes=30),
+            now - timedelta(seconds=20),
+            None,
+        ),
+        (
+            "quiet",
+            "Quiet job",
+            mine,
+            "RUNNING",
+            0,
+            4,
+            "reading prices",
+            "",
+            now - timedelta(hours=1),
+            now - timedelta(minutes=11),
+            None,
+        ),
+        (
+            "dead",
+            "Dead job",
+            gone,
+            "RUNNING",
+            1,
+            4,
+            "x",
+            "",
+            now - timedelta(minutes=5),
+            now - timedelta(seconds=5),
+            None,
+        ),
+    ]
+    for r in rows:
+        conn.execute(
+            "INSERT INTO job_progress (job, label, pid, status, done, total, phase, message, started_at, updated_at, finished_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            r,
+        )
+    conn.commit()
+    jobs = {j["job"]: j for j in c.get("/api/intel/progress").json()["jobs"]}
+    assert [j["job"] for j in c.get("/api/intel/progress").json()["jobs"]][
+        -1
+    ] == "done_job"  # finished jobs come after the running ones
+    live = jobs["live"]
+    assert (
+        live["done"],
+        live["total"],
+        live["phase"],
+        live["message"],
+        live["elapsed_s"],
+        live["quiet_s"],
+        live["alive"],
+        live["stalled"],
+    ) == (2, 12, "checking ret_5d", "look-ahead test 1 of 5", 1800, 20, True, False)
+    assert (
+        jobs["quiet"]["stalled"] is True and jobs["quiet"]["alive"] is True
+    )  # silent for 11 minutes
+    assert jobs["dead"]["stalled"] is True and jobs["dead"]["alive"] is False  # the process is gone
+    finished = jobs["done_job"]
+    assert (
+        finished["status"],
+        finished["elapsed_s"],
+        finished["quiet_s"],
+        finished["alive"],
+        finished["stalled"],
+    ) == ("DONE", 3600 - 0, None, None, False)
+    assert c.get("/api/intel/progress", params={"limit": 0}).status_code == 422
+    assert c.post("/api/intel/progress", json={}).status_code == 405

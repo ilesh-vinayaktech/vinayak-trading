@@ -1079,3 +1079,25 @@ export type IntelOverview = z.infer<typeof intelOverviewSchema>;
 export type IntelAlpha = z.infer<typeof intelAlphaSchema>;
 export type IntelNotes = z.infer<typeof intelNotesSchema>;
 export type IntelAllocations = z.infer<typeof intelAllocationsSchema>;
+
+export const intelProgressSchema = z.object({
+  jobs: z.array(
+    z.object({
+      id: z.number(),
+      job: z.string(),
+      label: z.string(),
+      status: z.enum(["RUNNING", "DONE", "FAILED"]),
+      done: z.number(),
+      total: z.number(),
+      phase: z.string(),
+      message: z.string(),
+      started_at: z.string(),
+      updated_at: z.string(),
+      elapsed_s: z.number(),
+      quiet_s: z.number().nullable(),
+      alive: z.boolean().nullable(),
+      stalled: z.boolean(),
+    }),
+  ),
+});
+export type IntelProgress = z.infer<typeof intelProgressSchema>;

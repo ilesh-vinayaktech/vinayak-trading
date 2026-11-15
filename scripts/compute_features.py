@@ -13,7 +13,9 @@ from uuid import UUID
 
 import psycopg
 
+from algo.core.clock import SystemClock
 from algo.features import job
+from algo.jobs import progress
 from algo.research import slot
 
 ap = argparse.ArgumentParser()
@@ -49,8 +51,21 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "feature jo
     if fid is None:
         sys.exit("error: no data freeze")
     try:
-        r = job.run(conn, UUID(str(fid)), date.fromisoformat(a.first), datetime.now(UTC), commit,
-                    busy=lambda now: job.busy_reason(now, commandlines()))  # fmt: skip
+        with (
+            psycopg.connect(
+                a.db, autocommit=True
+            ) as pconn,  # its own connection: each progress update shows at once
+            progress.Progress(
+                pconn, SystemClock(), "feature_computation", "Feature computation", 1
+            ) as prog,
+        ):
+            r = job.run(conn, UUID(str(fid)), date.fromisoformat(a.first), datetime.now(UTC), commit,
+                        busy=lambda now: job.busy_reason(now, commandlines()), progress=prog.step)  # fmt: skip
+            prog.finish(
+                r.status != "failed",
+                f"{r.status}: {len(r.computed)} computed, {r.already} already complete, {len(r.failed)} failed"
+                + (f"; paused: {r.paused_because}" if r.paused_because else ""),
+            )
     except job.JobRefused as e:
         sys.exit(f"refused: {e}")
 print(f"{r.status}: {len(r.computed)} computed, {r.already} already complete, {len(r.failed)} failed, skipped (not USABLE): {', '.join(r.skipped) or 'none'}"

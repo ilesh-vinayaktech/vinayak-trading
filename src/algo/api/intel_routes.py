@@ -8,12 +8,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from algo.api.security import WConn
+from algo.jobs import progress as job_progress
 from algo.learning import memory
 
 router = APIRouter(prefix="/api/intel", tags=["intelligence"])
+STALLED_AFTER_S = (
+    600  # a running job that has said nothing for this long is flagged as possibly stuck
+)
 
 
 def _counts(conn: Any, sql: str) -> dict[str, int]:
@@ -115,3 +119,24 @@ def allocations(conn: WConn, limit: int = Query(20, ge=1, le=100)) -> dict[str, 
             for r in rows
         ]
     }  # fmt: skip
+
+
+@router.get("/progress")
+def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50)) -> dict[str, Any]:
+    """What the long jobs are doing now: running ones first, then the latest finished. `alive` says whether the job's process still exists; `stalled` that a running job has been quiet too long."""
+    now = request.app.state.portal.clock.now()
+    jobs = []
+    for r in job_progress.recent(conn, limit):
+        running = r["status"] == "RUNNING"
+        quiet = int((now - r["updated_at"]).total_seconds())
+        jobs.append(
+            {
+                "id": r["run_id"], "job": r["job"], "label": r["label"], "status": r["status"], "done": r["done"], "total": r["total"],
+                "phase": r["phase"], "message": r["message"], "started_at": r["started_at"].isoformat(), "updated_at": r["updated_at"].isoformat(),
+                "elapsed_s": int(((r["finished_at"] or now) - r["started_at"]).total_seconds()),
+                "quiet_s": quiet if running else None,
+                "alive": job_progress.alive(r["pid"]) if running else None,
+                "stalled": running and (quiet > STALLED_AFTER_S or not job_progress.alive(r["pid"])),
+            }
+        )  # fmt: skip
+    return {"jobs": jobs}

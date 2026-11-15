@@ -200,3 +200,53 @@ def test_busy_reason_and_month_arithmetic():
     ]  # March is not whole yet
     assert job.months_through(date(2026, 1, 1), date(2026, 3, 31)) == [JAN, FEB, MAR]
     assert job.months_through(date(2025, 12, 1), date(2026, 1, 31))[-1] == JAN  # across a year end
+
+
+def test_progress_counts_every_month_and_feature_with_the_total_known_up_front(world):
+    conn, _, fid = world
+    seen = []
+    go(conn, fid, progress=lambda phase, msg, **kw: seen.append((phase, msg, kw)))
+    assert seen[0] == ("starting", "2 features over 2 months", {"done": 0, "total": 4})
+    assert seen[1][0] == "reading prices" and "instruments" in seen[1][1]
+    computing = [(p, m, kw["done"]) for p, m, kw in seen if p.startswith("computing")]
+    assert [d for _, _, d in computing] == [0, 1, 2, 3] and all(
+        kw["total"] == 4 for _, _, kw in seen
+    )
+    assert computing[0][1] == "month 2026-01" and computing[-1][1] == "month 2026-02"
+    seen.clear()
+    go(conn, fid, progress=lambda phase, msg, **kw: seen.append(phase))
+    assert (
+        "reading prices" in seen
+    )  # a rerun that finds everything done still reads, then counts the steps as already complete
+
+
+def test_the_compute_script_reports_live_progress_and_ends_with_its_summary(
+    world, pg_url, monkeypatch, capsys
+):
+    import runpy
+    import sys
+    from pathlib import Path
+
+    conn, _, fid = world
+    conn.commit()
+    monkeypatch.setattr(
+        sys, "argv", ["compute_features.py", "--db", pg_url, "--from", "2026-01-01"]
+    )
+    monkeypatch.setattr(job, "busy_reason", lambda now, lines: None)
+    monkeypatch.setattr(job, "assess", ALL_READY)
+    monkeypatch.setattr(job, "run", lambda *a, **k: job_run_real(*a, ready=ALL_READY, **k))
+    with pytest.raises(SystemExit) as stop:
+        runpy.run_path(
+            str(Path(__file__).parents[3] / "scripts/compute_features.py"), run_name="__main__"
+        )
+    assert stop.value.code == 0
+    assert "complete: 4 computed" in capsys.readouterr().out
+    status, done, total, phase, message = conn.execute(
+        "SELECT status, done, total, phase, message FROM job_progress"
+    ).fetchone()
+    assert (status, done, total, phase) == ("DONE", 4, 4, "finished") and message.startswith(
+        "complete: 4 computed"
+    )
+
+
+job_run_real = job.run

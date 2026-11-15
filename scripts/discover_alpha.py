@@ -15,6 +15,8 @@ from uuid import UUID
 import psycopg
 
 from algo.alpha import registry, run
+from algo.core.clock import SystemClock
+from algo.jobs import progress
 from algo.research import slot
 
 ap = argparse.ArgumentParser()
@@ -55,15 +57,26 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
                     f"{e.feature}@{e.version} h={e.horizon}: days {e.days}, mean IC {e.mean_ic}, p {e.p_value}"
                 )
             sys.exit(0)
-        ids = run.run_discovery(
-            conn,
-            UUID(str(fid)),
-            first,
-            datetime.now(UTC),
-            horizons=horizons,
-            min_names=a.min_names,
-            context=CONTEXT,
-        )
+        step_of = {"reading prices": 0, "loading features": 1, "testing": 2, "recording": 3}
+        with (
+            psycopg.connect(
+                a.db, autocommit=True
+            ) as pconn,  # its own connection: each progress update shows at once
+            progress.Progress(
+                pconn, SystemClock(), "alpha_discovery", "Alpha discovery", 4
+            ) as prog,
+        ):
+            ids = run.run_discovery(
+                conn,
+                UUID(str(fid)),
+                first,
+                datetime.now(UTC),
+                horizons=horizons,
+                min_names=a.min_names,
+                context=CONTEXT,
+                report=lambda phase, msg: prog.step(phase, msg, done=step_of.get(phase)),
+            )
+            prog.finish(True, f"{len(ids)} hypotheses recorded")
     except run.DiscoveryError as e:
         sys.exit(f"refused: {e}")
     rows = conn.execute(

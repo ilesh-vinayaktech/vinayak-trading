@@ -12,7 +12,9 @@ from uuid import UUID
 
 import psycopg
 
+from algo.core.clock import SystemClock
 from algo.features import job, registry, store, validation
+from algo.jobs import progress
 from algo.research import slot
 
 ap = argparse.ArgumentParser()
@@ -53,26 +55,45 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "feature va
             )
         ],
     )
-    for name in names:
-        r = validation.validate(
-            conn,
-            name,
-            registry.VERSION,
-            UUID(str(fid)),
-            date.fromisoformat(a.first),
-            min_coverage=Decimal(a.min_coverage),
+    with (
+        psycopg.connect(
+            a.db, autocommit=True
+        ) as pconn,  # its own connection: each progress update shows at once
+        progress.Progress(
+            pconn,
+            SystemClock(),
+            "feature_validation",
+            "Feature validation" + (" (dry run)" if a.dry_run else ""),
+            len(names),
+        ) as prog,
+    ):
+        reads = validation.read_bars(
+            conn, UUID(str(fid)), date.fromisoformat(a.first), report=prog.step
         )
-        rid = (
-            None
-            if a.dry_run
-            else validation.record(
-                conn, name, registry.VERSION, sha, r, by=a.by, now=datetime.now(UTC)
+        for k, name in enumerate(names):
+            r = validation.validate(
+                conn,
+                name,
+                registry.VERSION,
+                UUID(str(fid)),
+                date.fromisoformat(a.first),
+                min_coverage=Decimal(a.min_coverage),
+                reads=reads,
+                report=prog.step,
             )
-        )
-        print(
-            f"{name}: {'PASS' if r['passed'] else 'FAIL'} coverage {r['coverage']['share']} lookahead {r['lookahead']['violations']}"
-            + (f" report {rid}" if rid else "")
-            + "".join(f"\n    {x}" for x in r["reasons"])
-        )
-        failed += not r["passed"]
+            rid = (
+                None
+                if a.dry_run
+                else validation.record(
+                    conn, name, registry.VERSION, sha, r, by=a.by, now=datetime.now(UTC)
+                )
+            )
+            line = (
+                f"{name}: {'PASS' if r['passed'] else 'FAIL'} coverage {r['coverage']['share']} lookahead {r['lookahead']['violations']}"
+                + (f" report {rid}" if rid else "")
+                + "".join(f"\n    {x}" for x in r["reasons"])
+            )
+            print(line, flush=True)
+            prog.step(f"checked {name}", line.splitlines()[0], done=k + 1)
+            failed += not r["passed"]
 sys.exit(1 if failed else 0)

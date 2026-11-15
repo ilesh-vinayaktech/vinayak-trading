@@ -86,6 +86,7 @@ def run(
     conn: psycopg.Connection, freeze_id: UUID, first_month: date, now: datetime, code_commit: str,
     *, busy: Callable[[datetime], str | None] = lambda _: None,
     ready: Callable[[psycopg.Connection, Needs], Readiness] = assess,
+    progress: Callable[..., None] | None = None,
 ) -> Report:  # fmt: skip
     f = freeze_mod.get(conn, freeze_id)
     if f is None:
@@ -112,13 +113,24 @@ def run(
     reader = open_reader(conn, f, lock)
     sha = dataset_sha256(conn, freeze_id, instruments)
     bars: dict[int, dict[date, SessionBar]] | None = None
+    steps, finished = len(months) * len(usable), 0
+    if progress:
+        progress(
+            "starting", f"{len(usable)} features over {len(months)} months", done=0, total=steps
+        )
     for month in months:
         for name, version in usable:
             if (why := busy(now)) is not None:
                 out.status, out.paused_because = "paused", why
                 return out
             if bars is None:
+                if progress:
+                    progress(
+                        "reading prices", f"{len(instruments)} instruments", done=0, total=steps
+                    )
                 bars = {i: store.bars_from_reader(reader, i, last) for i in instruments}
+            if progress:
+                progress(f"computing {name}", f"month {month:%Y-%m}", done=finished, total=steps)
             try:
                 run_id = store.materialise_month(
                     conn, name, version, month, dataset_sha256=sha, code_commit=code_commit,
@@ -128,6 +140,7 @@ def run(
                 out.failed.append(str(e))
                 out.status = "failed"
                 continue
+            finished += 1
             if run_id is None:
                 out.already += 1
             else:

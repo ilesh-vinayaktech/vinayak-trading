@@ -813,9 +813,21 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
         "INSERT INTO dq_result (run_at, check_name, scope, subject, status, detail) VALUES (%s,'degradation','paper account vs backtest run 1',NULL,'FAIL','DEGRADED: mean return -0.5%% a day')",
         (now,),
     )
+    import os as _os
+
+    t = datetime.now(UTC)
+    conn.execute(
+        "INSERT INTO job_progress (job, label, pid, status, done, total, phase, message, started_at, updated_at, finished_at) VALUES ('feature_validation','Feature validation',%s,'RUNNING',3,12,'checking ret_20d','look-ahead test 2 of 5 (cut at 2024-03-01)',%s,%s,NULL)",
+        (_os.getpid(), t, t),
+    )
+    conn.execute(
+        "INSERT INTO job_progress (job, label, pid, status, done, total, phase, message, started_at, updated_at, finished_at) VALUES ('alpha_discovery','Alpha discovery',1,'DONE',4,4,'finished','4 hypotheses recorded',%s,%s,%s)",
+        (t, t, t),
+    )
     conn.commit()
     c = TestClient(open_app(pg_url, tmp_path))
     shots = {
+        "intel_progress": c.get("/api/intel/progress"),
         "intel_overview": c.get("/api/intel/overview"),
         "intel_alpha": c.get("/api/intel/alpha"),
         "intel_notes": c.get("/api/intel/notes"),
@@ -830,9 +842,9 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
                 return {k: scrub(x, k) for k, x in v.items()}
             if isinstance(v, list):
                 return [scrub(x, key) for x in v]
-            if key == "at" and isinstance(v, str):
+            if key in ("at", "started_at", "updated_at") and isinstance(v, str):
                 return "<at>"
-            if key == "id" and isinstance(v, int):
+            if key in ("id", "elapsed_s", "quiet_s") and isinstance(v, int):
                 return 0
             return v
 
