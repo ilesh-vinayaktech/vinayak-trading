@@ -29,7 +29,7 @@ JOBS: tuple[Job, ...] = (
     Job(
         "data-completeness",
         f"{WEEKDAYS} *-*-* 21:15 Asia/Kolkata",
-        ((*_PY, "scripts/check_completeness.py", "--db", "{db}"),),
+        ((*_PY, "scripts/check_completeness.py", "--db", "{db}", "--record"),),
         "Alert on a quarantined bhavcopy, an open weekday with no daily bars, or a session with under 90% of the usual number of bars (after the retries and the gap sweep have had their chance)",
     ),
     Job(

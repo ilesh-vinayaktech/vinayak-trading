@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """Exit 1 if the daily NSE bars are incomplete: a quarantined file, an open weekday with no bars that is not a
 recorded holiday, or a session with under 90% of the usual number of bars (see algo.data.quality.completeness).
-usage: check_completeness.py [--db URL] [--days 30]   (a step of the scheduled data jobs; the job alerts on exit 1)"""
+usage: check_completeness.py [--db URL] [--days 30] [--record]   (--record stores the result in dq_result)   (a step of the scheduled data jobs; the job alerts on exit 1)"""
 
 import argparse
 import os
@@ -11,18 +11,23 @@ from datetime import timedelta
 import psycopg
 
 from algo.core.clock import SystemClock
+from algo.data.quality import results
 from algo.data.quality.completeness import check
 from algo.live.market_calendar import IST
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--days", type=int, default=30, help="calendar days to look back")
+ap.add_argument("--record", action="store_true", help="store the result in dq_result")
 a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 since = SystemClock().now().astimezone(IST).date() - timedelta(days=a.days)
 with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as conn:
     r = check(conn, since)
+if a.record:
+    with psycopg.connect(a.db, autocommit=True) as w:
+        results.record_completeness(w, r, since, SystemClock().now())
 print(
     f"since {since}: {len(r.quarantined)} quarantined file(s), {len(r.missing_days)} missing day(s), {len(r.thin_days)} thin day(s)"
 )
