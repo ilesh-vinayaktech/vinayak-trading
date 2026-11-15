@@ -553,3 +553,37 @@ def test_verify_can_replace_the_note_and_record_the_verification_evidence_apart_
     assert {k: v for k, v in inputs.items() if k != "verification"} == before[
         1
     ]  # the calculation inputs are unchanged
+
+
+def test_a_stock_whose_alias_has_ended_can_still_be_resolved_by_its_symbol(env):
+    conn, iid = env
+    conn.execute(
+        "UPDATE instrument_alias SET valid_to='2030-01-01' WHERE source_symbol='XYZ'"
+    )  # merged or delisted: no current alias
+    r = demerger(conn)
+    assert r.factor is not None and conn.execute(
+        "SELECT instrument_id FROM action_resolution"
+    ).fetchone() == (iid,)
+
+
+def test_a_symbol_shared_by_two_instruments_is_refused_when_none_is_current(env):
+    conn, iid = env
+    conn.execute("UPDATE instrument_alias SET valid_to='2030-01-01' WHERE instrument_id=%s", (iid,))
+    repo = InstrumentRepo(conn)
+    other = repo.add_instrument(
+        conn.execute("SELECT exchange_id FROM exchange WHERE mic='XNSE'").fetchone()[0], "XYZ2"
+    )
+    repo.add_alias(other, "nse", "XYZ", date(2031, 1, 1), date(2032, 1, 1))
+    with pytest.raises(ResolveError, match="more than one instrument"):
+        demerger(conn)
+
+
+def test_a_current_alias_still_wins_over_older_ended_ones(env):
+    conn, iid = env
+    repo = InstrumentRepo(conn)
+    old = repo.add_instrument(
+        conn.execute("SELECT exchange_id FROM exchange WHERE mic='XNSE'").fetchone()[0], "XYZOLD"
+    )
+    repo.add_alias(old, "nse", "XYZ", date(1990, 1, 1), date(1999, 12, 31))
+    assert demerger(conn).factor is not None
+    assert conn.execute("SELECT instrument_id FROM action_resolution").fetchone() == (iid,)

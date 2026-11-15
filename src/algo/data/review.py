@@ -140,14 +140,21 @@ def review_queue(
 
 
 def _instrument(conn: psycopg.Connection, symbol: str) -> int:
-    row = conn.execute(
-        "SELECT instrument_id FROM instrument_alias WHERE source='nse' AND source_symbol=%s "
-        "AND valid_to IS NULL",
-        (symbol,),
-    ).fetchone()
-    if row is None:
+    """The instrument for an NSE symbol: its CURRENT alias; failing that, the one instrument that
+    ever had the symbol (a stock that has merged or delisted), and never a guess between several."""
+    sql = (
+        "SELECT DISTINCT instrument_id FROM instrument_alias "
+        "WHERE source='nse' AND source_symbol=%s"
+    )
+    row = conn.execute(sql + " AND valid_to IS NULL", (symbol,)).fetchone()
+    if row is not None:
+        return int(row[0])
+    ever = conn.execute(sql, (symbol,)).fetchall()
+    if len(ever) > 1:
+        raise ResolveError(f"{symbol} belongs to more than one instrument: name the one you mean")
+    if not ever:
         raise ResolveError(f"unknown symbol {symbol}")
-    return int(row[0])
+    return int(ever[0][0])
 
 
 def _prev_close(conn: psycopg.Connection, iid: int, ex: date) -> Decimal:
