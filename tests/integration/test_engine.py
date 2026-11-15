@@ -494,6 +494,17 @@ def test_books_agree_on_random_price_paths_and_random_targets(env, seed):
     assert_books_agree(r)
     assert r.ledger.cash >= 0 and all(q > 0 for q in r.final_positions.values())
     assert len(r.equity) == 10
+    # every fill is inside that day's traded range (widened by the 5 bps slippage the model charges), at a price that exists
+    for t in r.trades:
+        lo, hi, vol = conn.execute(
+            "SELECT low, high, volume FROM bar_1d WHERE instrument_id=%s AND (ts AT TIME ZONE 'Asia/Kolkata')::date=%s",
+            (t.instrument_id, t.day),
+        ).fetchone()
+        slip = D("0.0005")
+        assert lo * (1 - slip) <= t.price <= hi * (1 + slip), (t.day, t.price, lo, hi)
+        assert (
+            0 < t.qty <= vol * D("0.5")
+        )  # never more than the participation cap of the bar's volume
 
 
 # ---- schedule-based costs: every rupee explained --------------------------------------------------
