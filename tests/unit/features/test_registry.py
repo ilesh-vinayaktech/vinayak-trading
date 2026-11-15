@@ -9,7 +9,7 @@ from algo.features import registry
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_there_are_twelve_price_features_each_with_a_manifest_that_states_its_rules():
+def test_there_are_nineteen_price_and_volume_features_each_with_a_manifest_that_states_its_rules():
     d = registry.DEFINITIONS
     assert sorted(d) == sorted(
         [
@@ -25,10 +25,21 @@ def test_there_are_twelve_price_features_each_with_a_manifest_that_states_its_ru
             "dist_sma_50d",
             "dist_sma_200d",
             "traded_value_20d",
+            "ret_1d",
+            "rsi_14d",
+            "dist_high_252d",
+            "dist_low_252d",
+            "volume_ratio_20_60d",
+            "range_vol_20d",
+            "max_drawdown_60d",
         ]
     )
     for f in d.values():
-        assert f.version == "1" and f.family == "price" and f.manifest["family"] == "price"
+        assert (
+            f.version == "1"
+            and f.family in ("price", "technical")
+            and f.manifest["family"] == f.family
+        )
         for key in (
             "formula",
             "parameters",

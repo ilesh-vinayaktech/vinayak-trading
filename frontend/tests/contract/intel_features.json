@@ -231,6 +231,112 @@
    "validations": 0,
    "version": "1",
    "warmup": 20
+  },
+  {
+   "family": "price",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / close[t-n] - 1",
+   "name": "ret_1d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 2
+  },
+  {
+   "family": "technical",
+   "inputs": [
+    "close"
+   ],
+   "measures": "Wilder RSI: the first value uses the mean of the first 14 gains and 14 losses, then avg[t] = (avg[t-1] * 13 + change[t]) / 14 for each; 100 - 100 / (1 + avg gain / avg loss); only rises give 100, no movement gives 50; a gap restarts the chain",
+   "name": "rsi_14d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "index (0 to 100)",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 15
+  },
+  {
+   "family": "technical",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / max(close[t-n+1..t]) - 1, never positive",
+   "name": "dist_high_252d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 252
+  },
+  {
+   "family": "technical",
+   "inputs": [
+    "close"
+   ],
+   "measures": "close[t] / min(close[t-n+1..t]) - 1, never negative",
+   "name": "dist_low_252d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 252
+  },
+  {
+   "family": "technical",
+   "inputs": [
+    "raw_volume"
+   ],
+   "measures": "mean raw volume of the last 20 sessions over the mean raw volume of the last 60; no value when the last 60 sessions traded nothing",
+   "name": "volume_ratio_20_60d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "ratio",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 60
+  },
+  {
+   "family": "technical",
+   "inputs": [
+    "high",
+    "low"
+   ],
+   "measures": "Parkinson range volatility: sqrt(mean(ln(high/low)^2 over the last 20 sessions) / (4 ln 2)), per day, not annualised; no value if any session has a non-positive low or a high below its low",
+   "name": "range_vol_20d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 20
+  },
+  {
+   "family": "technical",
+   "inputs": [
+    "close"
+   ],
+   "measures": "the deepest fall from a running peak among the last 60 closes: min over the window of close / running-high - 1, zero or negative",
+   "name": "max_drawdown_60d",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "fraction",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 60
   }
  ]
 }

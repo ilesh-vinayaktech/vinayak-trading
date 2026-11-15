@@ -131,3 +131,73 @@ Common rules, stated in every manifest:
 - manifest_sha256: `9ddcdb0b8a051e1d9d8fba1498a2210f765aa09ca893a010ca9ce4e83b6bd606`
 - Version history:
   - 1 (2026-11-15): first version.
+
+## ret_1d (version 1)
+
+- Definition: close[t] / close[t-n] - 1
+- Formula `ret`, parameters {'n': 1}, inputs close, unit fraction
+- Warm-up: 2 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `f0e51db7bf5864f50bbb8c1e3bb1d07b170c7e1b8cd9ce6e81170a318196367f`
+- Version history:
+  - 1 (2026-11-16): first version.
+
+## rsi_14d (version 1)
+
+- Definition: Wilder RSI: the first value uses the mean of the first 14 gains and 14 losses, then avg[t] = (avg[t-1] * 13 + change[t]) / 14 for each; 100 - 100 / (1 + avg gain / avg loss); only rises give 100, no movement gives 50; a gap restarts the chain
+- Formula `rsi`, parameters {'n': 14}, inputs close, unit index (0 to 100)
+- Warm-up: 15 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `4f0b7c2beb0a2e423d08a0a88993d29759442c97838df8d3a8759cd14a1635b0`
+- Version history:
+  - 1 (2026-11-16): first version.
+
+## dist_high_252d (version 1)
+
+- Definition: close[t] / max(close[t-n+1..t]) - 1, never positive
+- Formula `dist_high`, parameters {'n': 252}, inputs close, unit fraction
+- Warm-up: 252 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `c513ffc989b43fb09e3ee4d2c81de55685fb4be947056530a4ca17275c393632`
+- Version history:
+  - 1 (2026-11-16): first version.
+
+## dist_low_252d (version 1)
+
+- Definition: close[t] / min(close[t-n+1..t]) - 1, never negative
+- Formula `dist_low`, parameters {'n': 252}, inputs close, unit fraction
+- Warm-up: 252 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `4a3e1d9bb60ecac9873d9a6357af80c3fdeb1dfad73ab93ffaf322522b433440`
+- Version history:
+  - 1 (2026-11-16): first version.
+
+## volume_ratio_20_60d (version 1)
+
+- Definition: mean raw volume of the last 20 sessions over the mean raw volume of the last 60; no value when the last 60 sessions traded nothing
+- Formula `volume_ratio`, parameters {'short': 20, 'long': 60}, inputs raw_volume, unit ratio
+- Warm-up: 60 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `f6691f9e85cd6b0e6a30f1465a9bea16158e71ba00341360cbf0f499d93c508a`
+- Version history:
+  - 1 (2026-11-16): first version.
+
+## range_vol_20d (version 1)
+
+- Definition: Parkinson range volatility: sqrt(mean(ln(high/low)^2 over the last 20 sessions) / (4 ln 2)), per day, not annualised; no value if any session has a non-positive low or a high below its low
+- Formula `range_vol`, parameters {'n': 20}, inputs high, low, unit fraction
+- Warm-up: 20 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `8ae74cbf1ff8d37784d15469479f96d63acc7a0b4b23707c0fed76db6f0620ab`
+- Version history:
+  - 1 (2026-11-16): first version.
+
+## max_drawdown_60d (version 1)
+
+- Definition: the deepest fall from a running peak among the last 60 closes: min over the window of close / running-high - 1, zero or negative
+- Formula `max_drawdown`, parameters {'n': 60}, inputs close, unit fraction
+- Warm-up: 60 bars (no value before the instrument has them)
+- Availability: the latest availability of every input bar (BarReader visible_after plus its publish lag); never served earlier
+- manifest_sha256: `d44105bb2014925f5f38665b78e18910ccd9a7a053a50d7c4a7906b530135f13`
+- Version history:
+  - 1 (2026-11-16): first version.

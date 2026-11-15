@@ -47,7 +47,7 @@ describe("Research intelligence", () => {
     backend({ overview, alpha, notes });
     mount();
     expect(await screen.findByText("Where the research stands")).toBeTruthy();
-    expect(screen.getByText("11 draft, 1 usable")).toBeTruthy();
+    expect(screen.getByText("18 draft, 1 usable")).toBeTruthy();
     expect(screen.getByText("Alpha tests ever run")).toBeTruthy();
     expect(screen.getByText("Degraded")).toBeTruthy();
     expect(screen.getByText(/DEGRADED: mean return/)).toBeTruthy();
@@ -176,7 +176,7 @@ describe("Research intelligence", () => {
     backend({ overview, alpha, notes });
     mount();
     const list = within(await screen.findByRole("list", { name: "Features" }));
-    expect(list.getAllByTestId(/^feature-/).length).toBe(12);
+    expect(list.getAllByTestId(/^feature-/).length).toBe(19);
     const good = within(list.getByTestId("feature-ret_5d"));
     expect(good.getByText("Usable")).toBeTruthy();
     expect(good.getByText(/close\[t\] \/ close\[t-n\] - 1/)).toBeTruthy();

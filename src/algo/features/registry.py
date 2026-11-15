@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from algo.features import _shared, price
+from algo.features import _shared, price, technical
 from algo.features._shared import Result, SessionBar
 
 VERSION = "1"
@@ -64,11 +64,14 @@ def _def(
     inputs: list[str],
     fn: Compute,
     text: str,
+    *,
+    module: Any = price,
+    family: str = "price",
 ) -> FeatureDef:
     manifest = {
         "name": name,
         "version": VERSION,
-        "family": "price",
+        "family": family,
         "formula": formula,
         "parameters": params,
         "inputs": inputs,
@@ -78,7 +81,7 @@ def _def(
         "definition": text,
         **COMMON,
     }
-    return FeatureDef(name, VERSION, "price", manifest, price, fn)
+    return FeatureDef(name, VERSION, family, manifest, module, fn)
 
 
 def _build() -> dict[str, FeatureDef]:
@@ -146,6 +149,56 @@ def _build() -> dict[str, FeatureDef]:
         price.traded_value(20),
         "mean over the last 20 sessions of raw close times raw volume",
     )
+    out["ret_1d"] = _def(
+        "ret_1d",
+        "ret",
+        {"n": 1},
+        2,
+        "fraction",
+        ["close"],
+        price.ret(1),
+        "close[t] / close[t-n] - 1",
+    )
+    tech: dict[str, Any] = {"module": technical, "family": "technical"}
+    out["rsi_14d"] = _def(
+        "rsi_14d", "rsi", {"n": 14}, 15, "index (0 to 100)", ["close"], technical.rsi(14),
+        "Wilder RSI: the first value uses the mean of the first 14 gains and 14 losses, then avg[t] = (avg[t-1] * 13 + change[t]) / 14 for each; 100 - 100 / (1 + avg gain / avg loss); only rises give 100, no movement gives 50; a gap restarts the chain",
+        **tech,
+    )  # fmt: skip
+    out["dist_high_252d"] = _def(
+        "dist_high_252d",
+        "dist_high",
+        {"n": 252},
+        252,
+        "fraction",
+        ["close"],
+        technical.dist_high(252),
+        "close[t] / max(close[t-n+1..t]) - 1, never positive",
+        **tech,
+    )
+    out["dist_low_252d"] = _def(
+        "dist_low_252d",
+        "dist_low",
+        {"n": 252},
+        252,
+        "fraction",
+        ["close"],
+        technical.dist_low(252),
+        "close[t] / min(close[t-n+1..t]) - 1, never negative",
+        **tech,
+    )
+    out["volume_ratio_20_60d"] = _def(
+        "volume_ratio_20_60d", "volume_ratio", {"short": 20, "long": 60}, 60, "ratio", ["raw_volume"], technical.volume_ratio(20, 60),
+        "mean raw volume of the last 20 sessions over the mean raw volume of the last 60; no value when the last 60 sessions traded nothing", **tech,
+    )  # fmt: skip
+    out["range_vol_20d"] = _def(
+        "range_vol_20d", "range_vol", {"n": 20}, 20, "fraction", ["high", "low"], technical.range_vol(20),
+        "Parkinson range volatility: sqrt(mean(ln(high/low)^2 over the last 20 sessions) / (4 ln 2)), per day, not annualised; no value if any session has a non-positive low or a high below its low", **tech,
+    )  # fmt: skip
+    out["max_drawdown_60d"] = _def(
+        "max_drawdown_60d", "max_drawdown", {"n": 60}, 60, "fraction", ["close"], technical.max_drawdown(60),
+        "the deepest fall from a running peak among the last 60 closes: min over the window of close / running-high - 1, zero or negative", **tech,
+    )  # fmt: skip
     return out
 
 

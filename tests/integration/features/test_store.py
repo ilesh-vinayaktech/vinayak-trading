@@ -67,7 +67,7 @@ def test_registering_stores_every_definition_as_a_draft_and_a_changed_one_is_ref
     env, monkeypatch
 ):
     conn, _ = env
-    assert store.register_all(conn, NOW) == 12 and store.register_all(conn, NOW) == 0  # idempotent
+    assert store.register_all(conn, NOW) == 19 and store.register_all(conn, NOW) == 0  # idempotent
     assert {store.status(conn, n, "1") for n in registry.DEFINITIONS} == {"DRAFT"}
     f = registry.DEFINITIONS["ret_5d"]
     import dataclasses

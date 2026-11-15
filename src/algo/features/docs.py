@@ -9,6 +9,16 @@ HISTORY = {
     "atr_14d": ["1 (2026-11-15): first version. Before first use the ATR was rescaled by raw_close/close on day t, because a split or bonus taking effect after t had changed it (found by the look-ahead harness); no earlier hash was ever registered."],
 }  # fmt: skip
 DEFAULT_HISTORY = "1 (2026-11-15): first version."
+SECOND_SET = (
+    "ret_1d",
+    "rsi_14d",
+    "dist_high_252d",
+    "dist_low_252d",
+    "volume_ratio_20_60d",
+    "range_vol_20d",
+    "max_drawdown_60d",
+)  # added 2026-11-16 in algo.features.technical (ret_1d reuses price.ret)
+HISTORY.update({n: ["1 (2026-11-16): first version."] for n in SECOND_SET})
 
 
 def render() -> str:

@@ -76,9 +76,10 @@ def test_a_missing_session_gives_an_absent_value_and_does_not_shift_the_window(n
     assert hole not in holey
     manifest = registry.DEFINITIONS[name].manifest
     warm = manifest["warmup_bars"]
-    recursive = manifest["family"] == "price" and manifest["formula"] in (
+    recursive = manifest["family"] in ("price", "technical") and manifest["formula"] in (
         "atr",
         "atr_pct",
+        "rsi",
     )  # a gap restarts Wilder's chain, so later values differ
     for i, d in enumerate(DAYS):
         if d == hole or i < warm:
@@ -115,4 +116,4 @@ def test_a_feature_with_a_deliberate_look_ahead_fails_the_harness():
 
 
 def test_the_harness_covers_every_registered_feature():
-    assert len(NAMES) == 12 and set(NAMES) == set(registry.DEFINITIONS)
+    assert len(NAMES) == 19 and set(NAMES) == set(registry.DEFINITIONS)
