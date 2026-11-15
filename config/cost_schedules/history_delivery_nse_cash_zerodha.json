@@ -325,6 +325,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -711,6 +732,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -1096,6 +1138,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi_pending_note": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -1475,6 +1538,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi_pending_note": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -1558,7 +1642,7 @@
           "taxable_for_gst": true,
           "gst_inclusive": false,
           "rounding": "HALF_UP_2DP",
-          "source": "zerodha_bulletin_2023_04_txn",
+          "source": "zerodha_page_2021_04_11_txn",
           "evidence": "EXTRACTED_UNVERIFIED",
           "rate_pct": "0.00345"
         },
@@ -1591,7 +1675,7 @@
           "taxable_for_gst": false,
           "gst_inclusive": true,
           "rounding": "HALF_UP_2DP",
-          "source": "zerodha_forum_dp_2017",
+          "source": "zerodha_page_2021_04_11_dp",
           "evidence": "ASSUMED",
           "amount": "15.93"
         },
@@ -1853,6 +1937,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi_pending_note": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -1883,7 +1988,7 @@
         }
       },
       "assumptions": [
-        "The Zerodha client rate is taken to have moved to 0.00345% on 1 January 2021, the day NSE's member tariff did (NSE/FA/46730). Zerodha's own notice of that change was not found.",
+        "The Zerodha client rate of 0.00345% is read from Zerodha's own charges page of 2021-04-11 (archived). That it began on 1 January 2021 is an inference: that is the day NSE's member tariff moved (NSE/FA/46730). Zerodha's own notice of the change was not found.",
         "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and September 2017; its continuation unchanged to 31 May 2024 is an assumption.",
         "The SEBI turnover fee is Rs 5 per crore from 1 June 2020 to 31 March 2021 (SEBI notification SEBI/LAD-NRO/GN/2020/011, via NSE/FA/44514, and Zerodha's page of 2020-09-29). Zerodha kept billing Rs 5 until 4 May 2021 and then charged the April to May difference to the ledger (a Zerodha staff reply on its forum), so from 1 April 2021 the schedule uses Rs 10."
       ]
@@ -1936,7 +2041,7 @@
           "taxable_for_gst": true,
           "gst_inclusive": false,
           "rounding": "HALF_UP_2DP",
-          "source": "zerodha_bulletin_2023_04_txn",
+          "source": "zerodha_page_2021_04_11_txn",
           "evidence": "EXTRACTED_UNVERIFIED",
           "rate_pct": "0.00345"
         },
@@ -1969,7 +2074,7 @@
           "taxable_for_gst": false,
           "gst_inclusive": true,
           "rounding": "HALF_UP_2DP",
-          "source": "zerodha_forum_dp_2017",
+          "source": "zerodha_page_2021_04_11_dp",
           "evidence": "ASSUMED",
           "amount": "15.93"
         },
@@ -2231,6 +2336,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -2268,7 +2394,7 @@
         }
       },
       "assumptions": [
-        "The Zerodha client rate is taken to have moved to 0.00345% on 1 January 2021, the day NSE's member tariff did (NSE/FA/46730). Zerodha's own notice of that change was not found.",
+        "The Zerodha client rate of 0.00345% is read from Zerodha's own charges page of 2021-04-11 (archived). That it began on 1 January 2021 is an inference: that is the day NSE's member tariff moved (NSE/FA/46730). Zerodha's own notice of the change was not found.",
         "The depository charge before 1 June 2024 is taken as Rs 13.50 (Rs 8 Zerodha + Rs 5.50 CDSL) plus GST from 1 July 2017 (Rs 15.93). It is evidenced by Zerodha's founder on Zerodha's forum in March 2016 and September 2017; its continuation unchanged to 31 May 2024 is an assumption."
       ]
     },
@@ -2614,6 +2740,27 @@
           "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
+        },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -2998,6 +3145,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -3380,6 +3548,27 @@
           "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
+        },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
@@ -3764,6 +3953,27 @@
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
         },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
+        },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",
           "retrieved_at": "2026-11-13T13:49:48.176934+00:00",
@@ -4146,6 +4356,27 @@
           "sha256": "5c4c4aaceb48d4649f34eacfddf8372c491fa9a880cb19bbbce9b9413008b06b",
           "quote": "Transaction charges NSE: 0.00325% BSE: 0.003%",
           "locator": "Zerodha's own charges page as archived by the Internet Archive on 2020-09-29, equity delivery column"
+        },
+        "zerodha_page_2021_04_11_dp": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+          "locator": "Same archived page: the depository charge on 2021-04-11"
+        },
+        "zerodha_page_2021_04_11_sebi": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "SEBI charges ₹5 / crore",
+          "locator": "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)"
+        },
+        "zerodha_page_2021_04_11_txn": {
+          "url": "https://web.archive.org/web/20210411101959id_/https://zerodha.com/charges",
+          "retrieved_at": "2026-11-15T07:49:36.171549+00:00",
+          "sha256": "a7219c521160c296dc8470654f83e1f8a83b1a34acc5d841ab994860acc0677a",
+          "quote": "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+          "locator": "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column"
         },
         "zerodha_sebi": {
           "url": "https://zerodha.com/charges",

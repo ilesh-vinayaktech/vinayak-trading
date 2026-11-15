@@ -336,6 +336,25 @@ s_z2020_gst = src(
     "Same archived page: GST is charged on brokerage and transaction charges, not on the SEBI fee",
 )
 
+s_z2021_txn = src(
+    "zerodha_page_2021_04_11_txn",
+    "zerodha_charges_wayback_2021_04_11",
+    "Transaction charges NSE: 0.00345% BSE: 0.00345%",
+    "Zerodha's own charges page as archived by the Internet Archive on 2021-04-11, equity delivery column",
+)
+s_z2021_sebi = src(
+    "zerodha_page_2021_04_11_sebi",
+    "zerodha_charges_wayback_2021_04_11",
+    "SEBI charges ₹5 / crore",
+    "Same archived page: Zerodha was still billing the halved SEBI fee on 2021-04-11 (it charged the April to May difference to the ledger afterwards)",
+)
+s_z2021_dp = src(
+    "zerodha_page_2021_04_11_dp",
+    "zerodha_charges_wayback_2021_04_11",
+    "DP (Depository participant) charges ₹13.5 + GST per scrip (irrespective of quantity), on the day",
+    "Same archived page: the depository charge on 2021-04-11",
+)
+
 
 def comp(
     type_,
@@ -514,7 +533,10 @@ A_TXN_PRE2021 = (
     "That is an ASSUMPTION about the Zerodha client rate, not evidence of it. A temporary concession for EQ-series stocks outside Nifty 50 and Next 50 (FA45147 from 1 Aug 2020, extended by FA47844, "
     "FA49796 and FA51855) is unresolved: whether it reached Zerodha clients is not known."
 )
-A_TXN_2021 = "The Zerodha client rate is taken to have moved to 0.00345% on 1 January 2021, the day NSE's member tariff did (NSE/FA/46730). Zerodha's own notice of that change was not found."
+A_TXN_2021 = (
+    "The Zerodha client rate of 0.00345% is read from Zerodha's own charges page of 2021-04-11 (archived). That it began on 1 January 2021 is an inference: that is the day NSE's member "
+    "tariff moved (NSE/FA/46730). Zerodha's own notice of the change was not found."
+)
 A_TXN_2020 = (
     "The exchange fee of 0.00325% is read from Zerodha's own charges page of 2020-09-29 (archived). That it applied for the whole of 1 July to 31 December 2020 is an inference: "
     "NSE moved its member tariff only on 1 January 2021 (NSE/FA/46730). The temporary EQ-series concession (FA45147, FA47844) is unresolved: whether it reached clients is not known."
@@ -545,11 +567,11 @@ PERIODS = [
     ("2020-07-01", "2020-07-01", "2020-12-31", "0.00325", s_z2020_txn, True, False, ("15.93", True), s_stamp_nse,
      {"DP_CHARGE": A}, [A_TXN_2020, A_DP, A_SEBI_2020], s_z2020_dp,
      "The SEBI fee is halved (SEBI notification) and outside GST until 18 Jul 2022. The exchange fee and the Rs 13.50 depository charge are on Zerodha's own page of 2020-09-29."),
-    ("2021-01-01", "2021-01-01", "2021-03-31", "0.00345", s_txn_2023, True, False, ("15.93", True), s_stamp_nse,
-     {"DP_CHARGE": A}, [A_TXN_2021, A_DP, A_SEBI_2020], s_dp_2017,
+    ("2021-01-01", "2021-01-01", "2021-03-31", "0.00345", s_z2021_txn, True, False, ("15.93", True), s_stamp_nse,
+     {"DP_CHARGE": A}, [A_TXN_2021, A_DP, A_SEBI_2020], s_z2021_dp,
      "The SEBI fee is halved until 31 Mar 2021 (SEBI notification) and outside GST until 18 Jul 2022. 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date; NSE/FA/46730 dates NSE's own change to 1 Jan 2021."),
-    ("2021-04-01", "2021-04-01", "2022-07-17", "0.00345", s_txn_2023, True, False, ("15.93", True), s_stamp_nse,
-     {"DP_CHARGE": A}, [A_TXN_2021, A_DP], s_dp_2017,
+    ("2021-04-01", "2021-04-01", "2022-07-17", "0.00345", s_z2021_txn, True, False, ("15.93", True), s_stamp_nse,
+     {"DP_CHARGE": A}, [A_TXN_2021, A_DP], s_z2021_dp,
      "The SEBI fee is back to Rs 10 per crore from 1 Apr 2021 and outside GST until 18 Jul 2022 (SEBI circular). 0.00345% is the rate Zerodha's April 2023 bulletin gives as the one before that date."),
     ("2022-07-18", "2022-07-18", "2023-03-31", "0.00345", s_txn_2023, True, True, ("15.93", True), s_stamp_nse,
      {"DP_CHARGE": A}, [A_DP], s_dp_2017, "GST on the SEBI fee from 18 Jul 2022 (SEBI circular)."),
@@ -568,7 +590,8 @@ HISTORY_SOURCES = ["zerodha_zero_brokerage_since_2015", "zerodha_bulletin_2023_0
                    "nse_FA46730_effective", "sebi_gst_circular_subject", "sebi_gst_circular_effective",
                    "zerodha_forum_dp_2016", "zerodha_forum_dp_2017", "zerodha_forum_dp_2024", "zerodha_support_dp_once_per_scrip_per_day",
                    "nse_FA44514_sebi_half_fee", "nse_FA44514_sebi_half_fee_period", "zerodha_page_2020_09_29_txn", "zerodha_page_2020_09_29_sebi",
-                   "zerodha_page_2020_09_29_dp", "zerodha_page_2020_09_29_gst"]  # fmt: skip
+                   "zerodha_page_2020_09_29_dp", "zerodha_page_2020_09_29_gst", "zerodha_page_2021_04_11_txn",
+                   "zerodha_page_2021_04_11_sebi", "zerodha_page_2021_04_11_dp"]  # fmt: skip
 history = []
 for suffix, frm, until, txn, txn_src, gst, sebi_gst, (
     dp,
