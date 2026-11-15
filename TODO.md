@@ -121,7 +121,7 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 - [x] (2026-11-15, agent: snap_down/snap_nearest/snap_up/snap_limit with property tests, 100% branch; money is plain Decimal, no wrapper value-object class) Money/price/qty as `Decimal` (NUMERIC) value objects; rounding helpers snapping to tick/lot/qty_step. T: property tests (snap idempotent, never crosses limit, round-trip).
 - [x] (SystemClock + SimClock done; ReplayClock pending) `Clock` protocol: `SystemClock`, `SimClock`, `ReplayClock`. T: monotonicity, tz-awareness enforced (naive datetime rejected).
 - [x] (closed 2026-11-15 by the agent: documented in `algo/core/calendar.py`; tested by test_calendar.py (375 bars from 09:15 IST, boundaries, naive rejected, machine-timezone independence) and test_reader.py (visible only after close + publish lag); DST/24x7 are not applicable: NSE only) UTC timestamp convention: `ts` = bar-open; bar visible only after close. Documented in one module + tested everywhere. T: boundary tests at session open/close, DST (US), 24/7.
-- [ ] Config via pydantic-settings; env flag model for `live`. T: invalid configs rejected.
+- [~] (2026-11-15, agent: `algo/core/settings.py`, validated Settings on plain pydantic-free dataclass + env, live needs ALGO_MODE=live AND the exact ALGO_LIVE_CONFIRM phrase, 100% branch; pydantic-settings not added; `api/main.py` and the scripts are NOT yet moved onto it) Config via pydantic-settings; env flag model for `live`. T: invalid configs rejected.
 
 ### 1.2 Platform state machine **(P0)**
 
