@@ -5,6 +5,7 @@ usage: verify_provisional_actions.py --db postgresql://... [--decision config/co
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 from datetime import UTC, date, datetime
@@ -92,6 +93,28 @@ with psycopg.connect(a.db) as conn:
         else:
             problems.append(f"{it['symbol']} {d}: method {method} is not verifiable here")
             continue
+        doc = it.get("document") or it.get("exchange_circular")
+        source_hash = None
+        if doc:  # a named document: it must be the very file that was reviewed
+            url, kind = doc["url"], doc["source_type"]
+            source_hash = doc["sha256"]
+            if hashlib.sha256(Path(doc["path"]).read_bytes()).hexdigest() != doc["sha256"]:
+                problems.append(
+                    f"{it['symbol']} {d}: {doc['path']} does not match its recorded sha256"
+                )
+            if (
+                "exchange_circular" in it
+            ):  # the circular states its own inputs and factor: they must reproduce the stored factor
+                c = {k: Decimal(v) for k, v in doc["inputs"].items()}
+                from_circular = rights_factor(c["A"], c["B"], c["S"], c["P"])
+                if (
+                    abs(from_circular - factor) > Decimal("1e-12")
+                    or f"{from_circular:.6f}" != doc["circular_factor"]
+                    or c["P"] != prev
+                ):
+                    problems.append(
+                        f"{it['symbol']} {d}: the circular's inputs give {from_circular}, stored {factor}, circular states {doc['circular_factor']}, bars' previous close {prev}"
+                    )
         if not url:
             problems.append(f"{it['symbol']} {d}: no source url on record")
             continue
@@ -101,7 +124,7 @@ with psycopg.connect(a.db) as conn:
                 f"{it['symbol']} {d}: recomputed factor {recomputed} differs from stored {factor}"
             )
         k = kite.get((it["symbol"], it["ex_date"]), {})
-        rec = {**it, "resolution_id": rid, "method": method, "stored_factor": str(factor), "recomputed_factor": str(recomputed), "calculation": calc, "source_type": kind, "source_url": url,
+        rec = {**it, "resolution_id": rid, "method": method, "stored_factor": str(factor), "recomputed_factor": str(recomputed), "calculation": calc, "source_type": kind, "source_url": url, "source_hash": source_hash, "document": doc,
                "evidence_on_record": ev, "kite_implied_factor": k.get("kite_implied_factor"), "kite_over_stored": k.get("kite_over_stored")}  # fmt: skip
         records.append(rec)
         calcs.append(
@@ -162,7 +185,7 @@ with psycopg.connect(a.db) as conn:
         now = datetime.now(UTC)
         for rec in records:
             try:
-                verify(conn, symbol=rec["symbol"], ex_date=date.fromisoformat(rec["ex_date"]), kind=rec["kind"], by=a.by, now=now, source_type=rec["source_type"], source_url=rec["source_url"],
+                verify(conn, symbol=rec["symbol"], ex_date=date.fromisoformat(rec["ex_date"]), kind=rec["kind"], by=a.by, now=now, source_type=rec["source_type"], source_url=rec["source_url"], source_hash=rec["source_hash"],
                        note=f"verified {now.date()} by {a.by}: {rec['provenance']} ({dec['provenance_labels'][rec['provenance']]}); owner decision {dec['decided']}, record {a.decision}",
                        evidence={"provenance": rec["provenance"], "group": rec["group"], "owner_decision": dec["decided"], "decision_record": str(a.decision), "kite_implied_factor": rec["kite_implied_factor"], "methodology": dec["methodology"]["demerger"] if rec["kind"] == "demerger" else "rights: TERP from issuer terms"})  # fmt: skip
             except ResolveError as e:

@@ -42,3 +42,10 @@ The four gap-era demergers (ABB, GMR, MOTHERSON, NMDC) predate NSE's special pre
 1. Owner decides the demerger methodology (market adjustment recommended).
 2. On approval: verify group A (10) and group B (5) in the owner's name, with this document as the evidence note.
 3. Owner or I obtain the NSE base prices for group C (NSE circulars / F&O adjustment notices for 2019 to 2022); until then those 5 keep C1 failing. NMDC is corrected rather than verified.
+
+## Update after the owner's evidence review (2026-11-15, same day)
+- **Methodology approved: market-value adjustment** for demerger price factors. The tax cost-allocation ratio is separate tax metadata.
+- **SUZLON**: the issuer's own Letter of Offer (filed with SEBI and the exchanges 2022-09-28) is now on file with its SHA-256 (`data/evidence/rights/suzlon_2022_letter_of_offer_sebi.pdf`): 5:21, record date 2022-10-04, issue price Rs 5.00. Its label `ISSUER_TERMS_KITE_CORROBORATED` is now accurate.
+- **RELIANCE rights 2020-05-13 is resolved by primary exchange evidence**: NSE circular NSE/FAOP/44356 (46/2020, 2020-05-12). P = 1,479.25 (our bars' previous close), S = 1,257, 1:15, E = 13.890625, AF = 0.990610. The stored factor, recomputed from the circular's own inputs, is 0.9906096839614669596079094136. New provenance `EXCHANGE_CIRCULAR_VERIFIED`. This corrects an earlier statement in this pack that Kite not adjusting it left "no independent check": the circular is the check.
+- **Still provisional (4)**: NMDC, GMRAIRPORT, MOTHERSON, ABB. For NMDC the press figure of Rs 93.70 is reported from BSE, not NSE, so it is a warning and not a correction. C1 stays failing; the reader's rule is unchanged.
+- The 16 verifications are prepared, **not applied**.

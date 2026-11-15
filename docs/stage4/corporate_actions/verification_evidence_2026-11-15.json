@@ -7,7 +7,8 @@
   },
   "provenance_labels": {
    "ISSUER_TERMS_KITE_CORROBORATED": "rights factor from issuer terms (TERP), independently corroborated by Kite's adjustment (within 0.15%)",
-   "EXCHANGE_DERIVED_PRESS_CORROBORATED": "factor from the special pre-open session price in the stored NSE bhavcopy (ex-date OPEN), corroborated by press reports; NOT verified against the original NSE circular"
+   "EXCHANGE_DERIVED_PRESS_CORROBORATED": "factor from the special pre-open session price in the stored NSE bhavcopy (ex-date OPEN), corroborated by press reports; NOT verified against the original NSE circular",
+   "EXCHANGE_CIRCULAR_VERIFIED": "factor and inputs taken from the original NSE F&O adjustment circular, which states the same formula, inputs and factor"
   },
   "approved": [
    {
@@ -43,7 +44,15 @@
     "ex_date": "2022-10-03",
     "kind": "rights",
     "group": "A",
-    "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+    "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+    "document": {
+     "source_type": "issuer_document",
+     "url": "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2022/1664427389237.pdf",
+     "path": "data/evidence/rights/suzlon_2022_letter_of_offer_sebi.pdf",
+     "sha256": "7bd543be8fff6ecb42ada6d4ee6893015f6063287f98cf058fb31586fe94c1ca",
+     "retrieved": "2026-11-15",
+     "describes": "Suzlon Energy Letter of Offer (filed with SEBI and the exchanges 2022-09-28; SEBI filings page Sep 29, 2022): 5 shares for every 21 held, record date 2022-10-04, issue price Rs 5.00 per share, 50% payable on application"
+    }
    },
    {
     "symbol": "GRASIM",
@@ -114,6 +123,29 @@
     "kind": "demerger",
     "group": "B",
     "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+   },
+   {
+    "symbol": "RELIANCE",
+    "ex_date": "2020-05-13",
+    "kind": "rights",
+    "group": "C-RESOLVED",
+    "provenance": "EXCHANGE_CIRCULAR_VERIFIED",
+    "exchange_circular": {
+     "source_type": "exchange_notice",
+     "ref": "NSE/FAOP/44356, circular 46/2020, 2020-05-12, Adjustment of Futures and Options contracts in the security RELIANCE",
+     "url": "https://nsearchives.nseindia.com/content/circulars/FAOP44356.pdf",
+     "path": "data/evidence/rights/reliance_2020_nse_circular_faop44356.pdf",
+     "sha256": "586a6c076cd026f938ea0ba10f3ff55693e8ccc63834188f9993f4721fd444f1",
+     "retrieved": "2026-11-15",
+     "inputs": {
+      "P": "1479.25",
+      "S": "1257",
+      "A": "1",
+      "B": "15"
+     },
+     "circular_factor": "0.990610",
+     "formula": "E = (P-S) x A/(A+B); AF = (P-E)/P"
+    }
    }
   ],
   "kept_provisional": [
@@ -140,17 +172,12 @@
     "ex_date": "2019-12-20",
     "kind": "demerger",
     "reason": "exchange adjusted base price not established"
-   },
-   {
-    "symbol": "RELIANCE",
-    "ex_date": "2020-05-13",
-    "kind": "rights",
-    "reason": "applicable NSE adjustment evidence not obtained"
    }
   ],
-  "strict_mode": "C1 stays failing until the five kept-provisional actions are resolved; the reader's rule is not weakened."
+  "strict_mode": "C1 stays failing until the five kept-provisional actions are resolved; the reader's rule is not weakened.",
+  "updated": "2026-11-15: owner review of the evidence record required SUZLON's source to be an issuer document and added the original NSE circular for RELIANCE 2020"
  },
- "generated": "2026-11-15T05:44:13.987276+00:00",
+ "generated": "2026-11-15T05:53:12.935010+00:00",
  "records": [
   {
    "symbol": "SHRIRAMFIN",
@@ -171,6 +198,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/shriram-transport-finance-company-letter-of-offer.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "fully paid (Shriram Transport Finance)",
@@ -220,6 +249,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://www.business.hsbc.bank.in/-/media/library/markets-selective/india/pdf/l-t-finance-holdings-rights-issue-abridged-letter-of-offer.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "fully paid (L&T Finance Holdings)",
@@ -269,6 +300,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/BHARTI-AIRTEL-LIMITED-Rights-Issue-Abridged-Letter-of-offer.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "PARTLY PAID: Rs 133.75 on application (25%), balance in calls; the partly paid shares listed separately",
@@ -323,6 +356,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://investmentbank.kotak.com/downloads/the-indian-hotels-company-limited-abridged-letter-of-offer.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "fully paid",
@@ -359,6 +394,14 @@
    "kind": "rights",
    "group": "A",
    "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "document": {
+    "source_type": "issuer_document",
+    "url": "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2022/1664427389237.pdf",
+    "path": "data/evidence/rights/suzlon_2022_letter_of_offer_sebi.pdf",
+    "sha256": "7bd543be8fff6ecb42ada6d4ee6893015f6063287f98cf058fb31586fe94c1ca",
+    "retrieved": "2026-11-15",
+    "describes": "Suzlon Energy Letter of Offer (filed with SEBI and the exchanges 2022-09-28; SEBI filings page Sep 29, 2022): 5 shares for every 21 held, record date 2022-10-04, issue price Rs 5.00 per share, 50% payable on application"
+   },
    "resolution_id": 130,
    "method": "rights",
    "stored_factor": "0.9182139699381078691423519009",
@@ -370,8 +413,9 @@
     "prev_close": "8.70",
     "formula": "TERP / prev_close"
    },
-   "source_type": "press_report",
-   "source_url": "https://www.business-standard.com/amp/article/companies/suzlon-energy-rights-issue-of-rs-1-200-crore-to-open-on-october-11-122092800979_1.html",
+   "source_type": "issuer_document",
+   "source_url": "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2022/1664427389237.pdf",
+   "source_hash": "7bd543be8fff6ecb42ada6d4ee6893015f6063287f98cf058fb31586fe94c1ca",
    "evidence_on_record": {},
    "kite_implied_factor": "0.919540",
    "kite_over_stored": "1.0014"
@@ -395,6 +439,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Grasim-Industries-Limited-Abridged-Letter-of-Offer.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "PARTLY PAID: Rs 453 on application, balance Rs 1,359 in calls",
@@ -449,6 +495,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://investmentbank.kotak.com/downloads/tataconsumer-abridged-letter-of-offer.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "FULLY PAID: all Rs 818 on application (abridged letter of offer); the exchange worked example used a cum close of 1231.25, which differs from the 25 Jul close 1223.60 in the bhavcopy",
@@ -524,6 +572,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://www.upl-ltd.com/downloads/right-issues-pdf/FAQs_Rights_issue.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "PARTLY PAID: Rs 90 on application, balance in calls",
@@ -585,6 +635,8 @@
    },
    "source_type": "issuer_document",
    "source_url": "https://www.adanienterprises.com/-/media/Project/Enterprises/Investors/Investor-Downloads/Rights-Issue-Other-Documents/FAQs_Partly-paid-equity-shares_Rights-Issue.pdf",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
     "payment": "PARTLY PAID: Rs 900 on application, balance in two calls (record dates 2025-12-23 and 2026-02-13)",
@@ -637,6 +689,8 @@
    },
    "source_type": "press_report",
    "source_url": "https://www.outlookbusiness.com/corporate/kwality-walls-india-debuts-26-below-issue-price-gains-in-intraday-trade",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
     "reports": [
@@ -693,6 +747,8 @@
    },
    "source_type": "press_report",
    "source_url": "https://www.businesstoday.in/markets/company-stock/story/ril-share-price-settles-at-rs-2580-in-special-pre-open-session-jio-financial-at-rs-26185-390530-2023-07-20",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
     "reports": [
@@ -743,6 +799,8 @@
    },
    "source_type": "press_report",
    "source_url": "https://www.venturasecurities.com/news/stocks/itc-share-price-adjusted-for-demerger-of-hotels-business/",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
     "reports": [
@@ -793,6 +851,8 @@
    },
    "source_type": "press_report",
    "source_url": "https://www.angelone.in/news/stocks-share-market/siemens-share-price-drops-50-percent-post-demerger-with-siemens-energy-india",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
     "reports": [
@@ -843,6 +903,8 @@
    },
    "source_type": "press_report",
    "source_url": "https://upstox.com/news/market-news/stocks/tata-motors-demerger-why-stock-is-down-40-from-previous-close-all-you-need-to-know/article-182991",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
     "reports": [
@@ -899,6 +961,8 @@
    },
    "source_type": "press_report",
    "source_url": "https://www.arihantcapital.com/company-information/companynewsdetails/25120010239",
+   "source_hash": null,
+   "document": null,
    "evidence_on_record": {
     "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
     "reports": [
@@ -931,6 +995,88 @@
    },
    "kite_implied_factor": "0.523397",
    "kite_over_stored": "1.3986"
+  },
+  {
+   "symbol": "RELIANCE",
+   "ex_date": "2020-05-13",
+   "kind": "rights",
+   "group": "C-RESOLVED",
+   "provenance": "EXCHANGE_CIRCULAR_VERIFIED",
+   "exchange_circular": {
+    "source_type": "exchange_notice",
+    "ref": "NSE/FAOP/44356, circular 46/2020, 2020-05-12, Adjustment of Futures and Options contracts in the security RELIANCE",
+    "url": "https://nsearchives.nseindia.com/content/circulars/FAOP44356.pdf",
+    "path": "data/evidence/rights/reliance_2020_nse_circular_faop44356.pdf",
+    "sha256": "586a6c076cd026f938ea0ba10f3ff55693e8ccc63834188f9993f4721fd444f1",
+    "retrieved": "2026-11-15",
+    "inputs": {
+     "P": "1479.25",
+     "S": "1257",
+     "A": "1",
+     "B": "15"
+    },
+    "circular_factor": "0.990610",
+    "formula": "E = (P-S) x A/(A+B); AF = (P-E)/P"
+   },
+   "resolution_id": 76,
+   "method": "rights",
+   "stored_factor": "0.9906096839614669596079094136",
+   "recomputed_factor": "0.9906096839614669596079094136",
+   "calculation": {
+    "new": "1",
+    "held": "15",
+    "subscription_price": "1257",
+    "prev_close": "1479.25",
+    "formula": "TERP / prev_close"
+   },
+   "source_type": "exchange_notice",
+   "source_url": "https://nsearchives.nseindia.com/content/circulars/FAOP44356.pdf",
+   "source_hash": "586a6c076cd026f938ea0ba10f3ff55693e8ccc63834188f9993f4721fd444f1",
+   "document": {
+    "source_type": "exchange_notice",
+    "ref": "NSE/FAOP/44356, circular 46/2020, 2020-05-12, Adjustment of Futures and Options contracts in the security RELIANCE",
+    "url": "https://nsearchives.nseindia.com/content/circulars/FAOP44356.pdf",
+    "path": "data/evidence/rights/reliance_2020_nse_circular_faop44356.pdf",
+    "sha256": "586a6c076cd026f938ea0ba10f3ff55693e8ccc63834188f9993f4721fd444f1",
+    "retrieved": "2026-11-15",
+    "inputs": {
+     "P": "1479.25",
+     "S": "1257",
+     "A": "1",
+     "B": "15"
+    },
+    "circular_factor": "0.990610",
+    "formula": "E = (P-S) x A/(A+B); AF = (P-E)/P"
+   },
+   "evidence_on_record": {
+    "formula": "factor = TERP / P, TERP = (B x P + A x S) / (A + B); A new shares, B held, S the full issue price (face value + premium), P the previous cum-rights close (= ex-date PREV_CLOSE in the NSE bhavcopy)",
+    "payment": "PARTLY PAID: Rs 314.25 on application (25%), balance in two calls; the partly paid shares listed separately",
+    "reports": [],
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2020-05-13/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "1479.25"
+     },
+     "series": "EQ",
+     "sha256": "55f4d226421bd9d382855f0bcb815d2da0143e7aa6c785442e0bc2c0ea89e161",
+     "dataset": "nse/bhav",
+     "symbol_in_file": "RELIANCE"
+    },
+    "limitation": "terms from the issuer's own offer document (stored outside git, SHA-256 recorded, quoted terms found in its text); factor computed from those terms (TERP with the full issue price); no exchange adjustment circular retrieved. NOT verified.",
+    "prev_close_cum": "1479.25",
+    "issuer_document": {
+     "url": "https://business.bofa.com/content/dam/flagship/in/en/investment-banking/Reliance-Industries-Limited-Letter-of-Offer.pdf",
+     "sha256": "f2b92247b764c51db75a5fb64bb21f91ba8b15dd27841f2ae4f4116c7535e8c8",
+     "document": "Letter of Offer",
+     "retrieved": "2026-11-09",
+     "stored_at": "data/evidence/rights/reliance_lof.pdf"
+    },
+    "superseded_method": null,
+    "calculation_version": "rights_terp_full_issue_price/1",
+    "supersedes_resolution_id": null
+   },
+   "kite_implied_factor": "0.999996",
+   "kite_over_stored": "1.0095"
   }
  ],
  "problems": []

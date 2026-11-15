@@ -6,7 +6,8 @@
  },
  "provenance_labels": {
   "ISSUER_TERMS_KITE_CORROBORATED": "rights factor from issuer terms (TERP), independently corroborated by Kite's adjustment (within 0.15%)",
-  "EXCHANGE_DERIVED_PRESS_CORROBORATED": "factor from the special pre-open session price in the stored NSE bhavcopy (ex-date OPEN), corroborated by press reports; NOT verified against the original NSE circular"
+  "EXCHANGE_DERIVED_PRESS_CORROBORATED": "factor from the special pre-open session price in the stored NSE bhavcopy (ex-date OPEN), corroborated by press reports; NOT verified against the original NSE circular",
+  "EXCHANGE_CIRCULAR_VERIFIED": "factor and inputs taken from the original NSE F&O adjustment circular, which states the same formula, inputs and factor"
  },
  "approved": [
   {
@@ -42,7 +43,15 @@
    "ex_date": "2022-10-03",
    "kind": "rights",
    "group": "A",
-   "provenance": "ISSUER_TERMS_KITE_CORROBORATED"
+   "provenance": "ISSUER_TERMS_KITE_CORROBORATED",
+   "document": {
+    "source_type": "issuer_document",
+    "url": "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2022/1664427389237.pdf",
+    "path": "data/evidence/rights/suzlon_2022_letter_of_offer_sebi.pdf",
+    "sha256": "7bd543be8fff6ecb42ada6d4ee6893015f6063287f98cf058fb31586fe94c1ca",
+    "retrieved": "2026-11-15",
+    "describes": "Suzlon Energy Letter of Offer (filed with SEBI and the exchanges 2022-09-28; SEBI filings page Sep 29, 2022): 5 shares for every 21 held, record date 2022-10-04, issue price Rs 5.00 per share, 50% payable on application"
+   }
   },
   {
    "symbol": "GRASIM",
@@ -113,6 +122,29 @@
    "kind": "demerger",
    "group": "B",
    "provenance": "EXCHANGE_DERIVED_PRESS_CORROBORATED"
+  },
+  {
+   "symbol": "RELIANCE",
+   "ex_date": "2020-05-13",
+   "kind": "rights",
+   "group": "C-RESOLVED",
+   "provenance": "EXCHANGE_CIRCULAR_VERIFIED",
+   "exchange_circular": {
+    "source_type": "exchange_notice",
+    "ref": "NSE/FAOP/44356, circular 46/2020, 2020-05-12, Adjustment of Futures and Options contracts in the security RELIANCE",
+    "url": "https://nsearchives.nseindia.com/content/circulars/FAOP44356.pdf",
+    "path": "data/evidence/rights/reliance_2020_nse_circular_faop44356.pdf",
+    "sha256": "586a6c076cd026f938ea0ba10f3ff55693e8ccc63834188f9993f4721fd444f1",
+    "retrieved": "2026-11-15",
+    "inputs": {
+     "P": "1479.25",
+     "S": "1257",
+     "A": "1",
+     "B": "15"
+    },
+    "circular_factor": "0.990610",
+    "formula": "E = (P-S) x A/(A+B); AF = (P-E)/P"
+   }
   }
  ],
  "kept_provisional": [
@@ -139,13 +171,8 @@
    "ex_date": "2019-12-20",
    "kind": "demerger",
    "reason": "exchange adjusted base price not established"
-  },
-  {
-   "symbol": "RELIANCE",
-   "ex_date": "2020-05-13",
-   "kind": "rights",
-   "reason": "applicable NSE adjustment evidence not obtained"
   }
  ],
- "strict_mode": "C1 stays failing until the five kept-provisional actions are resolved; the reader's rule is not weakened."
+ "strict_mode": "C1 stays failing until the five kept-provisional actions are resolved; the reader's rule is not weakened.",
+ "updated": "2026-11-15: owner review of the evidence record required SUZLON's source to be an issuer document and added the original NSE circular for RELIANCE 2020"
 }
