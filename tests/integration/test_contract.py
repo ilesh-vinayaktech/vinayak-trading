@@ -828,6 +828,7 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
     c = TestClient(open_app(pg_url, tmp_path))
     shots = {
         "intel_progress": c.get("/api/intel/progress"),
+        "intel_funnel": c.get("/api/intel/funnel"),
         "intel_overview": c.get("/api/intel/overview"),
         "intel_alpha": c.get("/api/intel/alpha"),
         "intel_notes": c.get("/api/intel/notes"),

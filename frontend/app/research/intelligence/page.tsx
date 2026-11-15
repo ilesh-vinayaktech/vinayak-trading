@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Funnel, PipelineStrip } from "@/components/research/Pipeline";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Panel, StatusPill } from "@/components/ui/Layout";
@@ -68,12 +69,30 @@ function JobRow({ j }: { j: Job }) {
   );
 }
 
-function JobsPanel() {
-  const jobs = useQuery({
+function useJobs() {
+  return useQuery({
     queryKey: ["intel", "progress"],
     queryFn: api.intelProgress,
     refetchInterval: (q) => (q.state.data?.jobs.some((j) => j.status === "RUNNING") ? 3000 : 15000),
   });
+}
+
+/** The pipeline: which step runs now, then how many things survive each stage and why the rest were dropped. */
+function PipelinePanel() {
+  const jobs = useJobs();
+  const funnel = useQuery({ queryKey: ["intel", "funnel"], queryFn: api.intelFunnel, refetchInterval: 15000 });
+  return (
+    <Card title="Research pipeline" note="Each card counts what entered that stage, what moved on and what was dropped, with the reasons. Dropped ideas are kept, not hidden: they raise the bar for the next one.">
+      <div className="space-y-4">
+        <PipelineStrip jobs={jobs.data?.jobs ?? []} />
+        {funnel.isLoading ? <Loading what="the funnel" /> : funnel.error ? <ErrorBox error={funnel.error} what="the funnel" /> : funnel.data ? <Funnel stages={funnel.data.stages} /> : null}
+      </div>
+    </Card>
+  );
+}
+
+function JobsPanel() {
+  const jobs = useJobs();
   const running = jobs.data?.jobs.filter((j) => j.status === "RUNNING").length ?? 0;
   return (
     <Panel title="Running jobs" actions={<span className="text-xs text-ink-faint">{running > 0 ? `${running} running · updates every 3 seconds` : "refreshes every 15 seconds"}</span>}>
@@ -171,6 +190,7 @@ export default function IntelligencePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Research intelligence" subtitle="Features, alpha tests, strategy health, research notes and capital allocation advice, as recorded so far. Read-only." />
+      <PipelinePanel />
       <JobsPanel />
       {overview.isLoading ? <Loading what="the research overview" /> : overview.error ? <ErrorBox error={overview.error} what="the research overview" /> : overview.data ? <Overview o={overview.data} /> : null}
       <Panel

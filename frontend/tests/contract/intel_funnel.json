@@ -1,0 +1,74 @@
+{
+ "stages": [
+  {
+   "connected": true,
+   "dropped": [
+    {
+     "count": 12,
+     "reason": "Waiting to be validated"
+    }
+   ],
+   "entered": 12,
+   "key": "features",
+   "note": "A feature must pass coverage, reproducibility and look-ahead checks before anything may use it.",
+   "passed": 0,
+   "title": "Features",
+   "unit": "features"
+  },
+  {
+   "connected": true,
+   "dropped": [
+    {
+     "count": 1,
+     "reason": "Effect too small to matter"
+    }
+   ],
+   "entered": 2,
+   "key": "alpha",
+   "note": "Each feature at each horizon is one test. A candidate means worth validating, never that it works.",
+   "passed": 1,
+   "title": "Alpha tests",
+   "unit": "tests"
+  },
+  {
+   "connected": true,
+   "dropped": [],
+   "entered": 0,
+   "key": "definitions",
+   "note": "Registered strategy versions that an experiment has actually run.",
+   "passed": 0,
+   "title": "Strategy definitions",
+   "unit": "definitions"
+  },
+  {
+   "connected": true,
+   "dropped": [],
+   "entered": 0,
+   "key": "trials",
+   "note": "Every combination tried counts, finished or not, because the number of tries is what makes a result honest.",
+   "passed": 0,
+   "title": "Experiment trials",
+   "unit": "trials"
+  },
+  {
+   "connected": false,
+   "dropped": [],
+   "entered": 0,
+   "key": "validation",
+   "note": "Walk-forward, costs and the one-time holdout. Not yet linked to alpha candidates or strategy definitions.",
+   "passed": 0,
+   "title": "Validation gates",
+   "unit": "strategies"
+  },
+  {
+   "connected": false,
+   "dropped": [],
+   "entered": 0,
+   "key": "paper",
+   "note": "Strategies that passed validation and run on a paper account. Nothing reaches here automatically yet.",
+   "passed": 0,
+   "title": "Paper trading",
+   "unit": "strategies"
+  }
+ ]
+}

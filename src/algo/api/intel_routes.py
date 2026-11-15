@@ -140,3 +140,67 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
             }
         )  # fmt: skip
     return {"jobs": jobs}
+
+
+def _stage(
+    key: str,
+    title: str,
+    unit: str,
+    entered: int,
+    passed: int,
+    dropped: list[tuple[str, int]],
+    note: str,
+    connected: bool = True,
+) -> dict[str, Any]:
+    return {
+        "key": key, "title": title, "unit": unit, "entered": entered, "passed": passed, "connected": connected, "note": note,
+        "dropped": [{"reason": r, "count": n} for r, n in dropped if n > 0],
+    }  # fmt: skip
+
+
+@router.get("/funnel")
+def funnel(conn: WConn) -> dict[str, Any]:
+    """The research pipeline as a funnel: for each stage how many went in, how many moved on, and how many were dropped and why. Every number is a count of recorded rows."""
+
+    def one(sql: str) -> int:
+        return _one(conn, sql)
+
+    features = one("SELECT count(*) FROM feature_definition")
+    latest = "(SELECT status FROM feature_status WHERE feature_id = d.feature_id ORDER BY status_id DESC LIMIT 1)"
+    usable = one(f"SELECT count(*) FROM feature_definition d WHERE {latest} = 'USABLE'")  # noqa: S608 - fixed fragment
+    blocked = one(f"SELECT count(*) FROM feature_definition d WHERE {latest} = 'BLOCKED'")  # noqa: S608
+    failed_check = one(
+        f"SELECT count(*) FROM feature_definition d WHERE {latest} = 'DRAFT' AND COALESCE((SELECT NOT passed FROM feature_validation v WHERE v.feature_id = d.feature_id ORDER BY report_id DESC LIMIT 1), FALSE)"  # noqa: S608
+    )
+    waiting = features - usable - blocked - failed_check
+    tests = conn.execute(
+        "SELECT count(*), count(*) FILTER (WHERE research_status = 'CANDIDATE'),"
+        " count(*) FILTER (WHERE research_status = 'REJECTED' AND (evidence->>'mean_ic' IS NULL OR evidence->>'p_adjusted' IS NULL)),"
+        " count(*) FILTER (WHERE research_status = 'REJECTED' AND evidence->>'mean_ic' IS NOT NULL AND evidence->>'p_adjusted' IS NOT NULL AND abs((evidence->>'mean_ic')::float) < (evidence->>'min_abs_ic')::float)"
+        " FROM alpha_hypothesis"
+    ).fetchone()
+    assert tests is not None
+    total, candidates, no_result, too_small = (int(x) for x in tests)
+    not_significant = total - candidates - no_result - too_small
+    definitions = one("SELECT count(*) FROM strategy_definition")
+    tested = one("SELECT count(DISTINCT (base_strategy_id, base_version)) FROM factory_experiment")
+    trials = one("SELECT count(*) FROM factory_trial")
+    done = one("SELECT count(*) FROM factory_trial WHERE status = 'DONE'")
+    skipped = one("SELECT count(*) FROM factory_trial WHERE status = 'SKIPPED'")
+    return {
+        "stages": [
+            _stage("features", "Features", "features", features, usable,
+                   [("Failed validation", failed_check), ("Waiting to be validated", waiting), ("Blocked", blocked)],
+                   "A feature must pass coverage, reproducibility and look-ahead checks before anything may use it."),
+            _stage("alpha", "Alpha tests", "tests", total, candidates,
+                   [("No result (too little data)", no_result), ("Effect too small to matter", too_small), ("Not significant after counting every test ever run", not_significant)],
+                   "Each feature at each horizon is one test. A candidate means worth validating, never that it works."),
+            _stage("definitions", "Strategy definitions", "definitions", definitions, tested, [("Not tried in an experiment yet", definitions - tested)],
+                   "Registered strategy versions that an experiment has actually run."),
+            _stage("trials", "Experiment trials", "trials", trials, done, [("Not a valid definition", skipped), ("Could not run", trials - done - skipped)],
+                   "Every combination tried counts, finished or not, because the number of tries is what makes a result honest."),
+            _stage("validation", "Validation gates", "strategies", 0, 0, [],
+                   "Walk-forward, costs and the one-time holdout. Not yet linked to alpha candidates or strategy definitions.", connected=False),
+            _stage("paper", "Paper trading", "strategies", 0, 0, [], "Strategies that passed validation and run on a paper account. Nothing reaches here automatically yet.", connected=False),
+        ]
+    }  # fmt: skip

@@ -213,3 +213,85 @@ def test_progress_shows_running_jobs_first_with_elapsed_quiet_time_and_whether_t
     ) == ("DONE", 3600 - 0, None, None, False)
     assert c.get("/api/intel/progress", params={"limit": 0}).status_code == 422
     assert c.post("/api/intel/progress", json={}).status_code == 405
+
+
+def stage(body, key):
+    return next(s for s in body["stages"] if s["key"] == key)
+
+
+def test_the_funnel_is_all_zeros_and_marks_the_unlinked_stages_on_an_empty_database(client):
+    c, _ = client
+    body = c.get("/api/intel/funnel").json()
+    assert [s["key"] for s in body["stages"]] == [
+        "features",
+        "alpha",
+        "definitions",
+        "trials",
+        "validation",
+        "paper",
+    ]
+    assert all(
+        s["entered"] == 0 and s["passed"] == 0 and s["dropped"] == [] for s in body["stages"]
+    )
+    assert [s["connected"] for s in body["stages"]] == [True, True, True, True, False, False]
+
+
+def test_the_funnel_counts_what_moved_on_and_why_the_rest_dropped(client):
+    c, conn = client
+    feature_store.register_all(conn, NOW)
+    fids = [
+        r[0]
+        for r in conn.execute(
+            "SELECT feature_id FROM feature_definition ORDER BY feature_id"
+        ).fetchall()
+    ]
+    # 12 features: 3 USABLE, 2 BLOCKED, 2 DRAFT whose last validation failed, 5 DRAFT never validated
+    for f in fids[:3]:
+        conn.execute(
+            "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'USABLE','ok','t',%s)",
+            (f, NOW),
+        )
+    for f in fids[3:5]:
+        conn.execute(
+            "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'BLOCKED','no','t',%s)",
+            (f, NOW),
+        )
+    for f in fids[5:7]:
+        conn.execute(
+            "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,FALSE,'{}','t',%s)",
+            (f, "a" * 64, NOW),
+        )
+    conn.execute(
+        "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,TRUE,'{}','t',%s)",
+        (fids[0], "a" * 64, NOW),
+    )
+    strong = Evidence("ret_5d", "1", 5, 500, 150.0, 0.05, 0.1, 0.5, 0.6, 4.0, 0.0001)
+    flat = Evidence(
+        "ret_20d", "1", 20, 500, 150.0, 0.0001, 0.1, 0.001, 0.5, 0.01, 0.0001
+    )  # significant but a tiny effect
+    noisy = Evidence(
+        "ret_60d", "1", 60, 500, 150.0, 0.05, 0.1, 0.5, 0.5, 1.0, 0.9
+    )  # a real-sized effect that is not significant
+    none = Evidence("ret_1d", "1", 1, 3, 150.0, None, None, None, None, None, None)
+    alpha_registry.record(conn, [strong, flat, noisy, none], "d" * 64, NOW)
+    conn.commit()
+    body = c.get("/api/intel/funnel").json()
+    f = stage(body, "features")
+    assert (f["entered"], f["passed"]) == (12, 3)
+    assert {d["reason"]: d["count"] for d in f["dropped"]} == {
+        "Failed validation": 2,
+        "Waiting to be validated": 5,
+        "Blocked": 2,
+    }
+    a = stage(body, "alpha")
+    assert (a["entered"], a["passed"]) == (4, 1)
+    assert {d["reason"]: d["count"] for d in a["dropped"]} == {
+        "No result (too little data)": 1,
+        "Effect too small to matter": 1,
+        "Not significant after counting every test ever run": 1,
+    }
+    assert all(
+        sum(d["count"] for d in s["dropped"]) == s["entered"] - s["passed"]
+        for s in body["stages"]
+        if s["connected"]
+    )

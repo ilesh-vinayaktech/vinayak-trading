@@ -6,6 +6,7 @@ import allocationsFixture from "./contract/intel_allocations.json";
 import alphaFixture from "./contract/intel_alpha.json";
 import notesFixture from "./contract/intel_notes.json";
 import overview from "./contract/intel_overview.json";
+import funnel from "./contract/intel_funnel.json";
 import progressFixture from "./contract/intel_progress.json";
 
 const numbered = <T extends { id: number }>(rows: T[]) => rows.map((r, i) => ({ ...r, id: i + 1 }));
@@ -27,12 +28,12 @@ const empty = {
   notes: { notes: [] },
 };
 const seen: string[] = [];
-function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown }) {
+function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown; funnel?: unknown }) {
   seen.length = 0;
   vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = new URL(String(input));
     seen.push(url.pathname + url.search);
-    const body = { "/api/auth/me": who, "/api/intel/overview": table.overview, "/api/intel/alpha": table.alpha, "/api/intel/notes": table.notes, "/api/intel/allocations": allocations, "/api/intel/progress": table.progress ?? { jobs: [] } }[url.pathname];
+    const body = { "/api/auth/me": who, "/api/intel/overview": table.overview, "/api/intel/alpha": table.alpha, "/api/intel/notes": table.notes, "/api/intel/allocations": allocations, "/api/intel/progress": table.progress ?? { jobs: [] }, "/api/intel/funnel": table.funnel ?? funnel }[url.pathname];
     if (body === undefined) return new Response(JSON.stringify({ detail: "no route" }), { status: 404 });
     return new Response(JSON.stringify(body), { status: 200 });
   });
@@ -91,6 +92,55 @@ describe("Research intelligence", () => {
     expect(within(screen.getByTestId("job-gone")).getByText(/process running this job is gone/)).toBeTruthy();
     expect(within(screen.getByTestId("job-fine")).queryByText(/No update for/)).toBeNull();
     expect(within(screen.getByTestId("job-quiet")).getByText("May be stuck")).toBeTruthy();
+  });
+
+  it("draws the funnel: what went in, what moved on, what dropped and why, and which stages are not linked yet", async () => {
+    backend({
+      overview, alpha, notes,
+      funnel: {
+        stages: [
+          { key: "features", title: "Features", unit: "features", entered: 12, passed: 3, connected: true, note: "n", dropped: [{ reason: "Failed validation", count: 2 }, { reason: "Waiting to be validated", count: 7 }] },
+          { key: "alpha", title: "Alpha tests", unit: "tests", entered: 40, passed: 4, connected: true, note: "n", dropped: [{ reason: "Effect too small to matter", count: 30 }] },
+          { key: "trials", title: "Experiment trials", unit: "trials", entered: 0, passed: 0, connected: true, note: "n", dropped: [] },
+          { key: "validation", title: "Validation gates", unit: "strategies", entered: 0, passed: 0, connected: false, note: "Not yet linked to candidates.", dropped: [] },
+        ],
+      },
+    });
+    mount();
+    const features = within(await screen.findByTestId("stage-features"));
+    expect(features.getByText("12")).toBeTruthy();
+    expect(features.getByText("3 moved on (25%)")).toBeTruthy();
+    expect(features.getByText("9 dropped (75%)")).toBeTruthy();
+    expect(features.getByText("Failed validation")).toBeTruthy();
+    expect(features.getByRole("img").getAttribute("aria-label")).toBe("3 of 12 moved on, 9 dropped");
+    const alphaStage = within(screen.getByTestId("stage-alpha"));
+    expect(alphaStage.getByText("4 moved on (10%)")).toBeTruthy();
+    expect(alphaStage.getByText("Effect too small to matter")).toBeTruthy();
+    expect(within(screen.getByTestId("stage-trials")).getByText("Nothing has reached this stage yet.")).toBeTruthy();
+    const unlinked = within(screen.getByTestId("stage-validation"));
+    expect(unlinked.getByText("Not linked yet")).toBeTruthy();
+    expect(unlinked.queryByText(/moved on/)).toBeNull();
+  });
+
+  it("lights up the pipeline step that is running now and marks the finished, idle and not-automated ones", async () => {
+    const job = (over: object) => ({ ...progress.jobs[0], ...over });
+    backend({ overview, alpha, notes, progress: { jobs: [job({ id: 1, job: "feature_validation", status: "RUNNING", done: 3, total: 12, stalled: false }), job({ id: 2, job: "alpha_discovery", status: "DONE", done: 4, total: 4 })] } });
+    mount();
+    const validate = await screen.findByTestId("step-0");
+    await waitFor(() => expect(validate.getAttribute("data-state")).toBe("running"));
+    expect(within(validate).getByText("running · 3 of 12")).toBeTruthy();
+    expect(screen.getByTestId("step-1").getAttribute("data-state")).toBe("idle");
+    expect(screen.getByTestId("step-2").getAttribute("data-state")).toBe("done");
+    expect(screen.getByTestId("step-3").getAttribute("data-state")).toBe("manual");
+    expect(within(screen.getByTestId("step-6")).getByText("not automated yet")).toBeTruthy();
+  });
+
+  it("flags a stuck or failed step in the strip", async () => {
+    const job = (over: object) => ({ ...progress.jobs[0], ...over });
+    backend({ overview, alpha, notes, progress: { jobs: [job({ id: 1, job: "feature_validation", status: "RUNNING", stalled: true }), job({ id: 2, job: "feature_computation", status: "FAILED" })] } });
+    mount();
+    await waitFor(() => expect(screen.getByTestId("step-0").getAttribute("data-state")).toBe("stuck"));
+    expect(screen.getByTestId("step-1").getAttribute("data-state")).toBe("failed");
   });
 
   it("says so when no job has reported yet", async () => {

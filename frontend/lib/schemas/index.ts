@@ -1101,3 +1101,19 @@ export const intelProgressSchema = z.object({
   ),
 });
 export type IntelProgress = z.infer<typeof intelProgressSchema>;
+
+export const intelFunnelSchema = z.object({
+  stages: z.array(
+    z.object({
+      key: z.string(),
+      title: z.string(),
+      unit: z.string(),
+      entered: z.number(),
+      passed: z.number(),
+      connected: z.boolean(),
+      note: z.string(),
+      dropped: z.array(z.object({ reason: z.string(), count: z.number() })),
+    }),
+  ),
+});
+export type IntelFunnel = z.infer<typeof intelFunnelSchema>;
