@@ -80,7 +80,7 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 - [ ] T0.4 Mutation testing on money paths (risk, OMS state machine, ledger, adjustment, cost model, fill simulator). Gate: mutation score ≥ 85%; surviving mutants reviewed in PR. Nightly job, not per-PR.
 - [ ] T0.5 Test pyramid dirs: `tests/unit`, `tests/property`, `tests/integration` (real Timescale/Redis/MinIO via testcontainers, **no mocking the component under test**), `tests/e2e`, `tests/lookahead`, `tests/replay`, `tests/fault` (fault injection), `tests/golden`, `tests/contract` (provider/broker adapters vs recorded fixtures).
 - [ ] T0.6 Test markers: `unit` (<1s each, no I/O), `integration`, `e2e`, `slow`, `fault`. PR runs all except `slow`; nightly runs all + mutation.
-- [ ] T0.7 Deterministic by default: injected `Clock`, seeded RNG, `pytest-randomly` on, ban `datetime.now()`/`time.time()` in `src/` via ruff rule (DTZ) + custom lint test.
+- [x] (2026-11-15, agent: ruff DTZ on, pytest-randomly installed, `tests/unit/test_no_system_clock_in_src.py` bans wall-clock reads in src except `core/clock.py`; monotonic timers are allowed) T0.7 Deterministic by default: injected `Clock`, seeded RNG, `pytest-randomly` on, ban `datetime.now()`/`time.time()` in `src/` via ruff rule (DTZ) + custom lint test.
 - [ ] T0.8 Fixtures: small sample dataset (10 instruments, 20 days, 1m bars, one split, one bonus, one dividend, one halt, one delisting, one holiday) committed under `tests/data/` with raw files + manifest. Used by unit, integration, golden and e2e.
 - [ ] T0.9 Bug policy: every defect gets a failing regression test first, then the fix.
 - [ ] T0.10 Coverage report published per PR (html artifact + summary comment); trend tracked.
