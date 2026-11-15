@@ -12,12 +12,15 @@ usage: study_worker.py [--db URL] [--once] [--interval 5]
 import argparse
 import os
 import signal
+import socket
 import sys
+import threading
 import time
 from datetime import UTC, datetime
 
 import psycopg
 
+from algo.live import heartbeat
 from algo.research import study_jobs
 from algo.research.study_runner import execute
 
@@ -41,15 +44,57 @@ def _stop(*_: object) -> None:
 signal.signal(signal.SIGTERM, _stop)
 signal.signal(signal.SIGINT, _stop)
 
+doing = "idle"  # what the heartbeat thread reports
+beating = threading.Event()
+
+
+def _heartbeats() -> None:
+    """Its own connection and thread: a study can run for an hour, and the worker must not look silent meanwhile."""
+    with psycopg.connect(a.db, autocommit=True) as hb:
+        while not beating.is_set():
+            heartbeat.beat(
+                hb,
+                "study_worker",
+                "RUNNING",
+                doing,
+                datetime.now(UTC),
+                pid=os.getpid(),
+                host=socket.gethostname(),
+            )
+            beating.wait(30)
+        heartbeat.beat(
+            hb,
+            "study_worker",
+            "STOPPED",
+            "stopped",
+            datetime.now(UTC),
+            pid=os.getpid(),
+            host=socket.gethostname(),
+        )
+
+
 with psycopg.connect(a.db, autocommit=True) as conn:
+    heartbeat.beat(
+        conn,
+        "study_worker",
+        "STARTING",
+        "starting",
+        datetime.now(UTC),
+        pid=os.getpid(),
+        host=socket.gethostname(),
+    )
+    thread = threading.Thread(target=_heartbeats, daemon=True)
+    thread.start()
     study_jobs.requeue_orphans(conn)
     while not stop:
         run_id = study_jobs.claim(conn, datetime.now(UTC))
         if run_id is None:
+            doing = "idle"
             if a.once:
                 break
             time.sleep(a.interval)
             continue
+        doing = f"run {run_id}"
         print(f"{datetime.now(UTC):%H:%M:%S} run {run_id}: started", flush=True)
         try:
             execute(conn, run_id, datetime.now(UTC))
@@ -60,3 +105,5 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             f"{datetime.now(UTC):%H:%M:%S} run {run_id}: {run['status'] if run else '?'} {(run or {}).get('error') or ''}",
             flush=True,
         )
+    beating.set()
+    thread.join(timeout=5)

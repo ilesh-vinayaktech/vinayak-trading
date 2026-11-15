@@ -83,6 +83,13 @@
    "name": "regulatory-check"
   },
   {
+   "calendar": "Mon..Fri *-*-* 09..15:*:00 Asia/Kolkata",
+   "description": "Every minute in market hours: alert when a process that should be running (the live feed, and the study worker where it is expected) has never reported, gone silent, is degraded or has stopped",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "heartbeat-check"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 21:30 Asia/Kolkata",
    "description": "The evening decision for every enabled paper account on the newest session, each strategy in its sandboxed worker (after the data jobs and checks; a run that cannot decide, or errors, alerts; a strategy that breaks a rule is halted and paused); proposals wait for the owner's approval",
    "last_run": null,
@@ -249,7 +256,7 @@
    },
    {
     "level": "attention",
-    "text": "26 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 23 more."
+    "text": "27 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 24 more."
    }
   ],
   "status": "DOWN"

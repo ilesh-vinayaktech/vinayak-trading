@@ -39,6 +39,12 @@ JOBS: tuple[Job, ...] = (
         "Alert when a regulatory rule live trading needs (order-rate limit, order types, tagging, static IP) is not recorded or was last verified over 30 days ago: live stays blocked until it is checked and recorded again",
     ),
     Job(
+        "heartbeat-check",
+        f"{WEEKDAYS} *-*-* 09..15:*:00 Asia/Kolkata",
+        ((*_PY, "scripts/check_heartbeats.py", "--db", "{db}"),),
+        "Every minute in market hours: alert when a process that should be running (the live feed, and the study worker where it is expected) has never reported, gone silent, is degraded or has stopped",
+    ),
+    Job(
         "paper-run",
         f"{WEEKDAYS} *-*-* 21:30 Asia/Kolkata",
         ((*_PY, "scripts/run_paper.py", "--db", "{db}", "--sandbox"),),
