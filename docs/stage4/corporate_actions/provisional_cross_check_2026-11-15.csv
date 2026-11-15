@@ -1,0 +1,21 @@
+symbol,ex_date,kind,subject,stored_method,stored_factor,kite_implied_factor,kite_over_stored,cross_check
+ABB,2019-12-20,demerger,Demerger,gap,0.854386,0.781911,0.9152,NOT_CORROBORATED
+RELIANCE,2020-05-13,rights,Rights 1:15 @ Premium Rs 1247,rights,0.990610,0.999996,1.0095,NOT_CORROBORATED
+SHRIRAMFIN,2020-07-09,rights,Rights 3:26 @ Premium Rs 560/-,rights,0.974353,0.974268,0.9999,CORROBORATED
+LTF,2021-01-21,rights,Rights 17:74@ Premium Rs 55 Per Share,rights,0.930114,0.930188,1.0001,CORROBORATED
+BHARTIARTL,2021-09-27,rights,Rights 1:14 @ Premium Rs 530/-,rights,0.981571,0.981539,1.0000,CORROBORATED
+INDHOTEL,2021-11-11,rights,Rights 1:9 @ Premium Rs 149/-,rights,0.969670,0.969577,0.9999,CORROBORATED
+GMRAIRPORT,2022-01-11,demerger,Demerger,gap,0.927671,1.000000,1.0780,NOT_CORROBORATED
+MOTHERSON,2022-01-14,demerger,Demerger,gap,0.790868,0.894693,1.1313,NOT_CORROBORATED
+SUZLON,2022-10-03,rights,Rights 5:21 @ Premium Rs 3/-,rights,0.918214,0.919540,1.0014,CORROBORATED
+NMDC,2022-10-27,demerger,Demerger,gap,0.791351,0.429534,0.5428,NOT_CORROBORATED
+RELIANCE,2023-07-20,demerger,Demerger,exchange_adjusted_price,0.907859,0.953200,1.0499,NOT_CORROBORATED
+GRASIM,2024-01-10,rights,Rights 6:179 @ Premium Rs 1810/-,rights,0.996040,0.996051,1.0000,CORROBORATED
+TATACONSUM,2024-07-26,rights,Rights 1:26 @ Premium Rs 817/-,rights,0.987723,0.987741,1.0000,CORROBORATED
+UPL,2024-11-26,rights,Rights 1:8 @ Premium Rs 358/-,rights,0.959243,0.959282,1.0000,CORROBORATED
+ITC,2025-01-06,demerger,Demerger,exchange_adjusted_price,0.946013,0.865006,0.9144,NOT_CORROBORATED
+SIEMENS,2025-04-07,demerger,Demerger,exchange_adjusted_price,0.497144,0.761797,1.5323,NOT_CORROBORATED
+TMPV,2025-10-14,demerger,Demerger,exchange_adjusted_price,0.605373,0.688536,1.1374,NOT_CORROBORATED
+ADANIENT,2025-11-17,rights,Rights 3:25 @ Premium Rs 1799/-,rights,0.969485,0.969485,1.0000,CORROBORATED
+HINDUNILVR,2025-12-05,demerger,Demerger,exchange_adjusted_price,0.983673,0.980911,0.9972,CORROBORATED
+VEDL,2026-04-30,demerger,Demerger,exchange_adjusted_price,0.374224,0.523397,1.3986,NOT_CORROBORATED
