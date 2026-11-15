@@ -1,0 +1,16 @@
+{
+ "equity_days": 110,
+ "final_equity": "977143.8313848817982459755895",
+ "first_trade": [
+  "2024-12-30",
+  "BUY",
+  "933",
+  "214.3233564484041449293203412"
+ ],
+ "result_hash": "c23ca37f2232bd3cb7922f4f872dc7f266163bac90a71ba0833fd793cef62d4a",
+ "strategy": [
+  "trend_pullback",
+  "1"
+ ],
+ "trades": 118
+}
