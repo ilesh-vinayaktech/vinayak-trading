@@ -366,6 +366,9 @@ def run_backtest(
                 iid: snap_down(cfg.max_participation * px[iid][day][2], step[iid]) for iid in want
             }
             day_brokerage, day_fills = Decimal(0), 0
+            dp_paid: set[int] = (
+                set()
+            )  # scrips already charged the depository fee today: one charge per scrip per debit day
             for side in ("SELL", "BUY"):  # sells first: they fund the buys
                 for iid in sorted(want):
                     delta = want[iid] - ledger.qty(iid)
@@ -392,7 +395,9 @@ def run_backtest(
                     if qty * open_[iid] < cfg.min_order_value and not closes_out:
                         continue
                     price, bps = cfg.cost.fill(side, open_[iid], qty, liq)
-                    ch = cfg.cost.charges(day, side, qty, price)
+                    ch = cfg.cost.charges(day, side, qty, price, dp_already_charged=iid in dp_paid)
+                    if side == "SELL" and ch.amount("DP_CHARGE") > 0:
+                        dp_paid.add(iid)
                     res.schedules_used[ch.schedule_id] = (ch.schedule_version, ch.schedule_status)
                     seq += 1
                     post = ledger.buy if side == "BUY" else ledger.sell

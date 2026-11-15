@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from decimal import Decimal as D
 from pathlib import Path
 
@@ -217,3 +218,32 @@ def test_minimum_and_maximum_exactly_met_do_not_claim_to_have_been_applied():
 def test_contract_note_shortfall_is_the_exact_gap_to_the_floor():
     assert contract_note_shortfall(DELIVERY, D("0.004")) == D("0.006")
     assert contract_note_shortfall(DELIVERY, D("0.0099")) == D("0.0001")
+
+
+def test_the_depository_charge_is_levied_once_per_scrip_per_debit_day_whatever_the_number_of_sales():
+    sched = {s.id: s for s in load_schedules(CFG)}["nse-cash-delivery-zerodha-2026-03-01"]
+    first = compute_charges(sched, "SELL", D(10), D(1000))
+    again = compute_charges(sched, "SELL", D(5), D(1000), dp_already_charged=True)
+    assert first.amount("DP_CHARGE") == D("15.34")
+    line = next(ln for ln in again.lines if ln.type == "DP_CHARGE")
+    assert (again.amount("DP_CHARGE"), line.formula) == (
+        0,
+        "already charged for this scrip on this debit day",
+    )
+    assert again.amount("STT") == D("5.00") and again.amount("EXCHANGE_TRANSACTION") == D(
+        "0.15"
+    )  # only the depository fee is waived
+    assert (
+        compute_charges(sched, "BUY", D(10), D(1000), dp_already_charged=True).total
+        == compute_charges(sched, "BUY", D(10), D(1000)).total
+    )
+
+
+def test_a_run_can_see_which_charges_rest_on_an_assumption():
+    sched = {s.id: s for s in load_schedules(CFG)}["nse-cash-delivery-zerodha-2021-01-01"]
+    sold = compute_charges(sched, "SELL", D(10), D(1000))
+    assert sold.unevidenced == ("DP_CHARGE",) and {
+        ln.evidence for ln in sold.lines if ln.type == "DP_CHARGE"
+    } == {"ASSUMED"}
+    current = {s.id: s for s in load_schedules(CFG)}["nse-cash-delivery-zerodha-2026-03-01"]
+    assert compute_charges(current, "SELL", D(10), D(1000)).unevidenced == ()

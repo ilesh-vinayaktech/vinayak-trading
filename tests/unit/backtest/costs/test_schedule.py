@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 import copy
 import json
 from datetime import date
@@ -24,6 +25,12 @@ def doc(**changes):
     return d
 
 
+def verified_doc(**changes):
+    d = doc(status="verified", **changes)
+    d["components"] = [{**c, "evidence": "VERIFIED"} for c in d["components"]]
+    return d
+
+
 def err(d, match):
     with pytest.raises(ScheduleError, match=match):
         schedule_from_dict(d)
@@ -33,8 +40,8 @@ def err(d, match):
 def test_committed_files_load_and_every_component_cites_a_real_source():
     schedules = load_schedules(CFG)
     assert (
-        len(schedules) == 10
-    )  # delivery: 7 dated history periods + current; intraday: assumed + current
+        len(schedules) == 12
+    )  # delivery: 9 dated history periods + current; intraday: assumed + current
     for s in schedules:
         pre_gst = s.valid_until is not None and s.valid_until < date(
             2017, 7, 1
@@ -61,7 +68,7 @@ def test_current_rates_are_unverified_and_the_backfill_is_flagged_as_assumed():
     early = by_id["nse-cash-delivery-zerodha-2017-07-01"]
     assert (
         early.status == "extracted_unverified"
-        and "NOT from a stored document" in early.notes
+        and "SEBI circular" in early.notes
         and early.assumptions
     )
 
@@ -114,7 +121,7 @@ def test_verified_needs_a_named_verifier_and_a_time():
     err(doc(status="verified"), "verified needs verified_by and verified_at")
     err(doc(status="verified", verified_by="ilesh"), "verified needs verified_by and verified_at")
     ok = schedule_from_dict(
-        doc(status="verified", verified_by="ilesh", verified_at="2026-11-08T10:00:00+00:00")
+        verified_doc(verified_by="ilesh", verified_at="2026-11-08T10:00:00+00:00")
     )
     assert ok.status == "verified" and ok.verified_by == "ilesh" and ok.verified_at.year == 2026
 
@@ -298,3 +305,62 @@ def test_assumptions_are_a_list_of_plain_statements_and_default_to_none():
 
 def test_assumptions_change_the_content_hash_like_any_other_field():
     assert schedule_from_dict(doc()).doc_hash != schedule_from_dict(doc(assumptions=["x"])).doc_hash
+
+
+# ---- what each component rests on ------------------------------------------------------------
+def test_a_component_says_what_it_rests_on_and_unlabelled_ones_are_extracted_not_verified():
+    s = schedule_from_dict(doc())
+    assert {c.evidence for c in s.components} == {
+        "EXTRACTED_UNVERIFIED"
+    } and s.account_scope == "RESIDENT_INDIVIDUAL_RETAIL"
+    for status in ("VERIFIED", "ASSUMED", "UNAVAILABLE", "NOT_APPLICABLE"):
+        assert schedule_from_dict(mutate(0, evidence=status)).components[0].evidence == status
+    err(mutate(0, evidence="PROBABLY"), "unknown evidence")
+
+
+def test_a_schedule_is_verified_only_when_every_component_is_and_an_assumption_never_counts():
+    d = verified_doc(verified_by="ilesh", verified_at="2026-11-08T10:00:00+00:00")
+    schedule_from_dict(d)  # all VERIFIED: fine
+    d["components"][1]["evidence"] = "NOT_APPLICABLE"
+    schedule_from_dict(d)  # a component that did not apply does not block it
+    for weak in ("ASSUMED", "UNAVAILABLE", "EXTRACTED_UNVERIFIED"):
+        d["components"][2]["evidence"] = weak
+        err(d, "cannot be verified while EXCHANGE_TRANSACTION are not VERIFIED")
+
+
+def test_a_legacy_verified_schedule_loads_with_its_record_but_its_components_are_never_called_verified():
+    d = doc(status="verified", verified_by="ilesh", verified_at="2026-11-08T10:00:00+00:00")
+    for c in d["components"]:
+        c.pop("evidence", None)
+    s = schedule_from_dict(d)
+    assert (s.status, s.verified_by, s.verification_basis) == (
+        "verified",
+        "ilesh",
+        "LEGACY_SCHEDULE_LEVEL",
+    )  # history preserved, basis stated
+    assert {c.evidence for c in s.components} == {
+        "EXTRACTED_UNVERIFIED"
+    }  # a missing status is not proof that each component was checked
+    assert (
+        schedule_from_dict(
+            verified_doc(verified_by="ilesh", verified_at="2026-11-08T10:00:00+00:00")
+        ).verification_basis
+        == "COMPONENT_EVIDENCE"
+    )
+    assert schedule_from_dict(doc()).verification_basis == ""
+    mixed = verified_doc(verified_by="ilesh", verified_at="2026-11-08T10:00:00+00:00")
+    del mixed["components"][0]["evidence"]
+    err(
+        mixed, "states every component's evidence or none"
+    )  # legacy cannot be mixed into a new-style verified schedule
+
+
+def test_the_account_scope_is_explicit_and_only_the_retail_resident_scope_is_supported():
+    assert (
+        schedule_from_dict(doc(account_scope="RESIDENT_INDIVIDUAL_RETAIL")).account_scope
+        == "RESIDENT_INDIVIDUAL_RETAIL"
+    )
+    err(doc(account_scope="NRI"), "unknown account_scope")
+    assert all(
+        s.account_scope == "RESIDENT_INDIVIDUAL_RETAIL" for s in load_schedules(CFG)
+    )  # the committed files say so

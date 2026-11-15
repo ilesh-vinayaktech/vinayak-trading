@@ -1,9 +1,12 @@
+# ruff: noqa: E501
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal as D
 
 import pytest
 
-from algo.backtest.costs.policy import CostModel
+from algo.backtest.costs.policy import CostModel, ScheduleCosts
+from algo.backtest.costs.schedule import ScheduleBook, schedule_from_dict
+from algo.backtest.costs.slippage import SlippageModel
 from algo.core.clock import SimClock
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
@@ -322,3 +325,109 @@ def test_a_limit_cannot_be_set_when_the_price_step_is_unknown(env):
         orders.approve(conn, oid, user_id=jane, now=EVENING, order_type="LIMIT", limit_price=D(199))
     assert orders.tick_size(conn, iid) is None
     orders.approve(conn, oid, user_id=jane, now=EVENING)  # a market order needs no step
+
+
+# ---- the depository fee is once per scrip per day on which shares are debited ---------------------------------------------
+DP_SCHEDULE = schedule_from_dict(
+    {
+        "id": "t-dp", "version": "1", "name": "t", "broker": "t", "exchange": "NSE", "segment": "CASH", "instrument_type": "EQUITY",
+        "product": "DELIVERY", "valid_from": "2020-01-01", "valid_until": None, "status": "extracted_unverified", "notes": "",
+        "components": [
+            {"type": "DP_CHARGE", "basis": "PER_SCRIP", "side": "SELL", "taxable_for_gst": False, "gst_inclusive": True,
+             "rounding": "HALF_UP_2DP", "source": "s", "amount": "15.34"},
+        ],
+        "sources": {"s": {"url": "https://x", "retrieved_at": "2026-11-15", "sha256": "0" * 64, "quote": "q"}},
+    }
+)  # fmt: skip
+DP_COST = ScheduleCosts(
+    ScheduleBook([DP_SCHEDULE], allowed_statuses=("extracted_unverified",)), SlippageModel()
+)
+
+
+def dp_paid(conn, oid):
+    lines = conn.execute(
+        "SELECT fill_charges->'lines' FROM paper_order WHERE order_id=%s", (oid,)
+    ).fetchone()[0]
+    return sum(D(amount) for kind, amount in lines if kind == "DP_CHARGE")
+
+
+def seed_holding(conn, user, iid, qty=100):
+    book.record_fill(
+        conn,
+        user,
+        day=date(2026, 11, 3),
+        side="BUY",
+        iid=iid,
+        qty=D(qty),
+        price=D(100),
+        commission=D(0),
+        charges=[],
+        ref=f"seed:{iid}",
+        now=EVENING,
+    )
+
+
+def test_several_sales_of_one_scrip_on_one_day_pay_the_depository_fee_once_and_another_scrip_or_account_pays_its_own(
+    env,
+):
+    conn, jane, bob, iid = env
+    repo = InstrumentRepo(conn)
+    other = repo.add_instrument(
+        repo.add_exchange("XBSE", "IN", "Asia/Kolkata", "INR", "BSE"), "BBB"
+    )
+    repo.add_terms(other, date(2000, 1, 1), None, D(1), D("0.05"), D(1))
+    for user in (jane, bob):
+        seed_holding(conn, user, iid)
+    seed_holding(conn, jane, other)
+    for i, price in ((iid, D(200)), (other, D(200))):
+        live_bar(conn, i, 0, price)
+    first, second, other_scrip, bobs = (propose(conn, jane, iid, "SELL", 10), propose(conn, jane, iid, "SELL", 20),
+                                       propose(conn, jane, other, "SELL", 10), propose(conn, bob, iid, "SELL", 10))  # fmt: skip
+    for oid, user in ((first, jane), (second, jane), (other_scrip, jane), (bobs, bob)):
+        orders.approve(conn, oid, user_id=user, now=EVENING)
+    assert orders.fill_due(conn, minute(1), cost=DP_COST, slippage_bps=D(0)) == orders.FillReport(
+        4, 0, 0
+    )
+    paid = {
+        n: dp_paid(conn, o)
+        for n, o in (("first", first), ("second", second), ("other", other_scrip), ("bob", bobs))
+    }
+    assert paid["other"] == D("15.34") and paid["bob"] == D(
+        "15.34"
+    )  # a different scrip, and a different account, each pay their own
+    assert sorted((paid["first"], paid["second"])) == [
+        D(0),
+        D("15.34"),
+    ]  # the same scrip on the same day: charged once, not twice
+
+
+def test_a_replayed_fill_run_does_not_charge_the_depository_fee_again(env):
+    conn, jane, _, iid = env
+    seed_holding(conn, jane, iid)
+    live_bar(conn, iid, 0, D(200))
+    oid = propose(conn, jane, iid, "SELL", 10)
+    orders.approve(conn, oid, user_id=jane, now=EVENING)
+    assert orders.fill_due(conn, minute(1), cost=DP_COST, slippage_bps=D(0)).filled == 1
+    assert orders.fill_due(conn, minute(2), cost=DP_COST, slippage_bps=D(0)) == orders.FillReport(
+        0, 0, 0
+    )  # nothing left to fill: a retry is a no-op
+    assert dp_paid(conn, oid) == D("15.34")
+    later = propose(conn, jane, iid, "SELL", 5)
+    orders.approve(conn, later, user_id=jane, now=EVENING)
+    assert orders.fill_due(conn, minute(3), cost=DP_COST, slippage_bps=D(0)).filled == 1
+    assert dp_paid(conn, later) == 0  # still the same debit day
+
+
+def test_the_same_scrip_sold_on_the_next_debit_day_pays_the_fee_again(env):
+    conn, jane, _, iid = env
+    seed_holding(conn, jane, iid)
+    conn.execute("INSERT INTO paper_order (user_id, decision_day, instrument_id, side, qty, ref_price, reason, created_at, not_before, expires_at, status, fill_day, fill_charges)"
+                 " VALUES (%s,%s,%s,'SELL',10,200,'x',%s,%s,%s,'FILLED',%s,%s)",
+                 (jane, date(2026, 11, 11), iid, EVENING, OPEN, CLOSE, date(2026, 11, 12), '{"lines": [["DP_CHARGE", "15.34"]]}'))  # fmt: skip
+    live_bar(conn, iid, 0, D(200))
+    oid = propose(conn, jane, iid, "SELL", 5)
+    orders.approve(conn, oid, user_id=jane, now=EVENING)
+    assert orders.fill_due(conn, minute(1), cost=DP_COST, slippage_bps=D(0)).filled == 1
+    assert dp_paid(conn, oid) == D(
+        "15.34"
+    )  # the earlier sale was on 12 November, this one is on the 13th

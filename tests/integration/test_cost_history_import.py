@@ -17,13 +17,13 @@ ALL = ("verified", "extracted_unverified", "assumed_backfill")
 @pytest.fixture
 def seeded(conn):
     migrate(conn)
-    assert import_files(conn, CONFIG, now=NOW) == 10  # 8 delivery periods + 2 intraday
+    assert import_files(conn, CONFIG, now=NOW) == 12  # 10 delivery periods + 2 intraday
     return conn
 
 
 def test_importing_again_changes_nothing(seeded):
     assert import_files(seeded, CONFIG, now=NOW) == 0
-    assert len(list_schedules(seeded)) == 10
+    assert len(list_schedules(seeded)) == 12
 
 
 def test_a_study_pricing_any_day_since_2016_finds_the_schedule_in_force_that_day(seeded):

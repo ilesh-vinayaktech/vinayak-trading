@@ -171,12 +171,27 @@ def verify(
         raise ScheduleError(
             "an assumed schedule is an assumption, so there is nothing to verify: verify the schedule it was copied from"
         )
-    listed = schedule_from_dict(row[1]).assumptions
+    current = schedule_from_dict(row[1])
+    unsupported = sorted(
+        {c.type for c in current.components if c.evidence in ("ASSUMED", "UNAVAILABLE")}
+    )
+    if (
+        unsupported
+    ):  # approval can authorise using an assumption in a model; it cannot make it a historical fact
+        raise ScheduleError(
+            f"cannot verify: {', '.join(unsupported)} are assumed or unavailable, not evidenced. "
+            "Replace each with a documented value, or leave the schedule unverified"
+        )
+    listed = current.assumptions
     if listed and not accept_assumptions:
         raise ScheduleError(
             f"accept the {len(listed)} assumption{'s' if len(listed) > 1 else ''} this schedule makes before verifying it"
         )
     doc = {**row[1], "status": "verified", "verified_by": by, "verified_at": now.isoformat()}
+    doc["components"] = [  # the person has checked each extracted quote against its document
+        {**c, "evidence": "NOT_APPLICABLE" if c.get("evidence") == "NOT_APPLICABLE" else "VERIFIED"}
+        for c in row[1]["components"]
+    ]
     if listed:
         doc["assumptions_accepted_by"] = by
     sch = schedule_from_dict(doc)

@@ -12,7 +12,7 @@ UNVALIDATED research: nothing here places a real order."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 from uuid import UUID
@@ -206,6 +206,17 @@ def _next_minute(t: datetime) -> datetime:
     )
 
 
+def _dp_charged(conn: psycopg.Connection, user_id: UUID, iid: int, day: date) -> bool:
+    """Has this account already paid the depository fee for this scrip on this debit day? Read from the fills themselves, so a replay,
+    a retry or a second sale on the same day cannot charge it again."""
+    row = conn.execute(
+        "SELECT 1 FROM paper_order, jsonb_array_elements(fill_charges->'lines') AS line WHERE user_id=%s AND instrument_id=%s"
+        " AND side='SELL' AND status='FILLED' AND fill_day=%s AND line->>0='DP_CHARGE' AND (line->>1)::numeric > 0 LIMIT 1",
+        (user_id, iid, day),
+    ).fetchone()
+    return row is not None
+
+
 def fill_due(
     conn: psycopg.Connection, now: datetime, *, cost: CostPolicy, slippage_bps: Decimal
 ) -> FillReport:
@@ -255,7 +266,13 @@ def fill_due(
             price = fill_price(bar[1], side, slippage_bps)
         else:  # the limit or better: the open when it already is, else the limit; no slippage on top
             price = min(bar[1], limit) if side == "BUY" else max(bar[1], limit)
-        ch = cost.charges(day, side, qty, price)
+        ch = cost.charges(
+            day,
+            side,
+            qty,
+            price,
+            dp_already_charged=side == "SELL" and _dp_charged(conn, user_id, iid, day),
+        )
         extra = [(ln.type, ln.amount) for ln in ch.lines if ln.type != "COMMISSION"]
         try:
             book.record_fill(

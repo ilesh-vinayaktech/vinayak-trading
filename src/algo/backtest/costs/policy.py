@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """What the backtest engine asks of a cost model: itemised charges for an order, a fill price with
 slippage, and any contract-note-level top-up. Two implementations:
 
@@ -39,7 +40,15 @@ class CostPolicy(Protocol):
     def placeholder(self) -> bool: ...
     @property
     def zero_slippage(self) -> bool: ...
-    def charges(self, day: date, side: str, qty: Decimal, price: Decimal) -> Charges: ...
+    def charges(
+        self,
+        day: date,
+        side: str,
+        qty: Decimal,
+        price: Decimal,
+        *,
+        dp_already_charged: bool = False,
+    ) -> Charges: ...
     def fill(
         self, side: str, reference: Decimal, qty: Decimal, liq: Liquidity
     ) -> tuple[Decimal, Decimal]: ...
@@ -58,7 +67,15 @@ class CostModel:
     def zero_slippage(self) -> bool:
         return self.slippage_bps == 0
 
-    def charges(self, day: date, side: str, qty: Decimal, price: Decimal) -> Charges:
+    def charges(
+        self,
+        day: date,
+        side: str,
+        qty: Decimal,
+        price: Decimal,
+        *,
+        dp_already_charged: bool = False,
+    ) -> Charges:
         value = qty * price
         line = ChargeLine(
             "COMMISSION", value * self.commission_bps / BPS, value,
@@ -97,8 +114,22 @@ class ScheduleCosts:
     def zero_slippage(self) -> bool:
         return self.slippage.is_zero
 
-    def charges(self, day: date, side: str, qty: Decimal, price: Decimal) -> Charges:
-        return compute_charges(self.book.for_date(day, self.product), side, qty, price)
+    def charges(
+        self,
+        day: date,
+        side: str,
+        qty: Decimal,
+        price: Decimal,
+        *,
+        dp_already_charged: bool = False,
+    ) -> Charges:
+        return compute_charges(
+            self.book.for_date(day, self.product),
+            side,
+            qty,
+            price,
+            dp_already_charged=dp_already_charged,
+        )
 
     def fill(
         self, side: str, reference: Decimal, qty: Decimal, liq: Liquidity
@@ -118,6 +149,7 @@ class ScheduleCosts:
         return {
             "kind": "schedule", "name": self.name, "placeholder": self.placeholder,
             "product": self.product, "allowed_statuses": list(self.book.allowed),
+            "legacy_verified": [x.id for x in self.book.schedules if x.verification_basis == "LEGACY_SCHEDULE_LEVEL"],  # verified, but never checked component by component
             "coverage": [
                 [str(a), str(b) if b else None] for a, b in self.book.coverage(self.product)
             ],

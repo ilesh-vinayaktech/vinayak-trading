@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Trade-level charge calculation. Pure: (schedule, side, qty, price) -> itemised charges.
 Every line says what it was computed from, so each rupee deducted can be explained and traced to a
 schedule version and a source document. Rounding is applied per component, per executed order,
@@ -22,6 +23,7 @@ class ChargeLine:
     formula: str  # human-readable derivation
     rounding: str
     source: str  # source key in the schedule
+    evidence: str = ""  # what the component's rate rests on (VERIFIED, ASSUMED ...); empty for a flat-bps placeholder
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,13 @@ class Charges:
 
     def amount(self, type_: str) -> Decimal:
         return sum((ln.amount for ln in self.lines if ln.type == type_), Decimal(0))
+
+    @property
+    def unevidenced(self) -> tuple[str, ...]:
+        """Component types whose rate is an assumption or unavailable: a run that used them says so."""
+        return tuple(
+            sorted({ln.type for ln in self.lines if ln.evidence in ("ASSUMED", "UNAVAILABLE")})
+        )
 
 
 def _round(x: Decimal, how: str) -> Decimal:
@@ -62,8 +71,14 @@ def _raw(c: Component, value: Decimal) -> tuple[Decimal, str]:
     return c.amount, f"flat {c.amount} {unit}"
 
 
-def compute_charges(schedule: Schedule, side: str, qty: Decimal, price: Decimal) -> Charges:
-    """Charges for ONE executed order of `qty` shares at `price` on the BUY or SELL side."""
+def compute_charges(
+    schedule: Schedule, side: str, qty: Decimal, price: Decimal, *, dp_already_charged: bool = False
+) -> Charges:
+    """Charges for ONE executed order of `qty` shares at `price` on the BUY or SELL side.
+
+    The depository charge is levied once per scrip per day on which shares are debited from the demat account, whatever the number of
+    sell orders or fills. The caller, which knows what was already charged that day for that scrip, says so with `dp_already_charged`:
+    the line is then kept (so the schedule's coverage stays visible) but costs nothing."""
     if side not in ("BUY", "SELL"):
         raise ValueError("side must be BUY or SELL")
     if qty <= 0 or price <= 0:
@@ -85,10 +100,13 @@ def compute_charges(schedule: Schedule, side: str, qty: Decimal, price: Decimal)
                     f"{c.rate_pct}% of GST base {gst_base}",
                     c.rounding,
                     c.source,
+                    c.evidence,
                 )
             )
             continue
         raw, formula = _raw(c, value)
+        if c.type == "DP_CHARGE" and dp_already_charged:
+            raw, formula = Decimal(0), "already charged for this scrip on this debit day"
         amount = _round(raw, c.rounding)
         if c.taxable_for_gst:
             gst_base += amount
@@ -100,6 +118,7 @@ def compute_charges(schedule: Schedule, side: str, qty: Decimal, price: Decimal)
                 formula,
                 c.rounding,
                 c.source,
+                c.evidence,
             )
         )
     return Charges(side, schedule.id, schedule.version, schedule.status, tuple(lines))

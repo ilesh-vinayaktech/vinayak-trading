@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 import json
 from datetime import UTC, date, datetime
 from decimal import Decimal as D
@@ -375,3 +376,26 @@ def test_accepting_assumptions_is_not_needed_when_there_are_none_and_is_harmless
         "SELECT doc FROM cost_schedule WHERE schedule_id=%s", (CUR,)
     ).fetchone()[0]
     assert "assumptions_accepted_by" not in stored  # nothing was accepted, so nothing is claimed
+
+
+def test_a_schedule_with_an_assumed_or_unavailable_component_cannot_be_verified_even_when_its_assumptions_are_accepted(
+    db,
+):
+    doc = json.loads(json.dumps(raw_docs()[CUR]))
+    doc.update(id="assumed-dp-2019", valid_from="2019-01-01", valid_until="2019-12-31", version="1")
+    next(c for c in doc["components"] if c["type"] == "DP_CHARGE")["evidence"] = "ASSUMED"
+    add(db, doc, actor=None, now=NOW)
+    with pytest.raises(ScheduleError, match="cannot verify: DP_CHARGE are assumed or unavailable"):
+        verify(db, "assumed-dp-2019", "1", by="Ilesh Patel", now=NOW, accept_assumptions=True)
+    assert db.execute(
+        "SELECT status FROM cost_schedule WHERE schedule_id='assumed-dp-2019'"
+    ).fetchone() == ("extracted_unverified",)  # nothing changed
+
+
+def test_verifying_a_fully_extracted_schedule_marks_every_component_verified(seeded):
+    sch = verify(seeded, CUR, VERSION, by="Ilesh Patel", now=NOW)
+    assert sch.status == "verified" and {c.evidence for c in sch.components} == {"VERIFIED"}
+    stored = seeded.execute(
+        "SELECT doc FROM cost_schedule WHERE schedule_id=%s", (CUR,)
+    ).fetchone()[0]
+    assert {c["evidence"] for c in stored["components"]} == {"VERIFIED"}

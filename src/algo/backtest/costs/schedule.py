@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Effective-dated trading-cost schedules, as DATA (JSON files in config/cost_schedules/), never as
 constants in code. Every component cites a source (url + sha256 of the stored document + quote);
 a schedule is `verified` only when a named person has checked it against those sources.
@@ -21,6 +22,14 @@ from pathlib import Path
 from typing import Any
 
 STATUSES = ("verified", "extracted_unverified", "assumed_backfill")
+# What a COMPONENT rests on, independent of whether a document is available: a document can exist without proving that its rate applied
+# to this broker's clients. A schedule is `verified` only when every component is VERIFIED (or NOT_APPLICABLE); a person's approval of an
+# ASSUMED value authorises using it in a model, it never turns it into a historical fact.
+EVIDENCE = ("VERIFIED", "EXTRACTED_UNVERIFIED", "ASSUMED", "UNAVAILABLE", "NOT_APPLICABLE")
+NEEDS_NO_VERIFIER = ("VERIFIED", "NOT_APPLICABLE")
+ACCOUNT_SCOPES = (
+    "RESIDENT_INDIVIDUAL_RETAIL",
+)  # brokerage, taxes and DP charges differ by account category: never inherit silently
 ROUNDINGS = ("HALF_UP_2DP", "NONE")
 TYPES = (
     "BROKERAGE", "STT", "EXCHANGE_TRANSACTION", "SEBI_TURNOVER", "STAMP_DUTY", "DP_CHARGE", "GST",
@@ -71,6 +80,7 @@ class Component:
     gst_inclusive: bool  # the published amount already includes GST (e.g. the DP charge)
     rounding: str
     source: str  # key into Schedule.sources
+    evidence: str = "EXTRACTED_UNVERIFIED"  # one of EVIDENCE
 
 
 @dataclass(frozen=True)
@@ -97,6 +107,8 @@ class Schedule:
     assumptions: tuple[
         str, ...
     ] = ()  # what this schedule takes on trust; a verifier must accept each by name
+    account_scope: str = "RESIDENT_INDIVIDUAL_RETAIL"
+    verification_basis: str = ""  # "" while unverified; COMPONENT_EVIDENCE, or LEGACY_SCHEDULE_LEVEL for one verified before components carried evidence
 
     def covers(self, day: date) -> bool:
         return self.valid_from <= day and (self.valid_until is None or day <= self.valid_until)
@@ -137,7 +149,11 @@ def _component(d: Mapping[str, Any], sources: Mapping[str, Source], where: str) 
         gst_inclusive=bool(d.get("gst_inclusive", False)),
         rounding=d.get("rounding", ""),
         source=d.get("source", ""),
+        # a missing status is never read as proof: the component is only "extracted", whatever the schedule's own status says
+        evidence=d.get("evidence", "EXTRACTED_UNVERIFIED"),
     )
+    if c.evidence not in EVIDENCE:
+        raise ScheduleError(f"{where}: unknown evidence {c.evidence!r}")
     if c.type not in TYPES:
         raise ScheduleError(f"{where}: unknown component type {c.type!r}")
     if c.rounding not in ROUNDINGS:
@@ -188,6 +204,27 @@ def schedule_from_dict(d: Mapping[str, Any]) -> Schedule:
     verified_at = d.get("verified_at")
     if status == "verified" and not (d.get("verified_by") and verified_at):
         raise ScheduleError(f"{where}: verified needs verified_by and verified_at")
+    basis = ""
+    if status == "verified":
+        stated = ["evidence" in c for c in d.get("components") or []]
+        if not any(stated):
+            # LEGACY: verified by a person at schedule level before components carried a status. It loads, with its original verification
+            # record, but its components stay EXTRACTED_UNVERIFIED: nothing here says each component was checked.
+            basis = "LEGACY_SCHEDULE_LEVEL"
+        elif all(stated):
+            basis = "COMPONENT_EVIDENCE"
+            weak = sorted({c.type for c in comps if c.evidence not in NEEDS_NO_VERIFIER})
+            if weak:
+                raise ScheduleError(
+                    f"{where}: cannot be verified while {', '.join(weak)} are not VERIFIED (assumed or unavailable values stay assumptions)"
+                )
+        else:
+            raise ScheduleError(
+                f"{where}: a verified schedule states every component's evidence or none (legacy)"
+            )
+    scope = d.get("account_scope", "RESIDENT_INDIVIDUAL_RETAIL")
+    if scope not in ACCOUNT_SCOPES:
+        raise ScheduleError(f"{where}: unknown account_scope {scope!r}")
     vf, vu = (
         _date(d.get("valid_from"), f"{where}.valid_from"),
         _date(d.get("valid_until"), f"{where}.valid_until"),
@@ -235,6 +272,8 @@ def schedule_from_dict(d: Mapping[str, Any]) -> Schedule:
         sources=sources,
         doc_hash=hashlib.sha256(canonical.encode()).hexdigest(),
         assumptions=tuple(assumptions),
+        account_scope=scope,
+        verification_basis=basis,
     )
 
 

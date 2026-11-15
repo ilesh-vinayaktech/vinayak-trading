@@ -56,7 +56,7 @@ def test_schedule_costs_pick_the_schedule_in_force_on_the_trade_date():
         "extracted_unverified",
     )
     assert (
-        old.schedule_id == "nse-cash-delivery-zerodha-2020-07-01"
+        old.schedule_id == "nse-cash-delivery-zerodha-2021-01-01"
         and new.schedule_id == "nse-cash-delivery-zerodha-2026-03-01"
     )
     assert c.charges(DAY_NEW, "BUY", D(100), D(1000)).total == D("118.74")
@@ -95,13 +95,18 @@ def test_describe_records_the_model_so_a_run_can_be_judged_later():
     d = costs(slippage=SlippageModel(base_bps=D(5), max_bps=D(50))).describe()
     assert d["kind"] == "schedule" and d["placeholder"] is False and d["product"] == "DELIVERY"
     assert d["allowed_statuses"] == ["assumed_backfill", "extracted_unverified"]
+    assert (
+        d["legacy_verified"] == []
+    )  # nothing in the committed book was verified before components carried evidence
     assert d["coverage"] == [
         ["2016-01-01", "2017-06-30"],
         ["2017-07-01", "2020-06-30"],
-        ["2020-07-01", "2022-07-17"],
+        ["2020-07-01", "2020-12-31"],
+        ["2021-01-01", "2022-07-17"],
         ["2022-07-18", "2023-03-31"],
         ["2023-04-01", "2024-03-31"],
-        ["2024-04-01", "2024-09-30"],
+        ["2024-04-01", "2024-05-31"],
+        ["2024-06-01", "2024-09-30"],
         ["2024-10-01", "2026-02-28"],
         ["2026-03-01", None],
     ]
@@ -148,7 +153,7 @@ def test_describe_lists_exactly_what_was_configured():
     d = costs(slippage=m, statuses=("assumed_backfill",)).describe()
     assert d == {
         "kind": "schedule", "name": "schedule-costs", "placeholder": False, "product": "DELIVERY",
-        "allowed_statuses": ["assumed_backfill"], "coverage": [],
+        "allowed_statuses": ["assumed_backfill"], "legacy_verified": [], "coverage": [],
         "slippage": {
             "base_bps": "5", "participation_bps_per_pct": "0", "volatility_fraction": "0",
             "illiquid_adv_threshold": "None", "illiquid_extra_bps": "0", "max_bps": "1000",

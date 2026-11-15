@@ -34,8 +34,16 @@ class ScaledCosts:
     def zero_slippage(self) -> bool:
         return self.base.zero_slippage
 
-    def charges(self, day: date, side: str, qty: Decimal, price: Decimal) -> Charges:
-        c = self.base.charges(day, side, qty, price)
+    def charges(
+        self,
+        day: date,
+        side: str,
+        qty: Decimal,
+        price: Decimal,
+        *,
+        dp_already_charged: bool = False,
+    ) -> Charges:
+        c = self.base.charges(day, side, qty, price, dp_already_charged=dp_already_charged)
         lines = tuple(replace(ln, amount=ln.amount * self.factor) for ln in c.lines)
         return replace(c, lines=lines)
 
