@@ -18,7 +18,9 @@ def snap_down(value: Decimal, step: Decimal) -> Decimal:
 
 def snap_nearest(value: Decimal, step: Decimal) -> Decimal:
     """Nearest multiple of step, ties to even (use for prices to tick size)."""
-    return (value / _step(step)).to_integral_value(ROUND_HALF_EVEN) * step
+    # rounding=None would mean the context default, which is already half-even: an equivalent mutant
+    n = (value / _step(step)).to_integral_value(ROUND_HALF_EVEN)  # pragma: no mutate
+    return n * step
 
 
 def snap_up(value: Decimal, step: Decimal) -> Decimal:

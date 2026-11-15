@@ -41,3 +41,57 @@ def test_a_seeded_secret_in_a_tracked_file_fails_the_repo_scan(tmp_path: Path):
 def test_the_real_repository_has_no_secret_in_any_tracked_file():
     root = Path(__file__).parents[3]
     assert s.scan_files(root, s.tracked(root)) == []
+
+
+def test_only_the_exact_test_prefixes_relax_the_weak_rule():
+    weak = 'password = "' + "violet-harbor-lantern-42" + '"\n'
+    for ok in ("tests/a.py", "frontend/tests/a.tsx"):
+        assert s.scan_text(ok, weak) == [], ok
+    for bad in ("FRONTEND/TESTS/a.tsx", "frontend/src/a.tsx", "contests/a.py"):
+        assert len(s.scan_text(bad, weak)) == 1, bad
+
+
+def test_an_allowed_line_does_not_hide_the_lines_after_it_and_a_placeholder_is_recognised_in_any_case():
+    text = f"k = '{FAKE_AWS}'  # secret-scan: allow\nk2 = '{FAKE_AWS}'\n"
+    assert [f.line for f in s.scan_text("a.py", text)] == [2]
+    assert (
+        s.scan_text("a.py", 'password = "' + "CHANGEME" * 3 + '"\n') == []
+    )  # upper-case placeholder text
+    assert len(s.scan_text("a.py", 'password = "' + "violet-harbor-lantern-42" + '"\n')) == 1
+
+
+def test_a_missing_or_binary_file_does_not_stop_the_files_after_it_and_every_finding_is_kept(
+    tmp_path: Path,
+):
+    (tmp_path / "bin.dat").write_bytes(b"\xff\xfe\x00\x80\x81")
+    (tmp_path / "one.py").write_text(f"a = '{FAKE_AWS}'\n")
+    (tmp_path / "two.py").write_text(f"b = '{FAKE_AWS}'\n")
+    got = s.scan_files(tmp_path, ["missing.py", "bin.dat", "one.py", "two.py"])
+    assert [f.path for f in got] == ["one.py", "two.py"]
+
+
+def test_tracked_lists_exactly_the_files_git_knows_in_that_directory_and_refuses_outside_a_repo(
+    tmp_path: Path,
+):
+    import subprocess
+
+    import pytest
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    for args in (
+        ["init", "-q"],
+        ["config", "user.email", "t@example.com"],
+        ["config", "user.name", "t"],
+    ):
+        subprocess.run(["git", *args], cwd=repo, check=True)
+    (repo / "a.py").write_text("x\n")
+    (repo / "sub").mkdir()
+    (repo / "sub/b.py").write_text("y\n")
+    (repo / "untracked.py").write_text("z\n")
+    subprocess.run(["git", "add", "a.py", "sub/b.py"], cwd=repo, check=True)
+    assert s.tracked(repo) == ["a.py", "sub/b.py"]
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    with pytest.raises(subprocess.CalledProcessError):
+        s.tracked(plain)

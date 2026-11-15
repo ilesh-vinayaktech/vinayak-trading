@@ -49,7 +49,7 @@ class Settings:
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Settings:
-        db = env.get("ALGO_DB_URL", "")
+        db = env.get("ALGO_DB_URL") or ""  # pragma: no mutate
         if not db.startswith(("postgresql://", "postgres://")):
             raise ConfigError("ALGO_DB_URL must be a postgresql:// URL")
         mode = _choice(env, "ALGO_MODE", MODES, "research")

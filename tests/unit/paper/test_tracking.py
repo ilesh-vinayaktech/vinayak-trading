@@ -62,3 +62,30 @@ def test_a_flag_is_raised_only_beyond_the_allowed_tracking_error():
     assert (
         tracking.breached(tracking.compare(curve(100), curve(100)), max_tracking_error=0.0) is False
     )  # nothing to judge yet
+
+
+def test_two_common_days_give_one_return_and_a_gap_but_no_tracking_error_yet():
+    r = tracking.compare(curve(100, 102), curve(100, 101))
+    assert (r.days, r.first, r.last) == (1, D0, D0 + timedelta(days=1))
+    assert r.live_return == D("0.02") and r.model_return == D("0.01")
+    assert (
+        r.final_gap == pytest.approx(0.01)
+        and r.max_daily_gap == pytest.approx(0.01)
+        and r.tracking_error is None
+    )
+
+
+def test_the_tracking_error_divides_by_one_less_than_the_number_of_returns():
+    live, model = curve(100, 102, 101, 104, 103), curve(100, 101, 102, 103, 104)
+    lv, mv = [100, 102, 101, 104, 103], [100, 101, 102, 103, 104]
+    diffs = [(lv[i] / lv[i - 1] - 1) - (mv[i] / mv[i - 1] - 1) for i in range(1, 5)]
+    mean = sum(diffs) / 4
+    sd = math.sqrt(sum((x - mean) ** 2 for x in diffs) / 3)  # four returns: n - 1 = 3
+    assert tracking.compare(live, model).tracking_error == pytest.approx(sd * math.sqrt(252))
+
+
+def test_a_tracking_error_exactly_at_the_allowance_is_not_a_breach():
+    t = tracking.compare(curve(100, 102, 101, 104), curve(100, 101, 102, 103))
+    assert t.tracking_error is not None
+    assert tracking.breached(t, max_tracking_error=t.tracking_error) is False
+    assert tracking.breached(t, max_tracking_error=t.tracking_error * 0.999) is True

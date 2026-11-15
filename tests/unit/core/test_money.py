@@ -49,5 +49,5 @@ def test_limit_examples_and_bad_side():
     assert snap_limit("BUY", D("100.07"), D("0.05")) == D("100.05")
     assert snap_limit("SELL", D("100.07"), D("0.05")) == D("100.10")
     assert snap_limit("SELL", D("100.05"), D("0.05")) == D("100.05")
-    with pytest.raises(ValueError, match="side must be BUY or SELL"):
+    with pytest.raises(ValueError, match="^side must be BUY or SELL$"):
         snap_limit("HOLD", D("1"), D("0.05"))

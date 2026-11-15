@@ -81,3 +81,17 @@ def test_setup_installs_one_json_handler_on_the_root_and_is_idempotent():
     finally:
         root.handlers[:] = saved
         root.setLevel(level)
+
+
+def test_setup_defaults_to_info_and_the_installed_handler_stamps_lines_with_the_given_clock():
+    root = logging.getLogger()
+    saved, level = root.handlers[:], root.level
+    try:
+        logs.setup(SimClock(T))  # no level given
+        assert root.level == logging.INFO
+        (ours,) = [h for h in root.handlers if isinstance(h.formatter, logs.JsonFormatter)]
+        rec = logging.LogRecord("x", logging.INFO, __file__, 1, "hello", None, None)
+        assert json.loads(ours.format(rec))["ts"] == "2026-11-15T09:30:00+00:00"
+    finally:
+        root.handlers[:] = saved
+        root.setLevel(level)

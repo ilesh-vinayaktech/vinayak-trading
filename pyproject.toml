@@ -102,6 +102,14 @@ paths_to_mutate = [
   "src/algo/data/sessions.py",
   "src/algo/data/ratios.py",
   "src/algo/data/providers/nse_results.py",
+  "src/algo/core/settings.py",
+  "src/algo/core/secret_scan.py",
+  "src/algo/core/logs.py",
+  "src/algo/api/scorecards.py",
+  "src/algo/paper/tracking.py",
 ]
 tests_dir = ["tests/unit/"]
-also_copy = ["src/", "tests/", "config/", "scripts/"]
+# The sandbox clears the environment in its worker, which removes the variable mutmut's instrumented code reads: those tests crash under mutation
+# (and test nothing a mutated module owns), so they are left out of the mutation run only.
+pytest_add_cli_args = ["--ignore=tests/unit/sandbox", "--ignore=tests/unit/test_git_hooks.py"]  # the hook test runs `uv run` in a scratch repo, which needs the real project root
+also_copy = ["src/", "tests/", "config/", "scripts/", "docs/", ".githooks/"]

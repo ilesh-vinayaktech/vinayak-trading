@@ -52,3 +52,44 @@ def test_live_mode_needs_the_exact_confirmation_and_nothing_else_turns_it_on():
     )
     # a stray confirmation without live mode does not make it live
     assert Settings.from_env({**BASE, "ALGO_LIVE_CONFIRM": LIVE_CONFIRM}).live is False
+
+
+def test_every_value_lands_in_the_right_field_defaults_and_overrides():
+    d = Settings.from_env({"ALGO_DB_URL": "postgres://u@h/db"})  # the short scheme is accepted too
+    assert d == Settings(
+        db_url="postgres://u@h/db", mode="research", price_source="bhavcopy", cookie_secure=True,
+        trust_proxy=False, public_url="http://localhost:3000", cors_origins=("http://localhost:3000",),
+    )  # fmt: skip
+    o = Settings.from_env(
+        {"ALGO_DB_URL": "postgresql://x/y", "ALGO_MODE": "paper", "ALGO_PRICE_SOURCE": "kite", "ALGO_COOKIE_SECURE": "0", "ALGO_TRUST_PROXY": "1",
+         "ALGO_PUBLIC_URL": "https://console.example", "ALGO_CORS_ORIGINS": "https://a.example"}
+    )  # fmt: skip
+    assert o == Settings(
+        db_url="postgresql://x/y", mode="paper", price_source="kite", cookie_secure=False,
+        trust_proxy=True, public_url="https://console.example", cors_origins=("https://a.example",),
+    )  # fmt: skip
+
+
+def test_each_refusal_says_exactly_what_is_wrong():
+    def refused(env):
+        with pytest.raises(ConfigError) as e:
+            Settings.from_env(env)
+        return str(e.value)
+
+    assert refused({}) == "ALGO_DB_URL must be a postgresql:// URL"
+    assert (
+        refused({**BASE, "ALGO_MODE": "yolo"})
+        == "ALGO_MODE must be one of ('research', 'paper', 'live'), got 'yolo'"
+    )
+    assert (
+        refused({**BASE, "ALGO_COOKIE_SECURE": "maybe"})
+        == "ALGO_COOKIE_SECURE must be 0 or 1, got 'maybe'"
+    )
+    assert (
+        refused({**BASE, "ALGO_CORS_ORIGINS": " , "})
+        == "ALGO_CORS_ORIGINS must list at least one origin"
+    )
+    assert (
+        refused({**BASE, "ALGO_MODE": "live"})
+        == f"ALGO_MODE=live needs ALGO_LIVE_CONFIRM={LIVE_CONFIRM}"
+    )

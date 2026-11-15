@@ -45,7 +45,7 @@ def scan_text(path: str, text: str) -> list[Finding]:
             continue
         for kind, rx in PATTERNS:
             if kind == WEAK and in_tests:
-                continue
+                continue  # pragma: no mutate  (the weak rule is the last pattern, so break would be the same)
             m = rx.search(line)
             if m and not (m.groups() and any(p in m.group(1).lower() for p in PLACEHOLDERS)):
                 out.append(Finding(path, n, kind))

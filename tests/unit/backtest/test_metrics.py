@@ -107,3 +107,36 @@ def test_sortino_and_calmar_are_none_when_there_is_no_downside_or_no_drawdown_an
     assert up["sortino"] is None and up["calmar"] is None and up["max_drawdown"] == 0
     short = metrics(curve(100))
     assert short["sortino"] is None and short["calmar"] is None
+
+
+# ---- the branches the first tests never reached (found by mutation testing) -----------------------
+def test_a_curve_that_starts_at_or_below_zero_has_no_metrics_at_all_with_every_key_present():
+    for first in (0, -5):
+        m = metrics(curve(first, 100, 110))
+        assert m == {
+            "total_return": None, "cagr": None, "vol": None, "sharpe": None,
+            "max_drawdown": None, "sortino": None, "calmar": None,
+        }, first  # fmt: skip
+
+
+def test_a_curve_that_starts_at_exactly_one_is_measured_like_any_other():
+    m = metrics(curve(1, 2, 3))
+    assert (
+        m["total_return"] == pytest.approx(2.0) and m["cagr"] is not None and m["max_drawdown"] == 0
+    )
+
+
+def test_a_wipe_out_ends_the_curve_there_and_a_balance_of_one_is_not_a_wipe_out():
+    m = metrics(curve(100, 50, 0, 10, 20))  # after the zero nothing counts
+    assert m["total_return"] == pytest.approx(-1.0) and m["max_drawdown"] == pytest.approx(-1.0)
+    assert m["vol"] == pytest.approx(
+        metrics(curve(100, 50, 0))["vol"]
+    )  # the later days change nothing
+    kept = metrics(curve(100, 1, 2))
+    assert kept["total_return"] == pytest.approx(2 / 100 - 1) and kept[
+        "max_drawdown"
+    ] == pytest.approx(1 / 100 - 1)
+    ruined_at_once = metrics(curve(100, 0))
+    assert ruined_at_once["cagr"] == pytest.approx(
+        -1.0
+    )  # the second value is zero: still a rate of return, not a missing one
