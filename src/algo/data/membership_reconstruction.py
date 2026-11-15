@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Pure logic for rebuilding index membership BACKWARD from a verified current snapshot.
 
 For each component (Nifty 50, Next 50, Midcap 100 ...) the current members are known; every
@@ -123,6 +124,34 @@ def apply_revocations(
             gone.add(hit)
             cancelled.append((rv, trs[hit]))
     return [tr for i, tr in enumerate(trs) if i not in gone], cancelled, unmatched
+
+
+@dataclass(frozen=True)
+class Void:
+    """A later release declared the changes one release announced for one effective date null and void (for example the 2020-05-13 release
+    voiding the replacements of 18 February, 12 March and 19 March 2020 that were due on 27 March 2020)."""
+
+    doc_id: str  # the release whose changes are void
+    effective: date  # only the changes it announced for this date; changes it announced for other dates stand
+    authority_doc: str  # the release that declares them void
+
+
+def apply_voids(
+    trs: Sequence[Transition], voids: Sequence[Void]
+) -> tuple[list[Transition], list[tuple[Void, Transition]], list[Void]]:
+    """Drop every transition a void covers (same release, same effective date). Returns the transitions that remain, the (void, dropped
+    transition) pairs, and voids that matched nothing: reported, never silently ignored. Nothing is invented in their place."""
+    dropped: list[tuple[Void, Transition]] = []
+    matched: set[Void] = set()
+    kept: list[Transition] = []
+    for tr in trs:
+        hit = next((v for v in voids if (v.doc_id, v.effective) == (tr.doc_id, tr.effective)), None)
+        if hit is None:
+            kept.append(tr)
+        else:
+            dropped.append((hit, tr))
+            matched.add(hit)
+    return kept, dropped, [v for v in voids if v not in matched]
 
 
 @dataclass(frozen=True)

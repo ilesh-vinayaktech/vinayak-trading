@@ -1,5 +1,7 @@
+import random
 import time
 
+import docker.errors
 import psycopg
 import pytest
 from testcontainers.community.postgres import PostgresContainer
@@ -15,8 +17,22 @@ def _price_source_is_bhavcopy_unless_a_test_says_otherwise(monkeypatch):
 
 @pytest.fixture(scope="session")
 def pg_url():
-    with PostgresContainer(IMAGE, driver=None) as pg:
+    """One Postgres container per xdist worker. Rootless Docker gives each container a random host port, and when several workers start at
+    once two can pick the same one ("address already in use"): that is not a test failure, so the start is retried with a fresh port."""
+    pg = PostgresContainer(IMAGE, driver=None)
+    for attempt in range(5):
+        try:
+            pg.start()
+            break
+        except docker.errors.APIError:
+            if attempt == 4:
+                raise
+            time.sleep(1 + attempt + random.random())  # spread the workers out before the next try
+            pg = PostgresContainer(IMAGE, driver=None)
+    try:
         yield pg.get_connection_url()
+    finally:
+        pg.stop()
 
 
 @pytest.fixture

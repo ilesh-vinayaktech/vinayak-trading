@@ -28,8 +28,10 @@ from algo.data.membership_reconstruction import (
     Replacement,
     Revocation,
     Transition,
+    Void,
     apply_replacements,
     apply_revocations,
+    apply_voids,
     block_windows,
     closing_entity,
     combine_rows,
@@ -129,6 +131,9 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
            WHERE v.component = ANY(%s) ORDER BY v.authority_date, v.symbol""",
         (PARSER_VERSION, list(COMP)),
     ).fetchall()
+    voidrows = c.execute(
+        "SELECT doc_id, effective_from, authority_doc, authority_quote FROM index_release_override WHERE effect = 'VOID' ORDER BY effective_from, doc_id"
+    ).fetchall()
     has_rel = c.execute("SELECT to_regclass('corporate_action_relationship')").fetchone()[0]
     isin_links = (
         [
@@ -166,6 +171,10 @@ trs = [
     )
     for comp, iid, sym, ms, act, eff, ann, doc, sec, h, pv, pg, _, _co, rel in rows
 ]
+voids = [Void(r[0], r[1], r[2]) for r in voidrows]
+trs, voided, unmatched_voids = apply_voids(
+    trs, voids
+)  # changes a later release declared null and void (March 2020)
 revocations = [Revocation(r[0], r[1], COMP[r[2]], r[3], r[4], r[5]) for r in revrows]
 trs, cancelled, unmatched_revocations = apply_revocations(trs, revocations)
 listing_entity = {r[2]: entity_of(r[1], r[2], r[3]) for r in rows}  # stock symbol -> its entity
@@ -484,6 +493,28 @@ write_csv(
 )  # fmt: skip
 write_csv("membership_exceptions.csv", exc)
 authority_hash = {r[1]: r[7] for r in revrows}
+write_csv(
+    "membership_voids.csv",
+    [
+        {
+            "effective_from": tr.effective,
+            "symbol": tr.symbol,
+            "component": tr.component,
+            "voided_action": tr.action,
+            "announced_in": tr.doc_id,
+            "announced_on": tr.announced,
+            "announcement_hash": tr.source_hash,
+            "voided_by": v.authority_doc,
+            "unmatched_void": "",
+        }
+        for v, tr in voided
+    ]
+    + [
+        {"effective_from": v.effective, "symbol": "", "component": "", "voided_action": "", "announced_in": v.doc_id,
+         "announced_on": "", "announcement_hash": "", "voided_by": v.authority_doc, "unmatched_void": "matched no transition"}
+        for v in unmatched_voids
+    ],
+)  # fmt: skip
 write_csv(
     "membership_cancellations.csv",
     [

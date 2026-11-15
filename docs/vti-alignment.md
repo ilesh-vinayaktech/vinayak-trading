@@ -128,7 +128,9 @@ count.
 **Decision (owner, 2026-11-14):** Nifty 200 only for the first research dataset; the AMFI market-cap universe is not a second
 discovery universe in Phase 1.
 
-**The development window is intended, not yet verified.** The intended initial window is 2020-10-01 to 2024-12-31. It becomes
+**Update 2026-11-15:** the 2020-10-01 start was only a default argument. A revision 4 candidate now reconstructs the membership from 2018-04-02 (`docs/stage4/membership-2018/`), agreeing with every independent monthly snapshot except one blocked stock (TATAMTRDVR), but it is as unverified and unloaded as revision 3, so everything below still holds, with the intended window now 2018-04-02 to 2024-12-31 (prices before 2019-10 for members that later delisted are still missing).
+
+**The development window is intended, not yet verified.** The intended initial window was 2020-10-01 to 2024-12-31. It becomes
 eligible for Nifty 200 point-in-time research only after membership revision 3 has been person-verified, loaded into the database
 and has passed the strict eligibility checks. Until then the platform may validate features against historical prices, but nothing
 may claim point-in-time Nifty 200 universe validity, and **no Nifty 200 experiment may be registered**.

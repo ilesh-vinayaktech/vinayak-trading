@@ -7,8 +7,10 @@ from algo.data.membership_reconstruction import (
     Replacement,
     Revocation,
     Transition,
+    Void,
     apply_replacements,
     apply_revocations,
+    apply_voids,
     block_windows,
     closing_entity,
     combine_rows,
@@ -469,3 +471,42 @@ def test_a_span_wholly_before_or_wholly_after_the_change_goes_to_one_instrument_
     assert hand_over_spans({f"i:{OLD}": [(D(2025, 1, 1), D(2025, 2, 1))]}, CONV) == {
         f"i:{NEW}": [(D(2025, 1, 1), D(2025, 2, 1))]
     }
+
+
+def _void_tr(doc, comp, sym, action, eff):
+    return Transition(comp, f"s:{sym}", sym, action, eff, D(2020, 2, 18), doc, "s", "h", "v7", 1)
+
+
+def test_a_release_declared_null_and_void_loses_only_the_changes_it_names_by_date():
+    march27, march19 = D(2020, 3, 27), D(2020, 3, 19)
+    trs = [
+        _void_tr("pr_19032020", "N50", "AAA", "INCLUDED", march27),  # replacement that was voided
+        _void_tr(
+            "pr_19032020", "N50", "YESBANK", "EXCLUDED", march19
+        ),  # the same release's change that STOOD (it took effect on 19 March)
+        _void_tr("pr_12032020", "MID100", "BBB", "EXCLUDED", march27),  # another voided release
+        _void_tr(
+            "pr_10062020", "MID100", "BBB", "INCLUDED", D(2020, 6, 26)
+        ),  # the review that replaced them
+    ]
+    voids = [
+        Void("pr_19032020", march27, "pr_13052020"),
+        Void("pr_12032020", march27, "pr_13052020"),
+    ]
+    kept, voided, unmatched = apply_voids(trs, voids)
+    assert [(t.doc_id, t.symbol) for t in kept] == [
+        ("pr_19032020", "YESBANK"),
+        ("pr_10062020", "BBB"),
+    ]
+    assert sorted((v.doc_id, t.symbol) for v, t in voided) == [
+        ("pr_12032020", "BBB"),
+        ("pr_19032020", "AAA"),
+    ]
+    assert unmatched == []
+
+
+def test_a_void_that_matches_nothing_is_reported_never_silently_dropped_and_nothing_is_invented():
+    trs = [_void_tr("pr_a", "N50", "AAA", "INCLUDED", D(2020, 3, 27))]
+    kept, voided, unmatched = apply_voids(trs, [Void("pr_zzz", D(2020, 3, 27), "pr_13052020")])
+    assert kept == trs and voided == [] and [u.doc_id for u in unmatched] == ["pr_zzz"]
+    assert apply_voids([], [])[0] == []
