@@ -329,6 +329,16 @@
      "status": "UNKNOWN"
     },
     {
+     "detail": "the freshness check has never run",
+     "name": "data freshness",
+     "status": "UNKNOWN"
+    },
+    {
+     "detail": "the reconciliation check has never run",
+     "name": "Kite against bhavcopy",
+     "status": "UNKNOWN"
+    },
+    {
      "detail": "none",
      "name": "quarantined loads",
      "status": "PASS"
