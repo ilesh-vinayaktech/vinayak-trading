@@ -134,3 +134,16 @@ def test_the_log_cannot_be_changed_or_deleted(env):
 def test_nothing_recorded_yet_means_trading_is_blocked(env):
     assert store.latest(env) is None
     assert "no platform boot" in store.trading_blocked(env, MORNING)
+
+
+def test_halting_an_already_halted_platform_changes_nothing_and_a_platform_with_no_history_can_be_halted(
+    env,
+):
+    assert (
+        store.record_halt(env, MORNING, "kill switch before any boot") is State.HALTED
+    )  # no history: starts from INITIALIZING
+    assert moves(env) == [("INITIALIZING", "HALTED")]
+    assert (
+        store.record_halt(env, MORNING + timedelta(minutes=1), "again") is State.HALTED
+    )  # already halted
+    assert moves(env) == [("INITIALIZING", "HALTED")]  # nothing was added

@@ -72,6 +72,10 @@ def test_a_new_family_needs_a_name_a_hypothesis_and_a_real_justification(env):
         registry.create_family(
             env, name="Value", hypothesis=HYP, justification=WHY, created_by=None, now=NOW
         )
+    with pytest.raises(registry.RegistryError, match="needs a name"):
+        registry.create_family(
+            env, name="   ", hypothesis=HYP, justification=WHY, created_by=None, now=NOW
+        )
     with pytest.raises(registry.RegistryError, match="justification"):
         registry.create_family(
             env, name="Other", hypothesis=HYP, justification="too short", created_by=None, now=NOW
