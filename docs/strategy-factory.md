@@ -20,12 +20,21 @@ mode a day whose membership evidence is unusable makes no decision. It evaluates
 version must change a rule (not just the description), and what is read back is checked against its stored hash, so an altered row is refused. The table has no
 status column: a definition cannot be marked usable, so it cannot bypass validation.
 
+**Experiments (`experiment.py`, `lab.py`, migration 080).** A grid of paths into a registered definition (for example `entry.all.0.value` or
+`position.max_positions`) expands to variants in a stable order. Every combination is a trial and every trial is kept: a combination that is not a valid definition
+is SKIPPED with its reason, one that errors while running is FAILED with its reason, and both count as tries. A grid over the limit (default 64) is refused, never
+truncated, because the number of tries is what makes the comparison honest. The runner only runs a base that is a registered version (same hash), only over
+development days, through the guarded reader, and stores the experiment and its trials in one transaction (both tables insert-only). The comparison ranks the
+finished trials by Sharpe and judges the best against the number of ATTEMPTS: it reports the expected best Sharpe luck alone would give from that many tries
+(from the spread of the trials' own Sharpes) and the deflated Sharpe, the probability the result is real after that many attempts. More tries lower the same result's
+deflated Sharpe, and the winner of many tries on pure noise is not promoted.
+
 ## Not built (and not claimed)
 
 - **No factory that generates definitions.** Turning a CANDIDATE alpha hypothesis into a definition needs thresholds, and the language has no percentile operators yet;
   inventing thresholds from the development data would be an overfitting step that deserves its own design.
-- **No experiment orchestrator, parameter optimisation, feature-combination search or experiment comparison.** The existing study framework does grids for coded
-  strategies; a DSL strategy cannot yet be registered as a study (studies look strategies up by id in a fixed table).
+- **No feature-combination search and no command-line script for experiments.** Which universe to run on has to be chosen by a person while membership is not
+  strict-eligible. A DSL strategy cannot yet be registered as a study (studies look strategies up by id in a fixed table).
 - **No connection to validation or promotion.** A definition can be backtested by hand through the engine, as the integration test does. Whether a version may go to
   paper or live is decided by the existing validation and lifecycle gates, which nothing here touches or bypasses.
 - **Language limits (version 1):** long-only, daily, price and volume features only. Features whose value depends on all history (the ATR family) are refused. No
