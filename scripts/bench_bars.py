@@ -17,6 +17,11 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--rows", type=int, default=5_000_000)
 ap.add_argument("--instruments", type=int, default=500)
+ap.add_argument(
+    "--timescale",
+    action="store_true",
+    help="hypertable + compression + continuous aggregate (needs the TimescaleDB extension)",
+)
 ap.add_argument("--keep", action="store_true", help="leave the schema for inspection")
 a = ap.parse_args()
 if not a.db:
@@ -29,6 +34,14 @@ CRITERIA = {
     "session_500_ms": ("<=", 1500),
     "daily_rollup_ms": ("<=", 500),
 }
+if a.timescale:  # criteria 6-8 of docs/benchmarks/S1-bars-storage.md
+    CRITERIA |= {
+        "compression_ratio": (">=", 4),
+        "cagg_refresh_s_per_million_rows": ("<=", 5),
+        "compressed_one_instrument_year_ms": ("<=", 250),
+        "compressed_session_500_ms": ("<=", 1500),
+        "compressed_daily_rollup_ms": ("<=", 500),
+    }
 results: dict[str, float] = {}
 
 
@@ -51,10 +64,14 @@ start = datetime(2025, 1, 1, 3, 45, tzinfo=UTC)
 with psycopg.connect(a.db, autocommit=True) as conn:
     conn.execute(f"CREATE SCHEMA {SCHEMA}")
     try:
-        conn.execute(f"SET search_path = {SCHEMA}")
+        conn.execute(f"SET search_path = {SCHEMA}, public")  # public: the TimescaleDB functions
         conn.execute(
             "CREATE TABLE bar (instrument_id BIGINT NOT NULL, ts TIMESTAMPTZ NOT NULL, open NUMERIC NOT NULL, high NUMERIC NOT NULL, low NUMERIC NOT NULL, close NUMERIC NOT NULL, volume BIGINT NOT NULL, PRIMARY KEY (instrument_id, ts))"
         )
+        if a.timescale:
+            conn.execute(
+                "SELECT create_hypertable('bar', 'ts', chunk_time_interval => INTERVAL '90 days')"
+            )
         total, copy_s = 0, 0.0
         for iid in range(1, a.instruments + 1):
             buf = io.StringIO()
@@ -82,7 +99,11 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         rate = total / copy_s
         results["ingest_rows_per_s"] = rate
         say("ingest", rate, "rows/s")
-        size = conn.execute("SELECT pg_total_relation_size('bar')").fetchone()[0]  # type: ignore[index]
+        size = conn.execute(
+            "SELECT hypertable_size('bar')"
+            if a.timescale
+            else "SELECT pg_total_relation_size('bar')"
+        ).fetchone()[0]  # type: ignore[index]
         say("size_per_million_rows", size / (total / 1e6) / 1e6, "MB")
         last = conn.execute("SELECT max(ts) FROM bar WHERE instrument_id=1").fetchone()[0]  # type: ignore[index]
         lo = last - timedelta(days=365)
@@ -111,6 +132,51 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             for _ in range(3)
         )
         say("daily_rollup_one_instrument", results["daily_rollup_ms"], "ms")
+        if a.timescale:
+            before = conn.execute("SELECT hypertable_size('bar')").fetchone()[0]  # type: ignore[index]
+            conn.execute(
+                "CREATE MATERIALIZED VIEW daily WITH (timescaledb.continuous) AS SELECT instrument_id, time_bucket('1 day', ts) AS d, min(low) AS low, max(high) AS high, sum(volume) AS volume FROM bar GROUP BY 1, 2 WITH NO DATA"
+            )
+            t = time.perf_counter()
+            conn.execute("CALL refresh_continuous_aggregate('daily', NULL, NULL)")
+            results["cagg_refresh_s_per_million_rows"] = (time.perf_counter() - t) / (total / 1e6)
+            say("cagg_refresh", results["cagg_refresh_s_per_million_rows"], "s per million rows")
+            conn.execute(
+                "ALTER TABLE bar SET (timescaledb.compress, timescaledb.compress_segmentby = 'instrument_id', timescaledb.compress_orderby = 'ts')"
+            )
+            conn.execute("SELECT compress_chunk(c) FROM show_chunks('bar') c")
+            after = conn.execute("SELECT hypertable_size('bar')").fetchone()[0]  # type: ignore[index]
+            results["compression_ratio"] = before / after
+            say("compression_ratio", results["compression_ratio"], "x")
+            results["compressed_one_instrument_year_ms"] = min(
+                timed(
+                    conn,
+                    "SELECT * FROM bar WHERE instrument_id=1 AND ts BETWEEN %s AND %s",
+                    (lo, last),
+                )
+                for _ in range(3)
+            )
+            results["compressed_session_500_ms"] = min(
+                timed(
+                    conn,
+                    "SELECT * FROM bar WHERE ts >= %s AND ts < %s",
+                    (day0, day0 + timedelta(hours=7)),
+                )
+                for _ in range(3)
+            )
+            results["compressed_daily_rollup_ms"] = min(
+                timed(
+                    conn,
+                    "SELECT date_trunc('day', ts), min(low), max(high), sum(volume) FROM bar WHERE instrument_id=1 GROUP BY 1",
+                )
+                for _ in range(3)
+            )
+            for k in (
+                "compressed_one_instrument_year_ms",
+                "compressed_session_500_ms",
+                "compressed_daily_rollup_ms",
+            ):
+                say(k, results[k], "ms")
     finally:
         if not a.keep:
             conn.execute("SET search_path = public")

@@ -34,3 +34,18 @@ order by time), every chunk is compressed, and a continuous aggregate of daily b
 session of 500 instruments 838 ms (PASS), daily roll-up 4 ms (PASS), one-instrument-year 15 ms (PASS but NOT MEANINGFUL: at this size each instrument has about
 10 sessions, so the query returned about 4,000 rows, not 94,000). Size 121 MB per million rows uncompressed. Criterion 2 is only a real test from about 47 million
 rows (500 instruments x one year); the 100-million-row run on the production host, with TimescaleDB compression measured there, is still to do.
+
+**2026-11-15, TimescaleDB 2.17.2 (the development container), synthetic, 5,000,000 rows, 500 instruments (`--timescale`):** all nine criteria PASS (ingest about 238,000 rows/s,
+daily continuous aggregate 0.3 s per million rows, queries unchanged or faster after compression). The 74.6x compression ratio is an artefact of the synthetic
+prices (a repeating pattern) and is NOT evidence about real data.
+
+**2026-11-15, the real `bar_1m` table in the development database (396,118,296 rows, 2016 to 2026-11-13; already four times the 100-million-row scale the TODO named):**
+- Compression, from TimescaleDB's own statistics: 53 GB before, 6,592 MB after, **8.2x**. This is the real figure.
+- Criterion 2, one instrument over the last year (92,693 rows, compressed chunks): **581 ms, FAIL** against 250 ms. The criterion stands as written.
+- Criterion 3, one whole session across the universe: 2026-06-12 returned 184,814 rows in 667 ms (the shape of criterion 3, PASS); 2026-11-13 returned 768,922 rows
+  (about four times as many instruments with minute bars, from the live feed) in 2.8 s, about 3.7 microseconds a row either way.
+- Criterion 4, a year of daily roll-ups for one instrument: 69 ms, PASS.
+
+What the failure means: daily research and the feature job read `bar_1d`, not `bar_1m`, so no current workload is affected; a minute-bar study that reads one stock for a
+year at a time would feel 0.6 s per read. Nothing has been tuned (segment-by, order-by, chunk size) and no claim is made that it can be; that is a decision for the day an
+intraday strategy needs it.
