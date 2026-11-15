@@ -247,8 +247,8 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 
 ### 3.3 Feature library
 
-- [ ] Registry (`feature_id`, version, inputs, warm-up); same function for batch + live; stored with `feature_version`. First features: returns, momentum windows, vol, ATR, MA distance, liquidity.
-- [ ] T: batch == incremental (property test), warm-up respected (NaN/None, not zero), version bump creates new rows, cross-sectional ranks stable, **look-ahead harness** (truncate data at T, output at T unchanged).
+- [x] (2026-11-15: BUILT as Phase 1 item C — 12 price/volume features, versioned and immutable; "same function for batch + live" holds because the live path would call the same compute functions, but no live consumer exists yet) Registry (`feature_id`, version, inputs, warm-up); same function for batch + live; stored with `feature_version`. First features: returns, momentum windows, vol, ATR, MA distance, liquidity.
+- [x] (2026-11-15: Phase 1 items C and E — batch==incremental hypothesis test, warm-up absent never zero, version guard, look-ahead truncation harness over the whole registry; cross-sectional ranks are not built because no rank feature exists) T: batch == incremental (property test), warm-up respected (NaN/None, not zero), version bump creates new rows, cross-sectional ranks stable, **look-ahead harness** (truncate data at T, output at T unchanged).
 
 ### 3.4 Backtest engine (or Nautilus adapter per ADR-004)
 
