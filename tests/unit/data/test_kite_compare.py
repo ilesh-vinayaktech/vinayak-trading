@@ -132,3 +132,28 @@ def test_a_bump_in_the_middle_that_goes_away_again_is_not_a_step():
     nse = loaded(scaled(series(), D("1.1"), lambda i, d: 40 <= i < 60))
     r = compare(kite_of(series()), nse)
     assert (r.status, r.step_date) == ("DIVERGES", None) and r.outliers == 20
+
+
+def test_which_comparisons_are_breaches_and_which_are_not():
+    from algo.data.kite_compare import Comparison, breaches
+
+    ok = Comparison("MATCH", 100, 0, D("0.001"))
+    none = Comparison("NO_OVERLAP", 5, 0, D(0))
+    explained = Comparison(
+        "STEP", 100, 50, D("0.1"), DAYS[10], D("0.9"), ("dividend", DAYS[10], "ok")
+    )
+    unexplained = Comparison("STEP", 100, 50, D("0.1"), DAYS[10], D("0.9"), None)
+    diverges, offset = (
+        Comparison("DIVERGES", 100, 90, D("0.3")),
+        Comparison("OFFSET", 100, 100, D("0.1")),
+    )
+    got = breaches(
+        {"A": ok, "B": none, "C": explained, "D": unexplained, "E": diverges, "F": offset}
+    )
+    assert sorted(got) == [
+        "D",
+        "E",
+        "F",
+    ]  # a step we can explain by a recorded action, a match and too little overlap are not breaches
+    assert got["E"] == "DIVERGES: scattered differences, largest 0.300"
+    assert got["D"].startswith("STEP: no recorded action near")

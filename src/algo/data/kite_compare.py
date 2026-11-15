@@ -78,3 +78,21 @@ def compare(kite: Loaded, nse: Loaded, *, tolerance: Decimal = Decimal("0.01")) 
     nearest = min(near, key=lambda r: abs(r.ex_date - at)) if near else None
     why = None if nearest is None else (nearest.kind, nearest.ex_date, nearest.status)
     return Comparison("STEP", size, len(bad), biggest, at, typical, why)
+
+
+def breaches(results: dict[str, Comparison]) -> dict[str, str]:
+    """symbol -> why, for the comparisons a person must look at: the sources diverge, differ by a steady offset, or step with no recorded action near the step.
+    A match, too little overlap, and a step our own records explain are not breaches."""
+    out: dict[str, str] = {}
+    for sym, r in results.items():
+        if r.status == "DIVERGES":
+            out[sym] = f"DIVERGES: scattered differences, largest {r.max_deviation:.3f}"
+        elif r.status == "OFFSET":
+            out[sym] = f"OFFSET: a steady difference on every day, largest {r.max_deviation:.3f}"
+        elif r.status == "STEP" and r.explained_by is None:
+            out[sym] = (
+                f"STEP: no recorded action near {r.step_date} (x{r.step_ratio:.4f})"
+                if r.step_ratio
+                else f"STEP: no recorded action near {r.step_date}"
+            )
+    return out

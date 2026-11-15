@@ -83,3 +83,23 @@ def test_a_continuity_scan_is_stored_as_one_row_per_unexplained_jump_or_one_pass
     assert got[0][:3] == ("continuity", None, "PASS") and "500 stocks" in got[0][3]
     assert got[1][:3] == ("continuity.unexplained", "ABC 2026-11-13", "FAIL") and "31%" in got[1][3]
     assert results.latest(conn, "continuity")[0] == "FAIL"
+
+
+def test_a_reconciliation_alerts_only_on_breaches_that_are_new_since_the_previous_run(conn):
+    migrate(conn)
+    scope = "kite vs nse, 2600 stocks"
+    first = {"AAA": "DIVERGES: x", "BBB": "OFFSET: y"}
+    # nothing recorded before: every breach is new
+    assert results.new_breaches(conn, "kite_reconcile", first) == ["AAA", "BBB"]
+    results.record_reconcile(conn, first, scope, NOW)
+    assert results.new_breaches(conn, "kite_reconcile", first) == []  # the same backlog is not news
+    assert results.new_breaches(conn, "kite_reconcile", {**first, "CCC": "STEP: z"}) == ["CCC"]
+    results.record_reconcile(
+        conn, {"AAA": "DIVERGES: x"}, scope, datetime(2026, 11, 16, tzinfo=UTC)
+    )  # BBB cleared
+    assert results.new_breaches(conn, "kite_reconcile", first) == [
+        "BBB"
+    ]  # and coming back is new again
+    results.record_reconcile(conn, {}, scope, datetime(2026, 11, 17, tzinfo=UTC))
+    assert results.latest(conn, "kite_reconcile")[0] == "PASS"
+    assert results.new_breaches(conn, "kite_reconcile", {"AAA": "DIVERGES: x"}) == ["AAA"]

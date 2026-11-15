@@ -84,8 +84,8 @@ JOBS: tuple[Job, ...] = (
     Job(
         "kite-reconcile",
         f"{WEEKDAYS} *-*-* 20:00 Asia/Kolkata",
-        ((*_PY, "scripts/reconcile_kite_prices.py"),),
-        "Compare the stored Kite daily candles with bhavcopy (database only: needs no Kite session)",
+        ((*_PY, "scripts/reconcile_kite_prices.py", "--record"),),
+        "Compare the stored Kite daily candles with bhavcopy (database only: needs no Kite session); alerts on stocks that newly disagree, not on the known backlog",
     ),
     Job(
         "gap-nightly",

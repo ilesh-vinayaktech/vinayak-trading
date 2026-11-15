@@ -133,7 +133,7 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 20:00 Asia/Kolkata",
-   "description": "Compare the stored Kite daily candles with bhavcopy (database only: needs no Kite session)",
+   "description": "Compare the stored Kite daily candles with bhavcopy (database only: needs no Kite session); alerts on stocks that newly disagree, not on the known backlog",
    "last_run": null,
    "last_success_at": null,
    "name": "kite-reconcile"
