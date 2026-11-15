@@ -98,7 +98,7 @@ Order of work: P1 (Nifty 200 membership verified and loaded, the owner's person-
 - [ ] GitHub Actions: lint → types → unit → integration (testcontainers) → coverage gate → golden backtest → build image. Nightly: mutation, fault, slow, replay. (2026-11-13: remote `origin` exists and `.github/workflows/ci.yml` runs `make check` on push/PR plus a nightly `make mut`; whether it has passed on GitHub is not verified from here. A `frontend` job (tsc, eslint, vitest, next build; Node 22) was added 2026-11-13. Not yet: golden backtest, image build, fault/slow/replay.)
 - [x] (file written, CI smoke test pending) `docker-compose.dev.yml`: timescaledb, redis, minio. Healthchecks. T: compose-up smoke test in CI.
 - [ ] Secrets policy: SOPS/age config, `.gitignore`, pre-commit secret scan (gitleaks). T: CI fails on seeded fake secret.
-- [ ] Structured JSON logging + correlation-id helper (`run_id, strategy_id, instrument_id, order_id`). T: log schema test.
+- [x] (2026-11-15, agent: `algo/core/logs.py`, JSON lines, injected clock, `correlate()` restricted to run_id/strategy_id/instrument_id/order_id; wiring it into each entry point is not done) Structured JSON logging + correlation-id helper (`run_id, strategy_id, instrument_id, order_id`). T: log schema test.
 - [ ] ADR folder; write ADR-001 (Python), ADR-002 (modular monolith + isolated OMS/reconciler/sandbox processes), ADR-003 (Timescale + Parquet + DuckDB, no ClickHouse/Kafka v1).
 
 ### 0.2 Spikes (time-boxed, each ends with a written pass/fail ADR)
