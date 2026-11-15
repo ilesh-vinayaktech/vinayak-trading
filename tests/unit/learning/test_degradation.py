@@ -169,3 +169,41 @@ def test_drawdown_rule_edges():
     wavy = [0.01, -0.02] * 30
     same = dg.assess(wavy, list(wavy), thresholds=dg.Thresholds(drawdown_multiple=1.0))
     assert same.evidence["live_drawdown"] == same.evidence["ref_drawdown"] and same.status == "OK"
+
+
+def test_equity_curves_are_turned_into_daily_returns_in_date_order():
+    from datetime import date, timedelta
+    from decimal import Decimal as D
+
+    d0 = date(2026, 1, 5)
+    curve = {
+        d0 + timedelta(days=2): D(121),
+        d0: D(100),
+        d0 + timedelta(days=1): D(110),
+    }  # unordered input
+    assert dg.returns_from_equity(curve) == pytest.approx([0.1, 0.1])
+    assert (
+        dg.returns_from_equity({d0: D(0), d0 + timedelta(days=1): D(5)}) == []
+    )  # no return from zero equity
+    assert dg.returns_from_equity({}) == []
+
+
+def test_assess_equity_agrees_with_assess_on_the_same_returns():
+    from datetime import date, timedelta
+    from decimal import Decimal as D
+
+    def curve(returns):
+        eq, out, d = D(1000), {}, date(2024, 1, 1)
+        out[d] = eq
+        for r in returns:
+            d += timedelta(days=1)
+            eq = eq * D(repr(1 + r))
+            out[d] = eq
+        return out
+
+    ref, live = noise(1, 0.0008, 300), noise(3, -0.004, 60)
+    a = dg.assess_equity(curve(ref), curve(live))
+    b = dg.assess(ref, live)
+    assert a.status == b.status == "DEGRADED" and a.evidence["z"] == pytest.approx(
+        b.evidence["z"], rel=1e-6
+    )

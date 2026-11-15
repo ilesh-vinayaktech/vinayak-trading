@@ -16,8 +16,10 @@ not hide a new one. Nothing here acts on the verdict: a person or a later gate d
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import date
+from decimal import Decimal
 from typing import Any
 
 from algo.backtest.validation import stats
@@ -121,3 +123,28 @@ def assess(
             f"recent drawdown {live_dd:.1%} is deeper than {thresholds.drawdown_multiple}x the development drawdown of {ref_dd:.1%}"
         )
     return Health(status, reasons, evidence)
+
+
+def returns_from_equity(equity: Mapping[date, Decimal]) -> list[float]:
+    """Daily returns of a {day: equity} curve in date order (the shape paper tracking uses). A day after a zero or negative equity has no return and is skipped."""
+    days = sorted(equity)
+    return [
+        float(equity[b] / equity[a] - 1)
+        for a, b in zip(days, days[1:], strict=False)
+        if equity[a] > 0
+    ]
+
+
+def assess_equity(
+    reference: Mapping[date, Decimal],
+    live: Mapping[date, Decimal],
+    *,
+    window: int = 60,
+    thresholds: Thresholds | None = None,
+) -> Health:
+    return assess(
+        returns_from_equity(reference),
+        returns_from_equity(live),
+        window=window,
+        thresholds=thresholds,
+    )
