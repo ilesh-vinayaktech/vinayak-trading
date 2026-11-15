@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Point-in-time index membership. Events (ADD / REMOVE) carry an announcement date and an
 effective date; membership on a day is derived from them, never from a current snapshot.
 
@@ -41,20 +42,25 @@ class Interval:
 
 
 def add_event(
-    conn: psycopg.Connection, *, index_id: str, instrument_id: int, symbol: str, event_type: str,
+    conn: psycopg.Connection, *, index_id: str, instrument_id: int | None, symbol: str, event_type: str,
     announcement_date: date, effective_from: date, source_url: str, source_hash: str, now: datetime,
+    constituent_key: str | None = None,
 ) -> int:  # fmt: skip
+    """effective_from is when the change really applied, announcement_date when it could have been known (it may be later: a
+    retrospective handover), `now` when we recorded it. A constituent with no tradable instrument (an index placeholder, a symbol not yet
+    an instrument) is a member too: pass instrument_id=None and its constituent_key ('p:SYMBOL' or 's:SYMBOL')."""
     if event_type not in ("ADD", "REMOVE"):
         raise UniverseError("event_type must be ADD or REMOVE")
-    if effective_from < announcement_date:
-        raise UniverseError("a change cannot take effect before it is announced")
+    if instrument_id is None and not constituent_key:
+        raise UniverseError("an event needs an instrument or a constituent key")
     if not source_url or not source_hash:
         raise UniverseError("every event needs its source url and document hash")
+    key = f"i:{instrument_id}" if instrument_id is not None else constituent_key
     row = conn.execute(
-        "INSERT INTO index_membership_event (index_id,instrument_id,symbol_at_event,event_type,"
+        "INSERT INTO index_membership_event (index_id,instrument_id,constituent_key,symbol_at_event,event_type,"
         "announcement_date,effective_from,source_url,source_hash,ingested_at)"
-        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING event_id",
-        (index_id, instrument_id, symbol, event_type, announcement_date, effective_from,
+        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING event_id",
+        (index_id, instrument_id, key, symbol, event_type, announcement_date, effective_from,
          source_url, source_hash, require_utc(now)),
     ).fetchone()  # fmt: skip
     assert row is not None
@@ -120,53 +126,87 @@ def covered(conn: psycopg.Connection, index_id: str, day: date, *, strict: bool 
 
 
 def _events(
-    conn: psycopg.Connection, index_id: str, strict: bool, known_on: date | None, upto: date | None
+    conn: psycopg.Connection,
+    index_id: str,
+    strict: bool,
+    known_on: date | None,
+    upto: date | None,
+    instruments_only: bool = True,
 ) -> list[tuple[Any, ...]]:
     return conn.execute(
-        "SELECT instrument_id, event_type, effective_from FROM index_membership_event"
+        "SELECT constituent_key, event_type, effective_from FROM index_membership_event"
         " WHERE index_id=%s AND verified_status = ANY(%s)"
         " AND (%s::date IS NULL OR announcement_date <= %s)"
         " AND (%s::date IS NULL OR effective_from <= %s)"
-        " ORDER BY instrument_id, effective_from, event_type",
-        (index_id, list(_allowed(strict)), known_on, known_on, upto, upto),
+        " AND (NOT %s OR instrument_id IS NOT NULL)"
+        " ORDER BY constituent_key, effective_from, event_type",
+        (index_id, list(_allowed(strict)), known_on, known_on, upto, upto, instruments_only),
     ).fetchall()
 
 
-def _walk(events: list[tuple[Any, ...]]) -> list[Interval]:
-    out: list[Interval] = []
-    open_: dict[int, date] = {}
-    for iid, kind, eff in events:
+def _walk_keys(events: list[tuple[Any, ...]]) -> list[tuple[str, date, date | None]]:
+    out: list[tuple[str, date, date | None]] = []
+    open_: dict[str, date] = {}
+    for key, kind, eff in events:
         if kind == "ADD":
-            if iid in open_:
-                raise UniverseInconsistent(
-                    f"instrument {iid} ADDed on {eff} while already a member"
-                )
-            open_[iid] = eff
+            if key in open_:
+                raise UniverseInconsistent(f"{key} ADDed on {eff} while already a member")
+            open_[key] = eff
         else:
-            if iid not in open_:
-                raise UniverseInconsistent(f"instrument {iid} REMOVEd on {eff} but not a member")
-            out.append(Interval(iid, open_.pop(iid), eff))
-    out.extend(Interval(i, s, None) for i, s in open_.items())
-    return sorted(out, key=lambda x: (x.instrument_id, x.start))
+            if key not in open_:
+                raise UniverseInconsistent(f"{key} REMOVEd on {eff} but not a member")
+            out.append((key, open_.pop(key), eff))
+    out.extend((k, st, None) for k, st in open_.items())
+    return out
+
+
+def _walk(events: list[tuple[Any, ...]]) -> list[Interval]:
+    """Intervals of instrument members (every key here is 'i:<id>')."""
+    return sorted(
+        (Interval(int(k[2:]), st, en) for k, st, en in _walk_keys(events)),
+        key=lambda x: (x.instrument_id, x.start),
+    )
 
 
 def intervals(conn: psycopg.Connection, index_id: str, *, strict: bool = True) -> list[Interval]:
-    """Membership intervals derived from the (verified) events."""
+    """Membership intervals of instruments, derived from the (verified) events."""
     return _walk(_events(conn, index_id, strict, None, None))
+
+
+def _known(day: date, known_on: date | None, historical: bool) -> date | None:
+    """What a reader may know: by default only what was announced by `day`; `historical` lifts that limit to ask who actually WAS a member."""
+    return None if historical else (known_on or day)
 
 
 def members_on(
     conn: psycopg.Connection, index_id: str, day: date, *, known_on: date | None = None,
-    strict: bool = True,
+    strict: bool = True, historical: bool = False,
 ) -> set[int]:  # fmt: skip
     """Instruments in the index on `day`, as known on `known_on` (default: `day` itself).
-    Changes announced after `known_on` are invisible, so a future reconstitution cannot leak."""
+    Changes announced after `known_on` are invisible, so a future reconstitution cannot leak.
+    `historical=True` ignores the announcement date and answers who actually was a member (a record, not a decision input)."""
     if not covered(conn, index_id, day, strict=strict):
         mode = "verified" if strict else "declared"
         raise UniverseGap(f"{index_id} membership on {day} is not covered by {mode} history")
-    known = known_on or day
-    ivs = _walk(_events(conn, index_id, strict, known, day))
+    ivs = _walk(_events(conn, index_id, strict, _known(day, known_on, historical), day))
     return {i.instrument_id for i in ivs if i.start <= day and (i.end is None or day < i.end)}
+
+
+def constituents_on(
+    conn: psycopg.Connection, index_id: str, day: date, *, known_on: date | None = None,
+    strict: bool = True, historical: bool = False,
+) -> set[str]:  # fmt: skip
+    """Every constituent key in the index on `day`, tradable or not ('i:<id>', 'p:<SYMBOL>', 's:<SYMBOL>'): the full index, 200 names.
+    Being a member, having an instrument, having prices and being eligible to trade are separate questions."""
+    if not covered(conn, index_id, day, strict=strict):
+        mode = "verified" if strict else "declared"
+        raise UniverseGap(f"{index_id} membership on {day} is not covered by {mode} history")
+    walked = _walk_keys(
+        _events(
+            conn, index_id, strict, _known(day, known_on, historical), day, instruments_only=False
+        )
+    )
+    return {k for k, st, en in walked if st <= day and (en is None or day < en)}
 
 
 def coverage_report(conn: psycopg.Connection, index_id: str) -> dict[str, Any]:

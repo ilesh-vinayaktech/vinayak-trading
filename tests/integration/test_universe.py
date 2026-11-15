@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 import psycopg
 import pytest
@@ -9,6 +9,7 @@ from algo.data.universe import (
     UniverseGap,
     UniverseInconsistent,
     add_event,
+    constituents_on,
     coverage_report,
     covered,
     declare_coverage,
@@ -125,8 +126,9 @@ def test_events_are_validated_and_append_only(env):
     conn, a, _ = env
     with pytest.raises(UniverseError, match="ADD or REMOVE"):
         ev(conn, a, "BUY", START)
-    with pytest.raises(UniverseError, match="before it is announced"):
-        ev(conn, a, "ADD", JUN15, ann=JUN30)
+    with pytest.raises(UniverseError, match="instrument or a constituent key"):
+        add_event(conn, index_id=IDX, instrument_id=None, symbol="S", event_type="ADD",
+                  announcement_date=START, effective_from=START, source_url="u", source_hash="x", now=NOW)  # fmt: skip
     with pytest.raises(UniverseError, match="source url and document hash"):
         add_event(conn, index_id=IDX, instrument_id=a, symbol="S", event_type="ADD",
                   announcement_date=START, effective_from=START, source_url="", source_hash="x", now=NOW)  # fmt: skip
@@ -175,3 +177,47 @@ def test_the_coverage_report_states_what_is_established(env):
                                 "basis": "initial snapshot + all circulars"}  # fmt: skip
     verified(conn, pending)
     assert coverage_report(conn, IDX)["strict_ready"]
+
+
+def test_the_actual_and_the_known_date_are_kept_apart(env):
+    conn, a, _ = env
+    ev(conn, a, "ADD", JUN15, ann=JUN30)  # really effective 15 June, only announced 30 June
+    cover(conn, strict_verified=False)
+    verified_ids = [r[0] for r in conn.execute("SELECT event_id FROM index_membership_event")]
+    verified(conn, *verified_ids)
+    assert conn.execute(
+        "SELECT effective_from, announcement_date FROM index_membership_event"
+    ).fetchone() == (JUN15, JUN30)
+    assert (
+        members_on(conn, IDX, JUN20, strict=False) == set()
+    )  # a decision on 20 June could not have known
+    assert members_on(conn, IDX, JUN20, known_on=JUL5, strict=False) == {a}  # a later reader knows
+    assert members_on(conn, IDX, JUN20, historical=True, strict=False) == {
+        a
+    }  # the historical record: who WAS a member
+
+
+def test_a_constituent_without_an_instrument_is_a_member_but_not_a_tradable_one(env):
+    conn, a, _ = env
+    for key, kind, eff in (("p:DUMMYX", "ADD", START), ("p:DUMMYX", "REMOVE", JUN15)):
+        add_event(conn, index_id=IDX, instrument_id=None, constituent_key=key, symbol="DUMMYX", event_type=kind,
+                  announcement_date=eff, effective_from=eff, source_url="u", source_hash="x", now=NOW)  # fmt: skip
+    ev(conn, a, "ADD", JUN15)
+    cover(conn, strict_verified=False)
+    assert constituents_on(conn, IDX, JUN15 - timedelta(days=1), strict=False) == {"p:DUMMYX"}
+    assert constituents_on(conn, IDX, JUN15, strict=False) == {
+        f"i:{a}"
+    }  # the real listing replaces the placeholder
+    assert (
+        members_on(conn, IDX, JUN15 - timedelta(days=1), strict=False) == set()
+    )  # not tradable: never in the instrument universe
+    assert [i.instrument_id for i in intervals(conn, IDX, strict=False)] == [a]
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute("INSERT INTO index_membership_event (index_id,constituent_key,symbol_at_event,event_type,announcement_date,"
+                     "effective_from,source_url,source_hash,ingested_at) VALUES ('X','DUMMY','D','ADD',now(),now(),'u','h',now())")  # fmt: skip
+
+
+def test_constituents_outside_coverage_are_unknown_too(env):
+    conn, _, _ = env
+    with pytest.raises(UniverseGap, match="not covered by verified history"):
+        constituents_on(conn, IDX, JUN20)

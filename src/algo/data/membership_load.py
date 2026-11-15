@@ -1,7 +1,8 @@
 # ruff: noqa: E501
 """Load a reconstructed membership (membership_intervals.csv + membership_events.csv) as stored, PROVISIONAL membership events and a
-PROVISIONAL coverage declaration. Only intervals of real instruments are loaded: placeholders and unmapped symbols have no instrument to
-point at (they stay listed in the reconstruction's exceptions). Loading never verifies anything: VERIFIED is the owner's act."""
+PROVISIONAL coverage declaration. EVERY constituent is loaded: instruments by instrument id, placeholders and unmapped symbols by their
+constituent key (member, but not tradable). Effective and announcement dates are stored as they are. Loading never verifies anything:
+VERIFIED is the owner's act."""
 
 from __future__ import annotations
 
@@ -23,7 +24,6 @@ class Loaded:
     added: int
     existing: int
     coverage_id: int
-    clamped: int = 0  # events whose release came after their effective date: stored as effective on the day announced (no lookahead)
 
 
 def _read(path: Path) -> list[dict[str, str]]:
@@ -46,20 +46,16 @@ def _wanted(
     events: list[dict[str, str]],
     urls: dict[str, str],
     baseline_hash: str,
-) -> list[tuple[int, str, str, date, date, str, str]]:
+) -> list[tuple[int | None, str, str, str, date, date, str, str]]:
     """Events are matched to interval boundaries by symbol, type and date, not entity: after an ISIN change the release event names the current
-    instrument while the interval belongs to the one that was listed then. (instrument_id, symbol, ADD|REMOVE, announced, effective, url, hash) for every boundary of a tradable instrument interval."""
+    instrument while the interval belongs to the one that was listed then. (instrument_id or None, constituent key, symbol, ADD|REMOVE, announced, effective, url, hash) for every boundary of every constituent interval."""
     by_key = {
-        (e["symbol"], e["event_type"], date.fromisoformat(e["effective_from"])): e
-        for e in events
-        if e["tradable"] == "True"
+        (e["symbol"], e["event_type"], date.fromisoformat(e["effective_from"])): e for e in events
     }
     used: set[tuple[str, str, date]] = set()
     out = []
     for iv in intervals:
-        if iv["kind"] != "INSTRUMENT" or iv["tradable"] != "True":
-            continue
-        iid = int(iv["instrument_id"])
+        iid = int(iv["instrument_id"]) if iv["kind"] == "INSTRUMENT" else None
         bounds = [("ADD", date.fromisoformat(iv["start"]))]
         if iv["end_exclusive"]:
             bounds.append(("REMOVE", date.fromisoformat(iv["end_exclusive"])))
@@ -70,6 +66,7 @@ def _wanted(
                 out.append(
                     (
                         iid,
+                        iv["entity"],
                         iv["symbol"],
                         kind,
                         eff,
@@ -88,6 +85,7 @@ def _wanted(
             out.append(
                 (
                     iid,
+                    iv["entity"],
                     iv["symbol"],
                     kind,
                     date.fromisoformat(e["announcement_date"]),
@@ -99,7 +97,7 @@ def _wanted(
     stray = sorted(set(by_key) - used, key=str)
     if stray:
         raise UniverseError(
-            f"{len(stray)} tradable events match no interval boundary, e.g. {stray[0]}: the files disagree"
+            f"{len(stray)} events match no interval boundary, e.g. {stray[0]}: the files disagree"
         )
     return out
 
@@ -120,22 +118,18 @@ def load_reconstruction(
     baseline_hash = hashlib.sha256(
         (directory / "membership_intervals.csv").read_bytes()
     ).hexdigest()
-    added = existing = clamped = 0
-    for iid, sym, kind, announced, eff, url, digest in _wanted(
+    added = existing = 0
+    for iid, key, sym, kind, announced, eff, url, digest in _wanted(
         intervals, events, _urls(conn), baseline_hash
     ):
-        if (
-            eff < announced
-        ):  # retrospective handover (D5): the table cannot say "effective before announced", and knowing it earlier would be lookahead
-            eff, clamped = announced, clamped + 1
         row = conn.execute(
-            "SELECT 1 FROM index_membership_event WHERE index_id=%s AND instrument_id=%s AND event_type=%s AND effective_from=%s",
-            (index_id, iid, kind, eff),
+            "SELECT 1 FROM index_membership_event WHERE index_id=%s AND constituent_key=%s AND event_type=%s AND effective_from=%s",
+            (index_id, key, kind, eff),
         ).fetchone()
         if row:
             existing += 1
             continue
-        add_event(conn, index_id=index_id, instrument_id=iid, symbol=sym, event_type=kind, announcement_date=announced,
+        add_event(conn, index_id=index_id, instrument_id=iid, constituent_key=key, symbol=sym, event_type=kind, announcement_date=announced,
                   effective_from=eff, source_url=url, source_hash=digest, now=now)  # fmt: skip
         added += 1
     have = conn.execute(
@@ -147,4 +141,4 @@ def load_reconstruction(
         if have
         else declare_coverage(conn, index_id, covered_from, covered_until, basis, now)
     )
-    return Loaded(added, existing, cid, clamped)
+    return Loaded(added, existing, cid)

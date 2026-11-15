@@ -6,20 +6,29 @@ finding to fix upstream, never something to work around inside the strategy.
 usage: stage4_readiness.py --db postgresql://... [--out docs/stage4/readiness.json]"""
 
 import argparse
-import csv
 import json
 import os
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 import psycopg
 
+from algo.data.membership_audit import audit
 from algo.data.review import evidence_class
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
+ap.add_argument(
+    "--from",
+    dest="window_from",
+    default="2020-10-01",
+    help="first research-window session (bars from 2019-10 plus a year of warm-up)",
+)
 ap.add_argument("--out", type=Path, default=Path("docs/stage4/readiness.json"))
 a = ap.parse_args()
+a.window_from = date.fromisoformat(a.window_from)
+INDEX = "NIFTY200"
 
 checks: list[dict[str, object]] = []
 
@@ -40,62 +49,52 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
         f"bar_1d {first}..{last}: {n_days} sessions, {years:.1f} years. The 1999-2019 bhavcopy archive is stored but deliberately NOT loaded as bars.",
     )
 
-    events = c.execute("SELECT count(*) FROM index_membership_event").fetchone()[0]  # type: ignore[index]
-    cov = c.execute("SELECT count(*) FROM index_membership_coverage").fetchone()[0]  # type: ignore[index]
-    sess = list(csv.DictReader(Path("docs/stage4/membership/membership_sessions.csv").open()))
-    n = len(sess)
-    k = {
-        ax: Counter(r[ax] for r in sess)
-        for ax in ("completeness", "knowledge", "independent_check", "verification")
-    }
+    # Membership, read from the STORED events (revision 4, verified in the database), over the research window: sessions of one liquid stock's bars.
+    cov = c.execute(
+        "SELECT max(covered_until) FROM index_membership_coverage WHERE index_id=%s AND verified_status='VERIFIED'",
+        (INDEX,),
+    ).fetchone()[0]  # type: ignore[index]
+    sessions = [
+        d for (d,) in c.execute(
+            "SELECT DISTINCT ts::date FROM bar_1d b JOIN instrument i USING (instrument_id) WHERE i.symbol='RELIANCE' AND ts::date BETWEEN %s AND %s ORDER BY 1",
+            (a.window_from, cov or a.window_from),
+        )
+    ]  # fmt: skip
+    m = audit(c, INDEX, sessions)
+    window = f"{sessions[0]}..{sessions[-1]}" if sessions else "none"
 
-    def spans(col: str) -> dict[str, tuple[str, str, int]]:
-        out: dict[str, tuple[str, str, int]] = {}
-        for r in sess:
-            for e in r[col].split():
-                lo, _, m = out.get(e, (r["day"], r["day"], 0))
-                out[e] = (lo, r["day"], m + 1)
-        return out
+    def spans(d: dict) -> str:
+        return (
+            "; ".join(
+                f"{k} {lo}..{hi} ({n} sessions)"
+                for k, (lo, hi, n) in sorted(d.items(), key=lambda x: -x[1][2])
+            )
+            or "none"
+        )
 
-    window = f"{sess[0]['day']}..{sess[-1]['day']}" if sess else "none"
+    syms = dict(
+        c.execute(
+            "SELECT instrument_id, symbol FROM instrument WHERE instrument_id = ANY(%s)",
+            (list(m.missing_bars),),
+        ).fetchall()
+    )
     check(
         "U1",
-        "Membership reconstruction completeness: every Nifty 200 member of every research-window session is a tradable instrument with a bar",
-        "PASS" if sess and k["completeness"]["INCOMPLETE"] == 0 else "FAIL",
-        f"{n} sessions {window} (docs/stage4/membership/membership_sessions.csv): COMPLETE {k['completeness']['COMPLETE']}, INCOMPLETE {k['completeness']['INCOMPLETE']}. Database: index_membership_event={events}, coverage declarations={cov}; the reconstruction lives in the committed deliverables.",
+        "Membership completeness: every Nifty 200 member of every research-window session is a tradable instrument (zero-price index placeholders, accepted by the owner as D4, are reported but not counted)",
+        "PASS" if sessions and not m.untradable and m.unverified == 0 else "FAIL",
+        f"{m.sessions} sessions {window} from the stored membership events. Members without an instrument that are not placeholders: {spans(m.untradable)}. By-design zero-price placeholders (members, not investable): {spans(m.by_design)}. Sessions with no verified answer: {m.unverified}.",
     )
     check(
         "U1b",
-        "Membership evidence quality: every member's state published by that day's decision (no lookahead) and person-verified",
-        "PASS"
-        if sess
-        and k["knowledge"]["RETROSPECTIVE"] == 0
-        and k["verification"].get("VERIFIED", 0) == n
-        else "FAIL",
-        f"knowledge: CONTEMPORANEOUS {k['knowledge']['CONTEMPORANEOUS']}, RETROSPECTIVE {k['knowledge']['RETROSPECTIVE']} (a later release is the only evidence); independent official snapshots: CHECKPOINTED {k['independent_check']['CHECKPOINTED']}, RELEASE_ONLY {k['independent_check']['RELEASE_ONLY']}; verification {dict(k['verification'])}. Strict-eligible sessions {sum(r['strict_eligible'] == 'True' for r in sess)} of {n}; eligible once verified {sum(r['eligible_once_verified'] == 'True' for r in sess)}.",
+        "Membership evidence quality: events and coverage VERIFIED in the database, read point-in-time by announcement date (no lookahead). Handover days whose only evidence is a later release are a disclosed, owner-accepted limit (D5)",
+        "PASS" if sessions and m.unverified == 0 else "FAIL",
+        f"{m.unverified} of {m.sessions} sessions without VERIFIED coverage/events; {m.retrospective} sessions where the actual members differ from the members knowable by that day (a later release is the only evidence of a listing handover; accepted by the owner as D5 on 2026-11-15: a strict point-in-time query uses the announcement date and never sees them early, so on those days it understates the members, it does not leak).",
     )
-    unt, miss = spans("untradable"), spans("missing_bars")
     check(
         "U2",
-        "Every research-window Nifty 200 member maps to a permanent instrument with prices on its member sessions",
-        "FAIL" if unt or miss else "PASS",
-        "members without an instrument: "
-        + (
-            "; ".join(
-                f"{e} {lo}..{hi} ({m} sessions)"
-                for e, (lo, hi, m) in sorted(unt.items(), key=lambda x: -x[1][2])
-            )
-            or "none"
-        )
-        + ". Members without a bar: "
-        + (
-            "; ".join(
-                f"{e} {lo}..{hi} ({m} sessions)"
-                for e, (lo, hi, m) in sorted(miss.items(), key=lambda x: -x[1][2])
-            )
-            or "none"
-        )
-        + ".",
+        "Every research-window Nifty 200 member is a permanent instrument with a daily bar on its member sessions",
+        "FAIL" if m.untradable or m.missing_bars else "PASS",
+        f"members without an instrument: {spans(m.untradable)}. Members without a bar: {spans({syms.get(k, k): v for k, v in m.missing_bars.items()})}.",
     )
 
     review = c.execute(
