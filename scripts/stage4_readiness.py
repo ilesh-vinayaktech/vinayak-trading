@@ -9,11 +9,12 @@ import argparse
 import json
 import os
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import psycopg
 
+from algo.backtest.costs.schedule import schedule_from_dict
 from algo.data.membership_audit import audit
 from algo.data.review import evidence_class
 
@@ -116,19 +117,48 @@ with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as c:
         f"{price_moving} non-dividend actions still in review ({dict((k, n) for k, n in review if k != 'dividend')}); by evidence of their latest resolution: {dict(sorted(classes.items()))}. A further {dict(review).get('dividend', 0)} dividends in review matter only to the total-return basis.",
     )
 
-sch = [
+# K1 reads the database, where a person's verification is recorded (the JSON files are only the seed). Only a schedule verified with
+# component evidence counts: one verified before components carried evidence (LEGACY_SCHEDULE_LEVEL) keeps its record but is reported apart.
+with psycopg.connect(a.db, options="-c default_transaction_read_only=on") as kc:
+    stored = [
+        schedule_from_dict(d)
+        for (d,) in kc.execute(
+            "SELECT doc FROM cost_schedule ORDER BY valid_from, schedule_id"
+        ).fetchall()
+    ]
+window_end = sessions[-1] if sessions else a.window_from
+delivery = [x for x in stored if x.product == "DELIVERY"]
+good = [
+    x for x in delivery if x.status == "verified" and x.verification_basis == "COMPONENT_EVIDENCE"
+]
+legacy = [
+    x
+    for x in delivery
+    if x.status == "verified" and x.verification_basis == "LEGACY_SCHEDULE_LEVEL"
+]
+covered, day = True, a.window_from
+while day <= window_end and covered:
+    hit = next((x for x in good if x.covers(day)), None)
+    covered = hit is not None
+    day = (
+        (hit.valid_until + timedelta(days=1))
+        if hit and hit.valid_until
+        else window_end + timedelta(days=1)
+    )
+files = [
     s
     for f in sorted(Path("config/cost_schedules").glob("*.json"))
     for s in json.loads(f.read_text())["schedules"]
+    if s["product"] == "DELIVERY"
 ]
-verified = [s for s in sch if s["status"] == "verified"]
 check(
     "K1",
-    "Versioned, non-placeholder, VERIFIED cost schedule covering the whole research window",
-    "PASS" if verified else "FAIL",
-    "schedules: "
-    + "; ".join(f"{s['id']} [{s['status']}] {s['valid_from']}..{s['valid_until']}" for s in sch)
-    + ". None is verified; the backfill is opt-in and cannot support promotion.",
+    "Versioned, non-placeholder cost schedules, VERIFIED with component evidence, covering the whole research window",
+    "PASS" if covered and good else "FAIL",
+    f"database: {len(good)} delivery schedule(s) verified with component evidence; {len(legacy)} verified before components carried evidence "
+    f"(legacy, by {sorted({x.verified_by for x in legacy if x.verified_by})}, {', '.join(f'{x.valid_from}..{x.valid_until or "open"}' for x in legacy) or 'none'}): they keep their record but do not count. "
+    f"The committed files hold {len(files)} delivery schedules, {sum(1 for f in files if any(c.get('evidence') == 'ASSUMED' for c in f['components']))} with an ASSUMED component, "
+    "none verified: the corrected content needs a person's decision before it can replace the legacy-verified records.",
 )
 
 th = json.loads(Path("config/validation_thresholds.json").read_text())

@@ -1,7 +1,6 @@
 {
   "audit": "stage4_readiness",
   "blocking": [
-    "U2",
     "C1",
     "K1",
     "R1"
@@ -26,21 +25,21 @@
       "status": "PASS"
     },
     {
-      "evidence": "members without an instrument: none. Members without a bar: PEL 2020-10-01..2024-09-27 (831 sessions); GSPL 2020-10-01..2023-03-29 (620 sessions).",
+      "evidence": "members without an instrument: none. Members without a bar: none.",
       "id": "U2",
       "requirement": "Every research-window Nifty 200 member is a permanent instrument with a daily bar on its member sessions",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
-      "evidence": "921 non-dividend actions still in review ({'buy': 338, 'rights': 336, 'demerger': 101, 'arrangement': 91, 'other': 43, 'split': 3, 'sch of': 3, 'reduction': 3, 'arangement': 2, 'merger': 1}); by evidence of their latest resolution: {'IGNORED_WITH_REASON': 840, 'NO_ADJUSTMENT_VERIFIED': 61, 'PROVISIONAL_GAP_ESTIMATE': 4, 'VERIFIED': 16}. A further 1895 dividends in review matter only to the total-return basis.",
+      "evidence": "927 non-dividend actions still in review ({'buy': 339, 'rights': 338, 'demerger': 102, 'arrangement': 92, 'other': 44, 'split': 3, 'sch of': 3, 'reduction': 3, 'arangement': 2, 'merger': 1}); by evidence of their latest resolution: {'IGNORED_WITH_REASON': 844, 'NO_ADJUSTMENT_VERIFIED': 61, 'PROVISIONAL_EXCHANGE_DERIVED': 5, 'PROVISIONAL_ISSUER_TERMS': 1, 'VERIFIED': 16}. A further 1902 dividends in review matter only to the total-return basis.",
       "id": "C1",
       "requirement": "Strict mode: every price-affecting corporate action verified (none pending review)",
       "status": "FAIL"
     },
     {
-      "evidence": "schedules: nse-cash-intraday-zerodha-assumed-2020-07-01 [assumed_backfill] 2020-07-01..2026-02-28; nse-cash-delivery-zerodha-2016-01-01 [extracted_unverified] 2016-01-01..2017-06-30; nse-cash-delivery-zerodha-2017-07-01 [extracted_unverified] 2017-07-01..2020-06-30; nse-cash-delivery-zerodha-2020-07-01 [extracted_unverified] 2020-07-01..2022-07-17; nse-cash-delivery-zerodha-2022-07-18 [extracted_unverified] 2022-07-18..2023-03-31; nse-cash-delivery-zerodha-2023-04-01 [extracted_unverified] 2023-04-01..2024-03-31; nse-cash-delivery-zerodha-2024-04-01 [extracted_unverified] 2024-04-01..2024-09-30; nse-cash-delivery-zerodha-2024-10-01 [extracted_unverified] 2024-10-01..2026-02-28; nse-cash-delivery-zerodha-2026-03-01 [extracted_unverified] 2026-03-01..None; nse-cash-intraday-zerodha-2026-03-01 [extracted_unverified] 2026-03-01..None. None is verified; the backfill is opt-in and cannot support promotion.",
+      "evidence": "database: 0 delivery schedule(s) verified with component evidence; 8 verified before components carried evidence (legacy, by ['Ilesh Patel'], 2016-01-01..2017-06-30, 2017-07-01..2020-06-30, 2020-07-01..2022-07-17, 2022-07-18..2023-03-31, 2023-04-01..2024-03-31, 2024-04-01..2024-09-30, 2024-10-01..2026-02-28, 2026-03-01..open): they keep their record but do not count. The committed files hold 12 delivery schedules, 10 with an ASSUMED component, none verified: the corrected content needs a person's decision before it can replace the legacy-verified records.",
       "id": "K1",
-      "requirement": "Versioned, non-placeholder, VERIFIED cost schedule covering the whole research window",
+      "requirement": "Versioned, non-placeholder cost schedules, VERIFIED with component evidence, covering the whole research window",
       "status": "FAIL"
     },
     {
