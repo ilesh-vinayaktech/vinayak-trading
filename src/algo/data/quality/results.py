@@ -10,6 +10,7 @@ import psycopg
 
 from algo.core.clock import require_utc
 from algo.data.quality.completeness import Report
+from algo.data.quality.continuity_scan import ScanResult
 
 
 def _add(
@@ -85,3 +86,31 @@ def latest(conn: psycopg.Connection, check_prefix: str) -> tuple[str, datetime] 
         (row[0], check_prefix, check_prefix + ".%"),
     ).fetchone()
     return ("FAIL" if failed else "PASS", row[0])
+
+
+def record_continuity(
+    conn: psycopg.Connection, scan: ScanResult, since: date, now: datetime
+) -> int:
+    """Store a price-continuity scan: each unexplained jump is a FAIL row; pending ones (waiting for a person) are reported by the script, not failed."""
+    now, scope = require_utc(now), f"nse bar_1d raw closes since {since}"
+    for f in scan.unexplained:
+        _add(
+            conn,
+            now,
+            "continuity.unexplained",
+            scope,
+            f"{f.symbol} {f.day}",
+            "FAIL",
+            f"{f.kind}: {f.detail}",
+        )
+    if not scan.unexplained:
+        _add(
+            conn,
+            now,
+            "continuity",
+            scope,
+            None,
+            "PASS",
+            f"{scan.scanned} stocks scanned, no unexplained jump",
+        )
+    return max(len(scan.unexplained), 1)

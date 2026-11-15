@@ -78,7 +78,7 @@ JOBS: tuple[Job, ...] = (
     Job(
         "price-continuity",
         f"{WEEKDAYS} *-*-* 19:45 Asia/Kolkata",
-        ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}"),),
+        ((*_PY, "scripts/check_price_continuity.py", "--db", "{db}", "--record"),),
         "Alert on a raw NSE close that jumped more than 20% with no corporate action recorded (an action the parser could not price, or a missing one)",
     ),
     Job(

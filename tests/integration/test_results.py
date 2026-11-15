@@ -61,3 +61,25 @@ def test_results_are_append_only_and_a_rerun_adds_rows(conn):
         conn.execute("DELETE FROM dq_result")
     assert results.latest(conn, "completeness")[0] == "PASS"
     assert results.latest(conn, "never-ran") is None
+
+
+def test_a_continuity_scan_is_stored_as_one_row_per_unexplained_jump_or_one_pass(conn):
+    from algo.data.quality.continuity_scan import Finding, ScanResult
+
+    migrate(conn)
+    clean = ScanResult(scanned=500)
+    assert results.record_continuity(conn, clean, SINCE, NOW) == 1
+    bad = ScanResult(
+        scanned=500,
+        unexplained=[Finding("ABC", date(2026, 11, 13), "jump", "close fell 31%")],
+        pending=[Finding("XYZ", date(2026, 11, 13), "jump", "on a pending demerger")],
+    )
+    assert (
+        results.record_continuity(conn, bad, SINCE, NOW) == 1
+    )  # only the unexplained fails; pending is reported, not failed
+    got = conn.execute(
+        "SELECT check_name, subject, status, detail FROM dq_result ORDER BY result_id"
+    ).fetchall()
+    assert got[0][:3] == ("continuity", None, "PASS") and "500 stocks" in got[0][3]
+    assert got[1][:3] == ("continuity.unexplained", "ABC 2026-11-13", "FAIL") and "31%" in got[1][3]
+    assert results.latest(conn, "continuity")[0] == "FAIL"
