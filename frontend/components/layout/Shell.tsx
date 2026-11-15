@@ -40,6 +40,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/costs", label: "Trading costs", icon: "scroll", need: "research:read" },
       { href: "/research/studies", label: "Backtest studies", icon: "flask", need: "research:read" },
       { href: "/research/backtests", label: "Backtests", icon: "flask" },
+      { href: "/research/intelligence", label: "Research intelligence", icon: "chart", need: "research:read" },
     ],
   },
   {

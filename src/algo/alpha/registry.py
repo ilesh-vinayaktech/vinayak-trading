@@ -81,7 +81,7 @@ def record(
                 "alpha": alpha,
                 "min_abs_ic": min_abs_ic,
                 "direction": None
-                if e.mean_ic is None
+                if not e.mean_ic  # None (untestable) or exactly 0.0 (no direction)
                 else ("POSITIVE" if e.mean_ic > 0 else "NEGATIVE"),
                 "discovery_result_sha256": e.sha256,
                 "context": context

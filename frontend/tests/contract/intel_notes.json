@@ -1,0 +1,41 @@
+{
+ "notes": [
+  {
+   "at": "<at>",
+   "body": "ret_20d v1 at 20 days was REJECTED: alpha=0.05, avg_names=150.0, discovery_result_sha256=a4eb1a259f454310b05db4878dbb90b911170f551276decdb488420d167f3f64, hit_rate=0.5, icir=0.0, mean_ic=0.0, min_abs_ic=0.02, p_adjusted=1.0, p_value=0.9, sample_days=500, std_ic=0.1, t_stat=0.0, tests_ever_run=2",
+   "by": "system",
+   "id": 0,
+   "kind": "FAILURE",
+   "subject": "alpha:ret_20d:h20",
+   "tags": [
+    "alpha",
+    "rejected",
+    "ret_20d"
+   ]
+  },
+  {
+   "at": "<at>",
+   "body": "ret_5d v1 at 5 days was CANDIDATE: alpha=0.05, avg_names=150.0, direction=POSITIVE, discovery_result_sha256=ba82d5435e2288bfe0afbe9b263c329d488c34614a42f3353fa56fe9deb2db6d, hit_rate=0.6, icir=0.5, mean_ic=0.05, min_abs_ic=0.02, p_adjusted=0.0002, p_value=0.0001, sample_days=500, std_ic=0.1, t_stat=4.0, tests_ever_run=2",
+   "by": "system",
+   "id": 0,
+   "kind": "FINDING",
+   "subject": "alpha:ret_5d:h5",
+   "tags": [
+    "alpha",
+    "candidate",
+    "ret_5d"
+   ]
+  },
+  {
+   "at": "<at>",
+   "body": "Paper capital Rs 1 lakh",
+   "by": "owner",
+   "id": 0,
+   "kind": "DECISION",
+   "subject": "capital",
+   "tags": [
+    "decision"
+   ]
+  }
+ ]
+}

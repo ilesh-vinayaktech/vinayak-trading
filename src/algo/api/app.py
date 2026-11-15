@@ -23,6 +23,7 @@ from algo.api import (
     crm_routes,
     dashboard_routes,
     freshness,
+    intel_routes,
     kite_routes,
     live_routes,
     market_routes,
@@ -132,6 +133,7 @@ def create_app(
     app.include_router(costs_routes.router)
     app.include_router(crm_routes.router)
     app.include_router(dashboard_routes.router)
+    app.include_router(intel_routes.router)
     app.include_router(tickets_routes.router)
     app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn

@@ -763,3 +763,62 @@ def test_the_cost_responses_match_the_fixtures_the_frontend_is_tested_against(
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    import random
+
+    from fastapi.testclient import TestClient
+
+    from algo.alpha import registry as alpha_registry
+    from algo.alpha.discover import Evidence
+    from algo.features import store as feature_store
+    from algo.learning import memory
+    from algo.portfolio import audit
+    from tests.support.portal import open_app
+
+    migrate(conn)
+    now = datetime(2026, 11, 15, 12, 0, tzinfo=UTC)
+    feature_store.register_all(conn, now)
+    alpha_registry.record(
+        conn,
+        [Evidence("ret_5d", "1", 5, 500, 150.0, 0.05, 0.1, 0.5, 0.6, 4.0, 0.0001), Evidence("ret_20d", "1", 20, 500, 150.0, 0.0, 0.1, 0.0, 0.5, 0.0, 0.9)],
+        "d" * 64,
+        now,
+    )
+    memory.add(conn, "DECISION", "capital", "Paper capital Rs 1 lakh", by="owner", now=now, tags=["decision"])
+    memory.sync_alpha(conn, now=now)
+    rng = {k: random.Random(i) for i, k in enumerate("ABCD", 1)}
+    returns = {k: [r.gauss(0.0005, 0.01 * (i + 1)) for _ in range(60)] for i, (k, r) in enumerate(rng.items())}
+    audit.recommend_and_record(conn, returns, dict.fromkeys(returns, "OK"), by="jane", now=now, method="EQUAL_RISK")
+    conn.execute("INSERT INTO dq_result (run_at, check_name, scope, subject, status, detail) VALUES (%s,'degradation','paper account vs backtest run 1',NULL,'FAIL','DEGRADED: mean return -0.5%% a day')", (now,))
+    conn.commit()
+    c = TestClient(open_app(pg_url, tmp_path))
+    shots = {
+        "intel_overview": c.get("/api/intel/overview"),
+        "intel_alpha": c.get("/api/intel/alpha"),
+        "intel_notes": c.get("/api/intel/notes"),
+        "intel_allocations": c.get("/api/intel/allocations"),
+    }
+    for name, resp in shots.items():
+        assert resp.status_code == 200, (name, resp.text)
+        doc = json.loads(json.dumps(resp.json()))
+
+        def scrub(v, key=""):
+            if isinstance(v, dict):
+                return {k: scrub(x, k) for k, x in v.items()}
+            if isinstance(v, list):
+                return [scrub(x, key) for x in v]
+            if key == "at" and isinstance(v, str):
+                return "<at>"
+            if key == "id" and isinstance(v, int):
+                return 0
+            return v
+
+        text = json.dumps(scrub(doc), indent=1, sort_keys=True) + "\n"
+        path = OUT / f"{name}.json"
+        if os.environ.get("UPDATE_CONTRACT") == "1":
+            path.write_text(text)
+        assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"

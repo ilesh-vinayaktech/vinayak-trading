@@ -135,3 +135,14 @@ def test_what_the_caller_says_about_the_data_is_stored_with_the_evidence(conn):
     assert conn.execute(
         "SELECT evidence->'context' FROM alpha_hypothesis WHERE hypothesis_id=%s", (hid2,)
     ).fetchone() == ({},)
+
+
+def test_a_zero_mean_ic_has_no_direction_not_a_negative_one(conn):
+    migrate(conn)
+    registry.record(
+        conn, [ev("a", mean=0.0, p=0.9), ev("b", mean=-0.05), ev("c", mean=0.05)], "d" * 64, NOW
+    )
+    got = dict(
+        conn.execute("SELECT feature_name, evidence->>'direction' FROM alpha_hypothesis").fetchall()
+    )
+    assert got == {"a": None, "b": "NEGATIVE", "c": "POSITIVE"}

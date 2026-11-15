@@ -1,0 +1,32 @@
+{
+ "hypotheses": [
+  {
+   "at": "<at>",
+   "batch": 1,
+   "direction": null,
+   "feature": "ret_20d",
+   "horizon": 20,
+   "icir": 0.0,
+   "id": 0,
+   "mean_ic": 0.0,
+   "p_adjusted": 1.0,
+   "sample_days": 500,
+   "status": "REJECTED",
+   "version": "1"
+  },
+  {
+   "at": "<at>",
+   "batch": 1,
+   "direction": "POSITIVE",
+   "feature": "ret_5d",
+   "horizon": 5,
+   "icir": 0.5,
+   "id": 0,
+   "mean_ic": 0.05,
+   "p_adjusted": 0.0002,
+   "sample_days": 500,
+   "status": "CANDIDATE",
+   "version": "1"
+  }
+ ]
+}

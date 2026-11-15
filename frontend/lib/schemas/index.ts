@@ -1035,3 +1035,47 @@ export const brokerAccountSchema = z.object({
   totals: z.object({ holdings_value: decimal, holdings_pnl: decimal }),
 });
 export type BrokerAccount = z.infer<typeof brokerAccountSchema>;
+
+
+// ---- research intelligence (phases 1 to 5; read-only) ------------------------------------------------------------------
+const intelCountsSchema = z.record(z.string(), z.number());
+export const intelOverviewSchema = z.object({
+  features: z.object({ by_status: intelCountsSchema }),
+  alpha: z.object({ tests_ever_run: z.number(), by_status: intelCountsSchema }),
+  factory: z.object({ definitions: z.number(), experiments: z.number(), trials: z.number() }),
+  notes: z.object({ total: z.number() }),
+  health: z.array(z.object({ scope: z.string(), status: z.enum(["PASS", "FAIL"]), detail: z.string(), at: z.string() })),
+  allocation: z
+    .object({ id: z.number(), method: z.string(), weights: z.record(z.string(), z.number()), cash: z.number(), notes: z.array(z.string()), by: z.string(), at: z.string() })
+    .nullable(),
+});
+export const intelAlphaSchema = z.object({
+  hypotheses: z.array(
+    z.object({
+      id: z.number(),
+      batch: z.number(),
+      feature: z.string(),
+      version: z.string(),
+      horizon: z.number(),
+      status: z.enum(["CANDIDATE", "REJECTED"]),
+      mean_ic: z.number().nullable(),
+      icir: z.number().nullable(),
+      p_adjusted: z.number().nullable(),
+      direction: z.enum(["POSITIVE", "NEGATIVE"]).nullable(),
+      sample_days: z.number().nullable(),
+      at: z.string(),
+    }),
+  ),
+});
+export const intelNotesSchema = z.object({
+  notes: z.array(z.object({ id: z.number(), kind: z.enum(["FINDING", "FAILURE", "DECISION", "LESSON"]), subject: z.string(), body: z.string(), tags: z.array(z.string()), by: z.string(), at: z.string() })),
+});
+export const intelAllocationsSchema = z.object({
+  allocations: z.array(
+    z.object({ id: z.number(), method: z.string(), weights: z.record(z.string(), z.number()), cash: z.number(), notes: z.array(z.string()), risk_contribution: z.record(z.string(), z.number()), by: z.string(), at: z.string() }),
+  ),
+});
+export type IntelOverview = z.infer<typeof intelOverviewSchema>;
+export type IntelAlpha = z.infer<typeof intelAlphaSchema>;
+export type IntelNotes = z.infer<typeof intelNotesSchema>;
+export type IntelAllocations = z.infer<typeof intelAllocationsSchema>;
