@@ -17,6 +17,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from algo.data import ratios as fr
+from algo.data import sectors as sec
 from algo.indicators.catalog import Bars
 from algo.screener.engine import FIELDS
 from algo.screener.technical import technicals
@@ -122,6 +123,17 @@ def compute(conn: psycopg.Connection) -> list[dict[str, Any]]:
             row.update({k: v.value for k, v in fr.compute(known, market).items()})
             row["latest_period"] = known[0].period_end.isoformat()
         rows.append(row)
+    return add_sector_view(rows, sec.sectors_on(conn, day))
+
+
+def add_sector_view(rows: list[dict[str, Any]], sector_of: dict[int, str]) -> list[dict[str, Any]]:
+    """Each stock's sector, the median P/E of its OTHER sector peers (three at least) and its own P/E relative to that median."""
+    pe = {r["instrument_id"]: r.get("pe") for r in rows}
+    for r in rows:
+        peer = sec.peer_median(pe, sector_of, r["instrument_id"], min_peers=3)
+        r["sector"] = peer.sector
+        r["pe_sector_median"] = peer.median
+        r["pe_vs_sector"] = sec.relative(r.get("pe"), peer)
     return rows
 
 

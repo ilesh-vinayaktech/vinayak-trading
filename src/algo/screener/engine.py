@@ -50,6 +50,13 @@ FIELDS: dict[str, Field] = {
     **{r.key: Field(r.key, r.label, r.group, "fundamental", r.unit) for r in RATIOS},
     **{k: Field(k, label, g, "technical", u) for k, label, g, u in _TECH},
     "segment": Field("segment", "Market-cap class (AMFI)", "profile", "profile", "text"),
+    "sector": Field("sector", "Sector (NSE industry)", "profile", "profile", "text"),
+    "pe_sector_median": Field(
+        "pe_sector_median", "P/E, median of its sector peers", "valuation", "profile", "x"
+    ),
+    "pe_vs_sector": Field(
+        "pe_vs_sector", "P/E relative to its sector peers (1 = same)", "valuation", "profile", "x"
+    ),
 }
 NUMERIC_OPS = {"gt", "gte", "lt", "lte", "eq", "ne", "between"}
 TEXT_OPS = {"eq", "ne", "in"}

@@ -312,7 +312,7 @@ export default function ScreenerPage() {
             </div>
             {conds.length > 0 && !canBacktest ? (
               <p className="mt-2 text-xs text-ink-soft">
-                A market-cap class cannot be a condition here: a study or a saved strategy picks its market-cap segments separately.
+                A market-cap class or a view against its sector cannot be a condition here: a study or a saved strategy picks its market-cap segments separately.
               </p>
             ) : null}
           </div>

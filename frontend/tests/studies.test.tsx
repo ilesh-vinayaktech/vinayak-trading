@@ -167,10 +167,12 @@ describe("a new study", () => {
     expect(within(pick).queryByText("Big caps")).not.toBeInTheDocument(); // a study picks market-cap classes elsewhere
     fireEvent.change(pick, { target: { value: "oversold" } });
     expect(screen.getByText("RSI (14) < 30")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Days to wait after a filing/)).toHaveValue("0");
+    fireEvent.change(screen.getByLabelText(/Days to wait after a filing/), { target: { value: "7" } });
     fireEvent.click(register());
     fireEvent.click(await screen.findByRole("button", { name: "Register and lock" }));
     await waitFor(() => expect(posted()).toHaveLength(1));
-    expect(posted()[0]?.body).toMatchObject({ strategy_id: "screener", grid: { max_positions: [10] }, screen: { conditions: [{ field: "rsi_14", op: "lt", value: 30 }], match: "all", sort: "chg_6m", descending: true } });
+    expect(posted()[0]?.body).toMatchObject({ strategy_id: "screener", filing_lag_days: 7, grid: { max_positions: [10] }, screen: { conditions: [{ field: "rsi_14", op: "lt", value: 30 }], match: "all", sort: "chg_6m", descending: true } });
   });
 
   it("opens preloaded from a saved screener: its screen, the caps it picks from and the stocks it holds", async () => {

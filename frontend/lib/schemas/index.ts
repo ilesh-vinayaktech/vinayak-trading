@@ -816,6 +816,7 @@ export const studySpecSchema = z.object({
   benchmark: z.string(),
   thresholds: z.record(z.string(), z.string()),
   accept_survivorship_bias: z.boolean(),
+  filing_lag_days: z.number().optional(), // absent in studies registered before the field existed
 });
 export const studySchema = z.object({
   experiment_id: z.number(),

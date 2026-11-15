@@ -46,6 +46,13 @@ const META = {
       kind: "technical",
       unit: "x",
     },
+    {
+      key: "pe_vs_sector",
+      label: "P/E relative to its sector peers (1 = same)",
+      group: "valuation",
+      kind: "profile",
+      unit: "x",
+    },
   ],
   presets: [
     {
@@ -148,6 +155,19 @@ describe("screener", () => {
         { field: "rsi_14", op: "lte", value: "40" },
       ],
     });
+  });
+
+  it("offers P/E against the sector as a screen condition but says it cannot back a study or a saved strategy", async () => {
+    render(
+      <Providers>
+        <ScreenerPage />
+      </Providers>,
+    );
+    await screen.findByRole("button", { name: /Value picks/ });
+    fireEvent.click(screen.getByRole("button", { name: "Add condition" }));
+    fireEvent.change(screen.getByLabelText("Field"), { target: { value: "pe_vs_sector" } });
+    expect(screen.getByLabelText("Field")).toHaveValue("pe_vs_sector");
+    expect(screen.getByText(/or a view against its sector cannot be a condition here/)).toBeInTheDocument();
   });
 
   it("filters ready-made screens by type and lets you add your own condition", async () => {

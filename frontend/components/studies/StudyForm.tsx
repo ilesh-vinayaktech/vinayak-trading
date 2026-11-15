@@ -62,6 +62,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   });
   const [beforeLists, setBeforeLists] = useState("traded_value_rank");
   const [minHistory, setMinHistory] = useState("252");
+  const [filingLag, setFilingLag] = useState("0");
   const [start, setStart] = useState(start0);
   const [end, setEnd] = useState(end0);
   const [holdout, setHoldout] = useState(end0 ? holdoutFor(start0, end0, 25) : "");
@@ -105,6 +106,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     universe: { segments, before_segment_lists: beforeLists, min_history_sessions: Number(minHistory) || 0 },
     timeframe: "1D", start, end, holdout_start: holdout, capital, capacity_multiple: capacity, broker: b ?? "", product: product ?? "DELIVERY",
     slippage: slip, benchmark, min_order_value: minOrder.trim() || "0", max_order_value: maxOrder.trim() || null, thresholds, accept_survivorship_bias: acceptBias,
+    filing_lag_days: source === "screen" ? Math.min(365, Math.max(0, Math.floor(Number(filingLag) || 0))) : 0,
   };
   const register = useMutation({
     mutationFn: async () => {
@@ -236,6 +238,11 @@ export function StudyForm({ options }: { options: StudyOptions }) {
                   <option value="traded_value_rank">Rank by traded value as a stand-in</option>
                   <option value="skip">Leave those days out</option>
                 </select>
+              </Field>
+            ) : null}
+            {source === "screen" ? (
+              <Field id="study-filing-lag" label="Days to wait after a filing before the screen may use it" hint="0 uses a result from the moment it was announced. A wait guards against acting on a filing before anyone could have read it.">
+                <input id="study-filing-lag" inputMode="numeric" value={filingLag} onChange={(e) => setFilingLag(e.target.value)} className={inputFull} />
               </Field>
             ) : null}
             <Field id="study-history" label="History a stock needs before it can be traded (sessions)">

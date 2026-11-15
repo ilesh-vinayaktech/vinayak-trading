@@ -91,3 +91,20 @@ def test_build_builds_the_table_once_when_the_job_has_never_run(env):
     assert conn.execute("SELECT count(*) FROM screener_snapshot").fetchone()[0] == 0
     assert len(snapshot.build(conn)) == 2
     assert conn.execute("SELECT count(*) FROM screener_snapshot").fetchone()[0] == 2
+
+
+def test_the_sector_comes_from_the_dated_sector_table_as_of_the_snapshot_day(env):
+    conn, up, split = env
+    conn.execute(
+        "INSERT INTO instrument_sector VALUES (%s,'IT',%s,'h',now())",
+        (up, LAST - timedelta(days=30)),
+    )
+    conn.execute(
+        "INSERT INTO instrument_sector VALUES (%s,'Autos',%s,'h',now())",
+        (split, LAST + timedelta(days=5)),
+    )  # starts after the snapshot day
+    rows = {r["symbol"]: r for r in snapshot.compute(conn)}
+    assert (
+        rows["UPPER"]["sector"] == "IT" and rows["UPPER"]["pe_vs_sector"] is None
+    )  # no peers with a P/E: no median
+    assert rows["SPLITTER"]["sector"] is None
