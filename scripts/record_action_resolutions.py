@@ -47,12 +47,12 @@ def check(sym: str, name: str, ok: bool, detail: str = "") -> None:
     checks.append((sym, name, bool(ok), detail))
 
 
-def file_row(path: Path, symbol: str) -> dict[str, str] | None:
+def file_row(path: Path, symbol: str, series: str = "EQ") -> dict[str, str] | None:
     rows = list(csv.reader(io.StringIO(path.read_bytes().decode())))
     head = [h.strip() for h in rows[0]]
     for r in rows[1:]:
         d = dict(zip(head, (x.strip() for x in r), strict=False))
-        if d.get("SYMBOL") == symbol and d.get("SERIES") == "EQ":
+        if d.get("SYMBOL") == symbol and d.get("SERIES") == series:
             return d
     return None
 
@@ -84,7 +84,7 @@ def run(conn: psycopg.Connection) -> None:
         f = Path(bh["path"])
         sha = hashlib.sha256(f.read_bytes()).hexdigest() if f.exists() else ""
         check(sym, "stored bhavcopy SHA-256 equals the config", sha == bh["sha256"], sha[:16])
-        row = file_row(f, bh["symbol_in_file"]) if f.exists() else None
+        row = file_row(f, bh["symbol_in_file"], bh.get("series", "EQ")) if f.exists() else None
         check(sym, "bhavcopy row on the ex-date: PREV_CLOSE = expected previous close" + (", OPEN_PRICE = base price" if want_open else ""),
               row is not None and D(row["PREV_CLOSE"]) == prev and (want_open is None or D(row["OPEN_PRICE"]) == want_open),
               f"{bh['symbol_in_file']} {row['DATE1'] if row else 'missing'} open {row['OPEN_PRICE'] if row else '-'} prev {row['PREV_CLOSE'] if row else '-'}")  # fmt: skip

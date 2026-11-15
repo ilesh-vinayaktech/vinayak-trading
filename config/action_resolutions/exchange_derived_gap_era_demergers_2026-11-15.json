@@ -1,0 +1,113 @@
+{
+ "description": "The four demergers held because their 'exchange base price' was thought missing: NSE ran a special pre-open call auction for each, and its discovered price (the ex-date open in NSE's bhavcopy) is the exchange base price. They supersede the earlier price-gap estimates (0.7914, 0.7909, 0.9277, 0.8544), which mixed the day's market move into the factor. Recorded PROVISIONAL; NOT verified.",
+ "method": "exchange_adjusted_price",
+ "status": "provisional",
+ "formula": "factor = base_price / prev_close, base_price = ex-date OPEN (special pre-open session settlement) in the NSE bhavcopy, prev_close = previous session's close",
+ "calculation_version": "exchange_adjusted_price/1",
+ "resolutions": [
+  {
+   "symbol": "NMDC",
+   "ex_date": "2022-10-27",
+   "kind": "demerger",
+   "base_price": "92.25",
+   "expected_prev_close": "130.75",
+   "entitlement_reported": "1 NMDC Steel share per 1 NMDC share (record date 2022-10-28)",
+   "bhavcopy": {
+    "dataset": "nse/bhav",
+    "path": "data/lake/raw/nse/bhav/dt=2022-10-27/v0001.bin",
+    "sha256": "b5410e9afb641b06edede176235fb862116e0e452e7a2b4a677efc484ad756be",
+    "symbol_in_file": "NMDC",
+    "series": "EQ",
+    "fields": {
+     "OPEN_PRICE": "92.25",
+     "PREV_CLOSE": "130.75"
+    }
+   },
+   "reports": [],
+   "circular": {
+    "ref": "NSE/CMTR/54130, 2022-10-19",
+    "stored_at": "data/evidence/identity/nse_CMTR54130_nmdc_preopen_call_auction_2022-10-19.pdf",
+    "sha256": "638fffd5483258bb531be5f494803ba9cca8e4661c353c51b03d1268b50e352a"
+   },
+   "limitation": "primary rule (the NSE circular named below: 'Post price discovery, base price shall be the discovered price') and the exchange's own bhavcopy ex-date open; no independent source confirms the number to the paisa. PROVISIONAL: a person verifies. Press reported the BSE base near Rs 93.70 (a different exchange's auction); NSE's discovered price is 92.25."
+  },
+  {
+   "symbol": "MOTHERSON",
+   "ex_date": "2022-01-14",
+   "kind": "demerger",
+   "base_price": "194.95",
+   "expected_prev_close": "234.80",
+   "entitlement_reported": "1 Motherson Sumi Wiring India share per 1 Motherson Sumi Systems share (record date 2022-01-17)",
+   "bhavcopy": {
+    "dataset": "nse/bhav",
+    "path": "data/lake/raw/nse/bhav/dt=2022-01-14/v0001.bin",
+    "sha256": "5e128ff2f1d1e4adc8b8f442d0edc599d83dc7b3981558c8ca3124fba8f5e77e",
+    "symbol_in_file": "MOTHERSUMI",
+    "series": "EQ",
+    "fields": {
+     "OPEN_PRICE": "194.95",
+     "PREV_CLOSE": "234.80"
+    }
+   },
+   "reports": [],
+   "circular": {
+    "ref": "NSE/CMTR/50980, 2022-01-10",
+    "stored_at": "data/evidence/identity/nse_CMTR50980_mothersumi_preopen_call_auction_2022-01-10.pdf",
+    "sha256": "bb6c1b1a3572a6cf4781204af6f8c2562e9932d449190494d821b38ca682c92e"
+   },
+   "limitation": "primary rule (the NSE circular named below: 'Post price discovery, base price shall be the discovered price') and the exchange's own bhavcopy ex-date open; no independent source confirms the number to the paisa. PROVISIONAL: a person verifies."
+  },
+  {
+   "symbol": "GMRAIRPORT",
+   "ex_date": "2022-01-11",
+   "kind": "demerger",
+   "base_price": "43.75",
+   "expected_prev_close": "48.45",
+   "entitlement_reported": "1 GMR Power and Urban Infra share (Rs 5) per 10 GMR Infrastructure shares (Re 1); record date 2022-01-12",
+   "bhavcopy": {
+    "dataset": "nse/bhav",
+    "path": "data/lake/raw/nse/bhav/dt=2022-01-11/v0001.bin",
+    "sha256": "2fd41cee284cabf6b234eeafe951f39867839d01211a7d571b9fa948405dd446",
+    "symbol_in_file": "GMRINFRA",
+    "series": "EQ",
+    "fields": {
+     "OPEN_PRICE": "43.75",
+     "PREV_CLOSE": "48.45"
+    }
+   },
+   "reports": [],
+   "circular": {
+    "ref": "NSE/CMTR/50943, 2022-01-06",
+    "stored_at": "data/evidence/identity/nse_CMTR50943_gmrinfra_preopen_call_auction_2022-01-06.pdf",
+    "sha256": "f76e891e140acd9f77939aae1d4c7a1cdaa64263e26808d6883355bd7a6048ba"
+   },
+   "limitation": "primary rule (the NSE circular named below: 'Post price discovery, base price shall be the discovered price') and the exchange's own bhavcopy ex-date open; no independent source confirms the number to the paisa. PROVISIONAL: a person verifies."
+  },
+  {
+   "symbol": "ABB",
+   "ex_date": "2019-12-20",
+   "kind": "demerger",
+   "base_price": "1324.00",
+   "expected_prev_close": "1476.00",
+   "entitlement_reported": "1 ABB Power Products and Systems India share per 5 ABB India shares (record date 2019-12-23)",
+   "bhavcopy": {
+    "dataset": "nse/bhav",
+    "path": "data/lake/raw/nse/bhav/dt=2019-12-20/v0001.bin",
+    "sha256": "8c4cbfbc6a5a9f5c71b61828e2ff878d5ee3fcbc1b0dca48de7d876b68ed88cb",
+    "symbol_in_file": "ABB",
+    "series": "BE",
+    "fields": {
+     "OPEN_PRICE": "1324.00",
+     "PREV_CLOSE": "1476.00"
+    }
+   },
+   "reports": [],
+   "circular": {
+    "ref": "NSE/CML/42891, 2019-12-12 (Trade for Trade, series BE, with a call auction in the pre-open session)",
+    "stored_at": "data/evidence/identity/nse_CML42891_abb_trade_for_trade_2019-12-12.pdf",
+    "sha256": "63a7164ed354cde9db7c8ecb002ce271b9cc8d59a5988a707677628cea67099e"
+   },
+   "limitation": "primary rule (the NSE circular named below: 'Post price discovery, base price shall be the discovered price') and the exchange's own bhavcopy ex-date open; no independent source confirms the number to the paisa. PROVISIONAL: a person verifies. This circular does not itself state that the discovered price becomes the base price; the day's low in the file, 1257.80, is exactly 95% of 1324.00 (the 5% trade-for-trade band around the base), which corroborates 1324.00 as the base."
+  }
+ ]
+}
