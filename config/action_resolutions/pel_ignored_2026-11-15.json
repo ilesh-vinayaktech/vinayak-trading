@@ -1,0 +1,44 @@
+{
+ "by": "claude-research (agent acting under the owner's standing instruction of 2026-11-15)",
+ "checked": "2026-11-15",
+ "note_marker": "Ex-date precedes the first stored bar",
+ "description": "PEL actions that need no adjustment of the prices we store. Reasons and evidence are stored with each resolution.",
+ "items": [
+  {
+   "symbol": "PEL",
+   "ex_date": "2005-06-24",
+   "kind": "other",
+   "reason": "Ex-date precedes the first stored bar (2019-10-01): no stored price is affected by it. Checked 2026-11-15. (a 2005 dividend and rights-1:10 item)"
+  },
+  {
+   "symbol": "PEL",
+   "ex_date": "2008-02-15",
+   "kind": "arrangement",
+   "reason": "Ex-date precedes the first stored bar (2019-10-01): no stored price is affected by it. Checked 2026-11-15. (a 2008 scheme of arrangement)"
+  },
+  {
+   "symbol": "PEL",
+   "ex_date": "2018-01-31",
+   "kind": "rights",
+   "reason": "Ex-date precedes the first stored bar (2019-10-01): no stored price is affected by it. Checked 2026-11-15. (rights 1:23, Jan 2018: NSE circular CMPT/36808)"
+  },
+  {
+   "symbol": "PEL",
+   "ex_date": "2023-08-25",
+   "kind": "buy",
+   "reason": "Tender-offer buyback (up to 1,40,00,000 shares at Rs 1,250, record date 2023-08-25, offer 31 Aug to 6 Sep 2023): shares of holders who do not tender are unchanged, so no price adjustment is made. NSE's PREV_CLOSE on 2023-08-25 (1055.35) equals the previous session's close, i.e. the exchange adjusted nothing. Same treatment as the other resolved buybacks.",
+   "evidence": {
+    "company_document": "Piramal Enterprises Letter of Offer / tender form, 27 Aug 2023",
+    "stored_at": "data/evidence/identity/pel_buyback_2023_letter_of_offer_tender_form.pdf",
+    "sha256": "9f06ee76f11841a4804a23bee671c84f47fd94bdb6a572710c7e610aec218cfb",
+    "bhavcopy": {
+     "path": "data/lake/raw/nse/bhav/dt=2023-08-25/v0001.bin",
+     "fields": {
+      "PREV_CLOSE": "1055.35"
+     },
+     "previous_session_close": "1055.35"
+    }
+   }
+  }
+ ]
+}
