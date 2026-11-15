@@ -103,3 +103,33 @@ def test_a_reconciliation_alerts_only_on_breaches_that_are_new_since_the_previou
     results.record_reconcile(conn, {}, scope, datetime(2026, 11, 17, tzinfo=UTC))
     assert results.latest(conn, "kite_reconcile")[0] == "PASS"
     assert results.new_breaches(conn, "kite_reconcile", {"AAA": "DIVERGES: x"}) == ["AAA"]
+
+
+def test_a_freshness_verdict_is_stored_as_pass_when_current_and_fail_with_the_gap_when_behind(conn):
+    migrate(conn)
+    current = {
+        "status": "CURRENT",
+        "latest_bar_session": "2026-11-13",
+        "expected_latest_session": "2026-11-13",
+        "sessions_behind": 0,
+    }
+    behind = {
+        "status": "BEHIND",
+        "latest_bar_session": "2026-11-11",
+        "expected_latest_session": "2026-11-13",
+        "sessions_behind": 2,
+    }
+    assert (
+        results.record_freshness(conn, current, NOW)
+        == results.record_freshness(conn, behind, datetime(2026, 11, 16, tzinfo=UTC))
+        == 1
+    )
+    got = conn.execute(
+        "SELECT check_name, subject, status, detail FROM dq_result ORDER BY result_id"
+    ).fetchall()
+    assert got[0][:3] == ("freshness", None, "PASS") and "2026-11-13" in got[0][3]
+    assert (
+        got[1][:3] == ("freshness.behind", "2026-11-11", "FAIL")
+        and "2 session(s) behind" in got[1][3]
+    )
+    assert results.latest(conn, "freshness")[0] == "FAIL"

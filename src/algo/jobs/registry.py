@@ -8,7 +8,7 @@ from algo.jobs.runner import Job
 
 _PY = ("uv", "run", "python")
 _BARS = (*_PY, "scripts/backfill_nse.py", "--db", "{db}", "--lake", "data/lake", "--stage", "bars")
-_STALE = (*_PY, "scripts/check_stale.py")
+_STALE = (*_PY, "scripts/check_stale.py", "--record")
 WEEKDAYS = "Mon..Fri"
 
 JOBS: tuple[Job, ...] = (

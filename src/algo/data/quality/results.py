@@ -5,6 +5,7 @@ row with its subject. Append-only: history of what was found when."""
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 
 import psycopg
 
@@ -141,3 +142,29 @@ def new_breaches(conn: psycopg.Connection, check_prefix: str, current: dict[str,
         )
     }
     return sorted(s for s in current if s not in before)
+
+
+def record_freshness(conn: psycopg.Connection, verdict: dict[str, Any], now: datetime) -> int:
+    """Store the newest-bar freshness verdict (algo.api.freshness.assess): PASS when current, else a FAIL row naming the newest bar and how far behind it is."""
+    now, scope = require_utc(now), "nse bar_1d newest session"
+    if verdict["status"] == "CURRENT":
+        _add(
+            conn,
+            now,
+            "freshness",
+            scope,
+            None,
+            "PASS",
+            f"the newest bar, {verdict['latest_bar_session']}, is the session expected",
+        )
+    else:
+        _add(
+            conn,
+            now,
+            "freshness.behind",
+            scope,
+            verdict["latest_bar_session"],
+            "FAIL",
+            f"{verdict['sessions_behind']} session(s) behind (expected {verdict['expected_latest_session']})",
+        )
+    return 1
