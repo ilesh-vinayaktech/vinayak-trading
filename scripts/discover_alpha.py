@@ -63,7 +63,7 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
                 a.db, autocommit=True
             ) as pconn,  # its own connection: each progress update shows at once
             progress.Progress(
-                pconn, SystemClock(), "alpha_discovery", "Alpha discovery", 4
+                pconn, SystemClock(), "alpha_discovery", "Alpha discovery", 4, uniform=False
             ) as prog,
         ):
             ids = run.run_discovery(

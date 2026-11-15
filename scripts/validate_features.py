@@ -13,7 +13,7 @@ from uuid import UUID
 import psycopg
 
 from algo.core.clock import SystemClock
-from algo.features import job, registry, store, validation
+from algo.features import registry, store, validation
 from algo.jobs import progress
 from algo.research import slot
 
@@ -22,6 +22,11 @@ ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--freeze")
 ap.add_argument("--from", dest="first", default="2020-10-01")
 ap.add_argument("--min-coverage", default=str(validation.MIN_COVERAGE))
+ap.add_argument(
+    "--fundamental-min-coverage",
+    default="0.50",
+    help="the minimum share of eligible stock-days that must have a value for a FUNDAMENTAL feature (a company with no filing yet, or a ratio that does not apply to it, has no value)",
+)
 ap.add_argument("--by", default="validate_features")
 ap.add_argument("--dry-run", action="store_true", help="validate and print, store nothing")
 ap.add_argument("names", nargs="*", help="features to validate (default: all registered)")
@@ -44,17 +49,6 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "feature va
         sys.exit("error: no data freeze")
     store.register_all(conn, datetime.now(UTC))
     names = a.names or list(registry.DEFINITIONS)
-    sha = job.dataset_sha256(
-        conn,
-        UUID(str(fid)),
-        [
-            i[0]
-            for i in conn.execute(
-                "SELECT instrument_id FROM data_freeze_item WHERE freeze_id=%s ORDER BY 1",
-                (str(fid),),
-            )
-        ],
-    )
     with (
         psycopg.connect(
             a.db, autocommit=True
@@ -70,22 +64,35 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "feature va
         reads = validation.read_bars(
             conn, UUID(str(fid)), date.fromisoformat(a.first), report=prog.step
         )
+        filings = None  # read, twice and independently, only if a fundamental feature is validated
         for k, name in enumerate(names):
+            fundamental = registry.DEFINITIONS[name].needs_filings
+            if fundamental and filings is None:
+                filings = validation.read_filings(
+                    conn, UUID(str(fid)), date.fromisoformat(a.first), report=prog.step
+                )
             r = validation.validate(
                 conn,
                 name,
                 registry.VERSION,
                 UUID(str(fid)),
                 date.fromisoformat(a.first),
-                min_coverage=Decimal(a.min_coverage),
+                min_coverage=Decimal(a.fundamental_min_coverage if fundamental else a.min_coverage),
                 reads=reads,
                 report=prog.step,
+                filings_reads=filings,
             )
             rid = (
                 None
                 if a.dry_run
                 else validation.record(
-                    conn, name, registry.VERSION, sha, r, by=a.by, now=datetime.now(UTC)
+                    conn,
+                    name,
+                    registry.VERSION,
+                    r["dataset_sha256"],
+                    r,
+                    by=a.by,
+                    now=datetime.now(UTC),
                 )
             )
             line = (

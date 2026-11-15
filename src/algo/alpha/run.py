@@ -12,6 +12,8 @@ alpha_hypothesis (through algo.alpha.registry). User's instruction: "do as much 
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable, Sequence
 from datetime import date, datetime
 from decimal import Decimal
@@ -56,7 +58,6 @@ def measure(
     ]
     if not usable:
         raise DiscoveryError("no USABLE feature to examine")
-    sha = job.dataset_sha256(conn, freeze_id, instruments)
     reader = job.open_reader(conn, f, lock)
     if report:
         report("reading prices", f"{len(instruments)} instruments")
@@ -70,6 +71,9 @@ def measure(
     for k, (name, version) in enumerate(usable, 1):
         if report:
             report("loading features", f"{name} ({k} of {len(usable)})")
+        sha = job.feature_dataset_sha256(
+            conn, freeze_id, instruments, feature_registry.DEFINITIONS[name], last
+        )  # each feature is read back under its own data identity
         rows = store.read_features(conn, name, version, sha, instruments, months[0], end)
         features[(name, version)] = {key: value for key, (value, _available_at) in rows.items()}
     if report:
@@ -77,6 +81,23 @@ def measure(
     return discover.discover(
         features, closes, sessions, horizons=horizons, last_allowed=last, min_names=min_names
     )
+
+
+def batch_dataset_sha256(
+    conn: psycopg.Connection, freeze_id: UUID, instruments: list[int], until: date
+) -> str:
+    """The data identity of a discovery batch: the identity every usable feature shares (prices, for price features), or a hash of the distinct identities when fundamental features, which
+    also read filings, are among them."""
+    shas = sorted(
+        {
+            job.feature_dataset_sha256(conn, freeze_id, instruments, d, until)
+            for name, d in feature_registry.DEFINITIONS.items()
+            if store.status(conn, name, d.version) == "USABLE"
+        }
+    )
+    if not shas:
+        return job.dataset_sha256(conn, freeze_id, instruments)
+    return shas[0] if len(shas) == 1 else hashlib.sha256(json.dumps(shas).encode()).hexdigest()
 
 
 def run_discovery(
@@ -96,7 +117,12 @@ def run_discovery(
     )
     f = freeze_mod.get(conn, freeze_id)
     assert f is not None
-    sha = job.dataset_sha256(conn, freeze_id, [i["instrument_id"] for i in f["items"]])
+    sha = batch_dataset_sha256(
+        conn,
+        freeze_id,
+        [i["instrument_id"] for i in f["items"]],
+        min(f["through_date"], holdout_lock.require(conn).development_end),
+    )
     if report:
         report("recording", f"{len(evidences)} results, failures included")
     return registry.record(conn, evidences, sha, now, context=context)

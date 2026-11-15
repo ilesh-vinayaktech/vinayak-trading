@@ -137,7 +137,7 @@ def test_a_definition_is_immutable():
 
 
 def test_a_feature_whose_value_depends_on_all_history_cannot_be_used_yet_and_a_nan_text_is_not_a_threshold():
-    for chained in ("atr_14d", "atr_pct_14d"):
+    for chained in ("atr_14d", "atr_pct_14d", "rsi_14d"):
         with pytest.raises(ValidationError, match=chained):
             make(entry={"all": [{"feature": chained, "op": ">", "value": 1}]})
     with pytest.raises(ValidationError):
@@ -197,3 +197,13 @@ def test_parse_says_what_shape_it_wants():
     with pytest.raises(ValueError) as e:
         dsl.parse("[1, 2]")
     assert str(e.value) == "a strategy definition is one JSON object"
+
+
+def test_a_fundamental_feature_cannot_be_used_in_a_definition_yet_because_the_interpreter_has_no_filings():
+    with pytest.raises(ValidationError, match="fund_roe"):
+        make(entry={"all": [{"feature": "fund_roe", "op": ">", "value": 10}]})
+    with pytest.raises(ValidationError, match="unknown feature"):
+        make(ranking={"feature": "fund_revenue_growth", "order": "DESC"})
+    assert make(
+        entry={"all": [{"feature": "ret_1d", "op": ">", "value": 0}]}
+    )  # the new price features are usable

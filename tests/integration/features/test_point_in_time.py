@@ -37,6 +37,8 @@ def january(conn, iid):
     bars = {iid: store.bars_from_reader(BarReader(conn, source="nse"), iid, date(2026, 3, 6))}
     out = {}
     for name, f in registry.DEFINITIONS.items():
+        if f.needs_filings:
+            continue  # a fundamental feature reads filings, never prices: a split cannot move it
         out[name] = {
             d: v
             for d, (v, _) in f.compute(sorted(bars[iid]), bars[iid]).items()

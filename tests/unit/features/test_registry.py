@@ -4,12 +4,12 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
-from algo.features import registry
+from algo.features import fundamental, registry
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_there_are_nineteen_price_and_volume_features_each_with_a_manifest_that_states_its_rules():
+def test_there_are_thirty_five_features_in_three_families_each_with_a_manifest_that_states_its_rules():
     d = registry.DEFINITIONS
     assert sorted(d) == sorted(
         [
@@ -32,12 +32,13 @@ def test_there_are_nineteen_price_and_volume_features_each_with_a_manifest_that_
             "volume_ratio_20_60d",
             "range_vol_20d",
             "max_drawdown_60d",
+            *[f"fund_{k}" for k in fundamental.KEYS],
         ]
     )
     for f in d.values():
         assert (
             f.version == "1"
-            and f.family in ("price", "technical")
+            and f.family in ("price", "technical", "fundamental")
             and f.manifest["family"] == f.family
         )
         for key in (
@@ -101,3 +102,41 @@ def test_a_session_is_a_day_on_which_at_least_half_the_instruments_have_a_bar():
     assert registry.sessions_from(bars) == days[:2]
     assert registry.sessions_from(bars, share=0.25) == days[:3]
     assert registry.sessions_from({}) == []
+
+
+def test_a_fundamental_feature_declares_the_ratio_engine_as_a_dependency_and_only_it_reads_filings():
+    f = registry.DEFINITIONS["fund_roe"]
+    assert (
+        f.needs_filings
+        and f.family == "fundamental"
+        and f.manifest["inputs"] == ["filings"]
+        and f.manifest["parameters"] == {"ratio": "roe"}
+    )
+    assert (
+        "algo.data.ratios" in f.extra_helpers
+        and not registry.DEFINITIONS["ret_5d"].extra_helpers
+        and not registry.DEFINITIONS["rsi_14d"].needs_filings
+    )
+    base = f.manifest_sha256
+    assert (
+        dataclasses.replace(f, extra_helpers={}).manifest_sha256 != base
+    )  # without the declared engine the hash differs
+
+
+def test_a_price_feature_with_no_filings_still_computes_and_a_fundamental_one_without_filings_has_no_values():
+    from datetime import UTC, date, datetime, timedelta
+    from decimal import Decimal as D
+
+    from algo.features._shared import SessionBar
+
+    days = [date(2026, 1, 5) + timedelta(days=i) for i in range(10)]
+    bars = {
+        d: SessionBar(
+            d, D(11), D(9), D(10), D(10), D(100), datetime(d.year, d.month, d.day, 13, tzinfo=UTC)
+        )
+        for d in days
+    }
+    assert registry.DEFINITIONS["ret_1d"].calc(days, bars)  # no filings argument needed
+    assert (
+        registry.DEFINITIONS["fund_roe"].calc(days, bars) == {}
+    )  # none given: an empty history, no value, no error

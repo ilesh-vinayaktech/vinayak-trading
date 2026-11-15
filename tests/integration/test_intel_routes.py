@@ -66,7 +66,7 @@ def test_the_overview_and_lists_show_what_the_parts_recorded(client):
     conn.commit()
 
     o = c.get("/api/intel/overview").json()
-    assert o["features"]["by_status"] == {"DRAFT": 19}
+    assert o["features"]["by_status"] == {"DRAFT": 35}
     assert o["alpha"] == {"tests_ever_run": 2, "by_status": {"CANDIDATE": 1, "REJECTED": 1}}
     assert o["notes"] == {"total": 3}
     assert o["health"][0]["status"] == "FAIL" and o["health"][0]["detail"].startswith("DEGRADED")
@@ -245,7 +245,7 @@ def test_the_funnel_counts_what_moved_on_and_why_the_rest_dropped(client):
             "SELECT feature_id FROM feature_definition ORDER BY feature_id"
         ).fetchall()
     ]
-    # 19 features: 3 USABLE, 2 BLOCKED, 2 DRAFT whose last validation failed, 12 DRAFT never validated
+    # 35 features: 3 USABLE, 2 BLOCKED, 2 DRAFT whose last validation failed, 28 DRAFT never validated
     for f in fids[:3]:
         conn.execute(
             "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'USABLE','ok','t',%s)",
@@ -277,10 +277,10 @@ def test_the_funnel_counts_what_moved_on_and_why_the_rest_dropped(client):
     conn.commit()
     body = c.get("/api/intel/funnel").json()
     f = stage(body, "features")
-    assert (f["entered"], f["passed"]) == (19, 3)
+    assert (f["entered"], f["passed"]) == (35, 3)
     assert {d["reason"]: d["count"] for d in f["dropped"]} == {
         "Failed validation": 2,
-        "Waiting to be validated": 12,
+        "Waiting to be validated": 28,
         "Blocked": 2,
     }
     a = stage(body, "alpha")
@@ -378,7 +378,7 @@ def test_the_features_list_shows_what_each_measures_its_status_and_why_the_last_
 
     c, conn = client
     body = c.get("/api/intel/features").json()["features"]
-    assert len(body) == len(feature_registry.DEFINITIONS) == 19
+    assert len(body) == len(feature_registry.DEFINITIONS) == 35
     assert all(
         f["status"] == "NOT_REGISTERED" and f["validation"] is None and f["validations"] == 0
         for f in body

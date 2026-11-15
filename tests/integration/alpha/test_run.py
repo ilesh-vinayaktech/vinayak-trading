@@ -174,3 +174,13 @@ def test_the_discovery_script_reports_live_progress(world, pg_url, monkeypatch, 
         "finished",
         "2 hypotheses recorded",
     )
+
+
+def test_a_batch_with_no_usable_feature_falls_back_to_the_price_identity(world):
+    from algo.features import store as feature_store
+
+    conn, ids, fid = world
+    for n in ("ret_5d", "ret_20d"):
+        feature_store.set_status(conn, n, "1", "BLOCKED", by="owner", reason="test", now=NOW)
+    until = date(2026, 2, 28)
+    assert run.batch_dataset_sha256(conn, fid, ids, until) == job.dataset_sha256(conn, fid, ids)

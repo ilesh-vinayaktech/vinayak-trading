@@ -201,3 +201,163 @@ Common rules, stated in every manifest:
 - manifest_sha256: `d44105bb2014925f5f38665b78e18910ccd9a7a053a50d7c4a7906b530135f13`
 - Version history:
   - 1 (2026-11-16): first version.
+
+## fund_revenue_growth (version 1)
+
+- Definition: Sales growth (quarter, YoY): latest quarter ÷ same quarter a year earlier − 1
+- Formula `fundamental_ratio`, parameters {'ratio': 'revenue_growth'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `7c8ca685164467db825f046311bd4a79ede91851f2a9e05d537862a3f312ac4b`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_profit_growth (version 1)
+
+- Definition: Profit growth (quarter, YoY): latest quarter ÷ same quarter a year earlier − 1
+- Formula `fundamental_ratio`, parameters {'ratio': 'profit_growth'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `75ce0ea42afb2e6238cbb6ad65459d949a847e8d2fdbe4c0f14da7718d7281a3`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_revenue_growth_ttm (version 1)
+
+- Definition: Sales growth (12 months): last 12 months ÷ the 12 months before − 1
+- Formula `fundamental_ratio`, parameters {'ratio': 'revenue_growth_ttm'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `cced443a92ad1cb6205ba029774566feda8aa46d0138cdd9007adae23bd0026c`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_profit_growth_ttm (version 1)
+
+- Definition: Profit growth (12 months): last 12 months ÷ the 12 months before − 1
+- Formula `fundamental_ratio`, parameters {'ratio': 'profit_growth_ttm'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `61a0ba9cd95758cf5ab0b35d6ac690dc926f510ddb121de36d33347f02af382b`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_net_margin (version 1)
+
+- Definition: Net profit margin: net profit ÷ sales, last 12 months
+- Formula `fundamental_ratio`, parameters {'ratio': 'net_margin'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `ffe81403544079a2b8113408bd0e3e5c85c2817b089134a8b8a1121cbd3af015`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_operating_margin (version 1)
+
+- Definition: Operating margin: operating profit ÷ sales, last 12 months
+- Formula `fundamental_ratio`, parameters {'ratio': 'operating_margin'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `5213a191eb9e54641e84d77520c481ad886d1c82b0a04451ef0bb2a1b6820c40`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_roe (version 1)
+
+- Definition: Return on equity (ROE): profit to owners, last 12 months ÷ owners' equity
+- Formula `fundamental_ratio`, parameters {'ratio': 'roe'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `48ef3a8a4680c5ba71f3639ba8997560f6fdc9311dba1cd2cce56785d1690f99`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_roa (version 1)
+
+- Definition: Return on assets (ROA): profit, last 12 months ÷ total assets
+- Formula `fundamental_ratio`, parameters {'ratio': 'roa'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `a7d856992cda8fef723fe39f4ed5ff892dc2506f672dd46a405ec4abacc66323`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_roce (version 1)
+
+- Definition: Return on capital employed (ROCE): (profit before tax + interest) ÷ (total assets − current liabilities)
+- Formula `fundamental_ratio`, parameters {'ratio': 'roce'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `74038b71fefff3822184277c41155b009ebe01e563f0b405e7a56c26855ad5d3`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_debt_to_equity (version 1)
+
+- Definition: Debt to equity: borrowings ÷ owners' equity
+- Formula `fundamental_ratio`, parameters {'ratio': 'debt_to_equity'}, inputs filings, unit x
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `ddfca4b6550c68bddfd9bda1ec5b16af1232111545ea66ef9293d69bc6a0d8ae`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_interest_coverage (version 1)
+
+- Definition: Interest cover: (profit before tax + interest) ÷ interest, last 12 months
+- Formula `fundamental_ratio`, parameters {'ratio': 'interest_coverage'}, inputs filings, unit x
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `0fd7644d4ed7e4143e5c79fa335d7c214e446bed2bea05a512af7ccfda2447cb`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_net_debt_to_ebitda (version 1)
+
+- Definition: Net debt to operating profit: (borrowings − cash and investments) ÷ operating profit, last 12 months
+- Formula `fundamental_ratio`, parameters {'ratio': 'net_debt_to_ebitda'}, inputs filings, unit x
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `d63fb03953fb82e199fb840b9e838bd1c9d4a5a2e975f19bfe3d2d27be4a7cea`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_current_ratio (version 1)
+
+- Definition: Current ratio: current assets ÷ current liabilities
+- Formula `fundamental_ratio`, parameters {'ratio': 'current_ratio'}, inputs filings, unit x
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `058ce88bb5f5e9b022f49fcd22dca8a2e03aa8b7ef7f6e19950ec3c87b5f7c98`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_asset_turnover (version 1)
+
+- Definition: Asset turnover: sales, last 12 months ÷ total assets
+- Formula `fundamental_ratio`, parameters {'ratio': 'asset_turnover'}, inputs filings, unit x
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `e5a1ffd22f9d46e8e9a8880423e02674d6cfdeb33bcf0907e1bd3acbf3257a03`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_cfo_to_profit (version 1)
+
+- Definition: Cash from operations vs profit: cash from operations ÷ net profit, year to date
+- Formula `fundamental_ratio`, parameters {'ratio': 'cfo_to_profit'}, inputs filings, unit x
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `b41f51d09c25760dbd9aa33d177725b68ce5d9c385da0399d0bc837c197c0932`
+- Version history:
+  - 1 (2026-11-15): first version.
+
+## fund_fcf_margin (version 1)
+
+- Definition: Free cash flow margin: free cash flow ÷ sales, year to date
+- Formula `fundamental_ratio`, parameters {'ratio': 'fcf_margin'}, inputs filings, unit pct
+- Warm-up: 0 bars (no value before the instrument has them)
+- Availability: the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day
+- manifest_sha256: `b2fa7870932e87045c82697a0550524dfdb1ce9d6bcb9bb177feebc3e0a91c9f`
+- Version history:
+  - 1 (2026-11-15): first version.

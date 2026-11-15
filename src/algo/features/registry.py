@@ -9,15 +9,18 @@ import hashlib
 import inspect
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from algo.features import _shared, price, technical
+from algo.data import ratios as ratio_engine
+from algo.features import _shared, fundamental, price, technical
 from algo.features._shared import Result, SessionBar
 
 VERSION = "1"
-Compute = Callable[[Sequence[date], Mapping[date, SessionBar]], Result]
+Compute = Callable[
+    ..., Result
+]  # (sessions, bars) for price features; (sessions, bars, FilingsHistory) when `needs_filings`
 
 COMMON: dict[str, Any] = {
     "adjustment": "split and bonus adjusted, point in time as of the feature day (BarReader mode 'split'); traded value uses raw close and raw volume",
@@ -37,6 +40,23 @@ class FeatureDef:
     manifest: Mapping[str, Any]
     module: Any  # the module whose source is part of the hash
     compute: Compute
+    needs_filings: bool = (
+        False  # a fundamental feature: it also reads the company's filings (FilingsHistory)
+    )
+    extra_helpers: Mapping[str, Any] = field(
+        default_factory=dict
+    )  # modules, beyond the shared ones, whose source the value depends on (their source joins the hash)
+
+    def calc(
+        self,
+        sessions: Sequence[date],
+        bars: Mapping[date, SessionBar],
+        filings: fundamental.FilingsHistory | None = None,
+    ) -> Result:
+        """Compute for one company: the price features need only the bars; a fundamental feature also its filings (none = no filings, so no values)."""
+        if self.needs_filings:
+            return self.compute(sessions, bars, filings or fundamental.FilingsHistory({}))
+        return self.compute(sessions, bars)
 
     @property
     def manifest_sha256(self) -> str:
@@ -49,7 +69,7 @@ class FeatureDef:
             },
             "helpers": {
                 n: hashlib.sha256(inspect.getsource(m).encode()).hexdigest()
-                for n, m in sorted(HELPERS.items())
+                for n, m in sorted({**HELPERS, **self.extra_helpers}.items())
             },
         }
         return hashlib.sha256(json.dumps(doc, sort_keys=True).encode()).hexdigest()
@@ -199,6 +219,31 @@ def _build() -> dict[str, FeatureDef]:
         "max_drawdown_60d", "max_drawdown", {"n": 60}, 60, "fraction", ["close"], technical.max_drawdown(60),
         "the deepest fall from a running peak among the last 60 closes: min over the window of close / running-high - 1, zero or negative", **tech,
     )  # fmt: skip
+    out.update(_fundamental_defs())
+    return out
+
+
+def _fundamental_defs() -> dict[str, FeatureDef]:
+    """One feature per price-free ratio of the Screener's engine (fundamental.KEYS), named fund_<ratio>."""
+    defs = {d.key: d for d in ratio_engine.RATIOS}
+    out: dict[str, FeatureDef] = {}
+    overrides = {
+        "adjustment": "none: a ratio of filed results, no price is used",
+        "missing_data": "a ratio the filings cannot give (a loss a year ago, no balance sheet yet, no filing yet) gives no value; nothing is imputed or carried across a restatement; the value holds from one filing to the next",
+        "availability": "the filing time of the filing that produced the value; a filing counts from the session after the day it was filed, never the same day",
+    }
+    for key in fundamental.KEYS:
+        r = defs[key]
+        name = f"fund_{key}"
+        manifest = {
+            "name": name, "version": VERSION, "family": "fundamental", "formula": "fundamental_ratio", "parameters": {"ratio": key},
+            "inputs": ["filings"], "window": 0, "warmup_bars": 0, "unit": r.unit,
+            "definition": f"{r.label}: {r.formula}", **{**COMMON, **overrides},
+        }  # fmt: skip
+        out[name] = FeatureDef(
+            name, VERSION, "fundamental", manifest, fundamental, fundamental.ratio(key),
+            needs_filings=True, extra_helpers={"algo.data.ratios": ratio_engine},
+        )  # fmt: skip
     return out
 
 

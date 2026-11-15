@@ -8,11 +8,11 @@
      "reason": "Failed validation"
     },
     {
-     "count": 17,
+     "count": 33,
      "reason": "Waiting to be validated"
     }
    ],
-   "entered": 19,
+   "entered": 35,
    "key": "features",
    "note": "A feature must pass coverage, reproducibility and look-ahead checks before anything may use it.",
    "passed": 1,

@@ -26,9 +26,11 @@ from algo.data.readiness import Needs, Readiness, assess
 from algo.data.snapshot import snapshot_hash
 from algo.features import registry, store
 from algo.features._shared import SessionBar
+from algo.features.fundamental import FilingsHistory
 from algo.research import holdout_lock
 from algo.research.holdout_lock import ResearchReader
 from algo.research.slot import busy_reason  # noqa: F401  (re-exported: the script and the tests call job.busy_reason)
+from algo.screener.snapshot import quarters_since
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -67,6 +69,51 @@ def dataset_sha256(conn: psycopg.Connection, freeze_id: UUID, instruments: list[
         "data_hash": snapshot_hash(conn, f["source"], instruments, f["taken_at"]),
     }  # fmt: skip
     return hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+
+
+def load_filings(
+    conn: psycopg.Connection, instruments: list[int], until: date
+) -> dict[int, FilingsHistory]:
+    """Every filing of these companies made on or before `until` (an Indian calendar day), by company. A filing after `until` is never loaded, so the holdout's filings are never held."""
+    by_company: dict[int, dict[str, list[Any]]] = {}
+    for (iid, basis), quarters in quarters_since(conn, date(2000, 1, 1), instruments).items():
+        kept = [x for x in quarters if x.filed_at.astimezone(IST).date() <= until]
+        if kept:
+            by_company.setdefault(iid, {})[basis] = kept
+    return {iid: FilingsHistory(b) for iid, b in by_company.items()}
+
+
+def fundamentals_sha256(conn: psycopg.Connection, instruments: list[int], until: date) -> str:
+    """The identity of the filings a fundamental feature reads: which filings (by their raw-file hash), of which company, period and basis, filed when, up to `until`."""
+    rows = conn.execute(
+        "SELECT filing_id, instrument_id, basis, period_end, filed_at, raw_sha256 FROM fundamental_filing"
+        " WHERE instrument_id = ANY(%s) AND (filed_at AT TIME ZONE 'Asia/Kolkata')::date <= %s ORDER BY filing_id",
+        (instruments, until),
+    ).fetchall()
+    return hashlib.sha256(
+        json.dumps(
+            [[r[0], r[1], r[2], r[3].isoformat(), r[4].isoformat(), r[5]] for r in rows]
+        ).encode()
+    ).hexdigest()
+
+
+def feature_dataset_sha256(
+    conn: psycopg.Connection,
+    freeze_id: UUID,
+    instruments: list[int],
+    d: registry.FeatureDef,
+    until: date,
+) -> str:
+    """The data identity of one feature: the prices for a price feature, the prices AND the filings (up to `until`) for a fundamental one."""
+    prices = dataset_sha256(conn, freeze_id, instruments)
+    if not d.needs_filings:
+        return prices
+    return hashlib.sha256(
+        json.dumps(
+            {"prices": prices, "filings": fundamentals_sha256(conn, instruments, until)},
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
 
 
 def open_reader(
@@ -111,7 +158,11 @@ def run(
     if not months or not usable:
         return out
     reader = open_reader(conn, f, lock)
-    sha = dataset_sha256(conn, freeze_id, instruments)
+    shas = {
+        n: feature_dataset_sha256(conn, freeze_id, instruments, registry.DEFINITIONS[n], last)
+        for n, _ in usable
+    }
+    filings: dict[int, FilingsHistory] | None = None
     bars: dict[int, dict[date, SessionBar]] | None = None
     steps, finished = len(months) * len(usable), 0
     if progress:
@@ -123,6 +174,15 @@ def run(
             if (why := busy(now)) is not None:
                 out.status, out.paused_because = "paused", why
                 return out
+            if registry.DEFINITIONS[name].needs_filings and filings is None:
+                if progress:
+                    progress(
+                        "reading filings",
+                        f"{len(instruments)} companies",
+                        done=finished,
+                        total=steps,
+                    )
+                filings = load_filings(conn, instruments, last)
             if bars is None:
                 if progress:
                     progress(
@@ -133,8 +193,8 @@ def run(
                 progress(f"computing {name}", f"month {month:%Y-%m}", done=finished, total=steps)
             try:
                 run_id = store.materialise_month(
-                    conn, name, version, month, dataset_sha256=sha, code_commit=code_commit,
-                    bars_by_instrument=bars, now=now,
+                    conn, name, version, month, dataset_sha256=shas[name], code_commit=code_commit,
+                    bars_by_instrument=bars, now=now, filings=filings,
                 )  # fmt: skip
             except store.FeatureError as e:
                 out.failed.append(str(e))

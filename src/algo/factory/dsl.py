@@ -33,8 +33,11 @@ from algo.features import registry as feature_registry
 Operator = Literal[">", ">=", "<", "<=", "==", "!="]
 VOLATILITY_FEATURE = "vol_20d"  # what INVERSE_VOLATILITY sizing divides by
 CHAINED = frozenset(
-    {"atr_14d", "atr_pct_14d"}
+    {"atr_14d", "atr_pct_14d", "rsi_14d"}
 )  # Wilder smoothing never forgets its start: their value depends on all history, not a window, so a definition cannot use them yet
+FILINGS_FEATURES = frozenset(
+    n for n, d in feature_registry.DEFINITIONS.items() if d.needs_filings
+)  # fundamental features read the company's filings, which the interpreter does not have: a definition cannot use them yet
 
 
 def _number(v: Any) -> Decimal:
@@ -131,7 +134,7 @@ class StrategyDef(_Frozen):
 
     @model_validator(mode="after")
     def _features_exist(self) -> Self:
-        known = set(feature_registry.DEFINITIONS) - CHAINED
+        known = set(feature_registry.DEFINITIONS) - CHAINED - FILINGS_FEATURES
         used = {c.feature for c in self.entry.conditions() + self.exit.conditions()} | {
             self.ranking.feature
         }

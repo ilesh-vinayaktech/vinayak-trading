@@ -67,7 +67,7 @@ def test_registering_stores_every_definition_as_a_draft_and_a_changed_one_is_ref
     env, monkeypatch
 ):
     conn, _ = env
-    assert store.register_all(conn, NOW) == 19 and store.register_all(conn, NOW) == 0  # idempotent
+    assert store.register_all(conn, NOW) == 35 and store.register_all(conn, NOW) == 0  # idempotent
     assert {store.status(conn, n, "1") for n in registry.DEFINITIONS} == {"DRAFT"}
     f = registry.DEFINITIONS["ret_5d"]
     import dataclasses
@@ -294,18 +294,29 @@ def test_bars_come_from_a_real_reader_with_adjusted_prices_and_their_visibility_
     )
 
 
-def test_a_fundamental_feature_can_be_described_and_blocked_but_never_made_usable_in_phase_one(env):
+def test_a_feature_of_a_family_that_is_not_supported_yet_can_be_described_and_blocked_but_never_made_usable(
+    env,
+):
     conn, _ = env
     fid = conn.execute(
-        "INSERT INTO feature_definition (name, version, manifest, manifest_sha256, created_at) VALUES ('pe_ttm','1','{\"family\": \"fundamental\"}','h',%s) RETURNING feature_id",
+        "INSERT INTO feature_definition (name, version, manifest, manifest_sha256, created_at) VALUES ('news_tone','1','{\"family\": \"sentiment\"}','h',%s) RETURNING feature_id",
         (NOW,),
     ).fetchone()[0]
     conn.execute(
-        "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'BLOCKED','fundamentals prerequisites not met','system',%s)",
+        "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,'BLOCKED','no news data yet','system',%s)",
         (fid, NOW),
     )
-    assert store.status(conn, "pe_ttm", "1") == "BLOCKED"
-    with pytest.raises(store.FeatureError, match="only price and volume features"):
-        store.set_status(conn, "pe_ttm", "1", "USABLE", by="owner", reason="wanted it", now=NOW)
-    with pytest.raises(store.FeatureError, match=r"pe_ttm@1 \(BLOCKED\)"):
-        store.require_usable(conn, [("pe_ttm", "1")])
+    assert store.status(conn, "news_tone", "1") == "BLOCKED"
+    with pytest.raises(store.FeatureError, match="family 'sentiment' is not supported yet"):
+        store.set_status(conn, "news_tone", "1", "USABLE", by="owner", reason="wanted it", now=NOW)
+    with pytest.raises(store.FeatureError, match=r"news_tone@1 \(BLOCKED\)"):
+        store.require_usable(conn, [("news_tone", "1")])
+
+
+def test_price_technical_and_fundamental_features_can_all_be_made_usable(env):
+    conn, _ = env
+    store.register_all(conn, NOW)
+    for name in ("ret_5d", "rsi_14d", "fund_roe"):
+        store.set_status(conn, name, "1", "USABLE", by="owner", reason="validated", now=NOW)
+        assert store.status(conn, name, "1") == "USABLE"
+    store.require_usable(conn, [("ret_5d", "1"), ("rsi_14d", "1"), ("fund_roe", "1")])

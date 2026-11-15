@@ -25,9 +25,15 @@ from algo.core.clock import require_utc
 from algo.data.reader import PriceReader
 from algo.features import registry
 from algo.features._shared import SessionBar
+from algo.features.fundamental import FilingsHistory
 from algo.research import holdout_lock
 
 STATUSES = ("DRAFT", "USABLE", "BLOCKED")
+USABLE_FAMILIES = (
+    "price",
+    "technical",
+    "fundamental",
+)  # price/volume, the second price set, and the point-in-time fundamental ratios (docs/features.md); anything else is refused
 IST = ZoneInfo("Asia/Kolkata")
 
 
@@ -104,8 +110,10 @@ def set_status(
     family = conn.execute(
         "SELECT manifest->>'family' FROM feature_definition WHERE feature_id=%s", (fid,)
     ).fetchone()[0]  # type: ignore[index]
-    if new == "USABLE" and family != "price":
-        raise FeatureError("only price and volume features can be USABLE in Phase 1")
+    if new == "USABLE" and family not in USABLE_FAMILIES:
+        raise FeatureError(
+            f"only {', '.join(USABLE_FAMILIES)} features can be USABLE: family {family!r} is not supported yet"
+        )
     conn.execute(
         "INSERT INTO feature_status (feature_id, status, reason, set_by, at) VALUES (%s,%s,%s,%s,%s)",
         (fid, new, reason, by, require_utc(now)),
@@ -150,15 +158,20 @@ Row = tuple[int, date, Decimal, datetime]
 
 
 def compute_rows(
-    name: str, month: date, bars_by_instrument: Mapping[int, Mapping[date, SessionBar]]
+    name: str,
+    month: date,
+    bars_by_instrument: Mapping[int, Mapping[date, SessionBar]],
+    filings: Mapping[int, FilingsHistory] | None = None,
 ) -> list[Row]:
     """One feature's rows for one calendar month, in the order they are stored and hashed. Pure: nothing is read or written."""
     end = _month_end(month)
-    fn = registry.DEFINITIONS[name].compute
+    d = registry.DEFINITIONS[name]
     sessions = [d for d in registry.sessions_from(bars_by_instrument) if d <= end]
     rows: list[Row] = []
     for iid in sorted(bars_by_instrument):
-        for day, (value, available_at) in fn(sessions, bars_by_instrument[iid]).items():
+        for day, (value, available_at) in d.calc(
+            sessions, bars_by_instrument[iid], (filings or {}).get(iid)
+        ).items():
             if month <= day <= end:
                 rows.append((iid, day, value, available_at))
     rows.sort(key=lambda r: (r[0], r[1]))
@@ -174,6 +187,7 @@ def rows_sha256(rows: list[Row]) -> str:
 def materialise_month(
     conn: psycopg.Connection, name: str, version: str, month: date, *, dataset_sha256: str, code_commit: str,
     bars_by_instrument: Mapping[int, Mapping[date, SessionBar]], now: datetime,
+    filings: Mapping[int, FilingsHistory] | None = None,
 ) -> int | None:  # fmt: skip
     """Compute one feature for one calendar month from the supplied history (which must reach back far enough for the warm-up). Returns the run id,
     or None when a complete run for this feature, month and dataset already exists (nothing is written)."""
@@ -193,7 +207,7 @@ def materialise_month(
     ).fetchone():
         return None
     try:
-        rows = compute_rows(name, month, bars_by_instrument)
+        rows = compute_rows(name, month, bars_by_instrument, filings)
     except Exception as e:
         conn.execute(
             "INSERT INTO feature_run (feature_id, month, dataset_sha256, code_commit, status, started_at, finished_at, error) VALUES (%s,%s,%s,%s,'failed',%s,%s,%s)",

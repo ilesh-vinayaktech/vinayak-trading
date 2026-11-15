@@ -7,8 +7,10 @@ from decimal import Decimal as D
 
 import pytest
 
+from algo.data import ratios as fr
 from algo.features import registry
 from algo.features._shared import SessionBar, q
+from algo.features.fundamental import FilingsHistory
 
 NAMES = sorted(registry.DEFINITIONS)
 
@@ -43,24 +45,67 @@ def world(scale=D(1), skip=()):
     return bars
 
 
+def quarters():
+    """Quarterly filings of one company, each filed 45 days after its quarter ended, revenue and profit growing: some are filed inside the test window, some after it."""
+    ends = [
+        date(y, m, d)
+        for y in (2022, 2023, 2024, 2025)
+        for m, d in ((3, 31), (6, 30), (9, 30), (12, 31))
+    ][3:-2]  # Dec 2022 .. Jun 2025
+    out = []
+    for k, end in enumerate(ends):
+        filed_at = datetime.combine(
+            end + timedelta(days=45), datetime.min.time(), tzinfo=UTC
+        ) + timedelta(hours=11)
+        figures = {
+            "RevenueFromOperations": D(100 + 7 * k), "ProfitLossForPeriod": D(10 + k), "Expenses": D(80 + 5 * k), "ProfitBeforeTax": D(14 + k),
+            "FinanceCosts": D(2), "DepreciationDepletionAndAmortisationExpense": D(3),
+        }  # fmt: skip
+        sheet = {
+            "Equity": D(500 + 10 * k), "Assets": D(900 + 10 * k), "BorrowingsNoncurrent": D(100), "BorrowingsCurrent": D(50), "CurrentAssets": D(300), "CurrentLiabilities": D(200),
+            "Inventories": D(40), "TradeReceivablesCurrent": D(60), "CashAndCashEquivalents": D(30),
+        }  # fmt: skip
+        year = {
+            "CashFlowsFromUsedInOperatingActivities": D(30 + k),
+            "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities": D(10),
+            "ProfitLossForPeriod": D(10 + k),
+            "RevenueFromOperations": D(100 + 7 * k),
+        }
+        out.append(fr.Quarter(end, filed_at, False, figures, year, sheet))
+    return out
+
+
+FILINGS = FilingsHistory({"CONSOLIDATED": quarters()})
+
+
+def calc(name):
+    """A registered feature as the harness runs it: price features from the bars, fundamental ones from the bars and this company's filings (cut at `cut` when given)."""
+    d = registry.DEFINITIONS[name]
+
+    def f(sessions, bars, cut=None):
+        return d.calc(sessions, bars, FILINGS if cut is None else FILINGS.truncated(cut))
+
+    return f
+
+
 def violations(compute, cut_index):
     """Days at or before the cut whose value differs between the full history and the history truncated at the cut."""
     full = compute(DAYS, world())
     cut = DAYS[cut_index]
-    short = compute(DAYS[: cut_index + 1], {d: b for d, b in world().items() if d <= cut})
+    short = compute(DAYS[: cut_index + 1], {d: b for d, b in world().items() if d <= cut}, cut)
     return [d for d in DAYS[: cut_index + 1] if full.get(d) != short.get(d)]
 
 
 @pytest.mark.parametrize("name", NAMES)
 @pytest.mark.parametrize("cut", [60, 150, 299])
 def test_truncating_the_data_at_T_changes_no_value_for_T_or_earlier(name, cut):
-    assert violations(registry.DEFINITIONS[name].compute, cut) == []
+    assert violations(calc(name), cut) == []
 
 
 @pytest.mark.parametrize("name", NAMES)
 def test_a_split_taking_effect_after_T_does_not_change_the_value_for_T(name):
     """Scenario 1. A later split halves every adjusted price on file (the bar for T included); the value for T must not know about it."""
-    f = registry.DEFINITIONS[name].compute
+    f = calc(name)
     before, after = f(DAYS, world()), f(DAYS, world(scale=D("0.5")))
     assert before and set(before) == set(after)
     assert {d: v for d, (v, _) in before.items()} == {d: v for d, (v, _) in after.items()}
@@ -70,7 +115,7 @@ def test_a_split_taking_effect_after_T_does_not_change_the_value_for_T(name):
 def test_a_missing_session_gives_an_absent_value_and_does_not_shift_the_window(name):
     """Scenario 4. Remove one session of the instrument (the session itself stays a session: other instruments traded). Every day whose window contains it
     has no value; every other day's value is the one it had with the bar present."""
-    f = registry.DEFINITIONS[name].compute
+    f = calc(name)
     hole = DAYS[200]
     full, holey = f(DAYS, world()), f(DAYS, world(skip={hole}))
     assert hole not in holey
@@ -96,10 +141,10 @@ def test_a_missing_session_gives_an_absent_value_and_does_not_shift_the_window(n
 
 @pytest.mark.parametrize("name", NAMES)
 def test_a_halted_instrument_with_no_bars_gives_no_value(name):
-    assert registry.DEFINITIONS[name].compute(DAYS, {}) == {}
+    assert calc(name)(DAYS, {}) == {}
 
 
-def leaky(sessions, bars):
+def leaky(sessions, bars, cut=None):
     """A feature written with a look-ahead: tomorrow's close over today's."""
     out = {}
     for i, d in enumerate(sessions[:-1]):
@@ -116,4 +161,4 @@ def test_a_feature_with_a_deliberate_look_ahead_fails_the_harness():
 
 
 def test_the_harness_covers_every_registered_feature():
-    assert len(NAMES) == 19 and set(NAMES) == set(registry.DEFINITIONS)
+    assert len(NAMES) == 35 and set(NAMES) == set(registry.DEFINITIONS)

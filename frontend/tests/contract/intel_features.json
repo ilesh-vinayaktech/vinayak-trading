@@ -337,6 +337,246 @@
    "validations": 0,
    "version": "1",
    "warmup": 60
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Sales growth (quarter, YoY): latest quarter \u00f7 same quarter a year earlier \u2212 1",
+   "name": "fund_revenue_growth",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Profit growth (quarter, YoY): latest quarter \u00f7 same quarter a year earlier \u2212 1",
+   "name": "fund_profit_growth",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Sales growth (12 months): last 12 months \u00f7 the 12 months before \u2212 1",
+   "name": "fund_revenue_growth_ttm",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Profit growth (12 months): last 12 months \u00f7 the 12 months before \u2212 1",
+   "name": "fund_profit_growth_ttm",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Net profit margin: net profit \u00f7 sales, last 12 months",
+   "name": "fund_net_margin",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Operating margin: operating profit \u00f7 sales, last 12 months",
+   "name": "fund_operating_margin",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Return on equity (ROE): profit to owners, last 12 months \u00f7 owners' equity",
+   "name": "fund_roe",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Return on assets (ROA): profit, last 12 months \u00f7 total assets",
+   "name": "fund_roa",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Return on capital employed (ROCE): (profit before tax + interest) \u00f7 (total assets \u2212 current liabilities)",
+   "name": "fund_roce",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Debt to equity: borrowings \u00f7 owners' equity",
+   "name": "fund_debt_to_equity",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "x",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Interest cover: (profit before tax + interest) \u00f7 interest, last 12 months",
+   "name": "fund_interest_coverage",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "x",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Net debt to operating profit: (borrowings \u2212 cash and investments) \u00f7 operating profit, last 12 months",
+   "name": "fund_net_debt_to_ebitda",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "x",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Current ratio: current assets \u00f7 current liabilities",
+   "name": "fund_current_ratio",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "x",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Asset turnover: sales, last 12 months \u00f7 total assets",
+   "name": "fund_asset_turnover",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "x",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Cash from operations vs profit: cash from operations \u00f7 net profit, year to date",
+   "name": "fund_cfo_to_profit",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "x",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
+  },
+  {
+   "family": "fundamental",
+   "inputs": [
+    "filings"
+   ],
+   "measures": "Free cash flow margin: free cash flow \u00f7 sales, year to date",
+   "name": "fund_fcf_margin",
+   "status": "DRAFT",
+   "status_reason": "registered; not yet validated",
+   "unit": "pct",
+   "validation": null,
+   "validations": 0,
+   "version": "1",
+   "warmup": 0
   }
  ]
 }

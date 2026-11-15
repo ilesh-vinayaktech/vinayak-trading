@@ -23,6 +23,7 @@ from algo.core.clock import require_utc
 from algo.data import freeze as freeze_mod
 from algo.features import job, registry, store
 from algo.features._shared import SessionBar
+from algo.features.fundamental import FilingsHistory
 from algo.research import holdout_lock
 
 MIN_COVERAGE = Decimal("0.90")
@@ -80,28 +81,54 @@ def read_bars(
     return bars, _bars(conn, f, lock, end, instruments)
 
 
+def read_filings(
+    conn: psycopg.Connection, freeze_id: UUID, first_month: date, report: Report | None = None
+) -> tuple[dict[int, FilingsHistory], dict[int, FilingsHistory]]:
+    """The freeze's companies' filings (made on or before the development end) read TWICE, independently, like the prices: only fundamental features need them. Read once and passed to
+    every fundamental feature's `validate`."""
+    f, lock, _, instruments, _ = _window(conn, freeze_id, first_month)
+    last = min(f["through_date"], lock.development_end)
+    if report:
+        report("reading filings", f"first of two independent reads, {len(instruments)} companies")
+    first = job.load_filings(conn, instruments, last)
+    if report:
+        report("reading filings", f"second of two independent reads, {len(instruments)} companies")
+    return first, job.load_filings(conn, instruments, last)
+
+
 def validate(
     conn: psycopg.Connection, name: str, version: str, freeze_id: UUID, first_month: date, *, min_coverage: Decimal = MIN_COVERAGE,
     reads: tuple[Bars, Bars] | None = None, report: Report | None = None,
+    filings_reads: tuple[dict[int, FilingsHistory], dict[int, FilingsHistory]] | None = None,
 ) -> dict[str, Any]:  # fmt: skip
     f, lock, months, instruments, end = _window(conn, freeze_id, first_month)
     d = registry.DEFINITIONS[name]
     bars, again = reads if reads is not None else read_bars(conn, freeze_id, first_month, report)
+    last = min(f["through_date"], lock.development_end)
+    fa: dict[int, FilingsHistory] | None = None
+    fb: dict[int, FilingsHistory] | None = None
+    if d.needs_filings:
+        fa, fb = (
+            filings_reads
+            if filings_reads is not None
+            else read_filings(conn, freeze_id, first_month, report)
+        )
     warm = int(d.manifest["warmup_bars"])
     first_day, rows_by_month, identical = months[0], {}, True
     for k, m in enumerate(months, 1):
         if report:
             report(f"checking {name}", f"recomputing month {k} of {len(months)}")
-        rows_by_month[m] = store.compute_rows(name, m, bars)
+        rows_by_month[m] = store.compute_rows(name, m, bars, fa)
         identical &= store.rows_sha256(rows_by_month[m]) == store.rows_sha256(
-            store.compute_rows(name, m, again)
+            store.compute_rows(name, m, again, fb)
         )
     fid = store._id(conn, name, version)
+    dataset = job.feature_dataset_sha256(conn, freeze_id, instruments, d, last)
     stored = {
         m: sha
         for m, sha in conn.execute(
             "SELECT month, result_sha256 FROM feature_run WHERE feature_id=%s AND dataset_sha256=%s AND status='complete'",
-            (fid, job.dataset_sha256(conn, freeze_id, instruments)),
+            (fid, dataset),
         )
     }
     checked = [m for m in months if m in stored]
@@ -132,9 +159,14 @@ def validate(
         if report:
             report(f"checking {name}", f"look-ahead test {n} of {len(cut_days)} (cut at {cut})")
         short_sessions = [s for s in sessions if s <= cut]
-        for series in bars.values():
-            full = d.compute(sessions, series)
-            short = d.compute(short_sessions, {x: b for x, b in series.items() if x <= cut})
+        for iid, series in bars.items():
+            history = (fa or {}).get(iid)
+            full = d.calc(sessions, series, history)
+            short = d.calc(
+                short_sessions,
+                {x: b for x, b in series.items() if x <= cut},
+                history.truncated(cut) if history else None,
+            )
             checks += 1
             violations += sum(1 for day in short_sessions if full.get(day) != short.get(day))
     reasons = []
@@ -147,7 +179,7 @@ def validate(
     if violations:
         reasons.append(f"look-ahead: {violations} value(s) changed when later data was removed")
     return {
-        "feature": name, "version": version, "manifest_sha256": d.manifest_sha256, "freeze": str(freeze_id),
+        "feature": name, "version": version, "family": d.family, "dataset_sha256": dataset, "manifest_sha256": d.manifest_sha256, "freeze": str(freeze_id),
         "months": [f"{m:%Y-%m}" for m in months], "instruments": len(instruments), "min_coverage": str(min_coverage),
         "coverage": {"eligible": eligible, "valued": len(valued), "warmup_absent": warm_absent, "missing_session_absent": missing_absent,
                      "share": f"{share:f}" if share in (0, 1) else f"{share:.6f}"},
