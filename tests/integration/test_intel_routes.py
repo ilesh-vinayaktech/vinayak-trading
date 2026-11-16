@@ -533,3 +533,35 @@ def test_a_study_of_a_generated_definition_shows_in_the_trial_and_validation_sta
     assert (t["entered"], t["passed"]) == (2, 1) and stage(body, "definitions")["passed"] == 1
     assert (v["entered"], v["passed"]) == (1, 0)
     assert {d["reason"]: d["count"] for d in v["dropped"]} == {"Not judged yet": 1}
+
+
+def test_a_running_study_of_a_generated_definition_shows_with_the_other_jobs(client):
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+
+    c, conn = client
+    eid = vreg.register(
+        conn, name="my study", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
+        param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, total, done, current, created_at, started_at) VALUES (%s,'verdict','RUNNING',2,1,'2x costs',%s,%s)",
+        (eid, NOW, NOW),
+    )
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, total, done, created_at, started_at, finished_at) VALUES (%s,'trials','DONE',9,9,%s,%s,%s)",
+        (eid, NOW, NOW, NOW),
+    )
+    conn.commit()
+    jobs = {j["job"]: j for j in c.get("/api/intel/progress").json()["jobs"]}
+    v, t = jobs["study_verdict"], jobs["study_trials"]
+    assert (v["status"], v["done"], v["total"], v["phase"], v["stalled"]) == (
+        "RUNNING",
+        1,
+        2,
+        "2x costs",
+        False,
+    )
+    assert v["label"] == "Validation gates: my study" and (t["status"], t["done"]) == ("DONE", 9)

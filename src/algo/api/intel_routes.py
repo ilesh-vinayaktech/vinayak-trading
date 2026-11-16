@@ -142,6 +142,9 @@ def _estimate(r: dict[str, Any], now: Any) -> tuple[str, int | None, int | None]
     return ("ok", int(per_step), int(left)) if left > 0 else ("overrun", int(per_step), None)
 
 
+STUDY_JOB_ID_BASE = 1_000_000  # study runs have their own id sequence; offset so a job id is never ambiguous on the page
+
+
 @router.get("/progress")
 def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50)) -> dict[str, Any]:
     """What the long jobs are doing now: running ones first, then the latest finished. `alive` says whether the job's process still exists; `stalled` that a running job has been quiet too long."""
@@ -160,6 +163,25 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
                 "alive": job_progress.alive(r["pid"]) if running else None,
                 "estimate": est, "per_step_s": per_step, "eta_s": eta,
                 "stalled": running and (quiet > STALLED_AFTER_S or not job_progress.alive(r["pid"])),
+            }
+        )  # fmt: skip
+    for r in conn.execute(
+        "SELECT r.run_id, r.kind, r.status, r.done, r.total, r.current, r.created_at, r.started_at, r.finished_at, e.name"
+        " FROM study_run r JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl' ORDER BY r.run_id DESC LIMIT %s",
+        (limit,),
+    ).fetchall():  # studies of generated definitions run in the study worker, not through job_progress: shown beside the other jobs, newest first
+        rid, kind, status, done, total, cur, created, started, finished, name = r
+        begun = started or created
+        jobs.append(
+            {
+                "id": STUDY_JOB_ID_BASE + rid, "job": "study_verdict" if kind == "verdict" else "study_trials",
+                "label": f"{'Validation gates' if kind == 'verdict' else 'Experiment trials'}: {name}",
+                "status": "RUNNING" if status in ("QUEUED", "RUNNING") else "DONE" if status == "DONE" else "FAILED",
+                "done": done, "total": total, "phase": cur or ("waiting for the study worker" if status == "QUEUED" else ""), "message": "",
+                "started_at": begun.isoformat(), "updated_at": (finished or now).isoformat(),
+                "elapsed_s": int(((finished or now) - begun).total_seconds()),
+                "quiet_s": None, "alive": None,
+                "estimate": "waiting" if status in ("QUEUED", "RUNNING") else "none", "per_step_s": None, "eta_s": None, "stalled": False,
             }
         )  # fmt: skip
     return {"jobs": jobs}
