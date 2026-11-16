@@ -329,7 +329,7 @@ def definitions(conn: WConn) -> dict[str, Any]:
             {
                 "strategy_id": sid, "version": version, "description": defn["description"], "rebalance": defn["rebalance"],
                 "max_positions": defn["position"]["max_positions"], "entry": _rule(defn["entry"]), "exit": _rule(defn["exit"]),
-                "created_by": by, "created_at": at.isoformat(), "study": study, "trials_done": trials, "verdict": passed,
+                "created_by": by, "created_at": at.isoformat(), "experiment_id": eid, "study": study, "trials_done": trials, "verdict": passed,
             }
         )  # fmt: skip
     return {"definitions": out}

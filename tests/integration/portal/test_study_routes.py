@@ -348,3 +348,24 @@ def test_a_study_without_a_family_or_with_an_unknown_one_is_a_400_that_says_so(e
 
 def audit_actions_all(conn):
     return [r[0] for r in conn.execute("SELECT action FROM portal_audit ORDER BY audit_id")]
+
+
+def test_a_trader_backtests_a_generated_definition_in_one_click_and_a_viewer_cannot(env):
+    from algo.factory import generate
+    from algo.factory import registry as freg
+
+    conn, app = env
+    defn = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, defn, by="agent", reason="generated", now=NOW)
+    url = f"/api/strategies/definitions/{defn.strategy_id}/1/study"
+    assert sign_in(app, "viewer@example.com").post(url).status_code == 403
+    c = sign_in(app, "jane@example.com")
+    r = c.post(url)
+    assert r.status_code == 200, r.text
+    eid = r.json()["experiment_id"]
+    assert c.get(f"/api/studies/{eid}").json()["spec"]["strategy_id"] == "dsl"
+    assert c.post(url).status_code == 400  # a run is already waiting
+    assert c.post("/api/strategies/definitions/ALPHA_NOPE_H1/1/study").status_code == 404
+    assert "study.registered" in audit_actions(conn)

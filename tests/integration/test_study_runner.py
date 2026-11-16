@@ -761,3 +761,22 @@ def test_a_study_is_built_from_a_registered_definition_and_registered(env):
     assert (s.strategy_id, s.definition, s.grid) == ("dsl", defn.canonical(), fstudy.GRID)
     sid = fstudy.register(conn, owner, s, NOW)
     assert registry.trial_count(conn, sid) == 0 and sid > 0
+
+
+def test_starting_a_definitions_study_registers_it_once_and_queues_its_trials(env):
+    from algo.factory import generate
+    from algo.factory import registry as freg
+    from algo.factory import study as fstudy
+
+    conn, owner = env
+    defn = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, defn, by="t", reason="test", now=NOW)
+    eid, run = fstudy.start(conn, owner, defn.strategy_id, 1, NOW)
+    assert study_jobs.get_run(conn, run)["status"] == "QUEUED"
+    with pytest.raises(study_jobs.JobError, match="already"):
+        fstudy.start(conn, owner, defn.strategy_id, 1, NOW)  # one active run at a time
+    conn.execute("UPDATE study_run SET status='CANCELLED' WHERE run_id=%s", (run,))
+    again, _ = fstudy.start(conn, owner, defn.strategy_id, 1, NOW)
+    assert again == eid  # the same study, not a second one

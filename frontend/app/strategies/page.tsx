@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { STAGE_LABEL, StageDialog } from "@/components/strategies/StageDialog";
+import { DefinitionsPanel } from "@/components/strategies/DefinitionsPanel";
 import { StrategyDialog } from "@/components/strategies/StrategyDialog";
 import { Alert } from "@/components/ui/Alert";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
@@ -79,6 +80,7 @@ export default function StrategiesPage() {
           empty={<EmptyState icon="flask" title="No strategies yet">Create one to choose the stocks and rules, then give it to your paper account.</EmptyState>}
         />
       </Panel>
+      <DefinitionsPanel canRun />
       {staging ? <StageDialog key={staging.config_id} strategy={staging} onClose={() => setStaging(null)} /> : null}
       {editing && options ? <StrategyDialog key={editing === "new" ? "new" : editing.config_id} open onClose={() => setEditing(null)} options={options} strategy={editing === "new" ? undefined : editing} /> : null}
     </div>

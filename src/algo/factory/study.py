@@ -15,6 +15,7 @@ from uuid import UUID
 import psycopg
 
 from algo.factory import registry
+from algo.research import study_jobs
 from algo.research.study import StudySpec, default_thresholds
 from algo.research.study_store import register_study
 
@@ -62,3 +63,36 @@ def spec_for(
 
 def register(conn: psycopg.Connection, owner: UUID, spec: StudySpec, now: datetime) -> int:
     return register_study(conn, owner, spec, now)
+
+
+WINDOW = (
+    date(2016, 1, 1),
+    date(2024, 12, 31),
+    date(2023, 1, 1),
+)  # research start, end of the study's range, first day of the inner holdout (2025+ is the global holdout)
+
+
+def start(
+    conn: psycopg.Connection,
+    owner: UUID,
+    strategy_id: str,
+    version: int,
+    now: datetime,
+    *,
+    family_id: int = 1,
+) -> tuple[int, int]:
+    """Make the definition's standard study (registered once: asking again finds it) and queue its trials. Returns (experiment id, run id); a run already queued or running is an error from the queue."""
+    spec = spec_for(
+        conn,
+        strategy_id,
+        version,
+        family_id=family_id,
+        start=WINDOW[0],
+        end=WINDOW[1],
+        holdout_start=WINDOW[2],
+    )
+    row = conn.execute(
+        "SELECT experiment_id FROM experiment WHERE name = %s AND strategy_id = 'dsl'", (spec.name,)
+    ).fetchone()
+    eid = int(row[0]) if row else register(conn, owner, spec, now)
+    return eid, study_jobs.enqueue(conn, eid, owner, now)

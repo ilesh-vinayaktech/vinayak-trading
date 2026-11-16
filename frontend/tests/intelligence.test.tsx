@@ -29,8 +29,8 @@ const empty = {
   notes: { notes: [] },
 };
 const defs = [
-  { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", study: "judged", trials_done: 9, verdict: false },
-  { strategy_id: "ALPHA_VOL_20D_H5", version: 1, description: "d", rebalance: "WEEKLY", max_positions: 20, entry: "vol_20d BOTTOM_PERCENT 20", exit: "vol_20d TOP_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", study: "none", trials_done: 0, verdict: null },
+  { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: 13, study: "judged", trials_done: 9, verdict: false },
+  { strategy_id: "ALPHA_VOL_20D_H5", version: 1, description: "d", rebalance: "WEEKLY", max_positions: 20, entry: "vol_20d BOTTOM_PERCENT 20", exit: "vol_20d TOP_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study: "none", trials_done: 0, verdict: null },
 ];
 const seen: string[] = [];
 function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown; funnel?: unknown; features?: unknown }) {

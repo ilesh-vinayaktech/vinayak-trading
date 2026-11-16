@@ -226,6 +226,7 @@ export const api = {
   requestStudyVerdict: (id: number) => send("POST", `/api/studies/${id}/verdicts`, undefined, studyRunCreatedSchema),
   requestStudyHoldout: (id: number) => send("POST", `/api/studies/${id}/holdout`, undefined, studyRunCreatedSchema),
   cancelStudyRun: (runId: number) => send("POST", `/api/studies/runs/${runId}/cancel`, undefined, okSchema),
+  runDefinitionStudy: (strategyId: string, version: number) => send("POST", `/api/strategies/definitions/${encodeURIComponent(strategyId)}/${version}/study`, undefined, studyRunCreatedSchema.extend({ experiment_id: studyCreatedSchema.shape.experiment_id })),
   registerStudy: (b: StudySpec) => send("POST", "/api/studies", b, studyCreatedSchema),
   startFamily: (b: { name: string; hypothesis: string; justification: string }) => send("POST", "/api/families", b, familyCreatedSchema),
   live: (id: number, timeframe: string, adjust: string) => get(`/api/live/${id}`, liveSchema, { timeframe, adjust }),

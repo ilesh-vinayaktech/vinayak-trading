@@ -7,6 +7,7 @@ import { FeatureList } from "@/components/research/Features";
 import { Funnel, PipelineStrip } from "@/components/research/Pipeline";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
+import { DefinitionsPanel } from "@/components/strategies/DefinitionsPanel";
 import { Panel, StatusPill } from "@/components/ui/Layout";
 import { inputFull } from "@/components/ui/styles";
 import { api } from "@/lib/api/client";
@@ -140,38 +141,6 @@ function FeaturesPanel() {
           <FeatureList features={features.data.features} jobs={jobs.data?.jobs ?? []} />
         </>
       ) : null}
-    </Panel>
-  );
-}
-
-const STUDY_TEXT = { none: "no study yet", registered: "study registered", running: "study running", done: "trials done, not judged", judged: "judged" } as const;
-
-/** The strategy definitions written so far, each with its rule in words and how far its study has got. */
-function DefinitionsPanel() {
-  const defs = useQuery({ queryKey: ["intel", "definitions"], queryFn: api.intelDefinitions, refetchInterval: 15000 });
-  return (
-    <Panel title="Strategy definitions" actions={<span className="text-xs text-ink-faint">written from alpha candidates; a hypothesis until a study passes</span>}>
-      {defs.isLoading ? (
-        <Loading what="the strategy definitions" />
-      ) : defs.error ? (
-        <ErrorBox error={defs.error} what="the strategy definitions" />
-      ) : !defs.data || defs.data.definitions.length === 0 ? (
-        <EmptyState title="No definitions yet">Run scripts/generate_strategies.py to write one for each alpha candidate.</EmptyState>
-      ) : (
-        <ul className="divide-y divide-line" aria-label="Strategy definitions">
-          {defs.data.definitions.map((d) => (
-            <li key={`${d.strategy_id}-${d.version}`} className="py-2 text-sm" data-testid="definition">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold">{d.strategy_id}</span>
-                <span className="text-xs text-ink-faint">v{d.version} · {d.rebalance.toLowerCase()} · up to {d.max_positions} stocks</span>
-                <span className="text-xs text-ink-soft">{STUDY_TEXT[d.study]}{d.trials_done > 0 ? ` (${d.trials_done} trials)` : ""}</span>
-                {d.verdict !== null ? <StatusPill tone={d.verdict ? "good" : "bad"}>{d.verdict ? "passed" : "failed validation"}</StatusPill> : null}
-              </div>
-              <div className="text-xs text-ink-soft">Buy: {d.entry}. Sell: {d.exit}.</div>
-            </li>
-          ))}
-        </ul>
-      )}
     </Panel>
   );
 }

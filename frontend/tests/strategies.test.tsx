@@ -234,3 +234,23 @@ describe("the stage of a strategy", () => {
     expect(await screen.findByText(/No moves yet/)).toBeInTheDocument();
   });
 });
+
+describe("generated strategy definitions", () => {
+  const D = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study: "none", trials_done: 0, verdict: null };
+
+  it("lists each definition and runs its backtest with one click, then points at the study", async () => {
+    backend(ready([], { "GET /api/intel/definitions": { definitions: [D] }, "POST /api/strategies/definitions/ALPHA_RET_20D_H20/1/study": { experiment_id: 13, run_id: 40 } }));
+    mount();
+    expect(await screen.findByText(/Buy: ret_20d TOP_PERCENT 20/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Run backtest" }));
+    await waitFor(() => expect(posted().map((c) => c.path)).toContain("/api/strategies/definitions/ALPHA_RET_20D_H20/1/study"));
+  });
+
+  it("links an existing study and offers to run again, but not while one is running", async () => {
+    backend(ready([], { "GET /api/intel/definitions": { definitions: [{ ...D, experiment_id: 13, study: "judged", trials_done: 9, verdict: false }, { ...D, strategy_id: "ALPHA_VOL_20D_H5", experiment_id: 14, study: "running" }] } }));
+    mount();
+    const links = await screen.findAllByRole("link", { name: "Open study" });
+    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/research/studies/13", "/research/studies/14"]);
+    expect(screen.getAllByRole("button", { name: "Run again" })).toHaveLength(1);
+  });
+});

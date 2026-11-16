@@ -18,10 +18,13 @@ from pydantic import BaseModel, Field
 from algo.api import queries
 from algo.api.paper_routes import _options, _params, _st
 from algo.api.security import CurrentUser, WConn
+from algo.factory import registry
+from algo.factory import study as fstudy
 from algo.paper import configs
 from algo.portal import audit
-from algo.research import fundamentals_book
-from algo.research.study import Segment
+from algo.research import fundamentals_book, study_jobs
+from algo.research.holdout_lock import HoldoutError
+from algo.research.study import Segment, StudyError
 from algo.strategies import screener_signals
 from algo.strategies.screener import ScreenSpec
 from algo.strategies.signals import replay
@@ -135,6 +138,28 @@ def create(body: StrategyBody, request: Request, who: CurrentUser, conn: WConn) 
         {"name": body.name.strip(), "universe": mine["universe"]},
     )
     return {"config_id": str(config_id)}
+
+
+@router.post("/definitions/{strategy_id}/{version}/study")
+def run_definition_study(
+    strategy_id: str, version: int, request: Request, who: CurrentUser, conn: WConn
+) -> dict[str, int]:
+    """Backtest a generated strategy definition: its standard study (2016 to 2022 research window, a counted grid of its own numbers) is registered once and its trials queued. The result
+    page then shows every trial with its equity curve, trades and the validation verdict."""
+    now = _st(request).clock.now()
+    try:
+        eid, run = fstudy.start(conn, who.session.user_id, strategy_id, version, now)
+    except registry.RegistryError as e:
+        raise HTTPException(404, str(e)) from e
+    except (StudyError, study_jobs.JobError) as e:
+        raise HTTPException(400, str(e)) from e
+    except HoldoutError as e:
+        raise HTTPException(409, f"research is locked: {e}") from e
+    audit.record(
+        conn, now=now, action="study.registered", actor_user_id=who.session.user_id, target_type="experiment",
+        target_id=str(eid), detail={"strategy_id": strategy_id, "version": version, "run_id": run},
+    )  # fmt: skip
+    return {"experiment_id": eid, "run_id": run}
 
 
 @router.post("/{config_id}")

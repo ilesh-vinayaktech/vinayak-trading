@@ -1074,7 +1074,7 @@ export const intelDefinitionsSchema = z.object({
   definitions: z.array(
     z.object({
       strategy_id: z.string(), version: z.number(), description: z.string(), rebalance: z.string(), max_positions: z.number(), entry: z.string(), exit: z.string(),
-      created_by: z.string(), created_at: z.string(), study: z.enum(["none", "registered", "running", "done", "judged"]), trials_done: z.number(), verdict: z.boolean().nullable(),
+      created_by: z.string(), created_at: z.string(), experiment_id: z.number().nullable(), study: z.enum(["none", "registered", "running", "done", "judged"]), trials_done: z.number(), verdict: z.boolean().nullable(),
     }),
   ),
 });
