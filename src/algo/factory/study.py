@@ -18,7 +18,10 @@ from algo.factory import registry
 from algo.research.study import StudySpec, default_thresholds
 from algo.research.study_store import register_study
 
-GRID = {"entry_share": [10, 20, 30], "max_positions": [10, 20]}
+GRID = {
+    "max_positions": [10, 20, 30],
+    "exit_share": [30, 50, 70],
+}  # entry_share is left out: with hundreds of stocks a 10-30% entry share never binds below max_positions, so it would only add identical trials
 
 
 def spec_for(
@@ -36,7 +39,7 @@ def spec_for(
     defn = registry.get(conn, strategy_id, version)
     return StudySpec.model_validate(
         {
-            "name": f"{strategy_id} v{version}",
+            "name": f"{strategy_id} v{version} grid 2",
             "hypothesis": f"{defn.description} Tested over a counted grid of its own numbers; it must beat buy-and-hold after 2x costs, out of sample.",
             "strategy_id": "dsl",
             "definition": defn.canonical(),

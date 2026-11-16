@@ -233,7 +233,7 @@ def test_the_funnel_is_all_zeros_and_marks_the_unlinked_stages_on_an_empty_datab
     assert all(
         s["entered"] == 0 and s["passed"] == 0 and s["dropped"] == [] for s in body["stages"]
     )
-    assert [s["connected"] for s in body["stages"]] == [True, True, True, True, False, False]
+    assert [s["connected"] for s in body["stages"]] == [True, True, True, True, True, False]
 
 
 def test_the_funnel_counts_what_moved_on_and_why_the_rest_dropped(client):
@@ -509,3 +509,27 @@ def test_a_fundamental_features_coverage_says_how_many_companies_it_could_exist_
         == "87.00% of eligible days have a value (minimum 90%); counted only for the 454 of 2600 companies that have filings"
     )
     assert by["fund_roe"]["family"] == "fundamental"
+
+
+def test_a_study_of_a_generated_definition_shows_in_the_trial_and_validation_stages(client):
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+
+    c, conn = client
+    eid = vreg.register(
+        conn, name="s", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
+        param_ranges={"entry_share": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {"definition": {"strategy_id": "ALPHA_X", "version": 1}}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    for i, status in enumerate(("DONE", "FAILED")):
+        conn.execute(
+            "INSERT INTO study_trial (experiment_id, variant, params, params_hash, status, finished_at) VALUES (%s,'base','{}',%s,%s,%s)",
+            (eid, f"h{i}", status, NOW),
+        )
+    conn.commit()
+    body = c.get("/api/intel/funnel").json()
+    t, v = stage(body, "trials"), stage(body, "validation")
+    assert (t["entered"], t["passed"]) == (2, 1) and stage(body, "definitions")["passed"] == 1
+    assert (v["entered"], v["passed"]) == (1, 0)
+    assert {d["reason"]: d["count"] for d in v["dropped"]} == {"Not judged yet": 1}

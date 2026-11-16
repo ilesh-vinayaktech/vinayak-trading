@@ -55,14 +55,14 @@
    "unit": "trials"
   },
   {
-   "connected": false,
+   "connected": true,
    "dropped": [],
    "entered": 0,
    "key": "validation",
-   "note": "Walk-forward, costs and the one-time holdout. Not yet linked to alpha candidates or strategy definitions.",
+   "note": "Walk-forward, 2x costs, capacity and benchmark, then the one-time holdout. Studies of generated definitions only so far.",
    "passed": 0,
    "title": "Validation gates",
-   "unit": "strategies"
+   "unit": "studies"
   },
   {
    "connected": false,

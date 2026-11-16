@@ -35,5 +35,5 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         holdout_start=a.holdout_start,
     )
     print(
-        f"registered study {study.register(conn, a.owner, s, datetime.now(UTC))}: {s.name}, {len(study.GRID['entry_share']) * len(study.GRID['max_positions'])} trials"
+        f"registered study {study.register(conn, a.owner, s, datetime.now(UTC))}: {s.name}, {len(study.GRID['exit_share']) * len(study.GRID['max_positions'])} trials"
     )

@@ -206,10 +206,28 @@ def funnel(conn: WConn) -> dict[str, Any]:
     total, candidates, no_result, too_small = (int(x) for x in tests)
     not_significant = total - candidates - no_result - too_small
     definitions = one("SELECT count(*) FROM strategy_definition")
-    tested = one("SELECT count(DISTINCT (base_strategy_id, base_version)) FROM factory_experiment")
-    trials = one("SELECT count(*) FROM factory_trial")
-    done = one("SELECT count(*) FROM factory_trial WHERE status = 'DONE'")
+    dsl = "FROM experiment e WHERE e.strategy_id = 'dsl' AND e.study IS NOT NULL"
+    tested = one(
+        "SELECT count(*) FROM (SELECT base_strategy_id, base_version::text FROM factory_experiment"
+        f" UNION SELECT e.study->'spec'->'definition'->>'strategy_id', e.study->'spec'->'definition'->>'version' {dsl}) t"  # noqa: S608 - fixed fragment
+    )
+    study_trials = (
+        f"FROM study_trial t JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl'"  # noqa: F541
+    )
+    trials = one("SELECT count(*) FROM factory_trial") + one(f"SELECT count(*) {study_trials}")  # noqa: S608
+    done = one("SELECT count(*) FROM factory_trial WHERE status = 'DONE'") + one(
+        f"SELECT count(*) {study_trials} AND t.status = 'DONE'"
+    )  # noqa: S608
     skipped = one("SELECT count(*) FROM factory_trial WHERE status = 'SKIPPED'")
+    run = one(
+        f"SELECT count(*) {dsl} AND EXISTS (SELECT 1 FROM study_trial t WHERE t.experiment_id = e.experiment_id)"
+    )  # noqa: S608
+    verdicts = f"SELECT count(*) {dsl} AND EXISTS (SELECT 1 FROM validation_report r WHERE r.experiment_id = e.experiment_id"  # noqa: S608
+    passed_gates = one(
+        verdicts
+        + " AND r.report_id = (SELECT max(report_id) FROM validation_report WHERE experiment_id = e.experiment_id) AND r.passed)"
+    )
+    judged = one(verdicts + ")")
     return {
         "stages": [
             _stage("features", "Features", "features", features, usable,
@@ -222,8 +240,9 @@ def funnel(conn: WConn) -> dict[str, Any]:
                    "Registered strategy versions that an experiment has actually run."),
             _stage("trials", "Experiment trials", "trials", trials, done, [("Not a valid definition", skipped), ("Could not run", trials - done - skipped)],
                    "Every combination tried counts, finished or not, because the number of tries is what makes a result honest."),
-            _stage("validation", "Validation gates", "strategies", 0, 0, [],
-                   "Walk-forward, costs and the one-time holdout. Not yet linked to alpha candidates or strategy definitions.", connected=False),
+            _stage("validation", "Validation gates", "studies", run, passed_gates,
+                   [("Failed a gate (latest verdict)", judged - passed_gates), ("Not judged yet", run - judged)],
+                   "Walk-forward, 2x costs, capacity and benchmark, then the one-time holdout. Studies of generated definitions only so far."),
             _stage("paper", "Paper trading", "strategies", 0, 0, [], "Strategies that passed validation and run on a paper account. Nothing reaches here automatically yet.", connected=False),
         ]
     }  # fmt: skip
