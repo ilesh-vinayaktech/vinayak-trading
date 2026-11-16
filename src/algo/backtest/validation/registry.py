@@ -175,25 +175,30 @@ def experiment_family(conn: psycopg.Connection, exp_id: int) -> int | None:
     return None if row is None or row[0] is None else int(row[0])
 
 
-def _features_in(node: Any) -> set[str]:
-    """Every feature a locked strategy definition names (conditions and ranking)."""
-    out: set[str] = set()
-    if isinstance(node, dict):
-        if isinstance(node.get("feature"), str):
-            out.add(node["feature"])
-        for v in node.values():
-            out |= _features_in(v)
-    elif isinstance(node, list):
-        for v in node:
-            out |= _features_in(v)
-    return out
+# Features that measure the same underlying idea: strategies ranked by any of them are tries of ONE hypothesis, so their trials count together (review 2026-11-16, section 3.1).
+FACTORS: dict[str, tuple[str, ...]] = {
+    "volatility": ("vol_20d", "vol_60d", "range_vol_20d", "atr_14d", "atr_pct_14d"),
+    "momentum": ("ret_60d", "ret_120d", "ret_252d", "dist_high_252d", "dist_low_252d"),
+    "short_term_reversal": (
+        "ret_1d",
+        "ret_5d",
+        "ret_20d",
+        "dist_sma_50d",
+        "dist_sma_200d",
+        "rsi_14d",
+    ),
+    "liquidity": ("traded_value_20d", "volume_ratio_20_60d"),
+}
+FACTOR_OF = {f: name for name, fs in FACTORS.items() for f in fs}
 
 
 def hypothesis_key(strategy_id: str, study: Mapping[str, Any] | None) -> str:
-    """The idea an experiment tests: the features of a generated definition (so its weekly and monthly versions are tries of one idea), or the strategy itself for a coded one."""
+    """The idea an experiment tests: for a generated definition, the factor of the feature it RANKS by (so its weekly and monthly versions, and 20- and 60-day variants, are tries of one idea);
+    for a coded strategy, the strategy itself."""
     definition = ((study or {}).get("spec") or {}).get("definition")
     if strategy_id == "dsl" and definition:
-        return "dsl:" + ",".join(sorted(_features_in(definition)))
+        feature = str((definition.get("ranking") or {}).get("feature", ""))
+        return "dsl:" + FACTOR_OF.get(feature, feature)
     return strategy_id
 
 

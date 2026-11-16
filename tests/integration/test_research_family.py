@@ -163,7 +163,9 @@ def test_the_luck_bar_counts_every_try_of_the_same_idea_but_takes_its_spread_onl
         env, "vol old window", "vol_20d", start="2020-01-01", end="2023-12-31"
     )
     low_vol = dsl_experiment(env, "vol 2016-2022", "vol_20d")
-    low_vol_weekly = dsl_experiment(env, "vol weekly 2016-2022", "vol_20d")
+    low_vol_weekly = dsl_experiment(
+        env, "vol 60d 2016-2022", "vol_60d"
+    )  # another volatility measure: the same idea
     momentum = dsl_experiment(env, "momentum 2016-2022", "ret_252d")
     plain = experiment(env, "a coded strategy in the same family", 1)
     for i, s in enumerate((1.9, 2.1)):
@@ -174,7 +176,9 @@ def test_the_luck_bar_counts_every_try_of_the_same_idea_but_takes_its_spread_onl
     registry.record_trial(env, momentum, {"a": 1}, 0.5, None, NOW)
     registry.record_trial(env, plain, {"a": 1}, 0.8, None, NOW)
     n, sharpes = registry.deflation_trials(env, low_vol)
-    assert n == 2 + 3 + 1  # every try of low volatility, on any window, counts
+    assert (
+        n == 2 + 3 + 1
+    )  # every try of the low-volatility idea (20- and 60-day measures alike), on any window, counts
     assert (
         sorted(sharpes) == [0.04, 0.05, 0.06, 0.07]
     )  # the spread: only low-volatility trials on the SAME window; not the other window, not momentum, not the coded strategy
