@@ -156,7 +156,13 @@ def validate(
     stored_match = all(stored[m] == store.rows_sha256(rows_by_month[m]) for m in checked)
     valued = {(r[0], r[1]) for rows in rows_by_month.values() for r in rows}
     eligible = warm_absent = missing_absent = 0
+    # a fundamental feature can only exist for a company that has filings: the others are outside its universe, not missing values. The report says how many there are.
+    universe = (
+        {"instruments": len(bars), "with_filings": len(fa or {})} if d.needs_filings else None
+    )
     for iid, series in bars.items():
+        if universe is not None and iid not in (fa or {}):
+            continue
         for k, day in enumerate(sorted(series)):
             if not (first_day <= day <= end):
                 continue
@@ -209,7 +215,7 @@ def validate(
         "feature": name, "version": version, "family": d.family, "dataset_sha256": dataset, "manifest_sha256": d.manifest_sha256, "freeze": str(freeze_id),
         "months": [f"{m:%Y-%m}" for m in months], "instruments": len(instruments), "min_coverage": str(min_coverage),
         "coverage": {"eligible": eligible, "valued": len(valued), "warmup_absent": warm_absent, "missing_session_absent": missing_absent,
-                     "share": f"{share:f}" if share in (0, 1) else f"{share:.6f}"},
+                     "share": f"{share:f}" if share in (0, 1) else f"{share:.6f}", **({"universe": universe} if universe else {})},
         "values": {"min": str(min(values)) if values else None, "max": str(max(values)) if values else None},
         "recompute": {"identical": identical, "months": len(months), "stored_months_checked": len(checked), "stored_match": stored_match},
         "lookahead": {"cuts": [c.isoformat() for c in cut_days], "checks": checks, "violations": violations},

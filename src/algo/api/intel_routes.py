@@ -260,7 +260,12 @@ def features(conn: WConn) -> dict[str, Any]:
                 "checks": {
                     "coverage": {
                         "ok": not any(x.startswith("coverage") for x in report["reasons"]),
-                        "detail": f"{float(report['coverage']['share']):.2%} of eligible days have a value (minimum {float(report['min_coverage']):.0%})",
+                        "detail": f"{float(report['coverage']['share']):.2%} of eligible days have a value (minimum {float(report['min_coverage']):.0%})"
+                        + (
+                            f"; counted only for the {u['with_filings']} of {u['instruments']} companies that have filings"
+                            if (u := report["coverage"].get("universe"))
+                            else ""
+                        ),
                     },
                     "reproducible": {
                         "ok": bool(report["recompute"]["identical"]),

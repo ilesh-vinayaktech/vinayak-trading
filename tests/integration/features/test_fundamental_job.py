@@ -214,7 +214,12 @@ def test_validation_reads_the_filings_twice_checks_the_cuts_and_reports_under_th
         "reading filings",
         "reading filings",
     ]  # two independent reads
-    assert 0.4 < float(r["coverage"]["share"]) < 0.6  # one company of two has filings
+    assert r["coverage"]["universe"] == {
+        "instruments": 2,
+        "with_filings": 1,
+    }  # one company of two has filings: the other is outside this feature's universe
+    assert r["coverage"]["share"] == "1"  # so coverage is judged among the company that has them
+    assert registry.DEFINITIONS["ret_5d"].needs_filings is False
 
 
 def test_validation_with_shared_filing_reads_gives_the_same_report_and_reads_nothing_again(

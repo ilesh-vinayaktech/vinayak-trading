@@ -486,3 +486,26 @@ def test_the_failure_reasons_light_up_exactly_the_checks_that_failed(client):
         checks["reproducible"]["detail"]
         == "recomputing from an independent read gave different values"
     )
+
+
+def test_a_fundamental_features_coverage_says_how_many_companies_it_could_exist_for(client):
+    from psycopg.types.json import Jsonb
+
+    c, conn = client
+    feature_store.register_all(conn, NOW)
+    fid = conn.execute(
+        "SELECT feature_id FROM feature_definition WHERE name='fund_roe'"
+    ).fetchone()[0]
+    rep = _report(True, [], share="0.87")
+    rep["coverage"]["universe"] = {"instruments": 2600, "with_filings": 454}
+    conn.execute(
+        "INSERT INTO feature_validation (feature_id, dataset_sha256, passed, report, created_by, created_at) VALUES (%s,%s,TRUE,%s,'agent',%s)",
+        (fid, "a" * 64, Jsonb(rep), NOW),
+    )
+    conn.commit()
+    by = {f["name"]: f for f in c.get("/api/intel/features").json()["features"]}
+    assert (
+        by["fund_roe"]["validation"]["checks"]["coverage"]["detail"]
+        == "87.00% of eligible days have a value (minimum 90%); counted only for the 454 of 2600 companies that have filings"
+    )
+    assert by["fund_roe"]["family"] == "fundamental"
