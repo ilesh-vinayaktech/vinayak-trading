@@ -187,22 +187,36 @@ def definition_signals(
     if queries.instrument(conn, instrument_id) is None:
         raise HTTPException(404, f"no instrument {instrument_id}")
     try:
-        values, liquid, stored_end = def_signals.load_values(
-            conn, defn, start, end, always=instrument_id
-        )
+        stored = def_signals.load_values(conn, defn, start, end, always=instrument_id)
     except (def_signals.SignalsError, HoldoutError) as e:
         raise HTTPException(409, str(e)) from e
+    values = stored.values
 
     def bars_of(iid: int, lo: date, hi: date) -> list[Any]:
         return list(
             queries.reader_for(conn, iid)[0].issuer_history(iid, lo, hi, adjust="split").bars
         )
 
-    if end > stored_end and liquid:
-        universe = set(liquid[max(liquid)]) | {
-            instrument_id
-        }  # the names most traded on the last stored day
-        tail = def_signals.tail_values(defn, universe, stored_end, end, bars_of)
+    # days outside the stored window (before its first month, after the development end) are computed here, in memory, for the most traded names at the nearest edge; nothing is kept
+    one_day = timedelta(days=1)
+    if start < stored.first:
+        head = def_signals.tail_values(
+            defn,
+            stored.head_universe | {instrument_id},
+            start - one_day,
+            min(end, stored.first - one_day),
+            bars_of,
+        )
+        for name, per_day in head.items():
+            values.setdefault(name, {}).update(per_day)
+    if end > stored.last:
+        tail = def_signals.tail_values(
+            defn,
+            stored.tail_universe | {instrument_id},
+            max(start - one_day, stored.last),
+            end,
+            bars_of,
+        )
         for name, per_day in tail.items():
             values.setdefault(name, {}).update(per_day)
     used_end = end

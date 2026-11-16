@@ -93,6 +93,44 @@ def _months(start: date, end: date) -> list[tuple[date, date]]:
     return out
 
 
+@dataclass(frozen=True)
+class Stored:
+    """What is stored for the rule's features: the values for the asked days that fall inside the stored window, the window itself, and the most traded names on its first and last day (the
+    universe the days outside the window are computed for)."""
+
+    values: dict[str, dict[date, dict[int, Decimal]]]
+    first: date
+    last: date
+    head_universe: set[int]
+    tail_universe: set[int]
+
+
+def _stored_window(
+    conn: psycopg.Connection, shas: dict[str, tuple[str, str]], last: date
+) -> tuple[date, date] | None:
+    """The newest unbroken run of months for which EVERY feature (name -> (version, dataset)) has a completed run, as (first day, last day cut to `last`); None when there is none."""
+    common: set[date] | None = None
+    for name, (version, sha) in shas.items():
+        months = {
+            r[0]
+            for r in conn.execute(
+                "SELECT month FROM feature_run WHERE feature_id=%s AND dataset_sha256=%s AND status='complete'",
+                (store._id(conn, name, version), sha),
+            )
+        }
+        common = months if common is None else common & months
+    if not common:
+        return None
+    top = max(common)
+    first = top
+    while True:
+        prev = date(first.year - (first.month == 1), (first.month - 2) % 12 + 1, 1)
+        if prev not in common:
+            break
+        first = prev
+    return first, min(store._month_end(top), last)
+
+
 def load_values(
     conn: psycopg.Connection,
     defn: StrategyDef,
@@ -101,9 +139,9 @@ def load_values(
     *,
     top: int = LIQUID_TOP,
     always: int | None = None,
-) -> tuple[dict[str, dict[date, dict[int, Decimal]]], dict[date, set[int]], date]:
-    """The STORED values of every feature the rule reads, month by month, kept only for each day's `top` most traded stocks (and for `always`, the stock being drawn, whatever its rank), between
-    `start` and `end` (cut to the last stored day, which is the development end). Streaming by month keeps ten years in memory. Returns (values, each day's liquid set, the end used)."""
+) -> Stored:
+    """The STORED values of every feature the rule reads, month by month, kept only for each day's `top` most traded stocks (and for `always`, the stock being drawn, whatever its rank), for the part of
+    `start`..`end` that lies inside the stored window. Streaming by month keeps ten years in memory. The holdout is never part of the stored window (it ends at the development end)."""
     lock = holdout_lock.require(conn)
     row = conn.execute(
         "SELECT freeze_id FROM data_freeze ORDER BY taken_at DESC LIMIT 1"
@@ -113,40 +151,54 @@ def load_values(
     f = freeze_mod.get(conn, row[0])
     assert f is not None
     last = min(f["through_date"], lock.development_end)
-    end = min(end, last)
     instruments = [i["instrument_id"] for i in f["items"]]
-    tv = feature_registry.DEFINITIONS[LIQUID_FEATURE]
-    tv_sha = job.feature_dataset_sha256(conn, row[0], instruments, tv, last)
-    shas = {
-        n: job.feature_dataset_sha256(
-            conn, row[0], instruments, feature_registry.DEFINITIONS[n], last
+    names = [LIQUID_FEATURE, *features_used(defn)]
+    ident = {
+        n: (
+            feature_registry.DEFINITIONS[n].version,
+            job.feature_dataset_sha256(
+                conn, row[0], instruments, feature_registry.DEFINITIONS[n], last
+            ),
         )
-        for n in features_used(defn)
+        for n in names
     }
-    out: dict[str, dict[date, dict[int, Decimal]]] = {n: {} for n in shas}
-    liquid_all: dict[date, set[int]] = {}
+    window = _stored_window(conn, ident, last)
+    if window is None:
+        raise SignalsError(
+            f"no stored values of {', '.join(names)} for the latest data: run scripts/compute_features.py"
+        )
+    first, stored_last = window
+    tv_version, tv_sha = ident[LIQUID_FEATURE]
+
+    def liquid_of(lo: date, hi: date) -> dict[date, set[int]]:
+        by_day: dict[date, list[tuple[Decimal, int]]] = {}
+        for (iid, day), (value, _at) in store.read_features(
+            conn, LIQUID_FEATURE, tv_version, tv_sha, instruments, lo, hi
+        ).items():
+            by_day.setdefault(day, []).append((value, iid))
+        return {
+            day: {i for _, i in sorted(v, key=lambda t: (-t[0], t[1]))[:top]}
+            for day, v in by_day.items()
+        }
+
+    out: dict[str, dict[date, dict[int, Decimal]]] = {n: {} for n in names[1:]}
     try:
-        for lo, hi in _months(min(start, date(end.year, end.month, 1)), end):
-            by_day: dict[date, list[tuple[Decimal, int]]] = {}
-            for (iid, day), (value, _at) in store.read_features(
-                conn, LIQUID_FEATURE, tv.version, tv_sha, instruments, lo, hi
-            ).items():
-                by_day.setdefault(day, []).append((value, iid))
-            liquid = {
-                day: {i for _, i in sorted(v, key=lambda t: (-t[0], t[1]))[:top]}
-                for day, v in by_day.items()
-            }
-            liquid_all.update(liquid)
-            for name, sha in shas.items():
-                d = feature_registry.DEFINITIONS[name]
-                for (iid, day), (value, _at) in store.read_features(
-                    conn, name, d.version, sha, instruments, lo, hi
-                ).items():
-                    if iid in liquid.get(day, ()) or iid == always:
-                        out[name].setdefault(day, {})[iid] = value
+        head = liquid_of(first, store._month_end(first))
+        tail = liquid_of(date(stored_last.year, stored_last.month, 1), stored_last)
+        lo, hi = max(start, first), min(end, stored_last)
+        if lo <= hi:
+            for mlo, mhi in _months(lo, hi):
+                liquid = liquid_of(mlo, mhi)
+                for name in names[1:]:
+                    version, sha = ident[name]
+                    for (iid, day), (value, _at) in store.read_features(
+                        conn, name, version, sha, instruments, mlo, mhi
+                    ).items():
+                        if iid in liquid.get(day, ()) or iid == always:
+                            out[name].setdefault(day, {})[iid] = value
     except store.FeatureError as e:
         raise SignalsError(str(e)) from e
-    return out, liquid_all, end
+    return Stored(out, first, stored_last, head[min(head)], tail[max(tail)])
 
 
 def tail_values(

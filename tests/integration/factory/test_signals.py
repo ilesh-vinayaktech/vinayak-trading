@@ -28,28 +28,40 @@ DEFN = generate.definition_for(
 )
 
 
-def test_the_values_cover_every_stock_and_stop_at_the_development_end_whatever_range_is_asked(
+def test_the_stored_window_stops_at_the_development_end_and_the_values_are_kept_for_the_most_traded_names(
     world,
 ):  # noqa: F811
     conn, ids, fid = world
     with_traded_value(conn, fid)
-    values, liquid, end = signals.load_values(conn, DEFN, date(2026, 1, 1), date(2026, 3, 31))
-    assert end == date(2026, 2, 28)  # the holdout starts 2026-03-01: never read
-    per_day = values["ret_20d"]
+    got = signals.load_values(conn, DEFN, date(2026, 1, 1), date(2026, 3, 31))
+    assert got.last == date(2026, 2, 28)  # the holdout starts 2026-03-01: not in the stored window
+    per_day = got.values["ret_20d"]
     assert max(per_day) <= date(2026, 2, 28)
     day = max(per_day)
     assert set(per_day[day]) == set(ids)  # every stock of the freeze has a value that day
-    assert liquid[day] == set(ids)  # eight stocks, all within the 200 most traded
-    few, liq, _ = signals.load_values(
-        conn, DEFN, date(2026, 1, 1), date(2026, 3, 31), top=3, always=ids[0]
-    )
-    assert len(liq[day]) == 3 and set(few["ret_20d"][day]) == liq[day] | {
+    assert got.tail_universe == set(ids)  # eight stocks, all within the 200 most traded
+    few = signals.load_values(conn, DEFN, date(2026, 1, 1), date(2026, 3, 31), top=3, always=ids[0])
+    assert len(few.tail_universe) == 3 and set(few.values["ret_20d"][day]) == few.tail_universe | {
         ids[0]
     }  # only the 3 most traded, plus the stock being drawn
 
 
+def test_a_request_wholly_outside_the_stored_window_has_no_stored_values_but_still_names_the_universe_to_compute_for(
+    world,
+):  # noqa: F811
+    conn, ids, fid = world
+    with_traded_value(conn, fid)
+    got = signals.load_values(conn, DEFN, date(2026, 3, 2), date(2026, 3, 6))
+    assert (
+        got.values["ret_20d"] == {}
+        and got.last == date(2026, 2, 28)
+        and got.tail_universe == set(ids)
+    )
+
+
 def test_a_month_without_a_stored_run_is_refused_with_the_reason_not_guessed(world):  # noqa: F811
     conn, _, fid = world
-    with_traded_value(conn, fid)
-    with pytest.raises(signals.SignalsError, match="no completed run"):
-        signals.load_values(conn, DEFN, date(2025, 6, 1), date(2025, 7, 31))
+    with pytest.raises(signals.SignalsError, match="no stored values"):
+        signals.load_values(
+            conn, DEFN, date(2025, 6, 1), date(2025, 7, 31)
+        )  # traded_value_20d was never computed here
