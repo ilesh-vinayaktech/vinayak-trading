@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -133,6 +133,9 @@ class Setup:
     policy: CostPolicy
     reader: PriceReader
     fundamentals: Any = None  # the filings a screener strategy reads (a FundamentalsBook), only when its screen uses them
+    feature_cache: dict[Any, Any] = field(
+        default_factory=dict
+    )  # the day's feature values of a generated definition, shared by every run of the study
 
 
 def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: bool = False) -> Setup:

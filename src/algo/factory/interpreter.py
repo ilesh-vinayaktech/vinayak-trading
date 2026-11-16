@@ -146,10 +146,15 @@ def decide(
     hist: Mapping[int, Sequence[AdjBar]],
     held: set[int],
     day: date,
+    *,
+    features: tuple[Values, list[int], list[int]] | None = None,
 ) -> tuple[Targets, dict[str, Any]]:
+    """`features`: the day's (ready, no_bar, warming) when already worked out (a later run of the same study, which differs only in its settings); `hist` is then not read."""
     if not members:
         raise DataNotReady(f"no members of the universe on {day}")
-    ready, no_bar, warming = _features(defn, members, hist, day)
+    ready, no_bar, warming = (
+        features if features is not None else _features(defn, members, hist, day)
+    )
     if Decimal(len(no_bar)) / Decimal(len(members)) > MAX_NO_BAR:
         raise DataNotReady(f"{len(no_bar)} of {len(members)} members have no bar on {day}")
     best = _best_first(defn.ranking, ready)
@@ -228,9 +233,12 @@ class NoParams(StrategyParams):
 class DslStrategy(Strategy):
     Params = NoParams
 
-    def __init__(self, defn: StrategyDef, membership: IntervalMembership) -> None:
+    def __init__(
+        self, defn: StrategyDef, membership: IntervalMembership, cache: dict[Any, Any] | None = None
+    ) -> None:
         super().__init__(NoParams())
         self.defn, self.membership = defn, membership
+        self.cache = cache  # shared by the runs of one study: the day's feature values depend on the data and the stocks, not on the settings
         self.id, self.version = defn.strategy_id, str(defn.version)
         self.cadence = Cadence(defn.rebalance)
         self.audit: list[dict[str, Any]] = []
@@ -258,10 +266,21 @@ class DslStrategy(Strategy):
         if not self.cadence.due(day):
             return None  # not a rebalance day: the previous targets stand
         members = sorted(self.membership.on(day))
-        hist = ctx.data.history(
-            members + sorted(set(ctx.portfolio.positions) - set(members)),
-            self.requirements().lookback_days,
+        key = (tuple(sorted(self.defn.required_features())), day, tuple(members))
+        features = self.cache.get(key) if self.cache is not None and ctx.mode != "strict" else None
+        hist: Mapping[int, Sequence[AdjBar]] = {}
+        if (
+            features is None
+        ):  # asking for the bars can have effects in strict mode, so the cache is only used outside it
+            hist = ctx.data.history(
+                members + sorted(set(ctx.portfolio.positions) - set(members)),
+                self.requirements().lookback_days,
+            )
+            if self.cache is not None and ctx.mode != "strict" and members:
+                features = _features(self.defn, members, hist, day)
+                self.cache[key] = features
+        targets, row = decide(
+            self.defn, members, hist, set(ctx.portfolio.positions), day, features=features
         )
-        targets, row = decide(self.defn, members, hist, set(ctx.portfolio.positions), day)
         self.audit.append(row)
         return targets

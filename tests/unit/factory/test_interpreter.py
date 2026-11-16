@@ -541,3 +541,88 @@ def test_the_market_condition_is_validated_and_asks_for_the_history_it_needs():
         )  # a share of identical values means nothing
     with pytest.raises(ValueError, match="market_breadth_200d"):
         breadth_defn(ranking={"feature": "market_breadth_200d", "order": "DESC"})
+
+
+# ---- sharing the day's feature values between runs of the same study (the settings differ, the features do not) ------------------------------------------------------
+class _Ctx:
+    """The little of a Context the strategy touches: the day, the mode, what is held, and a history source that counts how often it is asked."""
+
+    def __init__(self, hist, day=DAY, held=()):
+        from types import SimpleNamespace
+
+        self.calls = 0
+        self.mode = "research"
+        self._day = day
+        outer = self
+
+        class _Data:
+            def history(self, ids, lookback):
+                outer.calls += 1
+                return {i: hist[i] for i in ids if i in hist}
+
+        self.data = _Data()
+        self.portfolio = SimpleNamespace(positions={i: D(1) for i in held})
+
+    def now(self):
+        return datetime(self._day.year, self._day.month, self._day.day, 12, tzinfo=UTC)
+
+
+def _strategy(cache, **over):
+    from algo.data.universe import Interval
+    from algo.strategies.nifty200_momentum import IntervalMembership
+
+    return interpreter.DslStrategy(
+        defn(**over),
+        IntervalMembership([Interval(i, DAY - timedelta(days=30), None) for i in (1, 2, 3, 4)]),
+        cache=cache,
+    )
+
+
+def test_a_second_run_of_the_study_reuses_the_days_feature_values_and_decides_exactly_the_same():
+    hist = market({1: 110, 2: 108, 3: 106, 4: 101})
+    cache: dict = {}
+    first_ctx, second_ctx, plain_ctx = _Ctx(hist), _Ctx(hist), _Ctx(hist)
+    first = _strategy(cache).on_schedule(first_ctx)
+    again = _strategy(cache).on_schedule(
+        second_ctx
+    )  # a later trial of the same study: another run, the same features
+    plain = _strategy(None).on_schedule(plain_ctx)  # no cache: the old path
+    assert first == again == plain and first  # identical targets
+    assert (first_ctx.calls, second_ctx.calls, plain_ctx.calls) == (
+        1,
+        0,
+        1,
+    )  # the second never asked for the bars again
+
+
+def test_a_different_setting_with_the_same_features_shares_the_cache_but_a_different_set_of_stocks_does_not():
+    hist = market({1: 110, 2: 108, 3: 106, 4: 101})
+    cache: dict = {}
+    _strategy(cache).on_schedule(_Ctx(hist))
+    wider = _strategy(
+        cache, position={"max_positions": 3, "sizing": "EQUAL_WEIGHT"}
+    )  # another number of positions: same features
+    ctx = _Ctx(hist)
+    targets = wider.on_schedule(ctx)
+    assert ctx.calls == 0 and len(targets) == 3  # shared features, its own decision
+    from algo.data.universe import Interval
+    from algo.strategies.nifty200_momentum import IntervalMembership
+
+    other_members = interpreter.DslStrategy(
+        defn(),
+        IntervalMembership([Interval(i, DAY - timedelta(days=30), None) for i in (1, 2, 3)]),
+        cache=cache,
+    )
+    ctx2 = _Ctx(hist)
+    other_members.on_schedule(ctx2)
+    assert ctx2.calls == 1  # a different member list is a different key: not reused
+
+
+def test_the_cache_is_not_used_in_strict_mode_where_asking_for_the_bars_has_a_side_effect():
+    hist = market({1: 110, 2: 108, 3: 106, 4: 101})
+    cache: dict = {}
+    _strategy(cache).on_schedule(_Ctx(hist))
+    strict = _Ctx(hist)
+    strict.mode = "strict"
+    _strategy(cache).on_schedule(strict)
+    assert strict.calls == 1

@@ -138,8 +138,9 @@ def _clip(loaded: Loaded, holdout_start: date) -> _GuardedLoaded:
 class ResearchReader:
     """The only price reader research code may hold. See the module doc."""
 
-    __slots__ = ("_inner", "_memo", "_start")
+    __slots__ = ("_inner", "_loads", "_memo", "_start")
     _inner: BarReader
+    _loads: dict[tuple[str, int, bool], Loaded]
     _memo: dict[tuple[int, ...], str | None]
     _start: date
 
@@ -147,6 +148,7 @@ class ResearchReader:
         object.__setattr__(self, "_inner", inner)
         object.__setattr__(self, "_start", lock.holdout_start)
         object.__setattr__(self, "_memo", {})
+        object.__setattr__(self, "_loads", {})
 
     @property
     def known_at(self) -> datetime | None:
@@ -175,10 +177,19 @@ class ResearchReader:
         return self._inner.isin_links()
 
     def load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
-        return _clip(self._inner.load(instrument_id, strict=strict), self._start)
+        """Remembered: a study runs the same strategy many times (every setting, then the stress runs) over the same pinned data, so each stock is read from the database once, not once per run."""
+        key = ("own", instrument_id, strict)
+        if key not in self._loads:
+            self._loads[key] = _clip(self._inner.load(instrument_id, strict=strict), self._start)
+        return self._loads[key]
 
     def issuer_load(self, instrument_id: int, *, strict: bool = False) -> Loaded:
-        return _clip(self._inner.issuer_load(instrument_id, strict=strict), self._start)
+        key = ("issuer", instrument_id, strict)
+        if key not in self._loads:
+            self._loads[key] = _clip(
+                self._inner.issuer_load(instrument_id, strict=strict), self._start
+            )
+        return self._loads[key]
 
     def history(self, instrument_id: int, start: date, end: date, **kw: Any) -> History:
         strict = kw.pop("strict", False)

@@ -882,3 +882,53 @@ def test_a_fixed_study_uses_the_definitions_own_numbers_and_a_robustness_grid_ne
     assert (
         fstudy.register(conn, owner, same_again, NOW) > eid
     )  # the same setting is fine: it is not a replacement
+
+
+def test_the_runs_of_one_study_load_each_stocks_data_once_and_give_exactly_the_same_results(
+    env, monkeypatch
+):
+    """Studies run the same strategy many times over the same frozen data (every setting, then the stress runs): loading and the day's features are shared, and the numbers do not change."""
+    from algo.factory import generate
+    from algo.factory import registry as freg
+    from algo.factory import study as fstudy
+    from algo.research import study_runner as sr
+
+    conn, owner = env
+    defn = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, defn, by="t", reason="test", now=NOW)
+    s = fstudy.spec_for(
+        conn,
+        defn.strategy_id,
+        1,
+        family_id=1,
+        start=DAYS[0],
+        end=DAYS[-1],
+        holdout_start=DAYS[270],
+        fixed=True,
+    )
+    eid = fstudy.register(conn, owner, s, NOW)
+    setup = sr.prepare(conn, s, eid)
+    loads = []
+    inner = type(
+        setup.reader._inner
+    )  # the BarReader under the guard: every real read from the database goes through it
+    real = inner.load
+
+    def counting(self, iid, *, strict=False):
+        loads.append(iid)
+        return real(self, iid, strict=strict)
+
+    monkeypatch.setattr(inner, "load", counting)
+    combo = {"max_positions": 10, "exit_share": 50}
+    cfg = sr.BacktestConfig(
+        start=setup.begin, end=setup.research_end, initial_cash=s.capital, cost=setup.policy
+    )
+    first = sr.run_backtest(conn, sr.build(s, combo, setup), cfg, reader=setup.reader)
+    after_first = len(loads)
+    again = sr.run_backtest(conn, sr.build(s, combo, setup), cfg, reader=setup.reader)
+    assert [e for e in again.equity] == [e for e in first.equity] and len(again.trades) == len(
+        first.trades
+    )  # identical
+    assert len(loads) == after_first  # the second run asked the reader for nothing new

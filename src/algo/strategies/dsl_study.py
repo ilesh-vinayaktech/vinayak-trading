@@ -52,10 +52,16 @@ class DslStudyStrategy(Strategy):
     Params = DslParams
 
     def __init__(
-        self, params: DslParams, membership: IntervalMembership, definition: dict[str, Any]
+        self,
+        params: DslParams,
+        membership: IntervalMembership,
+        definition: dict[str, Any],
+        cache: dict[Any, Any] | None = None,
     ) -> None:
         super().__init__(params)
-        self.inner = DslStrategy(apply(StrategyDef.model_validate(definition), params), membership)
+        self.inner = DslStrategy(
+            apply(StrategyDef.model_validate(definition), params), membership, cache
+        )
         self.id, self.version = self.inner.id, self.inner.version
 
     @property
