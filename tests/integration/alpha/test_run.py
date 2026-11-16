@@ -223,3 +223,98 @@ def test_discovery_holds_one_feature_at_a_time_and_numbers_its_tests_across_all_
         "ret_5d at 1 days (test 3 of 4)",
         "ret_5d at 3 days (test 4 of 4)",
     ]
+
+
+def test_a_liquid_universe_keeps_only_the_most_traded_names_each_day_and_needs_the_traded_value_feature(
+    world,
+):
+    conn, ids, fid = world
+    with pytest.raises(run.DiscoveryError, match="needs traded_value_20d to be USABLE"):
+        run.measure(conn, fid, JAN, horizons=(1,), min_names=3, liquid_top=4)
+    store.set_status(conn, "traded_value_20d", "1", "USABLE", by="owner", reason="test", now=NOW)
+    job.run(conn, fid, JAN, NOW, "abc", ready=lambda c, n: Readiness())  # materialise it too
+    everyone = {e.feature: e for e in run.measure(conn, fid, JAN, horizons=(1,), min_names=3)}
+    seen = []
+    top4 = {
+        e.feature: e
+        for e in run.measure(
+            conn,
+            fid,
+            JAN,
+            horizons=(1,),
+            min_names=3,
+            liquid_top=4,
+            report=lambda p, m: seen.append(p),
+        )
+    }
+    assert set(top4) == set(everyone) == {"ret_5d", "ret_20d", "traded_value_20d"}
+    assert (
+        everyone["ret_5d"].avg_names == 8.0 and top4["ret_5d"].avg_names == 4.0
+    )  # four of the eight each day
+    assert "liquid universe" in seen and seen.index("liquid universe") < seen.index(
+        "testing"
+    )  # reported before the tests start
+
+
+def test_the_liquid_universe_is_recorded_with_the_batch_and_the_share_must_make_sense(world):
+    conn, ids, fid = world
+    store.set_status(conn, "traded_value_20d", "1", "USABLE", by="owner", reason="test", now=NOW)
+    job.run(conn, fid, JAN, NOW, "abc", ready=lambda c, n: Readiness())
+    got = run.run_discovery(
+        conn,
+        fid,
+        JAN,
+        NOW,
+        horizons=(1,),
+        min_names=3,
+        liquid_top=4,
+        context={"universe": "the 4 most traded names each day"},
+    )
+    assert len(got) == 3
+    ctx = {
+        r[0]["universe"]
+        for r in conn.execute("SELECT evidence->'context' FROM alpha_hypothesis").fetchall()
+    }
+    assert ctx == {"the 4 most traded names each day"}
+    with pytest.raises(run.DiscoveryError, match="at least 1"):
+        run.measure(conn, fid, JAN, horizons=(1,), min_names=3, liquid_top=0)
+
+
+def test_the_script_can_test_only_the_most_traded_names_and_records_that_on_every_hypothesis(
+    world, pg_url, monkeypatch, capsys
+):
+    import runpy
+    import sys
+    from pathlib import Path
+
+    conn, ids, fid = world
+    store.set_status(conn, "traded_value_20d", "1", "USABLE", by="owner", reason="test", now=NOW)
+    job.run(conn, fid, JAN, NOW, "abc", ready=lambda c, n: Readiness())
+    conn.commit()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "discover_alpha.py",
+            "--db",
+            pg_url,
+            "--from",
+            "2026-01-01",
+            "--horizons",
+            "1",
+            "--min-names",
+            "3",
+            "--liquid-top",
+            "4",
+        ],
+    )
+    runpy.run_path(
+        str(Path(__file__).parents[3] / "scripts/discover_alpha.py"), run_name="__main__"
+    )
+    assert "hypotheses recorded" in capsys.readouterr().out
+    ctx = conn.execute("SELECT DISTINCT evidence->'context' FROM alpha_hypothesis").fetchall()
+    assert (
+        len(ctx) == 1
+        and ctx[0][0]["liquid_top"] == 4
+        and ctx[0][0]["universe"].startswith("the 4 most traded names of each day")
+    )

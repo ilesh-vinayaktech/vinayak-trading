@@ -239,3 +239,78 @@ def test_testing_the_features_one_at_a_time_gives_exactly_the_evidence_of_testin
         e for key in sorted(feats) for e in discover.discover({key: feats[key]}, closes, days, **kw)
     ]
     assert apart == together and [e.feature for e in together][:2] == ["alpha", "alpha"]
+
+
+def _world():
+    from datetime import date, timedelta
+    from decimal import Decimal as D
+
+    days = [date(2026, 1, 5) + timedelta(days=i) for i in range(40)]
+    growth = {
+        i: D("1.001") + D(i) / D(1000) for i in range(8)
+    }  # stock 7 grows fastest, stock 0 slowest, every day
+    closes = {i: {} for i in range(8)}
+    for i in range(8):
+        p = D(100)
+        for d in days:
+            p = p * growth[i]
+            closes[i][d] = p
+    # the signal agrees with the growth ranking for the first four stocks (the 'liquid' ones) and reverses it for the other four
+    signal = {i: D(i) if i < 4 else D(11 - i) for i in range(8)}
+    feature = {(i, d): signal[i] for i in range(8) for d in days}
+    return days, closes, feature
+
+
+def test_the_cross_section_can_be_restricted_to_the_names_eligible_that_day():
+    from algo.alpha import discover
+
+    days, closes, feature = _world()
+    kw = dict(horizon=1, last_allowed=days[-1], min_names=4)
+    everyone = discover.evaluate("f", "1", feature, closes, days, **kw)
+    liquid = {d: frozenset({0, 1, 2, 3}) for d in days}
+    only = discover.evaluate("f", "1", feature, closes, days, eligible=liquid, **kw)
+    assert (
+        only.mean_ic == pytest.approx(1.0) and only.avg_names == 4.0
+    )  # among the four, the signal ranks them perfectly
+    assert (
+        everyone.mean_ic < 0.99 and everyone.avg_names == 8.0
+    )  # the four with the reversed signal spoil the full cross-section
+
+
+def test_a_day_with_no_eligible_set_or_too_few_eligible_names_gives_no_ic_for_that_day():
+    from algo.alpha import discover
+
+    days, closes, feature = _world()
+    kw = dict(horizon=1, last_allowed=days[-1], min_names=4)
+    base = discover.evaluate(
+        "f", "1", feature, closes, days, eligible={d: frozenset(range(8)) for d in days}, **kw
+    )
+    assert base == discover.evaluate(
+        "f", "1", feature, closes, days, **kw
+    )  # everyone eligible is the same as no restriction
+    half = {
+        d: (frozenset({0, 1, 2, 3}) if k % 2 else frozenset({0, 1})) for k, d in enumerate(days)
+    }  # two names on alternate days: below min_names
+    got = discover.evaluate("f", "1", feature, closes, days, eligible=half, **kw)
+    assert got.days == base.days // 2 and got.avg_names == 4.0
+    missing = {
+        days[0]: frozenset({0, 1, 2, 3})
+    }  # every other day has no set at all: no names eligible
+    assert discover.evaluate("f", "1", feature, closes, days, eligible=missing, **kw).days <= 1
+
+
+def test_the_restriction_is_passed_through_discover_to_every_test():
+    from algo.alpha import discover
+
+    days, closes, feature = _world()
+    liquid = {d: frozenset({0, 1, 2, 3}) for d in days}
+    out = discover.discover(
+        {("f", "1"): feature},
+        closes,
+        days,
+        horizons=(1, 5),
+        last_allowed=days[-1],
+        min_names=4,
+        eligible=liquid,
+    )
+    assert all(e.avg_names == 4.0 for e in out) and len(out) == 2

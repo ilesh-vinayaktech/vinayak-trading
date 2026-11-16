@@ -25,14 +25,23 @@ ap.add_argument("--freeze")
 ap.add_argument("--from", dest="first", default="2020-10-01")
 ap.add_argument("--horizons", default="1,5,20,60")
 ap.add_argument("--min-names", type=int, default=20)
+ap.add_argument(
+    "--liquid-top",
+    type=int,
+    default=None,
+    help="test only the N most traded names of each day (by the 20-day traded value known that day)",
+)
 ap.add_argument("--dry-run", action="store_true", help="measure and print, record nothing")
 a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 horizons = tuple(sorted({int(h) for h in a.horizons.split(",")}))
 CONTEXT = {
-    "universe": "the data freeze's instruments; NOT point-in-time Nifty 200 membership",
+    "universe": "the data freeze's instruments; NOT point-in-time Nifty 200 membership"
+    if a.liquid_top is None
+    else f"the {a.liquid_top} most traded names of each day (20-day traded value known that day), chosen point in time from the data freeze's instruments; NOT point-in-time Nifty 200 membership",
     "method": "rank IC, Newey-West, Bonferroni over all tests ever run",
+    "liquid_top": a.liquid_top,
 }
 
 with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha discovery", nice=10):
@@ -51,7 +60,12 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
     try:
         if a.dry_run:
             for e in run.measure(
-                conn, UUID(str(fid)), first, horizons=horizons, min_names=a.min_names
+                conn,
+                UUID(str(fid)),
+                first,
+                horizons=horizons,
+                min_names=a.min_names,
+                liquid_top=a.liquid_top,
             ):
                 print(
                     f"{e.feature}@{e.version} h={e.horizon}: days {e.days}, mean IC {e.mean_ic}, p {e.p_value}"
@@ -74,6 +88,7 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
                 horizons=horizons,
                 min_names=a.min_names,
                 context=CONTEXT,
+                liquid_top=a.liquid_top,
                 report=lambda phase, msg: prog.step(phase, msg, done=step_of.get(phase)),
             )
             prog.finish(True, f"{len(ids)} hypotheses recorded")

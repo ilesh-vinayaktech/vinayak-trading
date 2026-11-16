@@ -33,6 +33,31 @@ class DiscoveryError(Exception):
     pass
 
 
+def _liquid(
+    conn: psycopg.Connection,
+    freeze_id: UUID,
+    instruments: list[int],
+    last: date,
+    first_month: date,
+    end: date,
+    top: int,
+) -> dict[date, frozenset[int]]:
+    """The `top` most traded names of each day, by the 20-day traded value KNOWN that day (a value uses only bars up to the day, so the choice looks at nothing later); ties go to the lower id."""
+    d = feature_registry.DEFINITIONS["traded_value_20d"]
+    if store.status(conn, "traded_value_20d", d.version) != "USABLE":
+        raise DiscoveryError("a liquid universe needs traded_value_20d to be USABLE")
+    sha = job.feature_dataset_sha256(conn, freeze_id, instruments, d, last)
+    by_day: dict[date, list[tuple[Decimal, int]]] = {}
+    for (iid, day), (value, _available_at) in store.read_features(
+        conn, "traded_value_20d", d.version, sha, instruments, first_month, end
+    ).items():
+        by_day.setdefault(day, []).append((value, iid))
+    return {
+        day: frozenset(i for _, i in sorted(v, key=lambda t: (-t[0], t[1]))[:top])
+        for day, v in by_day.items()
+    }
+
+
 def _numbered(
     report: Callable[[str, str], None], offset: int, total: int
 ) -> Callable[[str, int, int, int], None]:
@@ -52,7 +77,11 @@ def measure(
     horizons: Sequence[int],
     min_names: int,
     report: Callable[[str, str], None] | None = None,
+    liquid_top: int | None = None,
 ) -> list[discover.Evidence]:
+    """`liquid_top`, when given, tests only the `liquid_top` most traded names each day (by the 20-day traded value known that day), the others left out of that day's cross-section."""
+    if liquid_top is not None and liquid_top < 1:
+        raise DiscoveryError("a liquid universe needs at least 1 name a day")
     f = freeze_mod.get(conn, freeze_id)
     if f is None:
         raise DiscoveryError(f"no such freeze {freeze_id}")
@@ -79,6 +108,14 @@ def measure(
     sessions = [d for d in feature_registry.sessions_from(bars) if d <= last]
     del bars  # the full bars are not needed again: the closes and the sessions are all the tests use, and holding both would double the memory
     end = store._month_end(months[-1])
+    eligible: dict[date, frozenset[int]] | None = None
+    if liquid_top is not None:
+        if report:
+            report(
+                "liquid universe",
+                f"the {liquid_top} most traded names of each day, by 20-day traded value",
+            )
+        eligible = _liquid(conn, freeze_id, instruments, last, months[0], end, liquid_top)
     horizons_sorted = sorted(horizons)
     total = len(usable) * len(horizons_sorted)
     out: list[discover.Evidence] = []
@@ -102,6 +139,7 @@ def measure(
             last_allowed=last,
             min_names=min_names,
             heartbeat=_numbered(report, offset, total) if report else None,
+            eligible=eligible,
         )
     return out
 
@@ -133,10 +171,17 @@ def run_discovery(
     min_names: int,
     context: dict[str, Any] | None = None,
     report: Callable[[str, str], None] | None = None,
+    liquid_top: int | None = None,
 ) -> list[int]:
     """Measure, then record the whole batch (failures included). Returns the hypothesis ids."""
     evidences = measure(
-        conn, freeze_id, first_month, horizons=horizons, min_names=min_names, report=report
+        conn,
+        freeze_id,
+        first_month,
+        horizons=horizons,
+        min_names=min_names,
+        report=report,
+        liquid_top=liquid_top,
     )
     f = freeze_mod.get(conn, freeze_id)
     assert f is not None

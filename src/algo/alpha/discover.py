@@ -78,10 +78,14 @@ def evaluate(
     horizon: int,
     last_allowed: date,
     min_names: int,
+    eligible: Mapping[date, frozenset[int]] | None = None,
 ) -> Evidence:
+    """`eligible`, when given, is the set of names that count on each day (for example the most liquid): the others are left out of that day's cross-section as if they did not exist."""
     fwd = forward_returns(closes, sessions, horizon, last_allowed)
     by_day: dict[date, dict[int, float]] = {}
     for (iid, day), value in feature.items():
+        if eligible is not None and iid not in eligible.get(day, ()):
+            continue
         by_day.setdefault(day, {})[iid] = float(value)
     ics: list[float] = []
     names = 0
@@ -117,6 +121,7 @@ def discover(
     last_allowed: date,
     min_names: int,
     heartbeat: Callable[[str, int, int, int], None] | None = None,
+    eligible: Mapping[date, frozenset[int]] | None = None,
 ) -> list[Evidence]:
     """Every feature at every horizon, in a stable order (feature name, version, horizon), so a rerun lists the same things in the same order. `heartbeat(feature, horizon, k, n)` is
     called before each one of the n tests, so a caller can show that a long run is working."""
@@ -135,6 +140,7 @@ def discover(
                 horizon=h,
                 last_allowed=last_allowed,
                 min_names=min_names,
+                eligible=eligible,
             )
         )
     return out
