@@ -144,8 +144,8 @@ def _estimate(r: dict[str, Any], now: Any) -> tuple[str, int | None, int | None]
     return ("ok", int(per_step), int(left)) if left > 0 else ("overrun", int(per_step), None)
 
 
-# A study belongs to the CURRENT setup when it carries the per-trade stop (review 2026-11-16): studies before that are kept but are not counted as this round's progress.
-CURRENT_SETUP = "e.study->'spec'->>'trade_stop' IS NOT NULL"
+# A study belongs to the CURRENT round when its setting was fixed before it ran (policy v2, docs/research-policy-v2.md): earlier studies are kept but are not counted as this round's progress.
+CURRENT_SETUP = "jsonb_typeof(e.study->'spec'->'fixed') = 'object'"
 STUDY_JOB_ID_BASE = 1_000_000  # study runs have their own id sequence; offset so a job id is never ambiguous on the page
 
 

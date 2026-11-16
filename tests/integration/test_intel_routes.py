@@ -520,7 +520,7 @@ def test_a_study_of_a_generated_definition_shows_in_the_trial_and_validation_sta
     eid = vreg.register(
         conn, name="s", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
         param_ranges={"entry_share": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
-        study={"spec": {"definition": {"strategy_id": "ALPHA_X", "version": 1}, "trade_stop": "0.02"}}, owner_user_id=None, family_id=1,
+        study={"spec": {"definition": {"strategy_id": "ALPHA_X", "version": 1}, "trade_stop": "0.02", "fixed": {"max_positions": 20, "exit_share": 50}}}, owner_user_id=None, family_id=1,
     )  # fmt: skip
     for i, status in enumerate(("DONE", "FAILED")):
         conn.execute(
@@ -642,7 +642,7 @@ def test_the_generated_definitions_are_listed_with_their_rule_and_how_far_their_
     vreg.register(
         conn, name="ALPHA_RET_20D_H20 v1 2016-2022", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
         param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
-        study={"spec": {"definition": {"strategy_id": "ALPHA_RET_20D_H20", "version": 1}, "trade_stop": "0.02"}}, owner_user_id=None, family_id=1,
+        study={"spec": {"definition": {"strategy_id": "ALPHA_RET_20D_H20", "version": 1}, "trade_stop": "0.02", "fixed": {"max_positions": 20, "exit_share": 50}}}, owner_user_id=None, family_id=1,
     )  # fmt: skip
     conn.commit()
     rows = {r["strategy_id"]: r for r in c.get("/api/intel/definitions").json()["definitions"]}
@@ -680,7 +680,7 @@ def test_a_study_whose_last_run_stopped_early_is_called_stopped_not_done(client)
     eid = vreg.register(
         conn, name="s", strategy_id="dsl", hypothesis="h" * 25, style="long_only", param_ranges={"max_positions": [10, 20]},
         holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
-        study={"spec": {"definition": {"strategy_id": d.strategy_id, "version": 1}, "trade_stop": "0.02"}}, owner_user_id=None, family_id=1,
+        study={"spec": {"definition": {"strategy_id": d.strategy_id, "version": 1}, "trade_stop": "0.02", "fixed": {"max_positions": 20, "exit_share": 50}}}, owner_user_id=None, family_id=1,
     )  # fmt: skip
     conn.execute(
         "INSERT INTO study_trial (experiment_id, variant, params, params_hash, status, finished_at) VALUES (%s,'base','{}','h','DONE',%s)",
