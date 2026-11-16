@@ -195,6 +195,24 @@ def _max_affordable(
     return step * lo
 
 
+SPECIAL_SESSION_SHARE = Decimal("0.1")
+
+
+def real_sessions(days_by_instrument: dict[int, list[date]], start: date, end: date) -> list[date]:
+    """Every day in [start, end] any instrument traded, except a special session (the Diwali
+    muhurat hour) where under a tenth of the usual number traded: deciding on it would read a
+    market that is not there, so the previous targets stand across it."""
+    count: dict[date, int] = {}
+    for ds in days_by_instrument.values():
+        for d in ds:
+            if start <= d <= end:
+                count[d] = count.get(d, 0) + 1
+    if not count:
+        return []
+    usual = sorted(count.values())[len(count) // 2]
+    return sorted(d for d, n in count.items() if Decimal(n) >= SPECIAL_SESSION_SHARE * usual)
+
+
 def run_backtest(
     conn: psycopg.Connection,
     strategy: Strategy,
@@ -265,7 +283,7 @@ def run_backtest(
     }
     acts = {iid: sorted(ld.recs, key=lambda a: a.ex_date) for iid, ld in loaded.items()}
     dayidx = {iid: {d: i for i, d in enumerate(ld.days)} for iid, ld in loaded.items()}
-    days = sorted({d for ld in loaded.values() for d in ld.days if cfg.start <= d <= cfg.end})
+    days = real_sessions({iid: ld.days for iid, ld in loaded.items()}, cfg.start, cfg.end)
 
     # --- the loop -----------------------------------------------------------------------------
     ledger = Ledger(cfg.initial_cash, cfg.start)
