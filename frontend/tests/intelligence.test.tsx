@@ -143,7 +143,7 @@ describe("Research intelligence", () => {
     expect(within(validate).getByText("running · 3 of 12")).toBeTruthy();
     expect(screen.getByTestId("step-1").getAttribute("data-state")).toBe("idle");
     expect(screen.getByTestId("step-2").getAttribute("data-state")).toBe("done");
-    expect(screen.getByTestId("step-3").getAttribute("data-state")).toBe("manual");
+    expect(screen.getByTestId("step-6").getAttribute("data-state")).toBe("manual");
     expect(within(screen.getByTestId("step-6")).getByText("not automated yet")).toBeTruthy();
   });
 

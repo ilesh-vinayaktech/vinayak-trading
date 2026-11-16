@@ -11,7 +11,7 @@ const STEPS: { label: string; job?: string }[] = [
   { label: "Validate features", job: "feature_validation" },
   { label: "Compute features", job: "feature_computation" },
   { label: "Discover alpha", job: "alpha_discovery" },
-  { label: "Register strategies" },
+  { label: "Register strategies", job: "strategy_registration" },
   { label: "Run experiments", job: "study_trials" },
   { label: "Validate", job: "study_verdict" },
   { label: "Paper trade" },
@@ -82,6 +82,7 @@ export function PipelineStrip({ jobs }: { jobs: Job[] }) {
 const STAGE_JOBS: Record<string, string[]> = {
   features: ["feature_validation", "feature_computation"],
   alpha: ["alpha_discovery"],
+  definitions: ["strategy_registration"],
   trials: ["study_trials"],
   validation: ["study_verdict"],
 };

@@ -10,7 +10,9 @@ from datetime import UTC, datetime
 
 import psycopg
 
+from algo.core.clock import SystemClock
 from algo.factory import generate
+from algo.jobs import progress
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -31,7 +33,15 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                     f"refused hypothesis {h.hypothesis_id} ({h.feature} at {h.horizon} days): {e}"
                 )
         sys.exit(0)
-    r = generate.generate_from_candidates(conn, by=a.by, now=datetime.now(UTC))
+    with progress.Progress(
+        conn, SystemClock(), "strategy_registration", "Register strategies", 1, uniform=False
+    ) as prog:
+        prog.step("registering", "writing one definition per candidate", done=0)
+        r = generate.generate_from_candidates(conn, by=a.by, now=datetime.now(UTC))
+        prog.finish(
+            True,
+            f"{len(r.created)} registered, {len(r.existing)} already there, {len(r.refused)} refused",
+        )
 for c in r.created:
     print(f"registered {c.strategy_id} from hypothesis {c.hypothesis_id}")
 for sid in r.existing:

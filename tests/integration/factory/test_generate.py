@@ -126,6 +126,9 @@ def test_the_script_shows_what_it_would_do_then_registers_it_and_says_what_it_re
         "registered ALPHA_VOL_20D_H5 from hypothesis 2" in out
         and "2 registered, 0 already there, 1 refused" in out
     )
+    assert conn.execute(
+        "SELECT status, message FROM job_progress WHERE job='strategy_registration'"
+    ).fetchone() == ("DONE", "2 registered, 0 already there, 1 refused")
     assert conn.execute("SELECT DISTINCT created_by FROM strategy_definition").fetchall() == [
         ("jane",)
     ]
