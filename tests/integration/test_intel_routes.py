@@ -654,6 +654,9 @@ def test_the_generated_definitions_are_listed_with_their_rule_and_how_far_their_
         "agent",
     )
     assert up["entry"] == "ret_20d TOP_PERCENT 20" and up["exit"] == "ret_20d BOTTOM_PERCENT 50"
+    assert up["plain"]["summary"].startswith(
+        "Once a month: buy the 20% of stocks with the highest price change over the last month"
+    ) and up["plain"]["size"].startswith("Hold at most 20 stocks")
     assert (up["study"], up["verdict"], up["study_name"]) == (
         "registered",
         None,
@@ -719,4 +722,9 @@ def test_studies_of_the_earlier_setup_are_kept_but_do_not_count_as_this_rounds_p
         stage(body, "trials")["entered"] == 0 and stage(body, "validation")["entered"] == 0
     )  # nothing of the current round yet
     row = c.get("/api/intel/definitions").json()["definitions"][0]
-    assert row["study"] == "none" and row["trials_done"] == 0 and row["experiment_id"] is None and row["earlier_verdict"] is None
+    assert (
+        row["study"] == "none"
+        and row["trials_done"] == 0
+        and row["experiment_id"] is None
+        and row["earlier_verdict"] is None
+    )

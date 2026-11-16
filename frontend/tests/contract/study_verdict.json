@@ -52,7 +52,7 @@
    "oos_sharpe": 1.1,
    "oos_sharpe_lower": null,
    "pbo": 0.1,
-   "pbo_twins": false,
+   "pbo_twins": 0.0,
    "plateau_drop": 0.1,
    "regimes": 2.0,
    "sharpe_2x_costs": 0.6,

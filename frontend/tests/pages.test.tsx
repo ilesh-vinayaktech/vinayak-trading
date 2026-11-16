@@ -580,7 +580,7 @@ describe("Data Explorer", () => {
     });
 
     it("offers the generated strategy definitions too and runs the chosen one over the whole chart range, to the latest bar", async () => {
-      const def = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "e", exit: "x", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null };
+      const def = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, plain: { when: "Once a month", summary: "Once a month: buy the 20% of stocks with the highest price change over the last month; sell when one falls into the 50% with the lowest.", buy: "Buy a stock when it is among the 20% of stocks with the highest price change over the last month.", sell: "Sell it when it falls into the 50% with the lowest.", size: "Hold at most 20 stocks, each the same size (never more than 10% of the money in one)." }, entry: "e", exit: "x", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null };
       (table as Record<string, unknown>)["/api/intel/definitions"] = { definitions: [def] };
       (table as Record<string, unknown>)["/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals"] = { ...signals, strategy: "ALPHA_RET_20D_H20 v1" };
       const urls: string[] = [];

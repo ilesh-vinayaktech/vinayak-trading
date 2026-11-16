@@ -53,7 +53,16 @@ export function DefinitionsPanel({ canRun = false }: { canRun?: boolean }) {
                   </span>
                 ) : null}
               </div>
-              <div className="text-xs text-ink-soft">Buy: {d.entry}. Sell: {d.exit}.</div>
+              <p className="mt-1 text-sm font-medium text-ink" data-testid="definition-summary">{d.plain.summary}</p>
+              <ul className="mt-1 space-y-0.5 text-sm text-ink-soft" aria-label="In plain words">
+                <li>{d.plain.buy}</li>
+                <li>{d.plain.sell}</li>
+                <li>{d.plain.size}</li>
+              </ul>
+              <details className="mt-1 text-xs text-ink-faint">
+                <summary className="cursor-pointer">Technical rule</summary>
+                Buy: {d.entry}. Sell: {d.exit}.
+              </details>
             </li>
           ))}
         </ul>

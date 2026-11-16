@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+from algo.research import study_jobs
 from algo.research.study_jobs import estimate
 
 START = datetime(2026, 11, 13, 6, 0, tzinfo=UTC)
@@ -50,3 +51,23 @@ def test_a_waiting_finished_or_empty_run_has_no_estimate():
 def test_the_fraction_never_exceeds_one():
     e = estimate(run(done=12, step_done=1100, step_total=1100), at(100))
     assert e["fraction"] == 1.0 and e["eta_seconds"] == 0
+
+
+def test_a_verdicts_evidence_reaches_the_page_as_numbers_only():
+    """The UI reads evidence as numbers; the near-twin flag is stored as true/false, so it is served as 1/0."""
+    ev = {
+        "oos_sharpe": 1.2,
+        "pbo_twins": True,
+        "pbo": None,
+        "regimes": 4.0,
+        "oos_sharpe_lower": 0.3,
+        "other": False,
+    }
+    assert study_jobs.numbers_only(ev) == {
+        "oos_sharpe": 1.2,
+        "pbo_twins": 1.0,
+        "pbo": None,
+        "regimes": 4.0,
+        "oos_sharpe_lower": 0.3,
+        "other": 0.0,
+    }

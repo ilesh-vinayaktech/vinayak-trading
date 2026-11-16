@@ -274,6 +274,11 @@ def trial_returns(conn: psycopg.Connection, experiment_id: int) -> dict[str, lis
     }
 
 
+def numbers_only(evidence: dict[str, Any]) -> dict[str, Any]:
+    """The page reads every evidence value as a number: a true/false flag (for example that the tried variants were near-identical) is served as 1 or 0."""
+    return {k: float(v) if isinstance(v, bool) else v for k, v in evidence.items()}
+
+
 def latest_report(conn: psycopg.Connection, experiment_id: int) -> dict[str, Any] | None:
     """The newest pass/fail verdict made for this study, with every gate and the evidence behind it."""
     row = conn.execute(
@@ -294,7 +299,9 @@ def latest_report(conn: psycopg.Connection, experiment_id: int) -> dict[str, Any
         "refs",
         "created_at",
     )
-    return dict(zip(keys, row, strict=True))
+    out = dict(zip(keys, row, strict=True))
+    out["evidence"] = numbers_only(out["evidence"])
+    return out
 
 
 def trials_finished(conn: psycopg.Connection, experiment_id: int) -> tuple[int, int]:
@@ -316,4 +323,8 @@ def holdout_result(conn: psycopg.Connection, experiment_id: int) -> dict[str, An
         (experiment_id,),
     ).fetchone()
     keys = ("run_id", "passed", "evidence", "gates", "refs", "created_at")
-    return None if row is None else dict(zip(keys, row, strict=True))
+    if row is None:
+        return None
+    out = dict(zip(keys, row, strict=True))
+    out["evidence"] = numbers_only(out["evidence"])
+    return out

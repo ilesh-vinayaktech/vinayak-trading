@@ -29,8 +29,8 @@ const empty = {
   notes: { notes: [] },
 };
 const defs = [
-  { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: 13, study_name: "ALPHA_RET_20D_H20 v1 2016-2022", study: "judged", trials_done: 9, verdict: false, earlier_verdict: null },
-  { strategy_id: "ALPHA_VOL_20D_H5", version: 1, description: "d", rebalance: "WEEKLY", max_positions: 20, entry: "vol_20d BOTTOM_PERCENT 20", exit: "vol_20d TOP_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null },
+  { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, plain: { when: "Once a month", summary: "Once a month: buy the 20% of stocks with the highest price change over the last month; sell when one falls into the 50% with the lowest.", buy: "Buy a stock when it is among the 20% of stocks with the highest price change over the last month.", sell: "Sell it when it falls into the 50% with the lowest.", size: "Hold at most 20 stocks, each the same size (never more than 10% of the money in one)." }, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: 13, study_name: "ALPHA_RET_20D_H20 v1 2016-2022", study: "judged", trials_done: 9, verdict: false, earlier_verdict: null },
+  { strategy_id: "ALPHA_VOL_20D_H5", version: 1, description: "d", rebalance: "WEEKLY", max_positions: 20, plain: { when: "Once a month", summary: "Once a month: buy the 20% of stocks with the highest price change over the last month; sell when one falls into the 50% with the lowest.", buy: "Buy a stock when it is among the 20% of stocks with the highest price change over the last month.", sell: "Sell it when it falls into the 50% with the lowest.", size: "Hold at most 20 stocks, each the same size (never more than 10% of the money in one)." }, entry: "vol_20d BOTTOM_PERCENT 20", exit: "vol_20d TOP_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null },
 ];
 const seen: string[] = [];
 function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown; funnel?: unknown; features?: unknown }) {
@@ -254,7 +254,9 @@ describe("Strategy definitions", () => {
     const items = await screen.findAllByTestId("definition");
     expect(items).toHaveLength(2);
     expect(items[0]!.textContent).toContain("ALPHA_RET_20D_H20");
-    expect(items[0]!.textContent).toContain("Buy: ret_20d TOP_PERCENT 20. Sell: ret_20d BOTTOM_PERCENT 50.");
+    expect(items[0]!.textContent).toContain("Once a month: buy the 20% of stocks with the highest price change over the last month");
+    expect(items[0]!.textContent).toContain("Hold at most 20 stocks, each the same size");
+    expect(items[0]!.textContent).toContain("Buy: ret_20d TOP_PERCENT 20. Sell: ret_20d BOTTOM_PERCENT 50."); // the technical rule is still there, tucked under "Technical rule"
     expect(items[0]!.textContent).toContain("failed validation");
     expect(items[1]!.textContent).toContain("no study yet");
   });
