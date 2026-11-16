@@ -71,9 +71,9 @@ Not built yet: real regime labels, a 12-1 momentum baseline, purged CV for ML.
 | regimes | Distinct market regimes represented in the OOS windows >= `min_regimes` (2). |
 | window_share | Largest single walk-forward window's share of the positive window gains <= `max_window_share` (0.5). Per-window results are reported, not just the aggregate. |
 | oos_sharpe | Annualised, net of all costs, aggregate OOS >= `min_oos_sharpe`. |
-| deflated_sharpe | DSR >= `min_dsr`, with N = the registry's trial count. |
-| overfitting_probability | PBO (CSCV) <= `max_pbo` (0.2). |
-| max_drawdown | `abs(strategy DD) <= owner_max_drawdown` AND `abs(strategy DD) / abs(benchmark DD) <= max_drawdown_vs_benchmark`, same dates and frequency. If the benchmark DD is below `min_benchmark_drawdown` the ratio is unstable and not applied; the absolute cap still is. |
+| deflated_sharpe | DSR >= `min_dsr`, with N = every trial of the same idea (research family, same factor of the ranked feature) on any window; the spread of Sharpes is taken only from trials of that idea on the same research window (from 2026-11-16; before it, the whole family). |
+| overfitting_probability | PBO (CSCV) <= `max_pbo` (0.2). When the tried variants are near-identical (mean daily-return correlation >= 0.9) PBO is not meaningful and the gate instead needs the lower end of a 90% stationary-bootstrap interval of the out-of-sample Sharpe to be above 0 (from 2026-11-16). |
+| max_drawdown | (thresholds v3, 2026-11-16: `owner_max_drawdown` is 1.0 for long-only, i.e. no absolute cap; the per-trade stop replaces it) `abs(strategy DD) <= owner_max_drawdown` AND `abs(strategy DD) / abs(benchmark DD) <= max_drawdown_vs_benchmark`, same dates and frequency. If the benchmark DD is below `min_benchmark_drawdown` the ratio is unstable and not applied; the absolute cap still is. |
 | beats_benchmark | Strategy annualised Sharpe minus benchmark annualised Sharpe >= `min_sharpe_over_benchmark`. Market-neutral strategies use a cash/risk-free benchmark and also report beta. |
 | parameter_plateau | Worst +/-20% neighbour keeps >= (1 - `plateau_tolerance`) of the base Sharpe. An undefined neighbour counts as a collapse. (Drawdown and turnover of neighbours are not yet checked.) |
 | survives_2x_costs / 3x_capital | Sharpe > 0 at 2x charges+slippage / at 3x capital. |

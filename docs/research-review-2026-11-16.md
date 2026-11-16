@@ -1,6 +1,6 @@
 # Research pipeline review: why every strategy fails, and how to find the highest-return one
 
-Date: 2026-11-16. Written for the owner. Nothing in the code or the data was changed for this review; every number below was read from the
+Date: 2026-11-16 (status update at the end: what was applied). Written for the owner. Nothing in the code or the data was changed for this review; every number below was read from the
 development database (studies, validation reports, alpha hypotheses, trial results) or from the code as it stands at this commit.
 
 **Goal (owner):** find the strategy that gives the maximum return.
@@ -279,3 +279,27 @@ one that trades.
 
 The 16-definition run now in progress will keep going. Its remaining verdicts are still useful as a baseline, but under the current
 reference (3.1) none of them can be expected to pass.
+
+---
+
+## 6. Status after "fix all the suggestions" (2026-11-16)
+
+Applied in code with tests (details in `docs/decisions.md`, section 2026-11-16):
+
+| Review item | Status |
+|---|---|
+| 3.1 deflated Sharpe reference | Done. N counts every try of the same factor on any window; the spread uses same-idea, same-window trials only |
+| 3.2 overfitting gate | Done for near-identical grids (bootstrap Sharpe bound); PBO kept for different candidates |
+| 3.3 drawdown cap | Done: thresholds v3 turn off the fixed 25% cap; benchmark-relative gate and the per-trade stop stay |
+| 3.4 discovery overlap | Code done (`--through`); the clean rerun on 2016-08..2019-12 is queued behind the studies (see below) |
+| 3.5 slow factors, correction | Done: horizons 120 and 250, Benjamini-Hochberg false discovery rate; feature values from 2016-08 are queued |
+| 3.6 discovery universe | Done: `--segments large,mid` tests only the stocks a study trades, point in time |
+| 3.7 return-oriented strategies | Done: three pre-registered definitions (momentum, momentum among calmer stocks, momentum with a market filter), registered and queued for validation |
+| 3.8 survivorship | NOT done: needs delisted names' prices loaded from bhavcopy |
+| 3.9 stop and cooldown in the backtest | Done; the new definition studies turn them on |
+| 3.10 wasted trials | Mostly: the same-idea/same-window rule stops other windows and ideas inflating the spread; the no-op knob was removed earlier |
+| 5.10 / 5.11 fundamentals, RSI/ATR, regimes | NOT done: need the old-feed crawl go-ahead, an interpreter that reads filings or all history, and a regime definition |
+
+Running now, in order (all on one study worker, one study at a time): the rest of the 16-definition baseline, then the new-setup studies (stop 2%, cooldown 5 days, thresholds v3):
+MOMENTUM_12M_M, MOMENTUM_LOWVOL_M, MOMENTUM_TREND_M, ALPHA_VOL_20D_H20, ALPHA_VOL_60D_H20, ALPHA_DIST_SMA_50D_H5. When both are finished the full gate `make check` runs alone, then feature values from 2016-08
+are computed and the clean discovery rerun (2016-08..2019-12, large + mid, horizons 1-250 days) is recorded.
