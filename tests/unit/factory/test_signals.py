@@ -113,3 +113,21 @@ def test_values_after_the_stored_days_are_computed_from_bars_in_memory_for_the_u
     assert all(
         got["ret_20d"][d][1] > got["ret_20d"][d][2] for d in days
     )  # the faster riser has the higher 20-day return
+
+
+def test_continuing_from_a_stored_state_gives_exactly_what_a_full_run_gives():
+    for defn in (
+        DEFN,
+        generate.definition_for(
+            generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+        ),
+    ):
+        rows = {
+            i: {k: (9 if k == 1 and i < 3 else k / 100) for k in range(1, 11)} for i in range(6)
+        }
+        vals = book(rows)
+        days = [day(i) for i in range(6)]
+        full = signals.decide(defn, vals, 1, days)
+        head = signals.decide(defn, vals, 1, days[:3])
+        tail = signals.decide(defn, vals, 1, days[3:], held=head[-1].holding_after, after=days[2])
+        assert head + tail == full

@@ -51,9 +51,15 @@ def decide(
     values: dict[str, dict[date, dict[int, Decimal]]],
     iid: int,
     days: list[date],
+    *,
+    held: bool = False,
+    after: date | None = None,
 ) -> list[Decision]:
-    """`values[feature][day][instrument]` is the stored value; `days` are the stock's sessions in order. The stock starts not held."""
-    cadence, held, out = Cadence(defn.rebalance), False, []
+    """`values[feature][day][instrument]` is the value; `days` are the stock's sessions in order. The stock starts not held, or `held` when continuing a stored series whose last day was `after`
+    (the rebalance period of that day is then already decided)."""
+    cadence, out = Cadence(defn.rebalance), []
+    if after is not None:
+        cadence.due(after)
     needed = features_used(defn)
     for d in days:
         per = {f: values.get(f, {}).get(d, {}) for f in needed}
@@ -225,3 +231,39 @@ def tail_values(
                 if after < day <= to:
                     out[name].setdefault(day, {})[i] = value
     return out
+
+
+def compute(
+    conn: psycopg.Connection,
+    defn: StrategyDef,
+    iid: int,
+    days: list[date],
+    bars_of: Callable[[int, date, date], list[AdjBar]],
+    *,
+    held: bool = False,
+    after: date | None = None,
+) -> list[Decision]:
+    """The decisions for `days` (the stock's consecutive sessions): stored feature values inside the stored window, values computed in memory for the days before and after it, then the rule. With
+    `held` and `after` it continues a stored series. Nothing is written here."""
+    if not days:
+        return []
+    start, end = days[0], days[-1]
+    stored = load_values(conn, defn, start, end, always=iid)
+    values, one_day = stored.values, timedelta(days=1)
+    if start < stored.first:
+        head = tail_values(
+            defn,
+            stored.head_universe | {iid},
+            start - one_day,
+            min(end, stored.first - one_day),
+            bars_of,
+        )
+        for name, per_day in head.items():
+            values.setdefault(name, {}).update(per_day)
+    if end > stored.last:
+        tail = tail_values(
+            defn, stored.tail_universe | {iid}, max(start - one_day, stored.last), end, bars_of
+        )
+        for name, per_day in tail.items():
+            values.setdefault(name, {}).update(per_day)
+    return decide(defn, values, iid, days, held=held, after=after)

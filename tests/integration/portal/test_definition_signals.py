@@ -88,3 +88,69 @@ def test_a_range_wholly_after_the_stored_window_is_computed_too_and_a_bad_reques
         ).status_code
         == 404
     )
+
+
+def test_the_decisions_are_kept_and_a_later_request_computes_only_the_new_days(chart, monkeypatch):
+    from algo.factory import signals as sig
+
+    conn, ids, app = chart
+    c = sign_in(app, "jane@example.com")
+    asked: list[list] = []
+    real = sig.compute
+    monkeypatch.setattr(
+        sig,
+        "compute",
+        lambda conn_, defn, iid, days, *a, **kw: (
+            asked.append(list(days)),
+            real(conn_, defn, iid, days, *a, **kw),
+        )[1],
+    )
+    q = {"instrument_id": ids[0], "start": "2026-01-02"}
+    first = c.get(URL, params={**q, "end": "2026-03-04"}).json()
+    assert len(asked) == 1 and len(asked[0]) == len(first["days"])
+    series = conn.execute("SELECT first_day, last_day FROM definition_signal_series").fetchall()
+    assert len(series) == 1 and str(series[0][1]) == first["days"][-1]["day"]
+    again = c.get(URL, params={**q, "end": "2026-03-04"}).json()
+    assert len(asked) == 2 and asked[1] == []  # nothing new: served from the stored decisions
+    assert again == first
+    longer = c.get(URL, params={**q, "end": "2026-03-06"}).json()
+    assert [d.isoformat() for d in asked[2]] == [
+        "2026-03-05",
+        "2026-03-06",
+    ]  # only the two new sessions were computed
+    assert [d["day"] for d in longer["days"]][: len(first["days"])] == [
+        d["day"] for d in first["days"]
+    ]
+    assert [(d["action"], d["holding_after"]) for d in longer["days"][: len(first["days"])]] == [
+        (d["action"], d["holding_after"]) for d in first["days"]
+    ]
+    assert conn.execute("SELECT count(*) FROM definition_signal_day").fetchone() == (
+        len(longer["days"]),
+    )
+
+
+def test_a_request_that_starts_before_the_kept_range_recomputes_and_replaces_it(chart, monkeypatch):
+    from algo.factory import signals as sig
+
+    conn, ids, app = chart
+    c = sign_in(app, "jane@example.com")
+    asked: list[list] = []
+    real = sig.compute
+    monkeypatch.setattr(
+        sig,
+        "compute",
+        lambda conn_, defn, iid, days, *a, **kw: (
+            asked.append(list(days)),
+            real(conn_, defn, iid, days, *a, **kw),
+        )[1],
+    )
+    c.get(URL, params={"instrument_id": ids[0], "start": "2026-02-02", "end": "2026-03-04"})
+    wider = c.get(
+        URL, params={"instrument_id": ids[0], "start": "2026-01-12", "end": "2026-03-04"}
+    ).json()
+    assert len(asked) == 2 and len(asked[1]) == len(wider["days"])  # the whole wider range
+    assert (
+        conn.execute("SELECT first_day FROM definition_signal_series").fetchone()[0].isoformat()
+        == wider["days"][0]["day"]
+    )
+    assert conn.execute("SELECT count(*) FROM definition_signal_series").fetchone() == (1,)

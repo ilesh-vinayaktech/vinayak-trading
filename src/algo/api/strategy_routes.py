@@ -19,7 +19,7 @@ from algo.api import queries
 from algo.api.paper_routes import _options, _params, _st
 from algo.api.security import CurrentUser, WConn
 from algo.data.reader import IST
-from algo.factory import registry
+from algo.factory import registry, signal_cache
 from algo.factory import signals as def_signals
 from algo.factory import study as fstudy
 from algo.paper import configs
@@ -171,11 +171,12 @@ def definition_signals(
     instrument_id: int,
     start: date,
     end: date,
+    request: Request,
     who: CurrentUser,
     conn: WConn,
 ) -> dict[str, Any]:
-    """One stock's buy/sell decisions under a generated definition over the asked range, to the latest bar. Days up to the last stored feature day (the development end) are read from the stored
-    values; later days are computed in memory from price bars when asked for. Nothing is stored and nothing is compared with anything."""
+    """One stock's buy/sell decisions under a generated definition over the asked range, to the latest bar. The decisions are kept in definition_signal_series / _day: a later request inside
+    the kept range is served from it, one that reaches past it computes only the new days, and one that starts earlier recomputes the whole range."""
     try:
         defn = registry.get(conn, strategy_id, version)
     except registry.RegistryError as e:
@@ -186,58 +187,67 @@ def definition_signals(
         raise HTTPException(422, "range longer than 11 years")
     if queries.instrument(conn, instrument_id) is None:
         raise HTTPException(404, f"no instrument {instrument_id}")
-    try:
-        stored = def_signals.load_values(conn, defn, start, end, always=instrument_id)
-    except (def_signals.SignalsError, HoldoutError) as e:
-        raise HTTPException(409, str(e)) from e
-    values = stored.values
 
     def bars_of(iid: int, lo: date, hi: date) -> list[Any]:
         return list(
             queries.reader_for(conn, iid)[0].issuer_history(iid, lo, hi, adjust="split").bars
         )
 
-    # days outside the stored window (before its first month, after the development end) are computed here, in memory, for the most traded names at the nearest edge; nothing is kept
-    one_day = timedelta(days=1)
-    if start < stored.first:
-        head = def_signals.tail_values(
-            defn,
-            stored.head_universe | {instrument_id},
-            start - one_day,
-            min(end, stored.first - one_day),
-            bars_of,
-        )
-        for name, per_day in head.items():
-            values.setdefault(name, {}).update(per_day)
-    if end > stored.last:
-        tail = def_signals.tail_values(
-            defn,
-            stored.tail_universe | {instrument_id},
-            max(start - one_day, stored.last),
+    def day_of(b: Any) -> date:
+        d: date = b.ts.astimezone(IST).date()
+        return d
+
+    sha, now = defn.sha256, _st(request).clock.now()
+    cached = signal_cache.get(conn, strategy_id, version, sha, instrument_id, start, end)
+    continuing = cached is not None and start >= cached.first_day and cached.last is not None
+    # continuing needs the sessions straight after the stored last day, even when the asked range starts later
+    bars = [
+        b
+        for b in bars_of(
+            instrument_id,
+            min(start, cached.last_day + timedelta(days=1)) if continuing and cached else start,
             end,
-            bars_of,
         )
-        for name, per_day in tail.items():
-            values.setdefault(name, {}).update(per_day)
-    used_end = end
-    history = queries.reader_for(conn, instrument_id)[0].issuer_history(
-        instrument_id, start, used_end, adjust="split"
-    )
-    bars = [b for b in history.bars if start <= b.ts.astimezone(IST).date() <= used_end]
-    days_of = [b.ts.astimezone(IST).date() for b in bars]
-    got = def_signals.decide(defn, values, instrument_id, days_of)
+    ]
+    try:
+        if continuing and cached and cached.last is not None:
+            new = [day_of(b) for b in bars if day_of(b) > cached.last_day]
+            fresh = def_signals.compute(
+                conn,
+                defn,
+                instrument_id,
+                new,
+                bars_of,
+                held=cached.last.holding_after,
+                after=cached.last_day,
+            )
+            signal_cache.save(
+                conn, strategy_id, version, sha, instrument_id, fresh, now, replace=False
+            )
+            shown = [d for d in [*cached.days, *fresh] if start <= d.day <= end]
+        else:
+            allday = [day_of(b) for b in bars if start <= day_of(b) <= end]
+            fresh = def_signals.compute(conn, defn, instrument_id, allday, bars_of)
+            signal_cache.save(
+                conn, strategy_id, version, sha, instrument_id, fresh, now, replace=True
+            )
+            shown = fresh
+    except (def_signals.SignalsError, HoldoutError) as e:
+        raise HTTPException(409, str(e)) from e
+    by_day = {day_of(b): (i, b) for i, b in enumerate(bars)}
     days = []
-    for i, (b, g) in enumerate(zip(bars, got, strict=True)):
+    for g in shown:
+        i, b = by_day[g.day]
         nxt = bars[i + 1] if g.action and i + 1 < len(bars) else None
         days.append(
             {
                 "day": g.day.isoformat(), "close": _num(b.close), "sma": None, "rsi": None, "ready": g.ready, "action": g.action, "reason": g.reason,
-                "holding_after": g.holding_after, "fill_day": nxt.ts.astimezone(IST).date().isoformat() if nxt else None, "fill_price": _num(nxt.open) if nxt else None,
+                "holding_after": g.holding_after, "fill_day": day_of(nxt).isoformat() if nxt else None, "fill_price": _num(nxt.open) if nxt else None,
             }
         )  # fmt: skip
     return {
         "label": "UNVALIDATED", "strategy": f"{strategy_id} v{version}", "params": {}, "notes": def_signals.NOTES,
-        "summary": {"buys": sum(g.action == "BUY" for g in got), "sells": sum(g.action == "SELL" for g in got)}, "days": days,
+        "summary": {"buys": sum(g.action == "BUY" for g in shown), "sells": sum(g.action == "SELL" for g in shown)}, "days": days,
     }  # fmt: skip
 
 
