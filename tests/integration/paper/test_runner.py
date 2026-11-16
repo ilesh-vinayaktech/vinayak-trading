@@ -573,3 +573,35 @@ def test_a_stopped_name_is_not_bought_again_the_same_day_and_the_limit_can_be_ch
     assert [
         r for r in orders(conn, uid) if r[1] == "BUY" and r[0] == weak
     ] == []  # not bought back the same day
+
+
+def _stopped_before(conn, uid, iid, days_ago):
+    from datetime import timedelta
+
+    from psycopg.types.json import Jsonb
+
+    conn.execute(
+        "INSERT INTO paper_run (user_id, decision_day, strategy_id, strategy_version, params_hash, status, detail, created_at) VALUES (%s,%s,'trend_pullback','1','-','PROPOSED',%s,%s)",
+        (uid, DAY - timedelta(days=days_ago), Jsonb({"stops": [{"instrument_id": iid}]}), NOW),
+    )
+
+
+def test_a_name_stopped_out_in_the_last_few_sessions_is_not_bought_back_until_the_cooldown_is_over(
+    env,
+):
+    conn, ids, lake = env
+    uid_free, uid_cool, uid_old = (user(conn, email=e) for e in ("a@x.com", "b@x.com", "c@x.com"))
+    bought = {
+        r[0]
+        for r in (
+            run_day(conn, uid_free, day=DAY, now=NOW, lake_root=lake) and orders(conn, uid_free)
+        )
+    }
+    assert bought  # the control account buys some oversold names
+    target = min(bought)
+    _stopped_before(conn, uid_cool, target, 2)  # stopped out two days ago: still cooling
+    _stopped_before(conn, uid_old, target, 12)  # stopped out long ago: free again
+    run_day(conn, uid_cool, day=DAY, now=NOW, lake_root=lake)
+    run_day(conn, uid_old, day=DAY, now=NOW, lake_root=lake)
+    assert target not in {r[0] for r in orders(conn, uid_cool)}
+    assert target in {r[0] for r in orders(conn, uid_old)}

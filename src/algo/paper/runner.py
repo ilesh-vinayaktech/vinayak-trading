@@ -65,6 +65,18 @@ def _dumps(o: Any) -> str:
     return json.dumps(o, default=str)
 
 
+STOP_COOLDOWN_DAYS = 5  # a name stopped out is not bought back for this many calendar days (a stop is a verdict on that trade, not an invitation to re-enter at once)
+
+
+def recently_stopped(conn: psycopg.Connection, user_id: UUID, day: date) -> set[int]:
+    """Instruments this account's earlier runs stopped out within the cooldown before `day`."""
+    rows = conn.execute(
+        "SELECT detail->'stops' FROM paper_run WHERE user_id=%s AND decision_day < %s AND decision_day >= %s",
+        (user_id, day, day - timedelta(days=STOP_COOLDOWN_DAYS)),
+    ).fetchall()
+    return {int(s["instrument_id"]) for (stops,) in rows for s in (stops or [])}
+
+
 def _record(
     conn: psycopg.Connection,
     user_id: UUID,
@@ -335,6 +347,7 @@ def _decide(
     stops = {
         s.instrument_id: s for s in trade_stops(positions, paper_risk.get_limits(conn, user_id))
     }
+    cooling = recently_stopped(conn, user_id, day)
     base = {
         "universe": universe, "audit": audit, "equity": equity, "cash": ledger.cash,
         "stops": [{"instrument_id": i, "loss": str(s.loss), "detail": s.detail} for i, s in sorted(stops.items())],
@@ -365,6 +378,8 @@ def _decide(
         wanted = (
             Decimal(0) if iid in stops else (targets or {}).get(iid, Decimal(0))
         )  # a stopped name goes to zero and is not bought again today
+        if iid in cooling and held.get(iid, Decimal(0)) == 0:
+            wanted = Decimal(0)  # nor during the cooldown that follows
         delta = snap_down(wanted * equity / px, _step(repo, iid, day)) - held.get(iid, Decimal(0))
         if delta < 0:
             sells.append(
