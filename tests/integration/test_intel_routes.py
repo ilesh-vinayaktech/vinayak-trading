@@ -520,7 +520,7 @@ def test_a_study_of_a_generated_definition_shows_in_the_trial_and_validation_sta
     eid = vreg.register(
         conn, name="s", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
         param_ranges={"entry_share": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
-        study={"spec": {"definition": {"strategy_id": "ALPHA_X", "version": 1}}}, owner_user_id=None, family_id=1,
+        study={"spec": {"definition": {"strategy_id": "ALPHA_X", "version": 1}, "trade_stop": "0.02"}}, owner_user_id=None, family_id=1,
     )  # fmt: skip
     for i, status in enumerate(("DONE", "FAILED")):
         conn.execute(
@@ -642,7 +642,7 @@ def test_the_generated_definitions_are_listed_with_their_rule_and_how_far_their_
     vreg.register(
         conn, name="ALPHA_RET_20D_H20 v1 2016-2022", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
         param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
-        study={"spec": {"definition": {"strategy_id": "ALPHA_RET_20D_H20", "version": 1}}}, owner_user_id=None, family_id=1,
+        study={"spec": {"definition": {"strategy_id": "ALPHA_RET_20D_H20", "version": 1}, "trade_stop": "0.02"}}, owner_user_id=None, family_id=1,
     )  # fmt: skip
     conn.commit()
     rows = {r["strategy_id"]: r for r in c.get("/api/intel/definitions").json()["definitions"]}
@@ -677,7 +677,7 @@ def test_a_study_whose_last_run_stopped_early_is_called_stopped_not_done(client)
     eid = vreg.register(
         conn, name="s", strategy_id="dsl", hypothesis="h" * 25, style="long_only", param_ranges={"max_positions": [10, 20]},
         holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
-        study={"spec": {"definition": {"strategy_id": d.strategy_id, "version": 1}}}, owner_user_id=None, family_id=1,
+        study={"spec": {"definition": {"strategy_id": d.strategy_id, "version": 1}, "trade_stop": "0.02"}}, owner_user_id=None, family_id=1,
     )  # fmt: skip
     conn.execute(
         "INSERT INTO study_trial (experiment_id, variant, params, params_hash, status, finished_at) VALUES (%s,'base','{}','h','DONE',%s)",
@@ -689,3 +689,34 @@ def test_a_study_whose_last_run_stopped_early_is_called_stopped_not_done(client)
     )
     conn.commit()
     assert c.get("/api/intel/definitions").json()["definitions"][0]["study"] == "stopped"
+
+
+def test_studies_of_the_earlier_setup_are_kept_but_do_not_count_as_this_rounds_progress(client):
+    """The owner re-ran everything under the fixes: the page must start from zero, with the earlier verdicts only noted."""
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+    from algo.factory import generate
+    from algo.factory import registry as freg
+
+    c, conn = client
+    d = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, d, by="agent", reason="generated", now=NOW)
+    old = vreg.register(
+        conn, name="old setup", strategy_id="dsl", hypothesis="h" * 25, style="long_only", param_ranges={"a": [1, 9]},
+        holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {"definition": {"strategy_id": d.strategy_id, "version": 1}}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    conn.execute(
+        "INSERT INTO study_trial (experiment_id, variant, params, params_hash, status, finished_at) VALUES (%s,'base','{}','h','DONE',%s)",
+        (old, NOW),
+    )
+    conn.commit()
+    body = c.get("/api/intel/funnel").json()
+    assert (
+        stage(body, "trials")["entered"] == 0 and stage(body, "validation")["entered"] == 0
+    )  # nothing of the current round yet
+    row = c.get("/api/intel/definitions").json()["definitions"][0]
+    assert row["study"] == "none" and row["trials_done"] == 0 and row["experiment_id"] is None and row["earlier_verdict"] is None

@@ -142,6 +142,8 @@ def _estimate(r: dict[str, Any], now: Any) -> tuple[str, int | None, int | None]
     return ("ok", int(per_step), int(left)) if left > 0 else ("overrun", int(per_step), None)
 
 
+# A study belongs to the CURRENT setup when it carries the per-trade stop (review 2026-11-16): studies before that are kept but are not counted as this round's progress.
+CURRENT_SETUP = "e.study->'spec'->>'trade_stop' IS NOT NULL"
 STUDY_JOB_ID_BASE = 1_000_000  # study runs have their own id sequence; offset so a job id is never ambiguous on the page
 
 
@@ -241,14 +243,14 @@ def funnel(conn: WConn) -> dict[str, Any]:
     total, candidates, no_result, too_small = (int(x) for x in tests)
     not_significant = total - candidates - no_result - too_small
     definitions = one("SELECT count(*) FROM strategy_definition")
-    dsl = "FROM experiment e WHERE e.strategy_id = 'dsl' AND e.study IS NOT NULL"
+    dsl = (
+        f"FROM experiment e WHERE e.strategy_id = 'dsl' AND e.study IS NOT NULL AND {CURRENT_SETUP}"
+    )
     tested = one(
         "SELECT count(*) FROM (SELECT base_strategy_id, base_version::text FROM factory_experiment"
         f" UNION SELECT e.study->'spec'->'definition'->>'strategy_id', e.study->'spec'->'definition'->>'version' {dsl}) t"  # noqa: S608 - fixed fragment
     )
-    study_trials = (
-        f"FROM study_trial t JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl'"  # noqa: F541
-    )
+    study_trials = f"FROM study_trial t JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl' AND {CURRENT_SETUP}"
     trials = one("SELECT count(*) FROM factory_trial") + one(f"SELECT count(*) {study_trials}")  # noqa: S608
     done = one("SELECT count(*) FROM factory_trial WHERE status = 'DONE'") + one(
         f"SELECT count(*) {study_trials} AND t.status = 'DONE'"
@@ -295,13 +297,18 @@ def definitions(conn: WConn) -> dict[str, Any]:
     """Every registered strategy definition (newest first) with its rule in words and how far its study has got: none, registered, running, done, judged (with the latest verdict)."""
     rows = conn.execute(
         "SELECT d.strategy_id, d.version, d.definition, d.created_by, d.created_at,"
-        " (SELECT e.experiment_id FROM experiment e WHERE e.strategy_id = 'dsl' AND e.study->'spec'->'definition'->>'strategy_id' = d.strategy_id"
+        f" (SELECT e.experiment_id FROM experiment e WHERE e.strategy_id = 'dsl' AND {CURRENT_SETUP} AND e.study->'spec'->'definition'->>'strategy_id' = d.strategy_id"
         "  AND (e.study->'spec'->'definition'->>'version')::int = d.version ORDER BY e.experiment_id DESC LIMIT 1) AS eid"
         " FROM strategy_definition d ORDER BY d.definition_id DESC"
     ).fetchall()
     out = []
     for sid, version, defn, by, at, eid in rows:
         study, passed, trials, study_name = "none", None, 0, None
+        earlier = conn.execute(  # the verdict of the last study under the setup before this one (kept for reference, not counted as progress)
+            "SELECT r.passed FROM experiment e JOIN validation_report r USING (experiment_id) WHERE e.strategy_id = 'dsl'"
+            f" AND NOT ({CURRENT_SETUP}) AND e.study->'spec'->'definition'->>'strategy_id' = %s AND (e.study->'spec'->'definition'->>'version')::int = %s ORDER BY r.report_id DESC LIMIT 1",
+            (sid, version),
+        ).fetchone()
         if eid is not None:
             name_row = conn.execute(
                 "SELECT name FROM experiment WHERE experiment_id = %s", (eid,)
@@ -335,7 +342,7 @@ def definitions(conn: WConn) -> dict[str, Any]:
             {
                 "strategy_id": sid, "version": version, "description": defn["description"], "rebalance": defn["rebalance"],
                 "max_positions": defn["position"]["max_positions"], "entry": _rule(defn["entry"]), "exit": _rule(defn["exit"]),
-                "created_by": by, "created_at": at.isoformat(), "experiment_id": eid, "study_name": study_name, "study": study, "trials_done": trials, "verdict": passed,
+                "created_by": by, "created_at": at.isoformat(), "experiment_id": eid, "study_name": study_name, "study": study, "trials_done": trials, "verdict": passed, "earlier_verdict": None if earlier is None else bool(earlier[0]),
             }
         )  # fmt: skip
     return {"definitions": out}

@@ -580,7 +580,7 @@ describe("Data Explorer", () => {
     });
 
     it("offers the generated strategy definitions too and runs the chosen one over the whole chart range, to the latest bar", async () => {
-      const def = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "e", exit: "x", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null };
+      const def = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "e", exit: "x", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null };
       (table as Record<string, unknown>)["/api/intel/definitions"] = { definitions: [def] };
       (table as Record<string, unknown>)["/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals"] = { ...signals, strategy: "ALPHA_RET_20D_H20 v1" };
       const urls: string[] = [];

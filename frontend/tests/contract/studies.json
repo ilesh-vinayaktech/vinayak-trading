@@ -147,6 +147,7 @@
      "volatility_fraction": "0"
     },
     "start": "2019-10-01",
+    "stop_cooldown_days": 0,
     "strategy_id": "trend_pullback",
     "thresholds": {
      "max_drawdown_vs_benchmark": "1.25",
@@ -159,10 +160,11 @@
      "min_oos_sharpe": "0.8",
      "min_regimes": "2",
      "min_sharpe_over_benchmark": "0.2",
-     "owner_max_drawdown": "0.25",
+     "owner_max_drawdown": "1.0",
      "plateau_tolerance": "0.3"
     },
     "timeframe": "1D",
+    "trade_stop": null,
     "universe": {
      "before_segment_lists": "traded_value_rank",
      "min_history_sessions": 252,

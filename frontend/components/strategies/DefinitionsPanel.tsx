@@ -40,6 +40,7 @@ export function DefinitionsPanel({ canRun = false }: { canRun?: boolean }) {
                 <span className="font-semibold">{d.strategy_id}</span>
                 <span className="text-xs text-ink-faint">v{d.version} · {d.rebalance.toLowerCase()} · up to {d.max_positions} stocks</span>
                 <span className="text-xs text-ink-soft">{STUDY_TEXT[d.study]}{d.trials_done > 0 ? ` (${d.trials_done} ${d.trials_done === 1 ? "trial" : "trials"})` : ""}{d.study_name ? ` · ${d.study_name.replace(`${d.strategy_id} v${d.version} `, "")}` : ""}</span>
+                {d.earlier_verdict !== null && d.study === "none" ? <span className="text-xs text-ink-faint">earlier setup: {d.earlier_verdict ? "passed" : "failed"} validation</span> : null}
                 {d.verdict !== null ? <StatusPill tone={d.verdict ? "good" : "bad"}>{d.verdict ? "passed" : "failed validation"}</StatusPill> : null}
                 {canRun ? (
                   <span className="ml-auto inline-flex gap-2">

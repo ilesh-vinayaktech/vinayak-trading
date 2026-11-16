@@ -96,7 +96,7 @@
   "min_oos_sharpe": "0.8",
   "min_regimes": "2",
   "min_sharpe_over_benchmark": "0.2",
-  "owner_max_drawdown": "0.25",
+  "owner_max_drawdown": "1.0",
   "plateau_tolerance": "0.3"
  },
  "timeframes": [

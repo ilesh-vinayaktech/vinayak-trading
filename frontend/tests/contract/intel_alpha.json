@@ -9,7 +9,7 @@
    "icir": 0.0,
    "id": 0,
    "mean_ic": 0.0,
-   "p_adjusted": 1.0,
+   "p_adjusted": 0.9,
    "sample_days": 500,
    "status": "REJECTED",
    "version": "1"
