@@ -811,10 +811,74 @@ def test_a_fixed_setting_study_runs_every_trial_and_judges_only_the_pre_register
         start=DAYS[0],
         end=DAYS[-1],
         holdout_start=DAYS[270],
-        fixed=fstudy.FIXED,
+        fixed=True,
     )
-    assert s.fixed == fstudy.FIXED and s.name.endswith("stop2 fixed")
+    assert s.fixed == {"max_positions": 20, "exit_share": 50} and s.name.endswith("stop2 fixed")
     assert s.fixed in [
         dict(c)
         for c in __import__("algo.research.study", fromlist=["combinations"]).combinations(s)
     ]
+
+
+def test_a_fixed_study_uses_the_definitions_own_numbers_and_a_robustness_grid_never_picks_a_replacement(
+    env,
+):
+    from algo.factory import generate, preregistered
+    from algo.factory import registry as freg
+    from algo.factory import study as fstudy
+
+    conn, owner = env
+    gen = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    mom = preregistered.definitions()[0]  # written down with 15 stocks
+    for d in (gen, mom):
+        freg.register(conn, d, by="t", reason="test", now=NOW)
+    g = fstudy.spec_for(
+        conn,
+        gen.strategy_id,
+        1,
+        family_id=1,
+        start=DAYS[0],
+        end=DAYS[-1],
+        holdout_start=DAYS[270],
+        fixed=True,
+    )
+    m = fstudy.spec_for(
+        conn,
+        mom.strategy_id,
+        1,
+        family_id=1,
+        start=DAYS[0],
+        end=DAYS[-1],
+        holdout_start=DAYS[270],
+        fixed=True,
+    )
+    assert (g.fixed, g.grid) == (
+        {"max_positions": 20, "exit_share": 50},
+        {"max_positions": [10, 20, 30], "exit_share": [30, 50, 70]},
+    )
+    assert (m.fixed, m.grid) == (
+        {"max_positions": 15, "exit_share": 50},
+        {"max_positions": [5, 15, 25], "exit_share": [30, 50, 70]},
+    )  # the momentum rule's own 15, not a borrowed 20
+    # once the primary setting has a verdict, a different fixed setting for the same definition, window and stop is refused
+    eid = fstudy.register(conn, owner, g, NOW)
+    run_study(conn, study_jobs.enqueue(conn, eid, owner, NOW), NOW)
+    run_id = conn.execute(
+        "SELECT backtest_run FROM study_trial WHERE experiment_id=%s AND backtest_run IS NOT NULL LIMIT 1",
+        (eid,),
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO validation_report (experiment_id, run_id, passed, thresholds_status, n_trials, evidence, gates, created_at) VALUES (%s,%s,FALSE,'confirmed',9,'{}','[]',%s)",
+        (eid, run_id, NOW),
+    )  # a verdict exists (its content does not matter to the guard)
+    other = g.model_copy(
+        update={"fixed": {"max_positions": 30, "exit_share": 50}, "name": "chosen after the fact"}
+    )
+    with pytest.raises(fstudy.ReplacementRefused, match="cannot be chosen after it"):
+        fstudy.register(conn, owner, other, NOW)
+    same_again = g.model_copy(update={"name": "the same setting again"})
+    assert (
+        fstudy.register(conn, owner, same_again, NOW) > eid
+    )  # the same setting is fine: it is not a replacement
