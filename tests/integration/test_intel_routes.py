@@ -613,3 +613,46 @@ def test_a_running_study_shows_the_day_it_is_on_and_a_time_left_from_the_trials_
     assert (
         380 <= j["per_step_s"] <= 420 and 3400 <= j["eta_s"] <= 3800
     )  # 1.5 trials in 600 s: 400 s each, 8.5 left
+
+
+def test_the_generated_definitions_are_listed_with_their_rule_and_how_far_their_study_has_got(
+    client,
+):
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+    from algo.factory import generate
+    from algo.factory import registry as freg
+
+    c, conn = client
+    assert c.get("/api/intel/definitions").json() == {"definitions": []}
+    d = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, d, by="agent", reason="generated", now=NOW)
+    freg.register(
+        conn,
+        generate.definition_for(
+            generate.Hypothesis(2, 1, "vol_20d", "1", 5, "NEGATIVE", -0.05, 0.001)
+        ),
+        by="agent",
+        reason="generated",
+        now=NOW,
+    )
+    vreg.register(
+        conn, name="ALPHA_RET_20D_H20 v1 2016-2022", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
+        param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {"definition": {"strategy_id": "ALPHA_RET_20D_H20", "version": 1}}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    conn.commit()
+    rows = {r["strategy_id"]: r for r in c.get("/api/intel/definitions").json()["definitions"]}
+    up = rows["ALPHA_RET_20D_H20"]
+    assert (up["version"], up["rebalance"], up["max_positions"], up["created_by"]) == (
+        1,
+        "MONTHLY",
+        20,
+        "agent",
+    )
+    assert up["entry"] == "ret_20d TOP_PERCENT 20" and up["exit"] == "ret_20d BOTTOM_PERCENT 50"
+    assert (up["study"], up["verdict"]) == ("registered", None)
+    assert rows["ALPHA_VOL_20D_H5"]["study"] == "none"

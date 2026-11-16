@@ -28,13 +28,17 @@ const empty = {
   alpha: { hypotheses: [] },
   notes: { notes: [] },
 };
+const defs = [
+  { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", study: "judged", trials_done: 9, verdict: false },
+  { strategy_id: "ALPHA_VOL_20D_H5", version: 1, description: "d", rebalance: "WEEKLY", max_positions: 20, entry: "vol_20d BOTTOM_PERCENT 20", exit: "vol_20d TOP_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", study: "none", trials_done: 0, verdict: null },
+];
 const seen: string[] = [];
 function backend(table: { overview: unknown; alpha: unknown; notes: unknown; progress?: unknown; funnel?: unknown; features?: unknown }) {
   seen.length = 0;
   vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = new URL(String(input));
     seen.push(url.pathname + url.search);
-    const body = { "/api/auth/me": who, "/api/intel/overview": table.overview, "/api/intel/alpha": table.alpha, "/api/intel/notes": table.notes, "/api/intel/allocations": allocations, "/api/intel/progress": table.progress ?? { jobs: [] }, "/api/intel/funnel": table.funnel ?? funnel, "/api/intel/features": table.features ?? featuresFixture }[url.pathname];
+    const body = { "/api/auth/me": who, "/api/intel/overview": table.overview, "/api/intel/alpha": table.alpha, "/api/intel/notes": table.notes, "/api/intel/definitions": { definitions: defs }, "/api/intel/allocations": allocations, "/api/intel/progress": table.progress ?? { jobs: [] }, "/api/intel/funnel": table.funnel ?? funnel, "/api/intel/features": table.features ?? featuresFixture }[url.pathname];
     if (body === undefined) return new Response(JSON.stringify({ detail: "no route" }), { status: 404 });
     return new Response(JSON.stringify(body), { status: 200 });
   });
@@ -240,5 +244,18 @@ describe("Research intelligence", () => {
     vi.stubGlobal("fetch", async (input: RequestInfo | URL) => (new URL(String(input)).pathname === "/api/auth/me" ? new Response(JSON.stringify(who)) : new Response(JSON.stringify({ detail: "not allowed" }), { status: 403 })));
     mount();
     expect(await screen.findByText(/Could not load the research overview/)).toBeTruthy();
+  });
+});
+
+describe("Strategy definitions", () => {
+  it("lists each written definition with its rule in words and how far its study has got", async () => {
+    backend({ overview: empty.overview, alpha: empty.alpha, notes: empty.notes });
+    mount();
+    const items = await screen.findAllByTestId("definition");
+    expect(items).toHaveLength(2);
+    expect(items[0]!.textContent).toContain("ALPHA_RET_20D_H20");
+    expect(items[0]!.textContent).toContain("Buy: ret_20d TOP_PERCENT 20. Sell: ret_20d BOTTOM_PERCENT 50.");
+    expect(items[0]!.textContent).toContain("failed validation");
+    expect(items[1]!.textContent).toContain("no study yet");
   });
 });

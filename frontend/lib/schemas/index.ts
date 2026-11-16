@@ -1070,6 +1070,14 @@ export const intelAlphaSchema = z.object({
 export const intelNotesSchema = z.object({
   notes: z.array(z.object({ id: z.number(), kind: z.enum(["FINDING", "FAILURE", "DECISION", "LESSON"]), subject: z.string(), body: z.string(), tags: z.array(z.string()), by: z.string(), at: z.string() })),
 });
+export const intelDefinitionsSchema = z.object({
+  definitions: z.array(
+    z.object({
+      strategy_id: z.string(), version: z.number(), description: z.string(), rebalance: z.string(), max_positions: z.number(), entry: z.string(), exit: z.string(),
+      created_by: z.string(), created_at: z.string(), study: z.enum(["none", "registered", "running", "done", "judged"]), trials_done: z.number(), verdict: z.boolean().nullable(),
+    }),
+  ),
+});
 export const intelAllocationsSchema = z.object({
   allocations: z.array(
     z.object({ id: z.number(), method: z.string(), weights: z.record(z.string(), z.number()), cash: z.number(), notes: z.array(z.string()), risk_contribution: z.record(z.string(), z.number()), by: z.string(), at: z.string() }),
@@ -1078,6 +1086,7 @@ export const intelAllocationsSchema = z.object({
 export type IntelOverview = z.infer<typeof intelOverviewSchema>;
 export type IntelAlpha = z.infer<typeof intelAlphaSchema>;
 export type IntelNotes = z.infer<typeof intelNotesSchema>;
+export type IntelDefinitions = z.infer<typeof intelDefinitionsSchema>;
 export type IntelAllocations = z.infer<typeof intelAllocationsSchema>;
 
 export const intelProgressSchema = z.object({

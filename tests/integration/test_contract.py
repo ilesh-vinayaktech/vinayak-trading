@@ -858,6 +858,7 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
         "intel_overview": c.get("/api/intel/overview"),
         "intel_alpha": c.get("/api/intel/alpha"),
         "intel_notes": c.get("/api/intel/notes"),
+        "intel_definitions": c.get("/api/intel/definitions"),
         "intel_allocations": c.get("/api/intel/allocations"),
     }
     for name, resp in shots.items():

@@ -283,6 +283,58 @@ def funnel(conn: WConn) -> dict[str, Any]:
     }  # fmt: skip
 
 
+def _rule(group: dict[str, Any]) -> str:
+    conds = group.get("all") or group.get("any") or []
+    return f" {'AND' if 'all' in group else 'OR'} ".join(
+        f"{c['feature']} {c['op']} {c['value']}" for c in conds
+    )
+
+
+@router.get("/definitions")
+def definitions(conn: WConn) -> dict[str, Any]:
+    """Every registered strategy definition (newest first) with its rule in words and how far its study has got: none, registered, running, done, judged (with the latest verdict)."""
+    rows = conn.execute(
+        "SELECT d.strategy_id, d.version, d.definition, d.created_by, d.created_at,"
+        " (SELECT e.experiment_id FROM experiment e WHERE e.strategy_id = 'dsl' AND e.study->'spec'->'definition'->>'strategy_id' = d.strategy_id"
+        "  AND (e.study->'spec'->'definition'->>'version')::int = d.version ORDER BY e.experiment_id DESC LIMIT 1) AS eid"
+        " FROM strategy_definition d ORDER BY d.definition_id DESC"
+    ).fetchall()
+    out = []
+    for sid, version, defn, by, at, eid in rows:
+        study, passed, trials = "none", None, 0
+        if eid is not None:
+            trials = _one(
+                conn,
+                f"SELECT count(*) FROM study_trial WHERE experiment_id = {int(eid)} AND status = 'DONE'",
+            )  # noqa: S608 - an integer
+            run = conn.execute(
+                "SELECT kind, status FROM study_run WHERE experiment_id = %s ORDER BY run_id DESC LIMIT 1",
+                (eid,),
+            ).fetchone()
+            rep = conn.execute(
+                "SELECT passed FROM validation_report WHERE experiment_id = %s ORDER BY report_id DESC LIMIT 1",
+                (eid,),
+            ).fetchone()
+            study = (
+                "judged"
+                if rep
+                else "running"
+                if run and run[1] in ("QUEUED", "RUNNING")
+                else "done"
+                if trials
+                else "registered"
+            )
+            passed = None if rep is None else bool(rep[0])
+        out.append(
+            {
+                "strategy_id": sid, "version": version, "description": defn["description"], "rebalance": defn["rebalance"],
+                "max_positions": defn["position"]["max_positions"], "entry": _rule(defn["entry"]), "exit": _rule(defn["exit"]),
+                "created_by": by, "created_at": at.isoformat(), "study": study, "trials_done": trials, "verdict": passed,
+            }
+        )  # fmt: skip
+    return {"definitions": out}
+
+
 @router.get("/features")
 def features(conn: WConn) -> dict[str, Any]:
     """Every feature defined in code, with what it measures, its status and the outcome of its latest validation: the four checks and the reasons for a failure. A feature defined in
