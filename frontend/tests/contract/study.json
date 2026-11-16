@@ -114,6 +114,7 @@
   "end": "2026-11-10",
   "family_id": 1,
   "filing_lag_days": 0,
+  "fixed": null,
   "grid": {
    "entry_rsi": [
     20,
