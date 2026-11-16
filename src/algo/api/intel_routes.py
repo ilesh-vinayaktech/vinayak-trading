@@ -301,8 +301,12 @@ def definitions(conn: WConn) -> dict[str, Any]:
     ).fetchall()
     out = []
     for sid, version, defn, by, at, eid in rows:
-        study, passed, trials = "none", None, 0
+        study, passed, trials, study_name = "none", None, 0, None
         if eid is not None:
+            name_row = conn.execute(
+                "SELECT name FROM experiment WHERE experiment_id = %s", (eid,)
+            ).fetchone()
+            study_name = name_row[0] if name_row else None
             trials = _one(
                 conn,
                 f"SELECT count(*) FROM study_trial WHERE experiment_id = {int(eid)} AND status = 'DONE'",
@@ -320,6 +324,8 @@ def definitions(conn: WConn) -> dict[str, Any]:
                 if rep
                 else "running"
                 if run and run[1] in ("QUEUED", "RUNNING")
+                else "stopped"
+                if run and run[1] in ("FAILED", "CANCELLED")
                 else "done"
                 if trials
                 else "registered"
@@ -329,7 +335,7 @@ def definitions(conn: WConn) -> dict[str, Any]:
             {
                 "strategy_id": sid, "version": version, "description": defn["description"], "rebalance": defn["rebalance"],
                 "max_positions": defn["position"]["max_positions"], "entry": _rule(defn["entry"]), "exit": _rule(defn["exit"]),
-                "created_by": by, "created_at": at.isoformat(), "experiment_id": eid, "study": study, "trials_done": trials, "verdict": passed,
+                "created_by": by, "created_at": at.isoformat(), "experiment_id": eid, "study_name": study_name, "study": study, "trials_done": trials, "verdict": passed,
             }
         )  # fmt: skip
     return {"definitions": out}

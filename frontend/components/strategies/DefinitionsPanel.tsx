@@ -9,7 +9,7 @@ import { buttonClass } from "@/components/ui/styles";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError, api } from "@/lib/api/client";
 
-const STUDY_TEXT = { none: "no study yet", registered: "study registered", running: "study running", done: "trials done, not judged", judged: "judged" } as const;
+const STUDY_TEXT = { none: "no study yet", registered: "study registered", running: "study running", stopped: "run stopped early", done: "trials done, not judged", judged: "judged" } as const;
 
 /** The strategy definitions written so far, each with its rule in words and how far its study has got. With `canRun`, each can be backtested from here (its standard study is registered and queued) and its study opened for the trials, equity curves and verdict. */
 export function DefinitionsPanel({ canRun = false }: { canRun?: boolean }) {
@@ -33,13 +33,13 @@ export function DefinitionsPanel({ canRun = false }: { canRun?: boolean }) {
       ) : !defs.data || defs.data.definitions.length === 0 ? (
         <EmptyState title="No definitions yet">Run scripts/generate_strategies.py to write one for each alpha candidate.</EmptyState>
       ) : (
-        <ul className="divide-y divide-line" aria-label="Strategy definitions">
+        <ul className="divide-y divide-line px-5" aria-label="Strategy definitions">
           {defs.data.definitions.map((d) => (
             <li key={`${d.strategy_id}-${d.version}`} className="py-2 text-sm" data-testid="definition">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{d.strategy_id}</span>
                 <span className="text-xs text-ink-faint">v{d.version} · {d.rebalance.toLowerCase()} · up to {d.max_positions} stocks</span>
-                <span className="text-xs text-ink-soft">{STUDY_TEXT[d.study]}{d.trials_done > 0 ? ` (${d.trials_done} trials)` : ""}</span>
+                <span className="text-xs text-ink-soft">{STUDY_TEXT[d.study]}{d.trials_done > 0 ? ` (${d.trials_done} ${d.trials_done === 1 ? "trial" : "trials"})` : ""}{d.study_name ? ` · ${d.study_name.replace(`${d.strategy_id} v${d.version} `, "")}` : ""}</span>
                 {d.verdict !== null ? <StatusPill tone={d.verdict ? "good" : "bad"}>{d.verdict ? "passed" : "failed validation"}</StatusPill> : null}
                 {canRun ? (
                   <span className="ml-auto inline-flex gap-2">

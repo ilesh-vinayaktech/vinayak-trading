@@ -654,5 +654,38 @@ def test_the_generated_definitions_are_listed_with_their_rule_and_how_far_their_
         "agent",
     )
     assert up["entry"] == "ret_20d TOP_PERCENT 20" and up["exit"] == "ret_20d BOTTOM_PERCENT 50"
-    assert (up["study"], up["verdict"]) == ("registered", None)
+    assert (up["study"], up["verdict"], up["study_name"]) == (
+        "registered",
+        None,
+        "ALPHA_RET_20D_H20 v1 2016-2022",
+    )
     assert rows["ALPHA_VOL_20D_H5"]["study"] == "none"
+
+
+def test_a_study_whose_last_run_stopped_early_is_called_stopped_not_done(client):
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+    from algo.factory import generate
+    from algo.factory import registry as freg
+
+    c, conn = client
+    d = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, d, by="agent", reason="generated", now=NOW)
+    eid = vreg.register(
+        conn, name="s", strategy_id="dsl", hypothesis="h" * 25, style="long_only", param_ranges={"max_positions": [10, 20]},
+        holdout=(date(2023, 1, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {"definition": {"strategy_id": d.strategy_id, "version": 1}}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    conn.execute(
+        "INSERT INTO study_trial (experiment_id, variant, params, params_hash, status, finished_at) VALUES (%s,'base','{}','h','DONE',%s)",
+        (eid, NOW),
+    )
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, total, done, created_at) VALUES (%s,'trials','FAILED',9,1,%s)",
+        (eid, NOW),
+    )
+    conn.commit()
+    assert c.get("/api/intel/definitions").json()["definitions"][0]["study"] == "stopped"
