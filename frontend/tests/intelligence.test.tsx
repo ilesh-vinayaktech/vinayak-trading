@@ -123,6 +123,17 @@ describe("Research intelligence", () => {
     expect(unlinked.queryByText(/moved on/)).toBeNull();
   });
 
+  it("says a stage is being worked on right now instead of saying nothing will reach it", async () => {
+    const empty = { key: "alpha", title: "Alpha tests", unit: "tests", entered: 0, passed: 0, connected: true, note: "n", dropped: [] };
+    const job = { ...progress.jobs[0], id: 1, job: "alpha_discovery", label: "Alpha discovery", status: "RUNNING", phase: "loading features", message: "dist_sma_200d (11 of 27)", stalled: false, alive: true };
+    backend({ overview, alpha, notes, progress: { jobs: [job] }, funnel: { stages: [empty, { ...empty, key: "trials", title: "Experiment trials" }] } });
+    mount();
+    const card = within(await screen.findByTestId("stage-alpha"));
+    expect(card.getByTestId("running-now").textContent).toMatch(/Running now: Alpha discovery, loading features \(dist_sma_200d \(11 of 27\)\)/);
+    expect(card.queryByText("Nothing has reached this stage yet.")).toBeNull();
+    expect(within(screen.getByTestId("stage-trials")).getByText("Nothing has reached this stage yet.")).toBeTruthy(); // no job feeds it: still honest
+  });
+
   it("lights up the pipeline step that is running now and marks the finished, idle and not-automated ones", async () => {
     const job = (over: object) => ({ ...progress.jobs[0], ...over });
     backend({ overview, alpha, notes, progress: { jobs: [job({ id: 1, job: "feature_validation", status: "RUNNING", done: 3, total: 12, stalled: false }), job({ id: 2, job: "alpha_discovery", status: "DONE", done: 4, total: 4 })] } });

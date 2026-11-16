@@ -111,7 +111,7 @@ function PipelinePanel() {
     <Card title="Research pipeline" note="Each card counts what entered that stage, what moved on and what was dropped, with the reasons. Dropped ideas are kept, not hidden: they raise the bar for the next one.">
       <div className="space-y-4">
         <PipelineStrip jobs={jobs.data?.jobs ?? []} />
-        {funnel.isLoading ? <Loading what="the funnel" /> : funnel.error ? <ErrorBox error={funnel.error} what="the funnel" /> : funnel.data ? <Funnel stages={funnel.data.stages} /> : null}
+        {funnel.isLoading ? <Loading what="the funnel" /> : funnel.error ? <ErrorBox error={funnel.error} what="the funnel" /> : funnel.data ? <Funnel stages={funnel.data.stages} jobs={jobs.data?.jobs ?? []} /> : null}
       </div>
     </Card>
   );

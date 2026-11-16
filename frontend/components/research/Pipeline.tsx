@@ -3,7 +3,8 @@ import type { IntelFunnel, IntelProgress } from "@/lib/schemas";
 type Stage = IntelFunnel["stages"][number];
 type Job = IntelProgress["jobs"][number];
 
-const share = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 100) : 0);
+const share = (n: number, of: number) =>
+  of > 0 ? Math.round((n / of) * 100) : 0;
 
 /** The steps of the research pipeline, left to right. A step with a `job` shows the live state of that job; the others are done by hand for now. */
 const STEPS: { label: string; job?: string }[] = [
@@ -23,10 +24,23 @@ function latest(jobs: Job[], name: string): Job | undefined {
 /** The cycle strip: which step is running right now (with its own progress), which last finished, which failed, and which are not automated yet. */
 export function PipelineStrip({ jobs }: { jobs: Job[] }) {
   return (
-    <ol className="grid gap-2 sm:grid-cols-4 lg:grid-cols-7" aria-label="Research pipeline steps">
+    <ol
+      className="grid gap-2 sm:grid-cols-4 lg:grid-cols-7"
+      aria-label="Research pipeline steps"
+    >
       {STEPS.map((s, i) => {
         const j = s.job ? latest(jobs, s.job) : undefined;
-        const state = !s.job ? "manual" : !j ? "idle" : j.status === "RUNNING" ? (j.stalled ? "stuck" : "running") : j.status === "DONE" ? "done" : "failed";
+        const state = !s.job
+          ? "manual"
+          : !j
+            ? "idle"
+            : j.status === "RUNNING"
+              ? j.stalled
+                ? "stuck"
+                : "running"
+              : j.status === "DONE"
+                ? "done"
+                : "failed";
         const tone = {
           running: "border-blue-500 bg-blue-50 text-blue-900",
           stuck: "border-red-500 bg-red-50 text-red-900",
@@ -44,10 +58,19 @@ export function PipelineStrip({ jobs }: { jobs: Job[] }) {
           manual: "not automated yet",
         }[state];
         return (
-          <li key={s.label} data-testid={`step-${i}`} data-state={state} className={`rounded-md border px-3 py-2 text-xs ${tone}`}>
-            <div className="text-[10px] uppercase tracking-wide opacity-70">Step {i + 1}</div>
+          <li
+            key={s.label}
+            data-testid={`step-${i}`}
+            data-state={state}
+            className={`rounded-md border px-3 py-2 text-xs ${tone}`}
+          >
+            <div className="text-[10px] uppercase tracking-wide opacity-70">
+              Step {i + 1}
+            </div>
             <div className="font-semibold">{s.label}</div>
-            <div className={state === "running" ? "animate-pulse" : ""}>{caption}</div>
+            <div className={state === "running" ? "animate-pulse" : ""}>
+              {caption}
+            </div>
           </li>
         );
       })}
@@ -55,30 +78,87 @@ export function PipelineStrip({ jobs }: { jobs: Job[] }) {
   );
 }
 
-function StageCard({ s }: { s: Stage }) {
+/** The jobs that fill each stage: while one is running the card says so, so an empty stage is not mistaken for a stage that nothing will ever reach. */
+const STAGE_JOBS: Record<string, string[]> = {
+  features: ["feature_validation", "feature_computation"],
+  alpha: ["alpha_discovery"],
+};
+
+function runningFor(stage: string, jobs: Job[]): Job | undefined {
+  return jobs
+    .filter(
+      (j) =>
+        j.status === "RUNNING" && (STAGE_JOBS[stage] ?? []).includes(j.job),
+    )
+    .sort((a, b) => b.id - a.id)[0];
+}
+
+function RunningNow({ j }: { j: Job }) {
+  return (
+    <p
+      className="mt-2 rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-xs text-blue-900"
+      data-testid="running-now"
+    >
+      <span className="animate-pulse font-medium">Running now</span>: {j.label},{" "}
+      {j.phase}
+      {j.message ? ` (${j.message})` : ""}
+    </p>
+  );
+}
+
+function StageCard({ s, jobs }: { s: Stage; jobs: Job[] }) {
+  const running = runningFor(s.key, jobs);
   if (!s.connected) {
     return (
-      <div className="h-full rounded-xl border border-dashed border-line bg-panel/60 p-4 text-sm" data-testid={`stage-${s.key}`}>
+      <div
+        className="h-full rounded-xl border border-dashed border-line bg-panel/60 p-4 text-sm"
+        data-testid={`stage-${s.key}`}
+      >
         <h3 className="font-semibold text-ink-soft">{s.title}</h3>
-        <p className="mt-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Not linked yet</p>
+        <p className="mt-1 text-xs font-medium uppercase tracking-wide text-ink-faint">
+          Not linked yet
+        </p>
         <p className="mt-2 text-xs text-ink-soft">{s.note}</p>
       </div>
     );
   }
   const dropped = s.entered - s.passed;
   return (
-    <div className="h-full rounded-xl border border-line bg-panel p-4 text-sm shadow-card" data-testid={`stage-${s.key}`}>
+    <div
+      className="h-full rounded-xl border border-line bg-panel p-4 text-sm shadow-card"
+      data-testid={`stage-${s.key}`}
+    >
       <h3 className="font-semibold">{s.title}</h3>
       {s.entered === 0 ? (
-        <p className="mt-2 text-xs text-ink-soft">Nothing has reached this stage yet.</p>
+        running ? (
+          <RunningNow j={running} />
+        ) : (
+          <p className="mt-2 text-xs text-ink-soft">
+            Nothing has reached this stage yet.
+          </p>
+        )
       ) : (
         <>
+          {running ? <RunningNow j={running} /> : null}
           <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {s.entered} <span className="text-xs font-normal text-ink-soft">{s.unit} in</span>
+            {s.entered}{" "}
+            <span className="text-xs font-normal text-ink-soft">
+              {s.unit} in
+            </span>
           </p>
-          <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-slate-200" role="img" aria-label={`${s.passed} of ${s.entered} moved on, ${dropped} dropped`}>
-            <div className="bg-emerald-500" style={{ width: `${share(s.passed, s.entered)}%` }} />
-            <div className="bg-red-300" style={{ width: `${share(dropped, s.entered)}%` }} />
+          <div
+            className="mt-3 flex h-3 overflow-hidden rounded-full bg-slate-200"
+            role="img"
+            aria-label={`${s.passed} of ${s.entered} moved on, ${dropped} dropped`}
+          >
+            <div
+              className="bg-emerald-500"
+              style={{ width: `${share(s.passed, s.entered)}%` }}
+            />
+            <div
+              className="bg-red-300"
+              style={{ width: `${share(dropped, s.entered)}%` }}
+            />
           </div>
           <p className="mt-2 flex justify-between text-xs">
             <span className="font-medium text-emerald-700">
@@ -97,7 +177,10 @@ function StageCard({ s }: { s: Stage }) {
                     <span className="tabular-nums">{d.count}</span>
                   </div>
                   <div className="mt-0.5 h-1 rounded-full bg-slate-100">
-                    <div className="h-1 rounded-full bg-red-300" style={{ width: `${share(d.count, s.entered)}%` }} />
+                    <div
+                      className="h-1 rounded-full bg-red-300"
+                      style={{ width: `${share(d.count, s.entered)}%` }}
+                    />
                   </div>
                 </li>
               ))}
@@ -111,16 +194,32 @@ function StageCard({ s }: { s: Stage }) {
 }
 
 /** The funnel: one card per stage, joined by arrows that say how many moved on to the next. */
-export function Funnel({ stages }: { stages: Stage[] }) {
+export function Funnel({
+  stages,
+  jobs = [],
+}: {
+  stages: Stage[];
+  jobs?: Job[];
+}) {
   return (
-    <div className="grid items-stretch gap-3 lg:grid-cols-[repeat(6,1fr)]" aria-label="Research funnel">
+    <div
+      className="grid items-stretch gap-3 lg:grid-cols-[repeat(6,1fr)]"
+      aria-label="Research funnel"
+    >
       {stages.map((s, i) => (
         <div key={s.key} className="relative flex flex-col">
-          <StageCard s={s} />
+          <StageCard s={s} jobs={jobs} />
           {i < stages.length - 1 ? (
-            <div className="py-1 text-center text-xs text-ink-faint lg:absolute lg:-right-3 lg:top-1/2 lg:z-10 lg:py-0" aria-hidden="true">
-              <span className="lg:hidden">↓ {s.connected && s.entered > 0 ? `${s.passed} move on` : ""}</span>
-              <span className="hidden rounded-full border border-line bg-panel px-1.5 py-0.5 lg:inline">→</span>
+            <div
+              className="py-1 text-center text-xs text-ink-faint lg:absolute lg:-right-3 lg:top-1/2 lg:z-10 lg:py-0"
+              aria-hidden="true"
+            >
+              <span className="lg:hidden">
+                ↓ {s.connected && s.entered > 0 ? `${s.passed} move on` : ""}
+              </span>
+              <span className="hidden rounded-full border border-line bg-panel px-1.5 py-0.5 lg:inline">
+                →
+              </span>
             </div>
           ) : null}
         </div>
