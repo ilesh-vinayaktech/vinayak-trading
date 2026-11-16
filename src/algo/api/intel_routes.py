@@ -165,7 +165,7 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
                 "stalled": running and (quiet > STALLED_AFTER_S or not job_progress.alive(r["pid"])),
             }
         )  # fmt: skip
-    for r in conn.execute(
+    for sr in conn.execute(
         "SELECT r.run_id, r.kind, r.status, r.done, r.total, r.current, r.created_at, r.started_at, r.finished_at, e.name"
         " FROM study_run r JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl' ORDER BY r.run_id DESC LIMIT %s",
         (limit,),
