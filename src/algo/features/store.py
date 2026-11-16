@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -178,6 +178,44 @@ def compute_rows(
     return rows
 
 
+def compute_rows_by_month(
+    name: str,
+    months: Sequence[date],
+    bars_by_instrument: Mapping[int, Mapping[date, SessionBar]],
+    filings: Mapping[int, FilingsHistory] | None = None,
+) -> dict[date, list[Row]]:
+    """The rows of one feature for several calendar months in ONE pass over each company, the same rows (and digests) `compute_rows` gives month by month. Computing a month alone
+    recomputes the whole history up to it, so doing every month that way costs the square of the number of months; this costs one history. Pure."""
+    d = registry.DEFINITIONS[name]
+    wanted = set(months)
+    end = _month_end(max(wanted))
+    sessions = [s for s in registry.sessions_from(bars_by_instrument) if s <= end]
+    out: dict[date, list[Row]] = {m: [] for m in sorted(wanted)}
+    for iid in sorted(bars_by_instrument):
+        for day, (value, available_at) in d.calc(
+            sessions, bars_by_instrument[iid], (filings or {}).get(iid)
+        ).items():
+            rows = out.get(day.replace(day=1))
+            if rows is not None:
+                rows.append((iid, day, value, available_at))
+    for rows in out.values():
+        rows.sort(key=lambda r: (r[0], r[1]))
+    return out
+
+
+def complete_months(
+    conn: psycopg.Connection, name: str, version: str, dataset_sha256: str
+) -> set[date]:
+    """The months this feature already has a complete run for on this dataset."""
+    return {
+        r[0]
+        for r in conn.execute(
+            "SELECT month FROM feature_run WHERE feature_id=%s AND dataset_sha256=%s AND status='complete'",
+            (_id(conn, name, version), dataset_sha256),
+        )
+    }
+
+
 def rows_sha256(rows: list[Row]) -> str:
     return hashlib.sha256(
         json.dumps([[i, d.isoformat(), str(v), a.isoformat()] for i, d, v, a in rows]).encode()
@@ -187,7 +225,7 @@ def rows_sha256(rows: list[Row]) -> str:
 def materialise_month(
     conn: psycopg.Connection, name: str, version: str, month: date, *, dataset_sha256: str, code_commit: str,
     bars_by_instrument: Mapping[int, Mapping[date, SessionBar]], now: datetime,
-    filings: Mapping[int, FilingsHistory] | None = None,
+    filings: Mapping[int, FilingsHistory] | None = None, rows: list[Row] | None = None,
 ) -> int | None:  # fmt: skip
     """Compute one feature for one calendar month from the supplied history (which must reach back far enough for the warm-up). Returns the run id,
     or None when a complete run for this feature, month and dataset already exists (nothing is written)."""
@@ -207,7 +245,7 @@ def materialise_month(
     ).fetchone():
         return None
     try:
-        rows = compute_rows(name, month, bars_by_instrument, filings)
+        rows = rows if rows is not None else compute_rows(name, month, bars_by_instrument, filings)
     except Exception as e:
         conn.execute(
             "INSERT INTO feature_run (feature_id, month, dataset_sha256, code_commit, status, started_at, finished_at, error) VALUES (%s,%s,%s,%s,'failed',%s,%s,%s)",

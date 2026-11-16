@@ -162,3 +162,25 @@ def test_a_feature_with_a_deliberate_look_ahead_fails_the_harness():
 
 def test_the_harness_covers_every_registered_feature():
     assert len(NAMES) == 35 and set(NAMES) == set(registry.DEFINITIONS)
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_computing_every_month_in_one_pass_gives_exactly_the_rows_of_computing_each_month_alone(
+    name,
+):
+    """The single pass the job and the validation use is only a speed-up: for every feature, including the recursive ones and the fundamental ones, each month's rows
+    (and their digest) are the ones the one-month-at-a-time path gives."""
+    from algo.features import store
+
+    bars = {1: world(), 2: world(D("0.5"))}
+    filings = {1: FILINGS, 2: FILINGS}
+    months = sorted({d.replace(day=1) for d in DAYS})
+    by_month = store.compute_rows_by_month(name, months, bars, filings)
+    assert sorted(by_month) == months
+    for m in months:
+        alone = store.compute_rows(name, m, bars, filings)
+        assert by_month[m] == alone and store.rows_sha256(by_month[m]) == store.rows_sha256(
+            alone
+        ), (name, m)
+    only_some = store.compute_rows_by_month(name, months[3:5], bars, filings)
+    assert sorted(only_some) == months[3:5] and only_some[months[3]] == by_month[months[3]]

@@ -169,8 +169,10 @@ def run(
         progress(
             "starting", f"{len(usable)} features over {len(months)} months", done=0, total=steps
         )
-    for month in months:
-        for name, version in usable:
+    for name, version in usable:
+        by_month: dict[date, list[store.Row]] | None = None
+        tried = False
+        for month in months:
             if (why := busy(now)) is not None:
                 out.status, out.paused_because = "paused", why
                 return out
@@ -191,14 +193,29 @@ def run(
                 bars = {i: store.bars_from_reader(reader, i, last) for i in instruments}
             if progress:
                 progress(f"computing {name}", f"month {month:%Y-%m}", done=finished, total=steps)
+            if not tried:
+                # one pass over the history for every month still to do, not one pass per month; if it fails, each month is tried (and recorded as failed) on its own below
+                tried = True
+                pending = [
+                    m
+                    for m in months
+                    if m not in store.complete_months(conn, name, version, shas[name])
+                ]
+                if pending:
+                    try:
+                        by_month = store.compute_rows_by_month(name, pending, bars, filings)
+                    except Exception:
+                        by_month = None
             try:
                 run_id = store.materialise_month(
                     conn, name, version, month, dataset_sha256=shas[name], code_commit=code_commit,
                     bars_by_instrument=bars, now=now, filings=filings,
+                    rows=None if by_month is None else by_month.get(month),
                 )  # fmt: skip
             except store.FeatureError as e:
                 out.failed.append(str(e))
                 out.status = "failed"
+                finished += 1
                 continue
             finished += 1
             if run_id is None:

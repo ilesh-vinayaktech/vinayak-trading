@@ -114,14 +114,19 @@ def validate(
             else read_filings(conn, freeze_id, first_month, report)
         )
     warm = int(d.manifest["warmup_bars"])
-    first_day, rows_by_month, identical = months[0], {}, True
-    for k, m in enumerate(months, 1):
-        if report:
-            report(f"checking {name}", f"recomputing month {k} of {len(months)}")
-        rows_by_month[m] = store.compute_rows(name, m, bars, fa)
-        identical &= store.rows_sha256(rows_by_month[m]) == store.rows_sha256(
-            store.compute_rows(name, m, again, fb)
+    first_day = months[0]
+    if report:
+        report(
+            f"checking {name}",
+            f"recomputing every month from the first read ({len(months)} months, one pass)",
         )
+    rows_by_month = store.compute_rows_by_month(name, months, bars, fa)
+    if report:
+        report(f"checking {name}", "recomputing every month from the second, independent read")
+    second = store.compute_rows_by_month(name, months, again, fb)
+    identical = all(
+        store.rows_sha256(rows_by_month[m]) == store.rows_sha256(second[m]) for m in months
+    )
     fid = store._id(conn, name, version)
     dataset = job.feature_dataset_sha256(conn, freeze_id, instruments, d, last)
     stored = {

@@ -248,10 +248,11 @@ def test_progress_is_reported_for_reads_months_and_each_look_ahead_test(world):
         and "second of two" in seen[1][1]
         and "2 instruments" in seen[0][1]
     )
-    assert ("checking ret_5d", "recomputing month 1 of 2") in seen and (
+    assert (
         "checking ret_5d",
-        "recomputing month 2 of 2",
+        "recomputing every month from the first read (2 months, one pass)",
     ) in seen
+    assert ("checking ret_5d", "recomputing every month from the second, independent read") in seen
     cuts = [m for p, m in seen if m.startswith("look-ahead test")]
     assert (
         cuts
