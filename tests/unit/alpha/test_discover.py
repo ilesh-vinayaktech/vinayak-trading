@@ -174,3 +174,43 @@ def test_the_evidence_carries_every_statistic_the_summary_computed_and_the_versi
         {("f", "7"): feature}, closes, days, horizons=(3,), last_allowed=days[-1], min_names=20
     )
     assert out == [ev] and out[0].version == "7"
+
+
+def test_a_long_run_reports_before_each_test_in_the_stable_order():
+    from datetime import date, timedelta
+    from decimal import Decimal as D
+
+    from algo.alpha import discover
+
+    days = [date(2026, 1, 5) + timedelta(days=i) for i in range(30)]
+    closes = {i: {d: D(100 + i + n) for n, d in enumerate(days)} for i in range(5)}
+    feats = {
+        ("b_feat", "1"): {(i, d): D(i) for i in range(5) for d in days},
+        ("a_feat", "1"): {(i, d): D(n) for i in range(5) for n, d in enumerate(days)},
+    }
+    seen = []
+    out = discover.discover(
+        feats,
+        closes,
+        days,
+        horizons=(5, 1),
+        last_allowed=days[-1],
+        min_names=3,
+        heartbeat=lambda *a: seen.append(a),
+    )
+    assert seen == [
+        ("a_feat", 1, 1, 4),
+        ("a_feat", 5, 2, 4),
+        ("b_feat", 1, 3, 4),
+        ("b_feat", 5, 4, 4),
+    ]  # feature name, then horizon; "k of n"
+    assert [(e.feature, e.horizon) for e in out] == [
+        ("a_feat", 1),
+        ("a_feat", 5),
+        ("b_feat", 1),
+        ("b_feat", 5),
+    ]
+    assert (
+        discover.discover(feats, closes, days, horizons=(5, 1), last_allowed=days[-1], min_names=3)
+        == out
+    )  # reporting changes nothing

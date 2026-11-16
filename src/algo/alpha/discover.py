@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
 from decimal import Decimal
@@ -116,19 +116,25 @@ def discover(
     horizons: Sequence[int],
     last_allowed: date,
     min_names: int,
+    heartbeat: Callable[[str, int, int, int], None] | None = None,
 ) -> list[Evidence]:
-    """Every feature at every horizon, in a stable order (feature name, version, horizon), so a rerun lists the same things in the same order."""
-    return [
-        evaluate(
-            name,
-            version,
-            features[(name, version)],
-            closes,
-            sessions,
-            horizon=h,
-            last_allowed=last_allowed,
-            min_names=min_names,
+    """Every feature at every horizon, in a stable order (feature name, version, horizon), so a rerun lists the same things in the same order. `heartbeat(feature, horizon, k, n)` is
+    called before each one of the n tests, so a caller can show that a long run is working."""
+    plan = [(name, version, h) for name, version in sorted(features) for h in sorted(horizons)]
+    out: list[Evidence] = []
+    for k, (name, version, h) in enumerate(plan, 1):
+        if heartbeat:
+            heartbeat(name, h, k, len(plan))
+        out.append(
+            evaluate(
+                name,
+                version,
+                features[(name, version)],
+                closes,
+                sessions,
+                horizon=h,
+                last_allowed=last_allowed,
+                min_names=min_names,
+            )
         )
-        for name, version in sorted(features)
-        for h in sorted(horizons)
-    ]
+    return out

@@ -79,7 +79,15 @@ def measure(
     if report:
         report("testing", f"{len(usable)} features at {len(horizons)} horizons")
     return discover.discover(
-        features, closes, sessions, horizons=horizons, last_allowed=last, min_names=min_names
+        features,
+        closes,
+        sessions,
+        horizons=horizons,
+        last_allowed=last,
+        min_names=min_names,
+        heartbeat=(lambda name, h, k, n: report("testing", f"{name} at {h} days (test {k} of {n})"))
+        if report
+        else None,
     )
 
 

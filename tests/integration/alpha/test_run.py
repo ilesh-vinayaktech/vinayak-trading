@@ -127,6 +127,8 @@ def test_discovery_reports_each_phase_in_order(world):
         "reading prices",
         "loading features",
         "loading features",
+        "testing",  # the plan: how many features at how many horizons
+        "testing",  # then one report before each test, so a long run shows it is working
         "testing",
         "recording",
     ]
@@ -134,7 +136,9 @@ def test_discovery_reports_each_phase_in_order(world):
         seen[1][1].endswith("(1 of 2)")
         and seen[2][1].endswith("(2 of 2)")
         and seen[3][1] == "2 features at 1 horizons"
-        and seen[4][1] == "2 results, failures included"
+        and seen[4][1] == "ret_20d at 1 days (test 1 of 2)"
+        and seen[5][1] == "ret_5d at 1 days (test 2 of 2)"
+        and seen[6][1] == "2 results, failures included"
     )
 
 
