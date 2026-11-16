@@ -563,6 +563,11 @@ describe("Data Explorer", () => {
       expect(asked).toContain("start=2024-01-01");
       expect(asked).toContain("end=2024-12-31");
       expect(asked).toContain("holding=false");
+      const list = await screen.findAllByTestId("decision"); // each decision is listed under the chart with its reason, newest first
+      expect(list).toHaveLength(2);
+      expect(list[0]).toHaveTextContent("SELL");
+      expect(list[0]).toHaveTextContent("rsi_above_exit");
+      expect(list[1]).toHaveTextContent("oversold in an uptrend");
       await waitFor(() => {
         const drawn = vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string; position: string; time: string }[];
         expect(drawn.filter((m) => m.text === "BUY" || m.text === "SELL").map((m) => [m.text, m.position])).toEqual([["BUY", "belowBar"], ["SELL", "aboveBar"]]);

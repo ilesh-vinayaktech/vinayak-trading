@@ -131,3 +131,41 @@ def test_continuing_from_a_stored_state_gives_exactly_what_a_full_run_gives():
         head = signals.decide(defn, vals, 1, days[:3])
         tail = signals.decide(defn, vals, 1, days[3:], held=head[-1].holding_after, after=days[2])
         assert head + tail == full
+
+
+def test_every_decision_says_which_conditions_passed_or_failed_with_the_numbers():
+    ten = lambda top: {i: (top if i == 1 else i / 100) for i in range(1, 11)}  # noqa: E731
+    got = run({0: ten(0.5), 1: ten(0.0)})
+    buy, sell = got[0].reason, got[1].reason
+    assert buy.splitlines()[0] == "Buy: the entry rule holds (all of these must pass)"
+    assert "ret_20d is in the highest 20%: rank 1 of 10, needs 2 or better (value 0.5): PASS" in buy
+    assert sell.splitlines()[0] == "Sell: the exit rule holds (any of these is enough)"
+    assert "ret_20d is in the lowest 50%: rank 1 of 10, needs 5 or better (value 0): PASS" in sell
+
+
+def test_a_threshold_condition_shows_its_comparison_and_a_failed_one_is_listed_too():
+    from algo.factory.dsl import StrategyDef
+
+    raw = DEFN.canonical()
+    raw["entry"] = {
+        "all": [
+            {"feature": "ret_20d", "op": ">", "value": 0},
+            {"feature": "ret_20d", "op": "TOP_PERCENT", "value": 20},
+        ]
+    }
+    both = StrategyDef.model_validate(raw)
+    rows = {0: {k: (0.5 if k == 1 else k / 100) for k in range(1, 11)}}
+    got = signals.decide(both, book(rows), 1, [day(0)])
+    assert got[0].action == "BUY"
+    assert "ret_20d > 0: value 0.5: PASS" in got[0].reason and got[0].reason.count("PASS") == 2
+    raw["entry"] = {
+        "any": [
+            {"feature": "ret_20d", "op": "<", "value": 0},
+            {"feature": "ret_20d", "op": "TOP_PERCENT", "value": 20},
+        ]
+    }
+    either = StrategyDef.model_validate(raw)
+    got = signals.decide(either, book(rows), 1, [day(0)])
+    assert (
+        "ret_20d < 0: value 0.5: FAIL" in got[0].reason and "PASS" in got[0].reason
+    )  # one failed, one passed: enough for 'any'

@@ -15,6 +15,7 @@ import type { LiveView, Mark } from "@/components/charts/PriceChart";
 import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/status/Badge";
 import { Card, Stat } from "@/components/status/LoadState";
+import { DecisionList } from "@/components/charts/DecisionList";
 import { DataTable } from "@/components/tables/DataTable";
 import { api } from "@/lib/api/client";
 import { shortHash } from "@/lib/formatting";
@@ -269,6 +270,10 @@ function Explorer() {
           status: strategyStatus,
         }}
       />
+
+      {chosen !== "" && signals.data && timeframe === "1d" ? (
+        <DecisionList days={signals.data.days} name={signals.data.strategy} />
+      ) : null}
 
       {bars.data ? (
         <div

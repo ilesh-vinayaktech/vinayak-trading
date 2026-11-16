@@ -20,8 +20,8 @@ import psycopg
 
 from algo.data import freeze as freeze_mod
 from algo.data.reader import AdjBar
-from algo.factory.dsl import StrategyDef
-from algo.factory.interpreter import Cadence, _cross_sections, _holds, _session_bars
+from algo.factory.dsl import PERCENT_OPS, Group, StrategyDef
+from algo.factory.interpreter import OPS, Cadence, _cross_sections, _holds, _session_bars
 from algo.features import job, store
 from algo.features import registry as feature_registry
 from algo.research import holdout_lock
@@ -40,6 +40,38 @@ class Decision:
     action: str | None  # "BUY" or "SELL", decided after this day's close
     reason: str | None
     holding_after: bool
+
+
+def _fmt(v: Decimal) -> str:
+    return format(v.quantize(Decimal("0.0001")).normalize(), "f")
+
+
+def explain(
+    title: str,
+    rule: str,
+    group: Group,
+    ready: dict[int, dict[str, Decimal]],
+    iid: int,
+    cross: dict[tuple[str, str, Decimal], set[int]],
+) -> str:
+    """Why the rule held, one line per condition with the numbers and whether it passed: a percentile condition shows the stock's rank among the stocks with a value that day and the rank it needed."""
+    n = len(ready)
+    lines = [
+        f"{title}: the {rule} rule holds ({'all of these must pass' if group.mode() == 'all' else 'any of these is enough'})"
+    ]
+    for c in group.conditions():
+        val = ready[iid][c.feature]
+        if c.op in PERCENT_OPS:
+            top = c.op == "TOP_PERCENT"
+            order = sorted(ready, key=lambda i: ((-1 if top else 1) * ready[i][c.feature], i))
+            need = max(1, ceil(Decimal(n) * c.value / 100))
+            what = f"{c.feature} is in the {'highest' if top else 'lowest'} {_fmt(c.value)}%: rank {order.index(iid) + 1} of {n}, needs {need} or better (value {_fmt(val)})"
+            ok = iid in cross.get((c.feature, c.op, c.value), set())
+        else:
+            what = f"{c.feature} {c.op} {_fmt(c.value)}: value {_fmt(val)}"
+            ok = OPS[c.op](val, c.value)
+        lines.append(f"- {what}: {'PASS' if ok else 'FAIL'}")
+    return "\n".join(lines)
 
 
 def features_used(defn: StrategyDef) -> list[str]:
@@ -75,9 +107,17 @@ def decide(
         if cadence.due(d):
             cross = _cross_sections(defn, ready)
             if held and _holds(defn.exit, ready[iid], iid, cross):
-                action, reason, held = "SELL", "the exit rule holds", False
+                action, reason, held = (
+                    "SELL",
+                    explain("Sell", "exit", defn.exit, ready, iid, cross),
+                    False,
+                )
             elif not held and _holds(defn.entry, ready[iid], iid, cross):
-                action, reason, held = "BUY", "the entry rule holds", True
+                action, reason, held = (
+                    "BUY",
+                    explain("Buy", "entry", defn.entry, ready, iid, cross),
+                    True,
+                )
         out.append(Decision(d, True, action, reason, held))
     return out
 
