@@ -73,7 +73,13 @@ class JobCancelled(Exception):
 def build(spec: StudySpec, combo: dict[str, Any], setup: Setup) -> Any:
     """The study's strategy for one parameter combination; a screener strategy also gets the study's screen (and the filings, if it reads them)."""
     cls, params_cls = STRATEGIES[spec.strategy_id]
-    extra = (spec.screen, setup.fundamentals) if spec.screen else ()
+    extra = (
+        (spec.screen, setup.fundamentals)
+        if spec.screen
+        else (spec.definition,)
+        if spec.definition
+        else ()
+    )
     return cls(params_cls(**combo), setup.membership, *extra)
 
 

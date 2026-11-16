@@ -56,7 +56,9 @@ def options(conn: WConn) -> dict[str, Any]:
     ).fetchall()
     return {
         "strategies": [
-            {"id": sid, "params": _params(params)} for sid, (_, params) in STRATEGIES.items()
+            {"id": sid, "params": _params(params)}
+            for sid, (_, params) in STRATEGIES.items()
+            if sid != "dsl"  # run from a registered definition by script, not picked in the form
         ],
         "segments": list(get_args(Segment)),
         "timeframes": ["1D"],

@@ -6,12 +6,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from algo.strategies.dsl_study import DslParams, DslStudyStrategy
 from algo.strategies.screener import ScreenerParams, ScreenerStrategy
 from algo.strategies.trend_pullback import TrendPullback, TrendPullbackParams
 from algo.strategy.base import StrategyParams
 
 STRATEGIES: dict[str, tuple[Any, type[StrategyParams]]] = {
     "trend_pullback": (TrendPullback, TrendPullbackParams),
+    "dsl": (
+        DslStudyStrategy,
+        DslParams,
+    ),  # a registered strategy definition, locked in the study (StudySpec.definition)
     "screener": (
         ScreenerStrategy,
         ScreenerParams,

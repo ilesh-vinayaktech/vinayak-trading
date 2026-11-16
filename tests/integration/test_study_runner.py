@@ -717,3 +717,47 @@ def test_the_studys_filing_lag_reaches_the_fundamentals_book_in_research_and_in_
     assert [lag for _, lag in seen] == [
         timedelta(0)
     ]  # studies registered before the field existed keep running exactly as they did
+
+
+def test_a_registered_definition_runs_through_the_study_and_its_trials_are_counted(env):
+    from algo.factory import generate
+
+    conn, owner = env
+    defn = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    sid = registered(
+        conn,
+        owner,
+        name="dsl tiny",
+        strategy_id="dsl",
+        definition=defn.canonical(),
+        grid={"entry_share": [30, 60], "max_positions": [4]},
+    )
+    run_study(conn, study_jobs.enqueue(conn, sid, owner, NOW), NOW)
+    trials = study_jobs.trials(conn, sid)
+    assert [t["params"]["entry_share"] for t in trials] == [30, 60]
+    assert all(t["status"] == "DONE" and t["metrics"]["trades"] > 0 for t in trials)
+    assert registry.trial_count(conn, sid) == 2
+    locked = conn.execute("SELECT study FROM experiment WHERE experiment_id=%s", (sid,)).fetchone()[
+        0
+    ]
+    assert locked["spec"]["definition"]["strategy_id"] == "ALPHA_RET_20D_H20"
+
+
+def test_a_study_is_built_from_a_registered_definition_and_registered(env):
+    from algo.factory import generate
+    from algo.factory import registry as freg
+    from algo.factory import study as fstudy
+
+    conn, owner = env
+    defn = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, defn, by="t", reason="test", now=NOW)
+    s = fstudy.spec_for(
+        conn, defn.strategy_id, 1, family_id=1, start=DAYS[0], end=DAYS[-1], holdout_start=DAYS[270]
+    )
+    assert (s.strategy_id, s.definition, s.grid) == ("dsl", defn.canonical(), fstudy.GRID)
+    sid = fstudy.register(conn, owner, s, NOW)
+    assert registry.trial_count(conn, sid) == 0 and sid > 0

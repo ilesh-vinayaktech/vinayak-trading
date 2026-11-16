@@ -118,7 +118,9 @@ def run_day(
         "DELETE FROM paper_run WHERE user_id=%s AND decision_day=%s", (user_id, day)
     )  # a failed or skipped run is retried
     ident = (acct["strategy_id"], "-", "-")
-    if acct["strategy_id"] not in STRATEGIES:
+    if (
+        acct["strategy_id"] not in STRATEGIES or acct["strategy_id"] == "dsl"
+    ):  # "dsl" needs a locked definition only a study carries
         return _record(
             conn,
             user_id,

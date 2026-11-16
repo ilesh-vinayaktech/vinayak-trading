@@ -64,6 +64,9 @@ class StudySpec(BaseModel):
     screen: ScreenSpec | None = (
         None  # the rules of a screener strategy (strategy_id 'screener'), locked with the study
     )
+    definition: dict[str, Any] | None = (
+        None  # the strategy definition of a 'dsl' study (algo.factory.dsl), locked with the study
+    )
     universe: UniverseSpec
     timeframe: Literal["1D"] = (
         "1D"  # the engine decides on daily bars; intraday arrives with intraday strategies
@@ -106,6 +109,8 @@ def _check_grid(s: StudySpec, max_trials: int) -> None:
         raise StudyError(f"unknown strategy {s.strategy_id!r}")
     if (s.strategy_id == "screener") != (s.screen is not None):
         raise StudyError("a screener study needs its screen, and no other strategy takes one")
+    if (s.strategy_id == "dsl") != (s.definition is not None):
+        raise StudyError("a dsl study needs its definition, and no other strategy takes one")
     if s.screen is not None and (why := s.screen.problem()):
         raise StudyError(why)
     params = STRATEGIES[s.strategy_id][1]
