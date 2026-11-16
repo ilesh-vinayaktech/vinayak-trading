@@ -80,3 +80,18 @@ def test_a_threshold_condition_and_an_unknown_feature_still_read_sensibly():
     assert (
         plain.phrase("some_new_feature") == "some new feature"
     )  # a feature with no wording yet: its name, spaced, never a crash
+
+
+def test_a_market_only_exit_says_everything_is_sold_and_inverse_volatility_sizing_says_calmer_stocks_get_more():
+    raw = hyp("ret_252d", 20, "POSITIVE").canonical()
+    raw["exit"] = {"any": [{"feature": "market_breadth_200d", "op": "<", "value": 40}]}
+    raw["position"] = {"max_positions": 12, "sizing": "INVERSE_VOLATILITY"}
+    p = plain.describe(StrategyDef.model_validate(raw))
+    assert (
+        p["sell"]
+        == "Sell everything when fewer than 40% of all stocks are above their 200-day average."
+    )
+    assert (
+        p["size"]
+        == "Hold at most 12 stocks; calmer stocks get more money (never more than 10% in one)."
+    )

@@ -226,10 +226,10 @@ def deflation_trials(conn: psycopg.Connection, exp_id: int) -> tuple[int, list[f
     rows = conn.execute(
         "SELECT experiment_id, strategy_id, study FROM experiment WHERE family_id=%s", (family,)
     ).fetchall()
-    mine = next(((sid, study) for eid, sid, study in rows if eid == exp_id), None)
-    if mine is None:
-        return trial_count(conn, exp_id), trial_sharpes(conn, exp_id)
-    key, window = hypothesis_key(mine[0], mine[1]), _window(mine[1])
+    sid0, study0 = next(
+        (sid, study) for eid, sid, study in rows if eid == exp_id
+    )  # the experiment is in its own family
+    key, window = hypothesis_key(sid0, study0), _window(study0)
     same = [eid for eid, sid, study in rows if hypothesis_key(sid, study) == key]
     comparable = {eid for eid, sid, study in rows if eid in same and _window(study) == window}
     ident = {eid: _try_id(eid, sid, study) for eid, sid, study in rows}

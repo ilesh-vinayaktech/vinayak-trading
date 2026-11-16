@@ -65,3 +65,46 @@ def test_a_month_without_a_stored_run_is_refused_with_the_reason_not_guessed(wor
         signals.load_values(
             conn, DEFN, date(2025, 6, 1), date(2025, 7, 31)
         )  # traded_value_20d was never computed here
+
+
+def test_without_a_data_freeze_there_are_no_stored_values_and_the_reason_is_given(conn):
+    from algo.data.store.migrate import migrate
+    from tests.support.research_lock import anchor_open_lock
+
+    migrate(conn)
+    anchor_open_lock(conn)
+    with pytest.raises(signals.SignalsError, match="no data freeze"):
+        signals.load_values(conn, DEFN, date(2026, 1, 1), date(2026, 1, 31))
+
+
+def test_decisions_are_computed_for_days_before_and_after_the_stored_window_without_storing_anything(
+    world,
+):  # noqa: F811
+    """The chart asks for 2025-12-01..2026-03-06 over data stored only for 2026-01..02: the days outside it are computed from the bars on the spot."""
+
+    from algo.data.reader import BarReader
+
+    conn, ids, fid = world
+    with_traded_value(conn, fid)
+    days = [
+        d
+        for (d,) in conn.execute(
+            "SELECT DISTINCT (ts AT TIME ZONE 'Asia/Kolkata')::date FROM bar_1d WHERE instrument_id=%s ORDER BY 1",
+            (ids[0],),
+        ).fetchall()
+    ]
+    reader = BarReader(conn)
+
+    def bars_of(iid, lo, hi):
+        return list(reader.history(iid, lo, hi, adjust="split").bars)
+
+    before = conn.execute("SELECT count(*) FROM feature_run").fetchone()
+    got = signals.compute(conn, DEFN, ids[0], days, bars_of)
+    assert len(got) == len(days) and any(g.ready for g in got)
+    assert days[0] < date(2026, 1, 1) < date(2026, 2, 28) < days[-1] or days[-1] > date(
+        2026, 2, 28
+    )  # the request reaches past the stored window
+    assert (
+        conn.execute("SELECT count(*) FROM feature_run").fetchone() == before
+    )  # nothing was stored
+    assert signals.compute(conn, DEFN, ids[0], [], bars_of) == []
