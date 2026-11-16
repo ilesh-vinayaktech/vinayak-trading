@@ -60,3 +60,21 @@ def test_plateau_pbo_and_concentration_and_windows_are_derived():
 
 def test_no_positive_window_means_no_window_evidence():
     assert assemble(Inputs(OOS, window_returns=[-0.1, -0.2])).window_share is None
+
+
+def test_a_grid_of_near_identical_variants_gets_a_sharpe_lower_bound_and_a_grid_of_different_ones_does_not():
+    import random
+
+    rng = random.Random(3)
+    base = [0.0008 + rng.gauss(0, 0.01) for _ in range(300)]
+    twins = [[x * k for x in base] for k in (1.0, 1.1, 0.9)]
+    different = [[rng.gauss(0, 0.01) for _ in range(300)] for _ in range(3)]
+    ev_t = assemble(Inputs(oos_returns=base, trial_returns=twins))
+    ev_d = assemble(Inputs(oos_returns=base, trial_returns=different))
+    assert (
+        ev_t.pbo_twins
+        and ev_t.oos_sharpe_lower is not None
+        and ev_t.oos_sharpe_lower < ev_t.oos_sharpe
+    )
+    assert not ev_d.pbo_twins and ev_d.oos_sharpe_lower is None and ev_d.pbo is not None
+    assert assemble(Inputs(oos_returns=base, trial_returns=twins)) == ev_t  # deterministic

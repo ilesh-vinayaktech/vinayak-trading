@@ -73,7 +73,7 @@ def test_the_options_come_from_the_strategy_its_parameters_and_the_data_we_hold(
     assert o["brokers"] == [{"broker": "zerodha", "product": "DELIVERY"}]
     assert o["frozen_through"] == "2026-11-11" and o["survivorship_safe_from"] == "2019-10-01"
     assert o["segment_lists_from"] == "2018-08-01" and o["max_trials"] == 64
-    assert o["thresholds"]["owner_max_drawdown"] == "0.25" and len(o["thresholds"]) == 12
+    assert o["thresholds"]["owner_max_drawdown"] == "1.0" and len(o["thresholds"]) == 12
 
 
 def test_a_trader_registers_a_study_which_is_listed_shown_and_audited(env):

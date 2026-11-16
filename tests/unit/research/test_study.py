@@ -59,7 +59,7 @@ def test_the_defaults_are_daily_bars_three_times_capital_for_capacity_and_a_year
 
 def test_the_thresholds_start_as_the_provisional_ones_and_all_twelve_are_required():
     t = default_thresholds()
-    assert len(t) == 12 and t["owner_max_drawdown"] == "0.25" and t["min_oos_sharpe"] == "0.8"
+    assert len(t) == 12 and t["owner_max_drawdown"] == "1.0" and t["min_oos_sharpe"] == "0.8"
     with pytest.raises(StudyError, match="thresholds"):
         check(spec(thresholds={k: v for k, v in t.items() if k != "max_pbo"}), today=TODAY)
 

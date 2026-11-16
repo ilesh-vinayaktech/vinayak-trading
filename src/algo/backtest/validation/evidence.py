@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Assemble the gate `Evidence` from the raw series of a validation run. Pure: it only combines the
 existing statistics; anything not supplied stays None, which FAILS its gate."""
 
@@ -10,8 +11,10 @@ from algo.backtest.validation.gates import Evidence
 from algo.backtest.validation.robustness import concentration, plateau
 from algo.backtest.validation.stats import (
     annualised_sharpe,
+    bootstrap_interval,
     deflated_sharpe,
     max_drawdown,
+    mean_pairwise_correlation,
     pbo_cscv,
     stdev,
 )
@@ -37,12 +40,33 @@ class Inputs:
     pbo_blocks: int = 8
 
 
+NEAR_TWIN_CORRELATION = (
+    0.9  # tried variants whose daily returns are this correlated on average are near-identical
+)
+BOOTSTRAP_MEAN_BLOCK = 21  # about a month: keeps the serial dependence of daily returns
+
+
+def _lower_bound(oos: list[float]) -> float | None:
+    """The 90% lower bound (5th percentile) of the annualised out-of-sample Sharpe, from a stationary bootstrap (fixed seed: same data, same answer)."""
+    iv = bootstrap_interval(
+        oos,
+        annualised_sharpe,
+        n_boot=1000,
+        mean_block=BOOTSTRAP_MEAN_BLOCK,
+        confidence=0.90,
+        seed=0,
+    )
+    return None if iv is None else iv.low
+
+
 def assemble(i: Inputs) -> Evidence:
     oos = list(i.oos_returns)
     bench = list(i.benchmark_returns)
     paired = len(bench) == len(oos) and bool(oos)  # a benchmark on other dates is no benchmark
     sr_var = stdev(list(i.trial_sharpes)) ** 2 if len(i.trial_sharpes) >= 2 else 0.0
     gains = [w for w in i.window_returns if w > 0]
+    corr = mean_pairwise_correlation(list(i.trial_returns)) if len(i.trial_returns) >= 2 else None
+    twins = corr is not None and corr >= NEAR_TWIN_CORRELATION
     return Evidence(
         oos_sharpe=annualised_sharpe(oos),
         dsr=deflated_sharpe(oos, max(i.n_trials, 1), sr_var),
@@ -65,4 +89,6 @@ def assemble(i: Inputs) -> Evidence:
         oos_days=float(len(oos)) if oos else None,
         regimes=float(len(set(i.regime_labels))) if i.regime_labels else None,
         window_share=max(gains) / sum(gains) if gains else None,
+        pbo_twins=twins,
+        oos_sharpe_lower=_lower_bound(oos) if twins and oos else None,
     )

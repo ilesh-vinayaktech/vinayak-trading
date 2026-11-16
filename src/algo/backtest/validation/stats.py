@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Statistics for judging whether a backtest result is believable. Pure functions on lists of
 period returns (floats are fine: these are statistics, not money).
 
@@ -200,3 +201,16 @@ def pbo_cscv(returns_by_strategy: Sequence[Sequence[float]], n_blocks: int = 8) 
         omega = rank / (n + 1)
         logits.append(math.log(omega / (1 - omega)))
     return PBOResult(sum(lg <= 0 for lg in logits) / len(logits), tuple(logits), len(logits))
+
+
+def mean_pairwise_correlation(series: Sequence[Sequence[float]]) -> float | None:
+    """The average correlation between every pair of equal-length series (None when there are fewer than two usable ones)."""
+    usable = [list(x) for x in series if len(x) > 1 and stdev(list(x)) > 0]
+    if len(usable) < 2 or len({len(x) for x in usable}) != 1:
+        return None
+    n, out = len(usable[0]), []
+    for a, b in combinations(usable, 2):
+        ma, mb = mean(a), mean(b)
+        cov = sum((x - ma) * (y - mb) for x, y in zip(a, b, strict=True)) / (n - 1)
+        out.append(cov / (stdev(a) * stdev(b)))
+    return mean(out)

@@ -206,3 +206,18 @@ def test_picking_the_in_sample_winner_of_anti_correlated_strategies_overfits():
 def test_pbo_refuses_nonsense(matrix, blocks, msg):
     with pytest.raises(ValueError, match=msg):
         pbo_cscv(matrix, blocks)
+
+
+def test_the_mean_pairwise_correlation_is_one_for_scaled_copies_and_low_for_unrelated_series():
+    from algo.backtest.validation.stats import mean_pairwise_correlation
+
+    base = [0.01, -0.02, 0.015, 0.0, 0.03, -0.01, 0.02, -0.005]
+    assert mean_pairwise_correlation(
+        [base, [2 * x for x in base], [x + 0.001 for x in base]]
+    ) == pytest.approx(1.0)
+    other = [0.02, 0.01, -0.03, 0.015, -0.01, 0.0, 0.01, -0.02]
+    assert abs(mean_pairwise_correlation([base, other]) or 1) < 0.5
+    assert (
+        mean_pairwise_correlation([base]) is None
+        and mean_pairwise_correlation([base, [0.0] * 8]) is None
+    )

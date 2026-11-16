@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """The pass/fail decision. Every gate needs its evidence; MISSING evidence FAILS the gate (a check
 that was not run is not a check that passed) and is reported as INSUFFICIENT_EVIDENCE, distinct from
 a measured FAIL. Thresholds are data
@@ -55,6 +56,12 @@ class Evidence:
     oos_days: float | None = None
     regimes: float | None = None  # distinct market regimes inside the OOS windows
     window_share: float | None = None
+    # when every tried variant is nearly the same strategy (a grid over portfolio size and exit share), the overfitting probability says nothing: it is
+    # replaced by the lower bound of a bootstrap interval on the out-of-sample Sharpe, which must be above zero (review 2026-11-16, section 3.2)
+    pbo_twins: bool = False
+    oos_sharpe_lower: float | None = (
+        None  # lower end of the 90% bootstrap interval of the annualised out-of-sample Sharpe
+    )
 
 
 STATUSES = ("PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE")
@@ -123,6 +130,18 @@ def _drawdown_gate(e: Evidence, t: Thresholds) -> Gate:
     )
 
 
+def _overfitting_gate(e: Evidence, t: Thresholds) -> Gate:
+    if e.pbo_twins:  # the tried variants are near-identical: PBO is not meaningful, so the bootstrap bound on the Sharpe decides
+        return _gate("overfitting_probability", e.oos_sharpe_lower, lambda v: v > 0,
+                     "variants are near-identical (PBO not meaningful); the lower end of the 90% bootstrap interval of the out-of-sample Sharpe is {v:.2f} (must be above 0)")  # fmt: skip
+    return _gate(
+        "overfitting_probability",
+        e.pbo,
+        lambda v: v <= t.max_pbo,
+        f"{{v:.2f}} > allowed {t.max_pbo}",
+    )
+
+
 def evaluate(e: Evidence, t: Thresholds, status: str = "") -> Report:
     over_bench = (
         None if e.oos_sharpe is None or e.benchmark_sharpe is None
@@ -140,8 +159,7 @@ def evaluate(e: Evidence, t: Thresholds, status: str = "") -> Report:
               f"{{v:.2f}} < required {t.min_oos_sharpe}"),
         _gate("deflated_sharpe", e.dsr, lambda v: v >= t.min_dsr,
               f"{{v:.3f}} < required {t.min_dsr}"),
-        _gate("overfitting_probability", e.pbo, lambda v: v <= t.max_pbo,
-              f"{{v:.2f}} > allowed {t.max_pbo}"),
+        _overfitting_gate(e, t),
         _drawdown_gate(e, t),
         _gate("beats_benchmark", over_bench, lambda v: v >= t.min_sharpe_over_benchmark,
               f"Sharpe edge over benchmark {{v:.2f}} < required {t.min_sharpe_over_benchmark}"),

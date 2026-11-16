@@ -68,7 +68,9 @@ def test_the_drawdown_ratio_is_not_applicable_when_the_benchmark_barely_drew_dow
     assert "owner cap" in evaluate(capped, T).failures[0]  # the absolute cap still applies
 
 
-@pytest.mark.parametrize("field", list(vars(GOOD)))
+@pytest.mark.parametrize(
+    "field", [f for f in vars(GOOD) if f not in ("pbo_twins", "oos_sharpe_lower")]
+)
 def test_missing_evidence_fails_that_gate_rather_than_passing_silently(field):
     r = evaluate(replace(GOOD, **{field: None}), T)
     assert not r.passed and any("evidence missing" in f for f in r.failures)
@@ -81,7 +83,7 @@ def test_an_empty_evidence_record_fails_everything():
 def test_thresholds_load_from_the_config_with_the_owners_confirmation():
     t, status = load_thresholds(CFG, "long_only")
     assert (t.min_oos_sharpe, t.max_pbo, t.owner_max_drawdown, t.min_oos_days, status) == (
-        0.8, 0.2, 0.25, 252, "confirmed"
+        0.8, 0.2, 1.0, 252, "confirmed"
     )  # fmt: skip
     m = load_thresholds(CFG, "market_neutral")[0]
     assert (m.min_oos_sharpe, m.owner_max_drawdown) == (1.0, 0.15)
@@ -128,3 +130,20 @@ def test_a_clean_report_has_no_insufficient_gates_and_the_vocabulary_is_fixed():
     r = evaluate(GOOD, T)
     assert r.insufficient == [] and set(r.statuses.values()) == {"PASS"}
     assert STATUSES == ("PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE")
+
+
+def test_near_identical_variants_are_judged_on_the_sharpe_lower_bound_not_on_the_overfitting_probability():
+    twins = replace(GOOD, pbo=0.69, pbo_twins=True, oos_sharpe_lower=0.4)
+    r = evaluate(twins, T)
+    assert r.passed  # a PBO of 0.69 would have failed; for near-twins it is not what decides
+    gate = next(g for g in r.gates if g.name == "overfitting_probability")
+    assert "near-identical" in gate.detail and "0.40" in gate.detail
+    bad = evaluate(replace(twins, oos_sharpe_lower=-0.1), T)
+    assert not bad.passed and "overfitting_probability" in bad.failures[0]
+    missing = evaluate(replace(twins, oos_sharpe_lower=None), T)
+    assert missing.insufficient == [
+        "overfitting_probability"
+    ]  # twins but no bound measured: not a pass
+    assert not evaluate(
+        replace(GOOD, pbo=0.69), T
+    ).passed  # genuinely different candidates: PBO still decides

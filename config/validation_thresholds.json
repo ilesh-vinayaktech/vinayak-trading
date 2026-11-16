@@ -1,12 +1,12 @@
 {
   "status": "confirmed",
-  "note": "Thresholds v2, confirmed by the owner on 2026-11-12 before any strategy was validated ('keep it, we will improve over time'). Changes after observing results invalidate the affected validation, so an improvement is a new version applied to later studies. Not industry or regulatory standards. Passing means the research-validation policy passed, not readiness for live capital. Definitions: docs/validation.md.",
+  "note": "Thresholds v2, confirmed by the owner on 2026-11-12 before any strategy was validated ('keep it, we will improve over time'). Changes after observing results invalidate the affected validation, so an improvement is a new version applied to later studies. Not industry or regulatory standards. Passing means the research-validation policy passed, not readiness for live capital. Definitions: docs/validation.md. Version 3 (2026-11-16, owner: 'fix all the suggestions' of docs/research-review-2026-11-16.md, section 3.3): the fixed account-wide drawdown cap is switched off for long-only studies (owner_max_drawdown 1.0 = 100%, no absolute cap) because the owner moved the drawdown limit to a per-trade stop (2026-11-15); the strategy's drawdown is still judged against the benchmark's (max_drawdown_vs_benchmark 1.25). Applies to studies registered from now on; studies already judged under version 2 are re-run, not edited.",
   "long_only": {
     "min_oos_sharpe": 0.8,
     "min_dsr": 0.95,
     "max_pbo": 0.2,
     "max_drawdown_vs_benchmark": 1.25,
-    "owner_max_drawdown": 0.25,
+    "owner_max_drawdown": 1.0,
     "plateau_tolerance": 0.3,
     "max_top3_concentration": 0.5,
     "min_sharpe_over_benchmark": 0.2,
