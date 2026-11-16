@@ -374,6 +374,20 @@ describe("Data Explorer", () => {
       scale.fit.mockClear();
     };
 
+    it("has a Max button that shows everything available: from the first stored bar on daily candles, and the longest span the API serves on minute candles", async () => {
+      const urls: string[] = [];
+      await open(long, urls);
+      fireEvent.click(screen.getByRole("button", { name: "Max" }));
+      await waitFor(() => expect(urls.some((u) => u.includes("/bars") && !u.includes("timeframe=") && u.includes("start=2020-01-01") && u.includes("end=2024-12-31"))).toBe(true));
+      expect(screen.queryByRole("button", { name: "All" })).not.toBeInTheDocument(); // it replaced the old 'All'
+      fireEvent.click(screen.getByRole("button", { name: /^Timeframe:/ }));
+      fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name: "5 minutes" }));
+      const end = todayIST();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Max" })).toBeEnabled());
+      fireEvent.click(screen.getByRole("button", { name: "Max" }));
+      await waitFor(() => expect(urls.some((u) => u.includes("timeframe=5m") && u.includes(`start=${shiftDays(end, -124)}`) && u.includes(`end=${end}`))).toBe(true)); // 5-minute candles are served up to 124 days
+    });
+
     it("zooms in to half the width around the middle and zooms out to twice the width", async () => {
       scale.range = { from: 20, to: 80 };
       await open(detail);

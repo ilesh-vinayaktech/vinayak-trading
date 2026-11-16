@@ -31,7 +31,7 @@ const PRESETS = [
   { key: "6M", months: 6 },
   { key: "1Y", months: 12 },
   { key: "5Y", months: 60 },
-  { key: "All", months: 0 },
+  { key: "Max", months: 0 }, // everything stored: from the first bar
 ] as const;
 
 /** First date of a "last N months" window ending at `last` (a request parameter; the API selects). */
@@ -152,7 +152,10 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
       <Sep />
       <div className="flex items-center" role="group" aria-label="Date range">
         {(isIntraday(timeframe)
-          ? INTRADAY_PRESETS.filter((p) => p.days <= INTRADAY_MAX_DAYS[timeframe]).map((p) => ({ key: p.key, from: (l: string) => shiftDays(l, -p.days) }))
+          ? [
+              ...INTRADAY_PRESETS.filter((p) => p.days < INTRADAY_MAX_DAYS[timeframe]).map((p) => ({ key: p.key, from: (l: string) => shiftDays(l, -p.days) })),
+              { key: "Max", from: (l: string) => shiftDays(l, -INTRADAY_MAX_DAYS[timeframe]) }, // the longest span the API serves for this candle size
+            ]
           : PRESETS.map((p) => ({ key: p.key, from: (l: string) => presetStart(l, first, p.months) }))
         ).map((p) => (
           <button key={p.key} type="button" disabled={!last} onClick={() => last && onRange(p.from(last), last)} className={tbBtn(false)}>
