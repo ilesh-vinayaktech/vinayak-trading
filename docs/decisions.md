@@ -33,3 +33,6 @@ still counts, any window); the changed rules are applied to NEW studies, re-run 
 
 Not done from the review, and why: survivorship before 2018-08 (needs delisted names' prices from bhavcopy, a data load); fundamentals and RSI/ATR in strategy definitions (need the interpreter to read filings / all history; the old-feed crawl
 is still waiting for a go-ahead); real regime labels (needs a regime definition); detecting a no-op grid knob automatically (the one found was removed by hand).
+
+Follow-up (2026-11-16): the single-configuration protocol is written down in `docs/research-policy-v2.md` (what is fixed before a study, where it is recorded, the rule that a robustness grid is a check and never a menu). It applies to a new round only; the
+diagnostic behind it is `docs/pbo-diagnostic-2026-11-16.md`.

@@ -28,13 +28,13 @@ Nothing in the gates or thresholds was changed. The numbers are the real ones fr
 **2. In sample, the winner is not better than the average variant out of sample.** For four of the five studies the in-sample winner's out-of-sample Sharpe equals or is below the average variant's (0.066 vs 0.071,
 0.101 vs 0.101). Choosing among the nine settings added nothing. That is what PBO above 0.5 means: the in-sample ranking of the variants is noise.
 
-**3. That is a finding about choosing between variants, not about whether the strategy has an edge.** Every variant of MOMENTUM_12M_M earned between 17% and 41% a year and a Sharpe near 1.1 after costs. The nine variants
+**3. That is a finding about choosing between variants, not about whether the strategy has an edge.** (The variants are not identical: their mean out-of-sample ranks differ, for example 3.2 to 7.0 of 9 for MOMENTUM_12M_M, with the 10-stock variants lowest. There is a persistent ordering, but in-sample Sharpe does not find it, because the in-sample Sharpe gaps between variants are tiny.) Every variant of MOMENTUM_12M_M earned between 17% and 41% a year and a Sharpe near 1.1 after costs. The nine variants
 differ only in the number of stocks (10 / 20 / 30) and the exit share (30 / 50 / 70), so they are one strategy with small knob differences, and their ranking flips as the periods change. PBO is designed to ask whether the
 variant you would pick is the right one; here no variant is reliably better than the rest.
 
-**4. The one place where the knobs DO matter is MOMENTUM_LOWVOL_M, and it shows a real effect.** Variants with 30 positions win in sample 60% of the time and rank 7 to 8 of 9 out of sample; variants with 10 positions rank 2.5 to 3.6.
+**4. The one place where the knobs DO matter is MOMENTUM_LOWVOL_M, and it shows a possible effect.** Rank 1 is the WORST variant and rank 9 the BEST, so a high rank is good: variants with 30 positions win in sample 60% of the time and rank 7 to 8 of 9 out of sample (they do better); variants with 10 positions rank 2.5 to 3.6 (they do worse). More positions looks better here, but it is found in this data, so it is a hypothesis for a separate pre-registered test, not a result.
 The in-sample winner holds up (PBO 14% on the partitions it wins). The study's PBO of 0.37 comes from the minority of partitions (about 14) where a 10 or 20 position variant, or the 30%-exit variant, wins in sample and then ranks low.
-Its PBO also moves a lot with how the history is cut (0.10 at 6 and 10 blocks, 0.50 at 4, 0.37 at 8), so 0.37 is a fragile number in both directions.
+Its PBO also moves a lot with how the history is cut (0.10 at 6 and 10 blocks, 0.50 at 4, 0.37 at 8), so 0.37 is a fragile number in both directions. The study-level PBO of 0.37 still fails the 0.20 gate; the 14% on the partitions the 70/30 variant wins does not replace it. The 4, 6, 8 and 10 block counts give 6, 20, 70 and 252 partitions: different structures, not four independent confirmations. Eight blocks is the primary figure; the others are sensitivity only and are never used to pick the most favourable number.
 
 ## What I think
 
