@@ -23,13 +23,21 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--freeze")
 ap.add_argument("--from", dest="first", default="2020-10-01")
-ap.add_argument("--horizons", default="1,5,20,60")
+ap.add_argument("--horizons", default="1,5,20,60,120,250")
 ap.add_argument("--min-names", type=int, default=20)
 ap.add_argument(
     "--liquid-top",
     type=int,
     default=None,
     help="test only the N most traded names of each day (by the 20-day traded value known that day)",
+)
+ap.add_argument(
+    "--through",
+    help="stop at this day (e.g. 2019-12-31): the later years are not looked at, so they stay clean for validation",
+)
+ap.add_argument(
+    "--segments",
+    help="only the stocks a study would trade: AMFI market-cap segments, e.g. large,mid (point in time; before the first AMFI list, ranked by traded value)",
 )
 ap.add_argument("--dry-run", action="store_true", help="measure and print, record nothing")
 a = ap.parse_args()
@@ -40,7 +48,9 @@ CONTEXT = {
     "universe": "the data freeze's instruments; NOT point-in-time Nifty 200 membership"
     if a.liquid_top is None
     else f"the {a.liquid_top} most traded names of each day (20-day traded value known that day), chosen point in time from the data freeze's instruments; NOT point-in-time Nifty 200 membership",
-    "method": "rank IC, Newey-West, Bonferroni over all tests ever run",
+    "method": "rank IC, Newey-West, Benjamini-Hochberg false discovery rate over all tests ever run",
+    "through": a.through,
+    "segments": a.segments,
     "liquid_top": a.liquid_top,
 }
 
@@ -57,6 +67,15 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
     if fid is None:
         sys.exit("error: no data freeze")
     first = date.fromisoformat(a.first)
+    through = date.fromisoformat(a.through) if a.through else None
+    members = None
+    if a.segments:
+        from algo.research import holdout_lock
+        from algo.research.study import UniverseSpec
+        from algo.research.study_universe import build as build_universe
+
+        end = min(through or date.max, holdout_lock.require(conn).development_end)
+        members, _ = build_universe(conn, UniverseSpec(segments=a.segments.split(",")), first, end)
     try:
         if a.dry_run:
             for e in run.measure(
@@ -66,6 +85,8 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
                 horizons=horizons,
                 min_names=a.min_names,
                 liquid_top=a.liquid_top,
+                through=through,
+                members=members,
             ):
                 print(
                     f"{e.feature}@{e.version} h={e.horizon}: days {e.days}, mean IC {e.mean_ic}, p {e.p_value}"
@@ -89,6 +110,8 @@ with psycopg.connect(a.db, autocommit=True) as conn, slot.hold(conn, "alpha disc
                 min_names=a.min_names,
                 context=CONTEXT,
                 liquid_top=a.liquid_top,
+                through=through,
+                members=members,
                 report=lambda phase, msg: prog.step(phase, msg, done=step_of.get(phase)),
             )
             prog.finish(True, f"{len(ids)} hypotheses recorded")

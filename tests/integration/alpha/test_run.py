@@ -318,3 +318,72 @@ def test_the_script_can_test_only_the_most_traded_names_and_records_that_on_ever
         and ctx[0][0]["liquid_top"] == 4
         and ctx[0][0]["universe"].startswith("the 4 most traded names of each day")
     )
+
+
+def test_discovery_can_stop_at_an_earlier_day_so_the_later_years_stay_untouched_for_validation(
+    world,
+):
+    """Review 2026-11-16, section 3.4: features were chosen on the same years the studies later tested on."""
+    conn, ids, fid = world
+    full = run.measure(conn, fid, JAN, horizons=(1,), min_names=5)
+    early = run.measure(conn, fid, JAN, horizons=(1,), min_names=5, through=date(2026, 1, 31))
+    assert {e.feature for e in early} == {e.feature for e in full}
+    assert all(
+        a.days < b.days for a, b in zip(early, full, strict=True)
+    )  # fewer observation days: nothing after the cut-off was looked at
+    with pytest.raises(run.DiscoveryError, match="no whole development month"):
+        run.measure(
+            conn, fid, date(2026, 2, 1), horizons=(1,), min_names=5, through=date(2026, 1, 31)
+        )
+
+
+def test_discovery_can_be_limited_to_the_stocks_a_strategy_would_trade_each_day(world):
+    from algo.data.universe import Interval
+    from algo.strategies.nifty200_momentum import IntervalMembership
+
+    conn, ids, fid = world
+    few = IntervalMembership(
+        [Interval(i, date(2025, 1, 1), None) for i in ids[:6]]
+    )  # six of the eight stocks, the whole time
+    got = run.measure(conn, fid, JAN, horizons=(1,), min_names=5, members=few)
+    assert got and all(e.avg_names <= 6 for e in got)  # the other two never entered a cross-section
+    assert all(e.avg_names > 7 for e in run.measure(conn, fid, JAN, horizons=(1,), min_names=5))
+
+
+def test_the_script_can_stop_at_a_day_and_says_so_with_the_correction_it_used(
+    world, pg_url, monkeypatch, capsys
+):
+    import runpy
+    import sys
+    from pathlib import Path
+
+    conn, ids, fid = world
+    conn.commit()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "discover_alpha.py",
+            "--db",
+            pg_url,
+            "--from",
+            "2026-01-01",
+            "--through",
+            "2026-01-31",
+            "--horizons",
+            "1",
+            "--min-names",
+            "5",
+        ],
+    )
+    runpy.run_path(
+        str(Path(__file__).parents[3] / "scripts/discover_alpha.py"), run_name="__main__"
+    )
+    assert "hypotheses recorded" in capsys.readouterr().out
+    ctx, correction, days = conn.execute(
+        "SELECT evidence->'context', evidence->>'correction', (evidence->>'sample_days')::int FROM alpha_hypothesis LIMIT 1"
+    ).fetchone()
+    assert ctx["through"] == "2026-01-31" and "Benjamini-Hochberg" in ctx["method"]
+    assert (
+        correction == "benjamini_hochberg_over_all_tests_ever_run" and days < 22
+    )  # January only, never February

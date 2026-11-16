@@ -27,6 +27,7 @@ from algo.data import freeze as freeze_mod
 from algo.features import job, store
 from algo.features import registry as feature_registry
 from algo.research import holdout_lock
+from algo.strategies.nifty200_momentum import IntervalMembership
 
 
 class DiscoveryError(Exception):
@@ -78,6 +79,8 @@ def measure(
     min_names: int,
     report: Callable[[str, str], None] | None = None,
     liquid_top: int | None = None,
+    through: date | None = None,
+    members: IntervalMembership | None = None,
 ) -> list[discover.Evidence]:
     """`liquid_top`, when given, tests only the `liquid_top` most traded names each day (by the 20-day traded value known that day), the others left out of that day's cross-section."""
     if liquid_top is not None and liquid_top < 1:
@@ -86,7 +89,9 @@ def measure(
     if f is None:
         raise DiscoveryError(f"no such freeze {freeze_id}")
     lock = holdout_lock.require(conn)
-    last = min(f["through_date"], lock.development_end)
+    last = min(
+        f["through_date"], lock.development_end, through or date.max
+    )  # `through` leaves the later years untouched
     months = job.months_through(first_month, last)
     if not months:
         raise DiscoveryError(f"no whole development month from {first_month} to {last}")
@@ -116,6 +121,10 @@ def measure(
                 f"the {liquid_top} most traded names of each day, by 20-day traded value",
             )
         eligible = _liquid(conn, freeze_id, instruments, last, months[0], end, liquid_top)
+    if (
+        members is not None
+    ):  # only the stocks a strategy would trade that day (point in time), instead of the freeze's whole list
+        eligible = {d: frozenset(members.on(d)) for d in sessions}
     horizons_sorted = sorted(horizons)
     total = len(usable) * len(horizons_sorted)
     out: list[discover.Evidence] = []
@@ -172,6 +181,8 @@ def run_discovery(
     context: dict[str, Any] | None = None,
     report: Callable[[str, str], None] | None = None,
     liquid_top: int | None = None,
+    through: date | None = None,
+    members: IntervalMembership | None = None,
 ) -> list[int]:
     """Measure, then record the whole batch (failures included). Returns the hypothesis ids."""
     evidences = measure(
@@ -182,6 +193,8 @@ def run_discovery(
         min_names=min_names,
         report=report,
         liquid_top=liquid_top,
+        through=through,
+        members=members,
     )
     f = freeze_mod.get(conn, freeze_id)
     assert f is not None
@@ -189,7 +202,7 @@ def run_discovery(
         conn,
         freeze_id,
         [i["instrument_id"] for i in f["items"]],
-        min(f["through_date"], holdout_lock.require(conn).development_end),
+        min(f["through_date"], holdout_lock.require(conn).development_end, through or date.max),
     )
     if report:
         report("recording", f"{len(evidences)} results, failures included")
