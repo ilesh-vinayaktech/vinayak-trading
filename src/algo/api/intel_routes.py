@@ -170,7 +170,7 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
         " FROM study_run r JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl' ORDER BY r.run_id DESC LIMIT %s",
         (limit,),
     ).fetchall():  # studies of generated definitions run in the study worker, not through job_progress: shown beside the other jobs, newest first
-        rid, kind, status, done, total, cur, created, started, finished, name = r
+        rid, kind, status, done, total, cur, created, started, finished, name = sr
         begun = started or created
         jobs.append(
             {

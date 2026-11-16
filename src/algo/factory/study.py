@@ -39,7 +39,7 @@ def spec_for(
     defn = registry.get(conn, strategy_id, version)
     return StudySpec.model_validate(
         {
-            "name": f"{strategy_id} v{version} grid 2",
+            "name": f"{strategy_id} v{version} {start.year}-{holdout_start.year - 1}",
             "hypothesis": f"{defn.description} Tested over a counted grid of its own numbers; it must beat buy-and-hold after 2x costs, out of sample.",
             "strategy_id": "dsl",
             "definition": defn.canonical(),
