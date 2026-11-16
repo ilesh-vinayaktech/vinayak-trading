@@ -565,3 +565,27 @@ def test_a_running_study_of_a_generated_definition_shows_with_the_other_jobs(cli
         False,
     )
     assert v["label"] == "Validation gates: my study" and (t["status"], t["done"]) == ("DONE", 9)
+
+
+def test_running_jobs_come_first_whatever_kind_they_are_and_then_the_newest(client):
+    from datetime import date, timedelta
+
+    from algo.backtest.validation import registry as vreg
+
+    c, conn = client
+    eid = vreg.register(
+        conn, name="older study", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
+        param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, total, done, created_at, started_at, finished_at) VALUES (%s,'trials','FAILED',9,1,%s,%s,%s)",
+        (eid, NOW, NOW, NOW),
+    )
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, total, done, created_at, started_at) VALUES (%s,'trials','RUNNING',9,2,%s,%s)",
+        (eid, NOW - timedelta(hours=2), NOW - timedelta(hours=2)),
+    )
+    conn.commit()
+    status = [j["status"] for j in c.get("/api/intel/progress").json()["jobs"]]
+    assert status == ["RUNNING", "FAILED"]

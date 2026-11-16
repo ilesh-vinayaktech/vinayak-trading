@@ -184,7 +184,11 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
                 "estimate": "waiting" if status in ("QUEUED", "RUNNING") else "none", "per_step_s": None, "eta_s": None, "stalled": False,
             }
         )  # fmt: skip
-    return {"jobs": jobs}
+    jobs.sort(
+        key=lambda j: j["started_at"], reverse=True
+    )  # newest first, then the running ones on top (a stable sort keeps that order)
+    jobs.sort(key=lambda j: j["status"] != "RUNNING")
+    return {"jobs": jobs[:limit]}
 
 
 def _stage(
