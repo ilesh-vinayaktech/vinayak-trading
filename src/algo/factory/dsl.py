@@ -30,7 +30,10 @@ from pydantic import (
 
 from algo.features import registry as feature_registry
 
-Operator = Literal[">", ">=", "<", "<=", "==", "!="]
+Operator = Literal[">", ">=", "<", "<=", "==", "!=", "TOP_PERCENT", "BOTTOM_PERCENT"]
+PERCENT_OPS = frozenset(
+    {"TOP_PERCENT", "BOTTOM_PERCENT"}
+)  # cross-sectional: 'in the strongest / weakest value% of the stocks that have data that day', so no threshold comes from the data
 VOLATILITY_FEATURE = "vol_20d"  # what INVERSE_VOLATILITY sizing divides by
 CHAINED = frozenset(
     {"atr_14d", "atr_pct_14d", "rsi_14d"}
@@ -72,6 +75,14 @@ class Condition(_Frozen):
     @field_serializer("value")
     def _plain(self, v: Decimal) -> str:
         return format(v, "f")
+
+    @model_validator(mode="after")
+    def _a_share_is_a_share(self) -> Self:
+        if self.op in PERCENT_OPS and not 0 < self.value <= 100:
+            raise ValueError(
+                f"{self.op} takes a share between 0 and 100 (above 0, up to 100), not {self.value}"
+            )
+        return self
 
 
 class Group(_Frozen):

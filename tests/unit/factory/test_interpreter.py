@@ -408,3 +408,77 @@ def test_in_strict_mode_an_unusable_membership_day_is_skipped_and_the_period_is_
 def test_the_strategy_has_a_real_empty_parameter_object_because_the_engine_records_it():
     s = strategy()
     assert s.params == interpreter.NoParams() and s.params.model_dump_json() == "{}"
+
+
+# ---- cross-sectional percentile conditions: no data-derived threshold, the day's own ranking decides -------------------------------------------------------
+TEN = {i: 100 + i for i in range(1, 11)}  # ret_5d 1% .. 10%: stock 10 is the strongest
+
+
+def pct(op, value, group="entry", **kw):
+    cond = {"feature": "ret_5d", "op": op, "value": value}
+    return defn(**{group: {"any" if group == "exit" else "all": [cond]}}, **kw)
+
+
+def test_top_percent_takes_the_strongest_share_of_the_stocks_that_have_data_that_day():
+    d = pct("TOP_PERCENT", 20, position={"max_positions": 5, "sizing": "EQUAL_WEIGHT"})
+    targets, audit = decide(d, market(TEN))
+    assert audit["entries"] == [10, 9] and sorted(targets) == [
+        9,
+        10,
+    ]  # 20% of 10 is two stocks, best first
+
+
+def test_bottom_percent_takes_the_weakest_share_and_the_share_is_rounded_up_never_down():
+    d = pct("BOTTOM_PERCENT", 25, position={"max_positions": 5, "sizing": "EQUAL_WEIGHT"})
+    _, audit = decide(d, market(TEN))
+    assert sorted(audit["entries"]) == [
+        1,
+        2,
+        3,
+    ]  # 25% of 10 is 2.5: three stocks, and at least one is always taken
+    one = pct("TOP_PERCENT", 1, position={"max_positions": 5, "sizing": "EQUAL_WEIGHT"})
+    assert decide(one, market(TEN))[1]["entries"] == [10]
+    everyone = pct("TOP_PERCENT", 100, position={"max_positions": 10, "sizing": "EQUAL_WEIGHT"})
+    assert sorted(decide(everyone, market(TEN))[1]["entries"]) == list(range(1, 11))
+
+
+def test_ties_in_a_percentile_go_to_the_lower_instrument_id_and_stocks_without_data_are_not_counted():
+    d = pct("TOP_PERCENT", 25, position={"max_positions": 5, "sizing": "EQUAL_WEIGHT"})
+    tied = {1: 105, 2: 105, 3: 105, 4: 105}
+    assert decide(d, market(tied))[1]["entries"] == [
+        1
+    ]  # 25% of 4 is one stock; equal values: the lowest id
+    hist = market(tied)
+    hist[5] = bars([100] * 3, DAYS[-3:])  # three bars only: still warming up, so not in the ranking
+    _, audit = decide(d, hist)
+    assert audit["warming_up"] == [5] and audit["entries"] == [1] and audit["ready"] == 4
+
+
+def test_a_percentile_exit_sells_a_holding_that_has_fallen_into_the_bottom_half_and_keeps_the_rest():
+    d = pct(
+        "BOTTOM_PERCENT",
+        50,
+        group="exit",
+        entry={"all": [{"feature": "ret_5d", "op": ">", "value": 0.5}]},
+        position={"max_positions": 5, "sizing": "EQUAL_WEIGHT"},
+    )
+    targets, audit = decide(d, market(TEN), held={5, 6})
+    assert (
+        audit["exits"] == {5: "exit_condition"} and 6 in targets and 5 not in targets
+    )  # 5 is the 5th weakest of 10; 6 is in the top half
+
+
+def test_percentile_and_threshold_conditions_combine_in_one_group():
+    d = defn(
+        entry={
+            "all": [
+                {"feature": "ret_5d", "op": "TOP_PERCENT", "value": 30},
+                {"feature": "ret_5d", "op": ">", "value": 0.085},
+            ]
+        },
+        position={"max_positions": 5, "sizing": "EQUAL_WEIGHT"},
+    )
+    assert decide(d, market(TEN))[1]["entries"] == [
+        10,
+        9,
+    ]  # the top three are 10, 9 and 8; 8% does not clear 8.5%

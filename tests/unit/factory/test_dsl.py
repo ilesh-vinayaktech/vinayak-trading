@@ -207,3 +207,24 @@ def test_a_fundamental_feature_cannot_be_used_in_a_definition_yet_because_the_in
     assert make(
         entry={"all": [{"feature": "ret_1d", "op": ">", "value": 0}]}
     )  # the new price features are usable
+
+
+def test_percentile_operators_take_a_share_between_zero_exclusive_and_one_hundred():
+    for op in ("TOP_PERCENT", "BOTTOM_PERCENT"):
+        for ok in (1, "12.5", 100):
+            c = make(
+                entry={"all": [{"feature": "ret_20d", "op": op, "value": ok}]}
+            ).entry.conditions()[0]
+            assert c.op == op
+        for bad in (0, -5, 100.01, 150):
+            with pytest.raises(ValidationError, match="between 0 and 100"):
+                make(entry={"all": [{"feature": "ret_20d", "op": op, "value": bad}]})
+    with pytest.raises(ValidationError):
+        make(entry={"all": [{"feature": "ret_20d", "op": "MIDDLE_PERCENT", "value": 20}]})
+
+
+def test_a_percentile_definition_has_its_own_stable_hash():
+    a = make(entry={"all": [{"feature": "ret_20d", "op": "TOP_PERCENT", "value": 20}]})
+    b = make(entry={"all": [{"feature": "ret_20d", "op": "TOP_PERCENT", "value": "20.0"}]})
+    c = make(entry={"all": [{"feature": "ret_20d", "op": "TOP_PERCENT", "value": 25}]})
+    assert a.sha256 == b.sha256 != c.sha256

@@ -26,7 +26,7 @@ from math import ceil
 from typing import Any
 
 from algo.data.reader import AdjBar
-from algo.factory.dsl import VOLATILITY_FEATURE, Group, Ranking, StrategyDef
+from algo.factory.dsl import PERCENT_OPS, VOLATILITY_FEATURE, Group, Ranking, StrategyDef
 from algo.features import registry as feature_registry
 from algo.features._shared import SessionBar
 from algo.strategies.nifty200_momentum import DataNotReady, IntervalMembership
@@ -46,8 +46,33 @@ OPS: dict[str, Callable[[Decimal, Decimal], bool]] = {
 Values = dict[int, dict[str, Decimal]]
 
 
-def _holds(group: Group, values: Mapping[str, Decimal]) -> bool:
-    results = [OPS[c.op](values[c.feature], c.value) for c in group.conditions()]
+Cross = dict[tuple[str, str, Decimal], set[int]]
+
+
+def _cross_sections(defn: StrategyDef, ready: Values) -> Cross:
+    """For every percentile condition in the definition, the stocks that satisfy it TODAY: the strongest (TOP_PERCENT) or weakest (BOTTOM_PERCENT) `value`% of the ready stocks by that
+    feature, rounded UP to a whole number of stocks (at least one), ties going to the lower instrument id. Worked out from today's values only, so there is nothing to look ahead to."""
+    out: Cross = {}
+    for c in defn.entry.conditions() + defn.exit.conditions():
+        key = (c.feature, c.op, c.value)
+        if c.op not in PERCENT_OPS or key in out or not ready:
+            continue
+        take = max(1, ceil(Decimal(len(ready)) * c.value / 100))
+        sign = -1 if c.op == "TOP_PERCENT" else 1
+        order = sorted(ready, key=lambda i: (sign * ready[i][c.feature], i))
+        out[key] = set(order[:take])
+    return out
+
+
+def _holds(
+    group: Group, values: Mapping[str, Decimal], iid: int | None = None, cross: Cross | None = None
+) -> bool:
+    results = [
+        iid in (cross or {}).get((c.feature, c.op, c.value), set())
+        if c.op in PERCENT_OPS
+        else OPS[c.op](values[c.feature], c.value)
+        for c in group.conditions()
+    ]
     return all(results) if group.mode() == "all" else any(results)
 
 
@@ -105,6 +130,7 @@ def decide(
     if Decimal(len(no_bar)) / Decimal(len(members)) > MAX_NO_BAR:
         raise DataNotReady(f"{len(no_bar)} of {len(members)} members have no bar on {day}")
     best = _best_first(defn.ranking, ready)
+    cross = _cross_sections(defn, ready)
     slots = defn.position.max_positions
     exits: dict[int, str] = {}
     keep: list[int] = []
@@ -115,7 +141,7 @@ def decide(
             keep.append(
                 iid
             )  # no bar or not enough data today: it cannot be traded, so it is carried as it is
-        elif _holds(defn.exit, ready[iid]):
+        elif _holds(defn.exit, ready[iid], iid, cross):
             exits[iid] = "exit_condition"
         else:
             keep.append(iid)
@@ -127,7 +153,7 @@ def decide(
         exits.update({i: "over_limit" for i in dropped})
         keep = [i for i in keep if i not in dropped]
     candidates = sorted(
-        (i for i in ready if i not in held and _holds(defn.entry, ready[i])), key=best
+        (i for i in ready if i not in held and _holds(defn.entry, ready[i], i, cross)), key=best
     )
     entries = candidates[: max(slots - len(keep), 0)]
     selected = keep + entries
