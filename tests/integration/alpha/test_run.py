@@ -123,22 +123,20 @@ def test_discovery_reports_each_phase_in_order(world):
         report=lambda phase, msg: seen.append((phase, msg)),
     )
     phases = [p for p, _ in seen]
-    assert phases == [
+    assert phases == [  # one feature at a time: loaded, tested, dropped; then the next
         "reading prices",
         "loading features",
+        "testing",
         "loading features",
-        "testing",  # the plan: how many features at how many horizons
-        "testing",  # then one report before each test, so a long run shows it is working
         "testing",
         "recording",
     ]
     assert (
-        seen[1][1].endswith("(1 of 2)")
-        and seen[2][1].endswith("(2 of 2)")
-        and seen[3][1] == "2 features at 1 horizons"
-        and seen[4][1] == "ret_20d at 1 days (test 1 of 2)"
-        and seen[5][1] == "ret_5d at 1 days (test 2 of 2)"
-        and seen[6][1] == "2 results, failures included"
+        seen[1][1] == "ret_20d (1 of 2)"
+        and seen[2][1] == "ret_20d at 1 days (test 1 of 2)"
+        and seen[3][1] == "ret_5d (2 of 2)"
+        and seen[4][1] == "ret_5d at 1 days (test 2 of 2)"
+        and seen[5][1] == "2 results, failures included"
     )
 
 
@@ -188,3 +186,40 @@ def test_a_batch_with_no_usable_feature_falls_back_to_the_price_identity(world):
         feature_store.set_status(conn, n, "1", "BLOCKED", by="owner", reason="test", now=NOW)
     until = date(2026, 2, 28)
     assert run.batch_dataset_sha256(conn, fid, ids, until) == job.dataset_sha256(conn, fid, ids)
+
+
+def test_discovery_holds_one_feature_at_a_time_and_numbers_its_tests_across_all_of_them(
+    world, monkeypatch
+):
+    from algo.alpha import discover
+
+    conn, ids, fid = world
+    calls, seen = [], []
+    real = discover.discover
+    monkeypatch.setattr(
+        discover,
+        "discover",
+        lambda feats, *a, **k: calls.append(sorted(feats)) or real(feats, *a, **k),
+    )
+    out = run.measure(
+        conn,
+        fid,
+        JAN,
+        horizons=(1, 3),
+        min_names=5,
+        report=lambda phase, msg: seen.append((phase, msg)),
+    )
+    assert calls == [[("ret_20d", "1")], [("ret_5d", "1")]]  # one feature per call, in sorted order
+    assert [(e.feature, e.horizon) for e in out] == [
+        ("ret_20d", 1),
+        ("ret_20d", 3),
+        ("ret_5d", 1),
+        ("ret_5d", 3),
+    ]
+    tests = [m for p, m in seen if p == "testing"]
+    assert tests == [
+        "ret_20d at 1 days (test 1 of 4)",
+        "ret_20d at 3 days (test 2 of 4)",
+        "ret_5d at 1 days (test 3 of 4)",
+        "ret_5d at 3 days (test 4 of 4)",
+    ]

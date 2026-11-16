@@ -33,6 +33,17 @@ class DiscoveryError(Exception):
     pass
 
 
+def _numbered(
+    report: Callable[[str, str], None], offset: int, total: int
+) -> Callable[[str, int, int, int], None]:
+    """A per-feature heartbeat that numbers its tests across ALL the features ('test 14 of 108')."""
+
+    def beat(name: str, horizon: int, k: int, _n: int) -> None:
+        report("testing", f"{name} at {horizon} days (test {offset + k} of {total})")
+
+    return beat
+
+
 def measure(
     conn: psycopg.Connection,
     freeze_id: UUID,
@@ -66,29 +77,33 @@ def measure(
         i: {d: b.close for d, b in series.items()} for i, series in bars.items()
     }
     sessions = [d for d in feature_registry.sessions_from(bars) if d <= last]
+    del bars  # the full bars are not needed again: the closes and the sessions are all the tests use, and holding both would double the memory
     end = store._month_end(months[-1])
-    features: dict[tuple[str, str], dict[tuple[int, date], Decimal]] = {}
-    for k, (name, version) in enumerate(usable, 1):
+    horizons_sorted = sorted(horizons)
+    total = len(usable) * len(horizons_sorted)
+    out: list[discover.Evidence] = []
+    # one feature at a time: its values are read, tested at every horizon and dropped, so memory holds one feature, not all of them. `discover.discover` works through a
+    # sorted plan, so testing the sorted features one by one gives exactly the evidence, in exactly the order, of testing them all at once.
+    for k, (name, version) in enumerate(sorted(usable), 1):
         if report:
             report("loading features", f"{name} ({k} of {len(usable)})")
         sha = job.feature_dataset_sha256(
             conn, freeze_id, instruments, feature_registry.DEFINITIONS[name], last
         )  # each feature is read back under its own data identity
         rows = store.read_features(conn, name, version, sha, instruments, months[0], end)
-        features[(name, version)] = {key: value for key, (value, _available_at) in rows.items()}
-    if report:
-        report("testing", f"{len(usable)} features at {len(horizons)} horizons")
-    return discover.discover(
-        features,
-        closes,
-        sessions,
-        horizons=horizons,
-        last_allowed=last,
-        min_names=min_names,
-        heartbeat=(lambda name, h, k, n: report("testing", f"{name} at {h} days (test {k} of {n})"))
-        if report
-        else None,
-    )
+        values = {key: value for key, (value, _available_at) in rows.items()}
+        del rows
+        offset = (k - 1) * len(horizons_sorted)
+        out += discover.discover(
+            {(name, version): values},
+            closes,
+            sessions,
+            horizons=horizons_sorted,
+            last_allowed=last,
+            min_names=min_names,
+            heartbeat=_numbered(report, offset, total) if report else None,
+        )
+    return out
 
 
 def batch_dataset_sha256(

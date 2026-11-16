@@ -214,3 +214,28 @@ def test_a_long_run_reports_before_each_test_in_the_stable_order():
         discover.discover(feats, closes, days, horizons=(5, 1), last_allowed=days[-1], min_names=3)
         == out
     )  # reporting changes nothing
+
+
+def test_testing_the_features_one_at_a_time_gives_exactly_the_evidence_of_testing_them_all_together():
+    from datetime import date, timedelta
+    from decimal import Decimal as D
+
+    from algo.alpha import discover
+
+    days = [date(2026, 1, 5) + timedelta(days=i) for i in range(40)]
+    closes = {
+        i: {d: D(100 + (i * 7 + n * 3) % 11 + n) for n, d in enumerate(days)} for i in range(6)
+    }
+    feats = {
+        ("zeta", "1"): {(i, d): D((i * 5 + n) % 9) for i in range(6) for n, d in enumerate(days)},
+        ("alpha", "1"): {
+            (i, d): D((i * 3 + n * 2) % 7) for i in range(6) for n, d in enumerate(days)
+        },
+        ("mid", "2"): {(i, d): D(i) for i in range(6) for d in days},
+    }
+    kw = dict(horizons=(5, 1), last_allowed=days[-1], min_names=4)
+    together = discover.discover(feats, closes, days, **kw)
+    apart = [
+        e for key in sorted(feats) for e in discover.discover({key: feats[key]}, closes, days, **kw)
+    ]
+    assert apart == together and [e.feature for e in together][:2] == ["alpha", "alpha"]
