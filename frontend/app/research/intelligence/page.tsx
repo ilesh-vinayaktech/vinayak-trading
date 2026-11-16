@@ -4,14 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FeatureList } from "@/components/research/Features";
-import { Funnel, PipelineStrip } from "@/components/research/Pipeline";
+import { Funnel, type LoopCounts, PipelineStrip } from "@/components/research/Pipeline";
 import { Card, ErrorBox, Loading, Stat } from "@/components/status/LoadState";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { DefinitionsPanel } from "@/components/strategies/DefinitionsPanel";
 import { Panel, StatusPill } from "@/components/ui/Layout";
 import { inputFull } from "@/components/ui/styles";
 import { api } from "@/lib/api/client";
-import type { IntelAlpha, IntelNotes, IntelOverview, IntelProgress } from "@/lib/schemas";
+import type { IntelAlpha, IntelDefinitions, IntelNotes, IntelOverview, IntelProgress } from "@/lib/schemas";
 
 type Hypothesis = IntelAlpha["hypotheses"][number];
 type Note = IntelNotes["notes"][number];
@@ -105,14 +105,22 @@ function useJobs() {
 }
 
 /** The pipeline: which step runs now, then how many things survive each stage and why the rest were dropped. */
+function loopCounts(defs: IntelDefinitions["definitions"] | undefined): LoopCounts | undefined {
+  if (!defs) return undefined;
+  const judged = defs.filter((d) => d.study === "judged").length;
+  const running = defs.filter((d) => d.study === "running").length;
+  return { total: defs.length, judged, running, waiting: defs.length - judged - running };
+}
+
 function PipelinePanel() {
   const jobs = useJobs();
+  const defs = useQuery({ queryKey: ["intel", "definitions"], queryFn: api.intelDefinitions, refetchInterval: 15000 });
   const funnel = useQuery({ queryKey: ["intel", "funnel"], queryFn: api.intelFunnel, refetchInterval: 15000 });
   return (
     <Card title="Research pipeline" note="Each card counts what entered that stage, what moved on and what was dropped, with the reasons. Dropped ideas are kept, not hidden: they raise the bar for the next one.">
       <div className="space-y-4">
         <PipelineStrip jobs={jobs.data?.jobs ?? []} />
-        {funnel.isLoading ? <Loading what="the funnel" /> : funnel.error ? <ErrorBox error={funnel.error} what="the funnel" /> : funnel.data ? <Funnel stages={funnel.data.stages} jobs={jobs.data?.jobs ?? []} /> : null}
+        {funnel.isLoading ? <Loading what="the funnel" /> : funnel.error ? <ErrorBox error={funnel.error} what="the funnel" /> : funnel.data ? <Funnel stages={funnel.data.stages} jobs={jobs.data?.jobs ?? []} loop={loopCounts(defs.data?.definitions)} /> : null}
       </div>
     </Card>
   );

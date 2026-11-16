@@ -259,3 +259,13 @@ describe("Strategy definitions", () => {
     expect(items[1]!.textContent).toContain("no study yet");
   });
 });
+
+describe("The trials and validation loop", () => {
+  it("shows under those two cards how many definitions have been judged, are running and are waiting", async () => {
+    backend({ overview: empty.overview, alpha: empty.alpha, notes: empty.notes, funnel: { stages: [{ key: "features", title: "Features", unit: "features", entered: 1, passed: 1, connected: true, note: "n", dropped: [] }] } });
+    mount();
+    const b = await screen.findByTestId("loop-bracket");
+    expect(b.textContent).toContain("repeated for each definition: 1 of 2 judged");
+    expect(b.textContent).toContain("1 waiting");
+  });
+});

@@ -197,12 +197,34 @@ function StageCard({ s, jobs }: { s: Stage; jobs: Job[] }) {
 }
 
 /** The funnel: one card per stage, joined by arrows that say how many moved on to the next. */
+export type LoopCounts = { total: number; judged: number; running: number; waiting: number };
+
+/** Experiment trials and validation are one loop, run for one definition at a time: this bracket sits under those two cards and says how far the loop has got. */
+function LoopBracket({ c }: { c: LoopCounts }) {
+  return (
+    <div
+      className="hidden lg:col-span-2 lg:col-start-4 lg:block"
+      data-testid="loop-bracket"
+    >
+      <div className="mx-6 h-3 rounded-b-xl border-x-2 border-b-2 border-blue-300" aria-hidden="true" />
+      <p className="px-2 pt-1 text-center text-xs text-blue-900">
+        <span aria-hidden="true">↻ </span>
+        Trials then validation, repeated for each definition: {c.judged} of {c.total} judged
+        {c.running > 0 ? ` · ${c.running} running now` : ""}
+        {c.waiting > 0 ? ` · ${c.waiting} waiting` : ""}
+      </p>
+    </div>
+  );
+}
+
 export function Funnel({
   stages,
   jobs = [],
+  loop,
 }: {
   stages: Stage[];
   jobs?: Job[];
+  loop?: LoopCounts;
 }) {
   return (
     <div
@@ -227,6 +249,7 @@ export function Funnel({
           ) : null}
         </div>
       ))}
+      {loop && loop.total > 0 ? <LoopBracket c={loop} /> : null}
     </div>
   );
 }
