@@ -1,7 +1,6 @@
 # ruff: noqa: E501, F811
 """A generated definition's buy/sell decisions for one stock on the chart: stored values inside the stored window, the days after it computed in memory, nothing written."""
 
-
 import pytest
 
 from algo.core.clock import SimClock
