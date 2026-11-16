@@ -589,3 +589,27 @@ def test_running_jobs_come_first_whatever_kind_they_are_and_then_the_newest(clie
     conn.commit()
     status = [j["status"] for j in c.get("/api/intel/progress").json()["jobs"]]
     assert status == ["RUNNING", "FAILED"]
+
+
+def test_a_running_study_shows_the_day_it_is_on_and_a_time_left_from_the_trials_so_far(client):
+    from datetime import date, timedelta
+
+    from algo.backtest.validation import registry as vreg
+
+    c, conn = client
+    eid = vreg.register(
+        conn, name="s2", strategy_id="dsl", hypothesis="h" * 25, style="long_only",
+        param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    started = c.app.state.portal.clock.now() - timedelta(seconds=600)
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, total, done, step_done, step_total, current, created_at, started_at) VALUES (%s,'trials','RUNNING',10,1,500,1000,'max_positions 20',%s,%s)",
+        (eid, started, started),
+    )
+    conn.commit()
+    j = next(x for x in c.get("/api/intel/progress").json()["jobs"] if x["job"] == "study_trials")
+    assert j["message"] == "day 500 of 1000 of this one" and j["estimate"] == "ok"
+    assert (
+        380 <= j["per_step_s"] <= 420 and 3400 <= j["eta_s"] <= 3800
+    )  # 1.5 trials in 600 s: 400 s each, 8.5 left

@@ -166,22 +166,31 @@ def progress(request: Request, conn: WConn, limit: int = Query(10, ge=1, le=50))
             }
         )  # fmt: skip
     for sr in conn.execute(
-        "SELECT r.run_id, r.kind, r.status, r.done, r.total, r.current, r.created_at, r.started_at, r.finished_at, e.name"
+        "SELECT r.run_id, r.kind, r.status, r.done, r.total, r.current, r.created_at, r.started_at, r.finished_at, e.name, r.step_done, r.step_total"
         " FROM study_run r JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl' ORDER BY r.run_id DESC LIMIT %s",
         (limit,),
     ).fetchall():  # studies of generated definitions run in the study worker, not through job_progress: shown beside the other jobs, newest first
-        rid, kind, status, done, total, cur, created, started, finished, name = sr
+        rid, kind, status, done, total, cur, created, started, finished, name, sd, st = sr
         begun = started or created
+        live = status == "RUNNING"
+        part = done + (
+            sd / st if st else 0
+        )  # trials finished, counting the one in progress by its days
+        spent = ((finished or now) - begun).total_seconds()
+        per = (
+            spent / part if live and part >= 0.05 else None
+        )  # seconds per trial so far (trials are about the same size)
         jobs.append(
             {
                 "id": STUDY_JOB_ID_BASE + rid, "job": "study_verdict" if kind == "verdict" else "study_trials",
                 "label": f"{'Validation gates' if kind == 'verdict' else 'Experiment trials'}: {name}",
                 "status": "RUNNING" if status in ("QUEUED", "RUNNING") else "DONE" if status == "DONE" else "FAILED",
-                "done": done, "total": total, "phase": cur or ("waiting for the study worker" if status == "QUEUED" else ""), "message": "",
+                "done": done, "total": total, "phase": cur or ("waiting for the study worker" if status == "QUEUED" else ""), "message": f"day {sd} of {st} of this one" if live and st else "",
                 "started_at": begun.isoformat(), "updated_at": (finished or now).isoformat(),
                 "elapsed_s": int(((finished or now) - begun).total_seconds()),
                 "quiet_s": None, "alive": None,
-                "estimate": "waiting" if status in ("QUEUED", "RUNNING") else "none", "per_step_s": None, "eta_s": None, "stalled": False,
+                "estimate": ("ok" if per else "waiting") if status in ("QUEUED", "RUNNING") else "none",
+                "per_step_s": int(per) if per else None, "eta_s": int(per * (total - part)) if per else None, "stalled": False,
             }
         )  # fmt: skip
     jobs.sort(
