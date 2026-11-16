@@ -248,6 +248,8 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
                     cost=policy,
                     min_order_value=spec.min_order_value,
                     max_order_value=spec.max_order_value,
+                    trade_stop=spec.trade_stop,
+                    stop_cooldown_days=spec.stop_cooldown_days,
                 )
                 result = run_backtest(
                     conn, build(spec, combo, setup), cfg, reader=reader,
@@ -377,6 +379,7 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
             cfg = BacktestConfig(
                 start=setup.begin, end=setup.research_end, initial_cash=cash, cost=cost,
                 min_order_value=spec.min_order_value, max_order_value=spec.max_order_value,
+        trade_stop=spec.trade_stop, stop_cooldown_days=spec.stop_cooldown_days,
             )  # fmt: skip
             result = run_backtest(
                 conn, strategy_of(), cfg, reader=setup.reader, on_day=_ticker(conn, run_id)
@@ -446,6 +449,7 @@ def run_holdout(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
         cfg = BacktestConfig(
             start=setup.begin, end=setup.research_end, initial_cash=spec.capital, cost=setup.policy,
             min_order_value=spec.min_order_value, max_order_value=spec.max_order_value,
+        trade_stop=spec.trade_stop, stop_cooldown_days=spec.stop_cooldown_days,
         )  # fmt: skip
         result = run_backtest(
             conn, build(spec, chosen, setup), cfg, reader=setup.reader,

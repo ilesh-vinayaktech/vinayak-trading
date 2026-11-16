@@ -138,3 +138,47 @@ def test_an_experiment_outside_any_family_deflates_over_its_own_trials_only(env)
         registry.experiment_family(env, solo) is None
         and registry.experiment_family(env, 9999) is None
     )
+
+
+def dsl_experiment(conn, name, feature, start="2016-01-01", end="2022-12-31", family_id=1):
+    """A study of a generated definition: its locked document names the definition (its features are the hypothesis) and the research window."""
+
+    definition = {
+        "entry": {"all": [{"feature": feature, "op": "TOP_PERCENT", "value": 20}]},
+        "exit": {"any": [{"feature": feature, "op": "BOTTOM_PERCENT", "value": 50}]},
+        "ranking": {"feature": feature, "order": "DESC"},
+    }
+    return registry.register(
+        conn, name=name, strategy_id="dsl", hypothesis=HYP, style="long_only", param_ranges={"a": [1, 100]},
+        holdout=(NOW.date(), NOW.date()), now=NOW, family_id=family_id,
+        study={"spec": {"definition": definition, "start": start, "end": end}},
+    )  # fmt: skip
+
+
+def test_the_luck_bar_counts_every_try_of_the_same_idea_but_takes_its_spread_only_from_comparable_trials(
+    env,
+):
+    """Review 2026-11-16, section 3.1: the catch-all family mixed unrelated ideas and other windows into one spread."""
+    low_vol_old_window = dsl_experiment(
+        env, "vol old window", "vol_20d", start="2020-01-01", end="2023-12-31"
+    )
+    low_vol = dsl_experiment(env, "vol 2016-2022", "vol_20d")
+    low_vol_weekly = dsl_experiment(env, "vol weekly 2016-2022", "vol_20d")
+    momentum = dsl_experiment(env, "momentum 2016-2022", "ret_252d")
+    plain = experiment(env, "a coded strategy in the same family", 1)
+    for i, s in enumerate((1.9, 2.1)):
+        registry.record_trial(env, low_vol_old_window, {"a": i + 1}, s, None, NOW)
+    for i, s in enumerate((0.05, 0.07, 0.06)):
+        registry.record_trial(env, low_vol, {"a": i + 1}, s, None, NOW)
+    registry.record_trial(env, low_vol_weekly, {"a": 1}, 0.04, None, NOW)
+    registry.record_trial(env, momentum, {"a": 1}, 0.5, None, NOW)
+    registry.record_trial(env, plain, {"a": 1}, 0.8, None, NOW)
+    n, sharpes = registry.deflation_trials(env, low_vol)
+    assert n == 2 + 3 + 1  # every try of low volatility, on any window, counts
+    assert (
+        sorted(sharpes) == [0.04, 0.05, 0.06, 0.07]
+    )  # the spread: only low-volatility trials on the SAME window; not the other window, not momentum, not the coded strategy
+    assert registry.deflation_trials(env, momentum) == (1, [0.5])  # another idea is not mixed in
+    assert (
+        registry.family_trial_count(env, 1) == 8
+    )  # the family-level count (used for the holdout batch) is unchanged

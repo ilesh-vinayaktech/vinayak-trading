@@ -175,13 +175,62 @@ def experiment_family(conn: psycopg.Connection, exp_id: int) -> int | None:
     return None if row is None or row[0] is None else int(row[0])
 
 
+def _features_in(node: Any) -> set[str]:
+    """Every feature a locked strategy definition names (conditions and ranking)."""
+    out: set[str] = set()
+    if isinstance(node, dict):
+        if isinstance(node.get("feature"), str):
+            out.add(node["feature"])
+        for v in node.values():
+            out |= _features_in(v)
+    elif isinstance(node, list):
+        for v in node:
+            out |= _features_in(v)
+    return out
+
+
+def hypothesis_key(strategy_id: str, study: Mapping[str, Any] | None) -> str:
+    """The idea an experiment tests: the features of a generated definition (so its weekly and monthly versions are tries of one idea), or the strategy itself for a coded one."""
+    definition = ((study or {}).get("spec") or {}).get("definition")
+    if strategy_id == "dsl" and definition:
+        return "dsl:" + ",".join(sorted(_features_in(definition)))
+    return strategy_id
+
+
+def _window(study: Mapping[str, Any] | None) -> tuple[str, str] | None:
+    spec = (study or {}).get("spec") or {}
+    return (str(spec["start"]), str(spec["end"])) if "start" in spec and "end" in spec else None
+
+
 def deflation_trials(conn: psycopg.Connection, exp_id: int) -> tuple[int, list[float]]:
-    """(N, per-trial Sharpes) the multiple-testing correction must use for this experiment: every trial of its research family, so a
-    new study or a re-registration never resets the penalty. An experiment outside any family counts only its own."""
+    """(N, per-trial Sharpes) the multiple-testing correction uses for this experiment (review 2026-11-16, section 3.1).
+    N counts EVERY trial of the same idea (same research family, same hypothesis key) on any window, so trying a variant again or on another window never resets the penalty.
+    The spread of the Sharpes comes only from trials of that idea on the SAME research window: other ideas, other windows and coded strategies sharing a catch-all family
+    would otherwise inflate it and make every strategy fail. An experiment outside any family counts only its own."""
     family = experiment_family(conn, exp_id)
     if family is None:
         return trial_count(conn, exp_id), trial_sharpes(conn, exp_id)
-    return family_trial_count(conn, family), family_trial_sharpes(conn, family)
+    rows = conn.execute(
+        "SELECT experiment_id, strategy_id, study FROM experiment WHERE family_id=%s", (family,)
+    ).fetchall()
+    mine = next(((sid, study) for eid, sid, study in rows if eid == exp_id), None)
+    if mine is None:
+        return trial_count(conn, exp_id), trial_sharpes(conn, exp_id)
+    key, window = hypothesis_key(mine[0], mine[1]), _window(mine[1])
+    same = [eid for eid, sid, study in rows if hypothesis_key(sid, study) == key]
+    comparable = [eid for eid, sid, study in rows if eid in same and _window(study) == window]
+    n = conn.execute(
+        "SELECT count(*) FROM experiment_trial WHERE experiment_id = ANY(%s)", (same,)
+    ).fetchone()
+    sharpes = [
+        float(r[0])
+        for r in conn.execute(
+            "SELECT sharpe FROM experiment_trial WHERE experiment_id = ANY(%s) AND sharpe IS NOT NULL ORDER BY trial_id",
+            (comparable,),
+        )
+    ]
+    assert n is not None
+    return int(n[0]), sharpes
 
 
 def family_trial_count(conn: psycopg.Connection, family_id: int) -> int:

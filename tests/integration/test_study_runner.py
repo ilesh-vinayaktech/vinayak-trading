@@ -780,3 +780,14 @@ def test_starting_a_definitions_study_registers_it_once_and_queues_its_trials(en
     conn.execute("UPDATE study_run SET status='CANCELLED' WHERE run_id=%s", (run,))
     again, _ = fstudy.start(conn, owner, defn.strategy_id, 1, NOW)
     assert again == eid  # the same study, not a second one
+
+
+def test_a_study_with_the_per_trade_stop_runs_and_records_it_in_its_locked_document(env):
+    conn, owner = env
+    sid = registered(conn, owner, name="with stop", trade_stop="0.02", stop_cooldown_days=5)
+    run_study(conn, study_jobs.enqueue(conn, sid, owner, NOW), NOW)
+    assert all(t["status"] == "DONE" for t in study_jobs.trials(conn, sid))
+    locked = conn.execute("SELECT study FROM experiment WHERE experiment_id=%s", (sid,)).fetchone()[
+        0
+    ]
+    assert locked["spec"]["trade_stop"] == "0.02" and locked["spec"]["stop_cooldown_days"] == 5

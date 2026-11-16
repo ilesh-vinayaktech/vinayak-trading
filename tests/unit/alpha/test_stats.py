@@ -177,3 +177,24 @@ def test_the_last_autocovariance_the_series_has_counts_when_the_lag_reaches_it()
     assert stats.summarise(ics, lag=1).t_stat != pytest.approx(
         expected, rel=1e-6
     )  # and it matters: dropping it gives a different answer
+
+
+def test_benjamini_hochberg_q_values_are_worked_by_hand_and_never_decrease_with_the_p_value():
+    q = stats.benjamini_hochberg([0.01, 0.04, 0.03, 0.005])
+    # sorted 0.005 (x4/1 = 0.02), 0.01 (x4/2 = 0.02), 0.03 (x4/3 = 0.04), 0.04 (x4/4 = 0.04): already non-decreasing
+    assert q == pytest.approx([0.02, 0.04, 0.04, 0.02])
+    assert stats.benjamini_hochberg([0.9, 0.001]) == pytest.approx([0.9, 0.002])
+    assert stats.benjamini_hochberg([0.5, 0.5, 0.5]) == [0.5, 0.5, 0.5]  # ties share one value
+    assert stats.benjamini_hochberg([]) == [] and stats.benjamini_hochberg([0.2]) == [0.2]
+    one = stats.benjamini_hochberg([0.2, 0.001, 0.3, 0.04, 0.9])
+    assert (
+        all(a <= 1 for a in one) and one[1] < one[3] < one[0]
+    )  # a smaller p never gets a larger q
+
+
+def test_bh_is_less_strict_than_bonferroni_over_the_same_tests_but_never_below_the_p_value():
+    p = [0.001, 0.004, 0.02, 0.2, 0.6, 0.9]
+    bh, bon = stats.benjamini_hochberg(p), stats.bonferroni(p, total_tests=len(p))
+    assert all(b >= x for b, x in zip(bh, p, strict=True)) and all(
+        b <= x + 1e-12 for b, x in zip(bh, bon, strict=True)
+    )

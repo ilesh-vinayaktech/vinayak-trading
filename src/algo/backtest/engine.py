@@ -57,8 +57,17 @@ class BacktestConfig:
         0
     )  # rupees; smaller orders are not placed (a full exit always is)
     max_order_value: Decimal | None = None  # rupees; a bigger order is split over several days
+    # the paper account's per-trade stop, so a study validates the strategy that trades:
+    # a position closing this far under its cost is sold at the next open and not bought
+    # again for `stop_cooldown_days` calendar days, whatever the strategy asks (off: None / 0)
+    trade_stop: Decimal | None = None
+    stop_cooldown_days: int = 0
 
     def __post_init__(self) -> None:
+        if self.trade_stop is not None and not Decimal(0) < self.trade_stop < Decimal(1):
+            raise ValueError("the per-trade stop is a loss between 0 and 100% of the cost")
+        if self.stop_cooldown_days < 0:
+            raise ValueError("the cooldown cannot be negative")
         if self.min_order_value < 0:
             raise ValueError("the minimum order value cannot be negative")
         if self.max_order_value is not None and self.max_order_value < max(
@@ -311,6 +320,9 @@ def run_backtest(
     withheld_days: dict[int, list[date]] = {}  # strict: decision days a name could not be served
     withheld_why: dict[int, str] = {}
     frozen: set[int] = set()  # withheld at the last decision: neither bought nor sold
+    stop_day: dict[
+        int, date
+    ] = {}  # the last day each name was stopped out (for the re-entry cooldown)
 
     def window_withheld(iid: int) -> str | None:
         probe = DataAccess({iid: signal[iid]}, clock, req.adjust)
@@ -468,6 +480,25 @@ def run_backtest(
                 withheld_days.setdefault(iid, []).append(day)
                 withheld_why[iid] = why
             frozen = set(withheld)
+            if cfg.trade_stop is not None:
+                stopped = {
+                    iid
+                    for iid, q in ledger.quantities().items()
+                    if q > 0 and iid in last_close and ledger.cost_basis(iid) > 0
+                    and 1 - last_close[iid] * q / ledger.cost_basis(iid) >= cfg.trade_stop
+                }  # fmt: skip
+                chosen = dict(new) if new is not None else dict(targets)
+                for iid in stopped:  # sold at the next open whatever the strategy says
+                    chosen[iid] = Decimal(0)
+                    stop_day[iid] = day
+                for iid in list(chosen):  # and not bought back while it cools
+                    if (
+                        chosen[iid] > 0 and ledger.qty(iid) == 0 and iid in stop_day
+                        and (day - stop_day[iid]).days <= cfg.stop_cooldown_days
+                    ):  # fmt: skip
+                        chosen[iid] = Decimal(0)
+                if stopped or new is not None:
+                    new = chosen
             if new is not None:
                 for iid in new:
                     if iid in withheld:

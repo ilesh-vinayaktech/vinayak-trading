@@ -6,8 +6,8 @@ User's instruction: "do as much as you can do yourself, keep taking things one b
 
 Rules, all of them about not fooling ourselves:
   * Failed hypotheses are kept. They are what the multiple-testing correction counts.
-  * A p-value is multiplied by the number of tests EVER run (Bonferroni over the whole history, this batch included): the more we look, the more
-    evidence the next candidate needs. A candidate also needs a rank IC of at least `min_abs_ic` in size, because a tiny effect can be 'significant' over
+  * A p-value is corrected over every test EVER run (this batch included): the more we look, the more evidence the next candidate needs. Batches before 2026-11-16 used
+    Bonferroni; later ones use a Benjamini-Hochberg false discovery rate (review section 3.5), recorded as `correction` on every row. A candidate also needs a rank IC of at least `min_abs_ic` in size, because a tiny effect can be 'significant' over
     enough days and still be worthless after costs.
   * CANDIDATE means 'worth validating', never 'works'. Validation (walk-forward, costs, the holdout batch) is a separate, later gate.
   * Nothing is edited after it is written; a retest is a new row in a new batch."""
@@ -47,6 +47,7 @@ def record(
     alpha: float = ALPHA,
     min_abs_ic: float = MIN_ABS_IC,
     context: dict[str, Any] | None = None,
+    correction: str = "bh",
 ) -> list[int]:
     """Store one discovery batch; returns the hypothesis ids in the order given."""
     if not evidences:
@@ -61,9 +62,27 @@ def record(
         row = conn.execute("SELECT coalesce(max(batch_id), 0) + 1 FROM alpha_hypothesis").fetchone()
         assert row is not None
         batch = int(row[0])
-        adjusted = stats.bonferroni(
-            [1.0 if e.p_value is None else e.p_value for e in evidences], total_tests=total
-        )
+        batch_p = [1.0 if e.p_value is None else e.p_value for e in evidences]
+        if correction == "bonferroni":
+            adjusted = stats.bonferroni(batch_p, total_tests=total)
+            name = "bonferroni_over_all_tests_ever_run"
+        elif correction == "bh":
+            # a false discovery rate over every p-value ever recorded plus this batch: the tests ever run still raise the bar, but one feature at four horizons is not four independent tries
+            prior = [
+                float(r[0])
+                for r in conn.execute(
+                    "SELECT (evidence->>'p_value')::float FROM alpha_hypothesis WHERE evidence->>'p_value' IS NOT NULL ORDER BY hypothesis_id"
+                )
+            ]
+            prior_untested = (
+                total - len(batch_p) - len(prior)
+            )  # earlier tests with no p-value count as p = 1
+            adjusted = stats.benjamini_hochberg([*prior, *[1.0] * prior_untested, *batch_p])[
+                -len(batch_p) :
+            ]
+            name = "benjamini_hochberg_over_all_tests_ever_run"
+        else:
+            raise ValueError("correction is 'bh' or 'bonferroni'")
         for e, p_adj in zip(evidences, adjusted, strict=True):
             testable = e.mean_ic is not None and e.p_value is not None
             candidate = testable and abs(e.mean_ic or 0.0) >= min_abs_ic and p_adj < alpha
@@ -78,6 +97,7 @@ def record(
                 "p_value": e.p_value,
                 "p_adjusted": p_adj if testable else None,
                 "tests_ever_run": total,
+                "correction": name,
                 "alpha": alpha,
                 "min_abs_ic": min_abs_ic,
                 "direction": None

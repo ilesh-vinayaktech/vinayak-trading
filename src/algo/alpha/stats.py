@@ -101,6 +101,26 @@ def holm(pvalues: Sequence[float]) -> list[float]:
     return out
 
 
+def benjamini_hochberg(pvalues: Sequence[float]) -> list[float]:
+    """Benjamini-Hochberg q-values: the smallest false discovery rate at which each test would be called a discovery. Valid for positively dependent tests (the same feature at several
+    horizons is that case). The q-value of the i-th smallest of m p-values is the smallest of p_j x m / j over every j at or above it, capped at one; ties share a value."""
+    m = len(pvalues)
+    order = sorted(range(m), key=lambda i: pvalues[i])
+    q = [0.0] * m
+    running = 1.0
+    for rank in range(m, 0, -1):
+        i = order[rank - 1]
+        running = min(running, pvalues[i] * m / rank)
+        q[i] = running
+    for k in range(
+        m
+    ):  # equal p-values get the smallest q among them (a tie is not broken by order)
+        for j in range(m):
+            if pvalues[j] == pvalues[k] and q[j] < q[k]:
+                q[k] = q[j]
+    return q
+
+
 def bonferroni(pvalues: Sequence[float], *, total_tests: int) -> list[float]:
     """Each p-value times the number of tests EVER run (this batch and every earlier one), capped at one."""
     if total_tests < len(pvalues):

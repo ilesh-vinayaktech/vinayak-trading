@@ -215,3 +215,20 @@ def test_the_filing_lag_defaults_to_zero_is_bounded_and_enters_the_locked_docume
     for bad in (-1, 366):
         with pytest.raises(ValueError):
             spec(filing_lag_days=bad)
+
+
+def test_the_per_trade_stop_and_cooldown_are_off_by_default_and_must_be_sensible():
+    s = spec()
+    assert (
+        s.trade_stop is None and s.stop_cooldown_days == 0
+    )  # studies registered before they existed ran without them
+    on = spec(trade_stop="0.02", stop_cooldown_days=5)
+    assert on.trade_stop == D("0.02") and on.stop_cooldown_days == 5
+    for bad in (
+        {"trade_stop": "0"},
+        {"trade_stop": "1"},
+        {"stop_cooldown_days": -1},
+        {"stop_cooldown_days": 61},
+    ):
+        with pytest.raises(ValueError):
+            spec(**bad)

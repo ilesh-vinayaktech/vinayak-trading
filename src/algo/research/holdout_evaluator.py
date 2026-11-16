@@ -129,6 +129,7 @@ def _candidate(
     cfg = BacktestConfig(
         start=begin, end=m.date_to, initial_cash=spec.capital, cost=setup.policy,
         min_order_value=spec.min_order_value, max_order_value=spec.max_order_value,
+        trade_stop=spec.trade_stop, stop_cooldown_days=spec.stop_cooldown_days,
     )  # fmt: skip
     result = run_backtest(conn, build(spec, chosen, setup), cfg, reader=setup.reader)
     bench, note = _benchmark(conn, spec, [d for d, _ in result.equity])

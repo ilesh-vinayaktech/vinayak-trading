@@ -19,6 +19,8 @@ from algo.research import study_jobs
 from algo.research.study import StudySpec, default_thresholds
 from algo.research.study_store import register_study
 
+STOP = Decimal("0.02")
+COOLDOWN_DAYS = 5
 GRID = {
     "max_positions": [10, 20, 30],
     "exit_share": [30, 50, 70],
@@ -40,7 +42,7 @@ def spec_for(
     defn = registry.get(conn, strategy_id, version)
     return StudySpec.model_validate(
         {
-            "name": f"{strategy_id} v{version} {start.year}-{holdout_start.year - 1}",
+            "name": f"{strategy_id} v{version} {start.year}-{holdout_start.year - 1} stop{int(STOP * 100)}",
             "hypothesis": f"{defn.description} Tested over a counted grid of its own numbers; it must beat buy-and-hold after 2x costs, out of sample.",
             "strategy_id": "dsl",
             "definition": defn.canonical(),
@@ -57,6 +59,10 @@ def spec_for(
             "thresholds": default_thresholds(),
             "family_id": family_id,
             "accept_survivorship_bias": True,
+            "trade_stop": str(
+                STOP
+            ),  # the paper account's per-trade stop and cooldown, so the validated strategy is the one that trades
+            "stop_cooldown_days": COOLDOWN_DAYS,
         }
     )
 

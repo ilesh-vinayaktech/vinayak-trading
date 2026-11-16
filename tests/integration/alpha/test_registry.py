@@ -146,3 +146,39 @@ def test_a_zero_mean_ic_has_no_direction_not_a_negative_one(conn):
         conn.execute("SELECT feature_name, evidence->>'direction' FROM alpha_hypothesis").fetchall()
     )
     assert got == {"a": None, "b": "NEGATIVE", "c": "POSITIVE"}
+
+
+def test_the_default_correction_is_a_false_discovery_rate_over_every_test_ever_run_and_says_so(
+    conn,
+):
+    """Review 2026-11-16, section 3.5: Bonferroni over all tests treats one feature at four horizons as four independent tries."""
+    migrate(conn)
+    registry.record(
+        conn, [ev(f"f{i}", p=0.9) for i in range(40)], DS, NOW
+    )  # forty failures on the books
+    (hid,) = registry.record(conn, [ev("later", p=0.002)], DS, NOW)
+    status, e = conn.execute(
+        "SELECT research_status, evidence FROM alpha_hypothesis WHERE hypothesis_id=%s", (hid,)
+    ).fetchone()
+    assert (
+        e["correction"] == "benjamini_hochberg_over_all_tests_ever_run"
+        and e["tests_ever_run"] == 41
+    )
+    assert e["p_adjusted"] == pytest.approx(
+        0.002 * 41 / 1
+    )  # the smallest of 41 p-values: 0.002 x 41 / rank 1 = 0.082
+    assert status == "REJECTED"  # 0.082 is still above 0.05: the tests ever run still raise the bar
+
+
+def test_a_strong_result_among_weak_ones_passes_under_bh_where_bonferroni_would_not(conn):
+    migrate(conn)
+    p = [0.00005, 0.00009, 0.0001, 0.0002] + [0.9] * 40  # four real effects among 44 tests
+    ids = registry.record(conn, [ev(f"f{i}", p=v) for i, v in enumerate(p)], DS, NOW)
+    status = dict(
+        conn.execute("SELECT hypothesis_id, research_status FROM alpha_hypothesis").fetchall()
+    )
+    assert [status[i] for i in ids[:4]] == ["CANDIDATE"] * 4  # q = 0.0022, 0.0022, 0.0022, 0.0044
+    other = registry.record(conn, [ev("g", p=0.00005)], DS, NOW, correction="bonferroni")[0]
+    assert conn.execute(
+        "SELECT evidence->>'correction' FROM alpha_hypothesis WHERE hypothesis_id=%s", (other,)
+    ).fetchone() == ("bonferroni_over_all_tests_ever_run",)

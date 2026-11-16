@@ -87,6 +87,9 @@ class StudySpec(BaseModel):
     )  # a total-return index, by name
     thresholds: dict[str, Decimal]
     accept_survivorship_bias: bool = False
+    # the paper account's per-trade stop and re-entry cooldown, applied inside the backtest (off by default: studies registered before these existed ran without them)
+    trade_stop: Decimal | None = Field(default=None, gt=0, lt=1)
+    stop_cooldown_days: int = Field(default=0, ge=0, le=60)
     # days after a filing is broadcast before a screener may use it (0 = from the broadcast); part of the locked study document
     filing_lag_days: int = Field(default=0, ge=0, le=365)
     # the research family this study's trials count toward (registration refuses a study without one)
