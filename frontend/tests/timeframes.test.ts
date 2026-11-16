@@ -48,3 +48,21 @@ describe("today in India", () => {
     expect(latestDay("2026-11-13", now)).toBe("2026-11-13");
   });
 });
+
+describe("which strategies a candle size can show", () => {
+  it("shows a strategy on a candle at least as long as its own rebalance period, never on minutes or hours", async () => {
+    const { cadenceFits, barOfDay } = await import("@/lib/timeframes");
+    const fits = (tf: string) => (["DAILY", "WEEKLY", "MONTHLY"] as const).filter((c) => cadenceFits(tf as never, c));
+    expect(fits("1d")).toEqual(["DAILY", "WEEKLY", "MONTHLY"]); // a daily chart can show every cadence
+    expect(fits("1w")).toEqual(["WEEKLY", "MONTHLY"]); // a daily strategy would put five decisions on one candle
+    expect(fits("1mo")).toEqual(["MONTHLY"]);
+    expect(fits("5m")).toEqual([]);
+    expect(fits("1h")).toEqual([]);
+    // weekly and monthly candles are dated by their first trading day: a decision belongs to the last candle that starts on or before it
+    const weeks = ["2024-06-03", "2024-06-10", "2024-06-17"];
+    expect(barOfDay(weeks, "2024-06-10")).toBe("2024-06-10");
+    expect(barOfDay(weeks, "2024-06-13")).toBe("2024-06-10"); // mid-week decision: that week's candle
+    expect(barOfDay(weeks, "2024-05-30")).toBeUndefined(); // before the first candle on screen: not drawn
+    expect(barOfDay(weeks, "2024-07-01")).toBe("2024-06-17"); // after the last: the last candle
+  });
+});

@@ -50,6 +50,26 @@ export function latestDay(lastStored: string, now: number = Date.now()): string 
 /** Minute and hour bars: built from minutes, with a UTC `time`. 1d / 1w / 1mo use a plain date axis. */
 export const isIntraday = (tf: Timeframe): tf is Intraday => tf !== "1d" && tf !== "1w" && tf !== "1mo";
 
+export type Cadence = "DAILY" | "WEEKLY" | "MONTHLY";
+const PERIOD_DAYS: Record<Cadence, number> = { DAILY: 1, WEEKLY: 5, MONTHLY: 21 };
+
+/** A strategy can be drawn on a candle at least as long as its own rebalance period (a daily strategy would put five decisions on one weekly candle); minute and hour charts have no daily decisions. */
+export function cadenceFits(tf: Timeframe, cadence: Cadence): boolean {
+  if (isIntraday(tf)) return false;
+  const candle = tf === "1d" ? 1 : tf === "1w" ? 5 : 21;
+  return PERIOD_DAYS[cadence] >= candle;
+}
+
+/** The candle a decision belongs to: the last one that starts on or before its day (weekly and monthly candles are dated by their first trading day). A decision before the first candle shown is not drawn. */
+export function barOfDay(barDates: readonly string[], day: string): string | undefined {
+  let found: string | undefined;
+  for (const d of barDates) {
+    if (d <= day) found = d;
+    else break;
+  }
+  return found;
+}
+
 export function shiftDays(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);

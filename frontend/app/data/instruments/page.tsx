@@ -25,7 +25,7 @@ import type {
   InstrumentDetail,
   Timeframe,
 } from "@/lib/schemas";
-import { intradayStart, isIntraday, latestDay } from "@/lib/timeframes";
+import { type Cadence, cadenceFits, intradayStart, isIntraday, latestDay } from "@/lib/timeframes";
 
 type Action = InstrumentDetail["actions"][number];
 
@@ -106,15 +106,16 @@ function Explorer() {
     queryFn: api.intelDefinitions,
     enabled: can("strategy:own"),
   });
-  const defOptions = (defs.data?.definitions ?? []).map((d) => ({
-    id: `def:${d.strategy_id}:${d.version}`,
-    name: `Definition: ${d.strategy_id}`,
-  }));
-  const chosen =
-    strategies.some((s) => s.config_id === strategyId) ||
-    defOptions.some((o) => o.id === strategyId)
-      ? strategyId
-      : "";
+  // a strategy is offered on a candle at least as long as its own rebalance period: saved strategies decide daily; a definition decides daily, weekly or monthly
+  const offered = [
+    ...strategies.map((s) => ({ id: s.config_id, name: s.name, cadence: "DAILY" as Cadence })),
+    ...(defs.data?.definitions ?? []).map((d) => ({
+      id: `def:${d.strategy_id}:${d.version}`,
+      name: `Definition: ${d.strategy_id}`,
+      cadence: d.rebalance as Cadence,
+    })),
+  ].filter((o) => cadenceFits(timeframe, o.cadence));
+  const chosen = offered.some((o) => o.id === strategyId) ? strategyId : "";
   const signals = useQuery({
     queryKey: ["signals", chosen, id, range.start, range.end],
     queryFn: () => {
@@ -134,7 +135,7 @@ function Explorer() {
       });
     },
     enabled:
-      chosen !== "" && ready && range.start <= range.end && timeframe === "1d",
+      chosen !== "" && ready && range.start <= range.end && !isIntraday(timeframe),
   });
   // the live price: polled every 2 s while the chart reaches the latest day, on every timeframe; the server builds the
   // candle still forming (today, this week, this month, or the current N-minute bar) and the chart moves it in place
@@ -168,7 +169,7 @@ function Explorer() {
   );
   const buys = marks.filter((m) => m.action === "BUY").length;
   const strategyStatus =
-    chosen === "" || timeframe !== "1d"
+    chosen === "" || isIntraday(timeframe)
       ? null
       : signals.isError
         ? "Could not run"
@@ -261,17 +262,14 @@ function Explorer() {
           points: benchPoints,
         }}
         strategy={{
-          options: [
-            ...strategies.map((s) => ({ id: s.config_id, name: s.name })),
-            ...defOptions,
-          ],
+          options: offered.map((o) => ({ id: o.id, name: o.name })),
           value: chosen,
           onChange: setStrategyId,
           status: strategyStatus,
         }}
       />
 
-      {chosen !== "" && signals.data && timeframe === "1d" ? (
+      {chosen !== "" && signals.data && !isIntraday(timeframe) ? (
         <DecisionList days={signals.data.days} name={signals.data.strategy} />
       ) : null}
 

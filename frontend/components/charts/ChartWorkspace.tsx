@@ -206,8 +206,8 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
       <select
         id="strategy"
         value={strategy.value}
-        disabled={strategy.options.length === 0 || timeframe !== "1d"}
-        title={strategy.options.length === 0 ? "No saved strategy. Create one on the Strategies page." : timeframe !== "1d" ? "Strategy decisions are daily: choose the 1D timeframe" : "Draw this strategy's buy/sell decisions on the chart (decisions only, no profit or loss)"}
+        disabled={strategy.options.length === 0 || isIntraday(timeframe)}
+        title={isIntraday(timeframe) ? "Strategy decisions are made on daily bars or longer: choose 1D, 1W or 1M" : strategy.options.length === 0 ? (timeframe === "1d" ? "No saved strategy. Create one on the Strategies page." : "No strategy rebalances this often: choose a shorter candle, or a strategy that rebalances weekly or monthly") : "Draw this strategy's buy/sell decisions on the chart (decisions only, no profit or loss)"}
         onChange={(e) => strategy.onChange(e.target.value)}
         className="h-8 max-w-44 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-40"
       >

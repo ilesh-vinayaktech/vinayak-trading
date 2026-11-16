@@ -226,7 +226,10 @@ describe("Data Explorer", () => {
     adjustment_version: "a7ca8ba234cb8b8a",
     source: "nse",
     clean: false,
-    bars: [{ date: "2024-06-11", open: "100", high: "101", low: "99", close: "100.5", volume: "1000", factor: "1" }],
+    bars: [
+      { date: "2024-06-10", open: "99", high: "100", low: "98", close: "99.5", volume: "900", factor: "1" },
+      { date: "2024-06-11", open: "100", high: "101", low: "99", close: "100.5", volume: "1000", factor: "1" },
+    ],
     unapplied: [{ kind: "demerger", ex_date: "2024-07-01" }],
     provisional: [],
   };
@@ -597,6 +600,35 @@ describe("Data Explorer", () => {
       delete (table as Record<string, unknown>)["/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals"];
     });
 
+    it("offers a strategy on the weekly and monthly chart only when it rebalances that often, and draws its decisions on the right candle", async () => {
+      const mk = (id: string, rebalance: string) => ({ strategy_id: id, version: 1, description: "d", rebalance, max_positions: 20, plain: { when: "w", summary: "s", buy: "b", sell: "x", size: "z" }, entry: "e", exit: "x", created_by: "a", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null });
+      const t = table as Record<string, unknown>;
+      t["/api/intel/definitions"] = { definitions: [mk("ALPHA_DAILY_H1", "DAILY"), mk("ALPHA_WEEKLY_H5", "WEEKLY"), mk("ALPHA_MONTHLY_H20", "MONTHLY")] };
+      t["/api/strategies/definitions/ALPHA_WEEKLY_H5/1/signals"] = { ...signals, strategy: "ALPHA_WEEKLY_H5 v1", days: [{ ...signals.days[0], day: "2024-06-12", action: "BUY", reason: "weekly reason" }] };
+      const names = () => within(screen.getByLabelText("Strategy")).getAllByRole("option").map((o) => o.textContent);
+      const urls: string[] = [];
+      await open(urls);
+      const pickTf = (name: string) => {
+        fireEvent.click(screen.getByRole("button", { name: /^Timeframe:/ }));
+        fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name }));
+      };
+      await waitFor(() => expect(names()).toContain("Definition: ALPHA_DAILY_H1")); // daily chart: every strategy
+      expect(names()).toEqual(["No strategy", "Cautious", "Bolder", "Definition: ALPHA_DAILY_H1", "Definition: ALPHA_WEEKLY_H5", "Definition: ALPHA_MONTHLY_H20"]);
+      pickTf("1 week");
+      await waitFor(() => expect(names()).toEqual(["No strategy", "Definition: ALPHA_WEEKLY_H5", "Definition: ALPHA_MONTHLY_H20"])); // not the daily ones
+      expect(screen.getByLabelText("Strategy")).toBeEnabled();
+      fireEvent.change(screen.getByLabelText("Strategy"), { target: { value: "def:ALPHA_WEEKLY_H5:1" } });
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 0 sell"));
+      expect(urls.some((u) => u.includes("/api/strategies/definitions/ALPHA_WEEKLY_H5/1/signals"))).toBe(true);
+      pickTf("1 month");
+      await waitFor(() => expect(names()).toEqual(["No strategy", "Definition: ALPHA_MONTHLY_H20"])); // only monthly ones; the weekly choice is dropped
+      expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument();
+      pickTf("5 minutes");
+      await waitFor(() => expect(screen.getByLabelText("Strategy")).toBeDisabled()); // minutes and hours have no daily decisions
+      delete t["/api/intel/definitions"];
+      delete t["/api/strategies/definitions/ALPHA_WEEKLY_H5/1/signals"];
+    });
+
     it("shows why a decision was made when the mouse is over its bar, and nothing on other bars", async () => {
       await open();
       const pick = await screen.findByLabelText("Strategy");
@@ -605,13 +637,16 @@ describe("Data Explorer", () => {
       await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell"));
       const move = () => (globalThis as unknown as { __crosshairMove: (p: { time: string }) => void }).__crosshairMove;
       await waitFor(() => expect(typeof move()).toBe("function"));
-      act(() => move()({ time: "2024-06-11" })); // the only stored bar: both decisions (the buy of the 10th, the sell of the 11th) are drawn on it
-      const shown = await screen.findAllByTestId("decision-hover");
-      expect(shown).toHaveLength(2);
-      expect(shown[0]).toHaveTextContent("BUY on 2024-06-10");
-      expect(shown[0]).toHaveTextContent("oversold in an uptrend");
-      expect(shown[1]).toHaveTextContent("SELL on 2024-06-11");
-      expect(shown[1]).toHaveTextContent("rsi_above_exit");
+      act(() => move()({ time: "2024-06-10" })); // each decision is on its own candle
+      const buy = await screen.findAllByTestId("decision-hover");
+      expect(buy).toHaveLength(1);
+      expect(buy[0]).toHaveTextContent("BUY on 2024-06-10");
+      expect(buy[0]).toHaveTextContent("oversold in an uptrend");
+      act(() => move()({ time: "2024-06-11" }));
+      const sell = await screen.findAllByTestId("decision-hover");
+      expect(sell).toHaveLength(1);
+      expect(sell[0]).toHaveTextContent("SELL on 2024-06-11");
+      expect(sell[0]).toHaveTextContent("rsi_above_exit");
       act(() => move()({ time: "2024-06-03" })); // not a bar: nothing is shown
       await waitFor(() => expect(screen.queryByTestId("decision-hover")).not.toBeInTheDocument());
     });

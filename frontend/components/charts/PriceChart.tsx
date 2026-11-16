@@ -22,7 +22,7 @@ import { reachedLeftEdge, viewToRestore, type SavedView } from "@/lib/chartView"
 import { plotNumber } from "@/lib/formatting";
 import { toPoints, type Active } from "@/lib/indicators";
 import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail, Timeframe } from "@/lib/schemas";
-import { IST_OFFSET_S, TIMEFRAME_LABELS, barLabel, barTime, isIntraday } from "@/lib/timeframes";
+import { IST_OFFSET_S, TIMEFRAME_LABELS, barLabel, barOfDay, barTime, isIntraday } from "@/lib/timeframes";
 import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools";
 import { IndicatorRow } from "./IndicatorLegend";
 
@@ -128,7 +128,7 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
     }
     if (!isIntraday(timeframe)) {
       for (const s of signals) { // a decision is drawn on the day it was made (after that close)
-        const day = days.find((d) => d >= s.day);
+        const day = barOfDay(days, s.day);
         if (day) markers.push({ time: day as Time, position: s.action === "BUY" ? "belowBar" : "aboveBar", color: s.action === "BUY" ? "#089981" : "#f23645", shape: s.action === "BUY" ? "arrowUp" : "arrowDown", text: s.action });
       }
     }
@@ -276,8 +276,8 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
     const m = new Map<string, Mark[]>();
     if (isIntraday(timeframe)) return m;
     for (const s of signals) {
-      const bar = bars.find((b) => b.date >= s.day);
-      if (bar && s.reason) m.set(bar.date, [...(m.get(bar.date) ?? []), s]); // two decisions can land on one bar (a sell and a buy in a gap)
+      const date = barOfDay(bars.map((b) => b.date), s.day);
+      if (date && s.reason) m.set(date, [...(m.get(date) ?? []), s]); // two decisions can land on one bar (a sell and a buy in a gap)
     }
     return m;
   }, [signals, bars, timeframe]);
