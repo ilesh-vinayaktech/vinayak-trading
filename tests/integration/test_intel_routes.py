@@ -161,7 +161,7 @@ def test_progress_shows_running_jobs_first_with_elapsed_quiet_time_and_whether_t
             "reading prices",
             "",
             now - timedelta(hours=1),
-            now - timedelta(minutes=11),
+            now - timedelta(minutes=31),
             None,
         ),
         (
@@ -201,7 +201,7 @@ def test_progress_shows_running_jobs_first_with_elapsed_quiet_time_and_whether_t
     ) == (2, 12, "checking ret_5d", "look-ahead test 1 of 5", 1800, 20, True, False)
     assert (
         jobs["quiet"]["stalled"] is True and jobs["quiet"]["alive"] is True
-    )  # silent for 11 minutes
+    )  # silent for 31 minutes: past the 30 allowed
     assert jobs["dead"]["stalled"] is True and jobs["dead"]["alive"] is False  # the process is gone
     finished = jobs["done_job"]
     assert (

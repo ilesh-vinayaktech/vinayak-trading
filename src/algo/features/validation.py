@@ -120,10 +120,26 @@ def validate(
             f"checking {name}",
             f"recomputing every month from the first read ({len(months)} months, one pass)",
         )
-    rows_by_month = store.compute_rows_by_month(name, months, bars, fa)
+    rows_by_month = store.compute_rows_by_month(
+        name,
+        months,
+        bars,
+        fa,
+        heartbeat=(lambda k, n: report(f"checking {name}", f"first read: company {k} of {n}"))
+        if report
+        else None,
+    )
     if report:
         report(f"checking {name}", "recomputing every month from the second, independent read")
-    second = store.compute_rows_by_month(name, months, again, fb)
+    second = store.compute_rows_by_month(
+        name,
+        months,
+        again,
+        fb,
+        heartbeat=(lambda k, n: report(f"checking {name}", f"second read: company {k} of {n}"))
+        if report
+        else None,
+    )
     identical = all(
         store.rows_sha256(rows_by_month[m]) == store.rows_sha256(second[m]) for m in months
     )

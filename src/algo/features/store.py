@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -183,6 +183,7 @@ def compute_rows_by_month(
     months: Sequence[date],
     bars_by_instrument: Mapping[int, Mapping[date, SessionBar]],
     filings: Mapping[int, FilingsHistory] | None = None,
+    heartbeat: Callable[[int, int], None] | None = None,
 ) -> dict[date, list[Row]]:
     """The rows of one feature for several calendar months in ONE pass over each company, the same rows (and digests) `compute_rows` gives month by month. Computing a month alone
     recomputes the whole history up to it, so doing every month that way costs the square of the number of months; this costs one history. Pure."""
@@ -191,7 +192,11 @@ def compute_rows_by_month(
     end = _month_end(max(wanted))
     sessions = [s for s in registry.sessions_from(bars_by_instrument) if s <= end]
     out: dict[date, list[Row]] = {m: [] for m in sorted(wanted)}
-    for iid in sorted(bars_by_instrument):
+    for k, iid in enumerate(sorted(bars_by_instrument), 1):
+        if heartbeat and (k == 1 or k % 200 == 0):
+            heartbeat(
+                k, len(bars_by_instrument)
+            )  # lets a caller show that a slow feature is still working
         for day, (value, available_at) in d.calc(
             sessions, bars_by_instrument[iid], (filings or {}).get(iid)
         ).items():

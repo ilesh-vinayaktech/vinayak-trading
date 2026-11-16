@@ -314,3 +314,14 @@ def test_the_script_validates_every_feature_from_one_shared_read_and_records_liv
         2,
         "finished",
     ) and label == "Feature validation (dry run)"
+
+
+def test_a_slow_feature_keeps_reporting_that_it_is_working_company_by_company(world):
+    conn, ids, fid = world
+    seen = []
+    validate(conn, fid, report=lambda phase, msg: seen.append(msg))
+    first = [m for m in seen if m.startswith("first read: company")]
+    second = [m for m in seen if m.startswith("second read: company")]
+    assert first == ["first read: company 1 of 2"] and second == [
+        "second read: company 1 of 2"
+    ]  # reported at the first company, then every 200
