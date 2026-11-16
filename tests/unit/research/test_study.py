@@ -232,3 +232,16 @@ def test_the_per_trade_stop_and_cooldown_are_off_by_default_and_must_be_sensible
     ):
         with pytest.raises(ValueError):
             spec(**bad)
+
+
+def test_a_fixed_setting_must_be_one_of_the_combinations_and_is_off_by_default():
+    assert spec().fixed is None
+    ok = spec(fixed={"entry_rsi": 25, "exit_rsi": 60, "max_positions": 10, "trend_sma": 100})
+    check(ok, today=TODAY)  # decided before the study, and inside its grid
+    with pytest.raises(StudyError, match="fixed"):
+        check(
+            spec(fixed={"entry_rsi": 99, "exit_rsi": 60, "max_positions": 10, "trend_sma": 100}),
+            today=TODAY,
+        )
+    with pytest.raises(StudyError, match="fixed"):
+        check(spec(fixed={"entry_rsi": 25}), today=TODAY)  # every grid setting must be named

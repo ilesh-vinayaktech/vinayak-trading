@@ -78,3 +78,18 @@ def test_a_grid_of_near_identical_variants_gets_a_sharpe_lower_bound_and_a_grid_
     )
     assert not ev_d.pbo_twins and ev_d.oos_sharpe_lower is None and ev_d.pbo is not None
     assert assemble(Inputs(oos_returns=base, trial_returns=twins)) == ev_t  # deterministic
+
+
+def test_when_nothing_was_selected_the_overfitting_gate_uses_the_sharpe_lower_bound_whatever_the_variants_look_like():
+    import random
+
+    rng = random.Random(5)
+    base = [0.0008 + rng.gauss(0, 0.01) for _ in range(300)]
+    different = [
+        [rng.gauss(0, 0.01) for _ in range(300)] for _ in range(3)
+    ]  # variants that look nothing alike: PBO would normally apply
+    chosen = assemble(Inputs(oos_returns=base, trial_returns=different))
+    fixed = assemble(Inputs(oos_returns=base, trial_returns=different, no_selection=True))
+    assert (
+        not chosen.pbo_twins and fixed.pbo_twins and fixed.oos_sharpe_lower is not None
+    )  # no choosing, so no overfitting to measure

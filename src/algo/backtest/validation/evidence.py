@@ -38,6 +38,7 @@ class Inputs:
     by_month: Mapping[str, float] = field(default_factory=dict)
     by_trade: Mapping[str, float] = field(default_factory=dict)
     pbo_blocks: int = 8
+    no_selection: bool = False  # the setting was fixed in advance: nothing was chosen on past data, so there is nothing for PBO to measure
 
 
 NEAR_TWIN_CORRELATION = (
@@ -66,7 +67,7 @@ def assemble(i: Inputs) -> Evidence:
     sr_var = stdev(list(i.trial_sharpes)) ** 2 if len(i.trial_sharpes) >= 2 else 0.0
     gains = [w for w in i.window_returns if w > 0]
     corr = mean_pairwise_correlation(list(i.trial_returns)) if len(i.trial_returns) >= 2 else None
-    twins = corr is not None and corr >= NEAR_TWIN_CORRELATION
+    twins = i.no_selection or (corr is not None and corr >= NEAR_TWIN_CORRELATION)
     return Evidence(
         oos_sharpe=annualised_sharpe(oos),
         dsr=deflated_sharpe(oos, max(i.n_trials, 1), sr_var),

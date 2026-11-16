@@ -366,7 +366,7 @@ def run_verdict(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
             )
         ]
         bench, bench_note = _benchmark(conn, spec, sessions)
-        a = verdict.analyse(sessions, combos, returns, spec.grid, bench)
+        a = verdict.analyse(sessions, combos, returns, spec.grid, bench, fixed=spec.fixed)
         base_run = run_of[registry.params_hash(a.base)]
         study_jobs.start(conn, run_id, 2, 0, {"chosen": a.base}, now)
         setup = prepare(conn, spec, exp)

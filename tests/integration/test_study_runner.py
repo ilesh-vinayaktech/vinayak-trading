@@ -791,3 +791,30 @@ def test_a_study_with_the_per_trade_stop_runs_and_records_it_in_its_locked_docum
         0
     ]
     assert locked["spec"]["trade_stop"] == "0.02" and locked["spec"]["stop_cooldown_days"] == 5
+
+
+def test_a_fixed_setting_study_runs_every_trial_and_judges_only_the_pre_registered_setting(env):
+    from algo.factory import generate
+    from algo.factory import registry as freg
+    from algo.factory import study as fstudy
+
+    conn, owner = env
+    defn = generate.definition_for(
+        generate.Hypothesis(1, 1, "ret_20d", "1", 20, "POSITIVE", 0.05, 0.001)
+    )
+    freg.register(conn, defn, by="t", reason="test", now=NOW)
+    s = fstudy.spec_for(
+        conn,
+        defn.strategy_id,
+        1,
+        family_id=1,
+        start=DAYS[0],
+        end=DAYS[-1],
+        holdout_start=DAYS[270],
+        fixed=fstudy.FIXED,
+    )
+    assert s.fixed == fstudy.FIXED and s.name.endswith("stop2 fixed")
+    assert s.fixed in [
+        dict(c)
+        for c in __import__("algo.research.study", fromlist=["combinations"]).combinations(s)
+    ]

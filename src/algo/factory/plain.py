@@ -97,7 +97,10 @@ def describe(d: StrategyDef) -> dict[str, str]:
         and sell_first.op in ("TOP_PERCENT", "BOTTOM_PERCENT")
         and first.feature == sell_first.feature
     ):
-        side = lambda c: "highest" if c.op == "TOP_PERCENT" else "lowest"  # noqa: E731
+
+        def side(c: Condition) -> str:
+            return "highest" if c.op == "TOP_PERCENT" else "lowest"
+
         summary += f"buy the {_n(first.value)}% of stocks with the {side(first)} {phrase(first.feature)}; sell when one falls into the {_n(sell_first.value)}% with the {side(sell_first)}."
     else:
         summary += buy[0].lower() + buy[1:]

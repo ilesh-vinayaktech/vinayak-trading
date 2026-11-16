@@ -207,6 +207,14 @@ def _window(study: Mapping[str, Any] | None) -> tuple[str, str] | None:
     return (str(spec["start"]), str(spec["end"])) if "start" in spec and "end" in spec else None
 
 
+def _try_id(eid: int, strategy_id: str, study: Mapping[str, Any] | None) -> tuple[Any, ...]:
+    """What makes two trials the same try: the same definition (or coded strategy), research window, per-trade stop and cooldown. Without a definition id, the experiment itself."""
+    spec = (study or {}).get("spec") or {}
+    d = spec.get("definition") or {}
+    who = (d.get("strategy_id"), d.get("version")) if d.get("strategy_id") else (strategy_id, eid)
+    return (who, _window(study), spec.get("trade_stop"), spec.get("stop_cooldown_days"))
+
+
 def deflation_trials(conn: psycopg.Connection, exp_id: int) -> tuple[int, list[float]]:
     """(N, per-trial Sharpes) the multiple-testing correction uses for this experiment (review 2026-11-16, section 3.1).
     N counts EVERY trial of the same idea (same research family, same hypothesis key) on any window, so trying a variant again or on another window never resets the penalty.
@@ -223,19 +231,23 @@ def deflation_trials(conn: psycopg.Connection, exp_id: int) -> tuple[int, list[f
         return trial_count(conn, exp_id), trial_sharpes(conn, exp_id)
     key, window = hypothesis_key(mine[0], mine[1]), _window(mine[1])
     same = [eid for eid, sid, study in rows if hypothesis_key(sid, study) == key]
-    comparable = [eid for eid, sid, study in rows if eid in same and _window(study) == window]
-    n = conn.execute(
-        "SELECT count(*) FROM experiment_trial WHERE experiment_id = ANY(%s)", (same,)
-    ).fetchone()
-    sharpes = [
-        float(r[0])
-        for r in conn.execute(
-            "SELECT sharpe FROM experiment_trial WHERE experiment_id = ANY(%s) AND sharpe IS NOT NULL ORDER BY trial_id",
-            (comparable,),
-        )
-    ]
-    assert n is not None
-    return int(n[0]), sharpes
+    comparable = {eid for eid, sid, study in rows if eid in same and _window(study) == window}
+    ident = {eid: _try_id(eid, sid, study) for eid, sid, study in rows}
+    seen: set[tuple[Any, str]] = set()
+    n = 0
+    sharpes: list[float] = []
+    for eid, params_hash, sharpe in conn.execute(
+        "SELECT experiment_id, params_hash, sharpe FROM experiment_trial WHERE experiment_id = ANY(%s) ORDER BY trial_id",
+        (same,),
+    ):
+        key_ = (ident[eid], params_hash)
+        if key_ in seen:  # the same definition, window and setting tried again is one try, not two
+            continue
+        seen.add(key_)
+        n += 1
+        if eid in comparable and sharpe is not None:
+            sharpes.append(float(sharpe))
+    return n, sharpes
 
 
 def family_trial_count(conn: psycopg.Connection, family_id: int) -> int:

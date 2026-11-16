@@ -186,3 +186,30 @@ def test_the_luck_bar_counts_every_try_of_the_same_idea_but_takes_its_spread_onl
     assert (
         registry.family_trial_count(env, 1) == 8
     )  # the family-level count (used for the holdout batch) is unchanged
+
+
+def test_the_same_try_registered_twice_counts_once(env):
+    """Re-running a definition with the same settings, window and stop is one try, not two (review 3.10: no duplicate trials)."""
+
+    def with_id(name, stop):
+        from psycopg.types.json import Jsonb  # noqa: F401
+
+        return registry.register(
+            env, name=name, strategy_id="dsl", hypothesis=HYP, style="long_only", param_ranges={"a": [1, 100]}, holdout=(NOW.date(), NOW.date()), now=NOW, family_id=1,
+            study={"spec": {"definition": {"strategy_id": "ALPHA_X", "version": 1, "ranking": {"feature": "vol_20d"}}, "start": "2016-01-01", "end": "2022-12-31", "trade_stop": stop}},
+        )  # fmt: skip
+
+    first, again, other_setup = (
+        with_id("first", "0.02"),
+        with_id("same again", "0.02"),
+        with_id("no stop", None),
+    )
+    for e, s in ((first, (0.05, 0.06)), (again, (0.05, 0.06)), (other_setup, (0.04,))):
+        for i, v in enumerate(s):
+            registry.record_trial(env, e, {"a": i + 1}, v, None, NOW)
+    n, sharpes = registry.deflation_trials(env, first)
+    assert n == 3 and sorted(sharpes) == [
+        0.04,
+        0.05,
+        0.06,
+    ]  # the repeat adds nothing; the run without the stop is another try

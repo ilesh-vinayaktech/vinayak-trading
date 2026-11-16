@@ -87,6 +87,8 @@ class StudySpec(BaseModel):
     )  # a total-return index, by name
     thresholds: dict[str, Decimal]
     accept_survivorship_bias: bool = False
+    # a setting decided BEFORE the study (one of the grid's combinations): nothing is chosen on past data, it is judged as it is, and the rest of the grid is only a check that its neighbours behave alike
+    fixed: dict[str, int | float] | None = None
     # the paper account's per-trade stop and re-entry cooldown, applied inside the backtest (off by default: studies registered before these existed ran without them)
     trade_stop: Decimal | None = Field(default=None, gt=0, lt=1)
     stop_cooldown_days: int = Field(default=0, ge=0, le=60)
@@ -131,6 +133,10 @@ def _check_grid(s: StudySpec, max_trials: int) -> None:
                 params.model_validate({name: v})
             except ValidationError as e:
                 raise StudyError(f"{name}={v} is not allowed by {s.strategy_id}") from e
+    if s.fixed is not None and not any(s.fixed == c for c in combinations(s)):
+        raise StudyError(
+            f"the fixed setting {s.fixed} must name every grid setting and be one of the combinations"
+        )
     need = max(
         getattr(STRATEGIES[s.strategy_id][0], "required_history", lambda _: 0)(c)
         for c in combinations(s)

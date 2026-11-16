@@ -191,3 +191,49 @@ def test_holdout_gates_carry_the_same_four_way_status_and_missing_evidence_is_in
     assert all(g["status"] == "PASS" and g["passed"] for g in gates)
     gates, _ = holdout_gates(calm(0.0001), calm(0.0005), t)
     assert by_name(gates)["holdout_sharpe"]["status"] == "FAIL"  # measured, not good enough
+
+
+def test_a_pre_registered_setting_is_judged_on_the_same_out_of_sample_days_with_nothing_selected():
+    """Review follow-up: when the configuration was fixed in advance there is no choosing, so no walk-forward selection and no PBO to overfit."""
+    fixed = {"a": 1}  # the worst variant on the training days: a selection would never pick it
+    chosen = analyse(days(), COMBOS, stored(), GRID)
+    pre = analyse(days(), COMBOS, stored(), GRID, fixed=fixed)
+    assert pre.selected is False and chosen.selected is True
+    assert (
+        len(pre.oos_returns) == len(chosen.oos_returns) == 2 * TEST
+    )  # the same out-of-sample days
+    assert (
+        pre.oos_returns[:TEST]
+        == stored()[registry.params_hash(fixed)][TRAIN + EMBARGO : TRAIN + EMBARGO + TEST]
+    )
+    assert (
+        all(w["chosen"] == fixed for w in pre.windows) and pre.base == fixed
+    )  # the base for the plateau is the fixed setting
+    assert pre.neighbour_sharpes == [annualised_sharpe_of({"a": 2})]  # its neighbour in the grid
+    assert pre.regime_labels == chosen.regime_labels and len(pre.window_returns) == 2
+
+
+def annualised_sharpe_of(combo):
+    from algo.backtest.validation.stats import annualised_sharpe
+
+    return annualised_sharpe(stored()[registry.params_hash(combo)])
+
+
+def test_a_fixed_setting_that_is_not_one_of_the_combinations_is_refused():
+    with pytest.raises(VerdictError, match="not one of the combinations"):
+        analyse(days(), COMBOS, stored(), GRID, fixed={"a": 99})
+
+
+def test_inputs_carry_whether_anything_was_selected():
+    pre = analyse(days(), COMBOS, stored(), GRID, fixed={"a": 1})
+    kw = dict(
+        n_trials=3,
+        trial_sharpes=[0.1, 0.2],
+        trial_returns=list(stored().values()),
+        plateau_tolerance=0.3,
+        returns_2x_costs=[],
+        returns_3x_capital=[],
+        trips=[],
+    )
+    assert inputs(pre, **kw).no_selection is True
+    assert inputs(analyse(days(), COMBOS, stored(), GRID), **kw).no_selection is False

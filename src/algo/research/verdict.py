@@ -55,6 +55,9 @@ class Analysis:
     windows: list[
         dict[str, Any]
     ]  # per window: dates, chosen settings, Sharpe and return judged out of sample
+    selected: bool = (
+        True  # False when the setting was fixed in advance: nothing was chosen on past data
+    )
 
 
 def _compound(rs: Sequence[float]) -> float:
@@ -86,8 +89,10 @@ def analyse(
     returns: Mapping[str, Sequence[float]],
     grid: Mapping[str, Sequence[float]],
     benchmark: Sequence[float] | None = None,
+    fixed: Mapping[str, Any] | None = None,
 ) -> Analysis:
-    """`days`: the session dates of the equity curve; `returns[hash][i]` is the return on days[i + 1]."""
+    """`days`: the session dates of the equity curve; `returns[hash][i]` is the return on days[i + 1]. With `fixed` (a combination decided before the study) nothing is chosen on past data:
+    that setting is judged on the same out-of-sample days walk-forward would use, and the plateau compares it with its neighbours."""
     n = len(days) - 1
     missing = [c for c in combos if _key(c) not in returns]
     if missing:
@@ -102,18 +107,30 @@ def analyse(
         raise VerdictError(
             f"{n} sessions is too short for walk-forward: it needs at least {TRAIN + EMBARGO + TEST}"
         )
-    wf = walk_forward(
-        n,
-        list(combos),
-        lambda p, s, e: returns[_key(p)][s:e],
-        train=TRAIN,
-        test=TEST,
-        embargo=EMBARGO,
-    )
+    if fixed is not None and not any(_key(c) == _key(fixed) for c in combos):
+        raise VerdictError(f"the fixed setting {dict(fixed)} is not one of the combinations")
     wins = windows(n, TRAIN, TEST, EMBARGO)
+    if fixed is None:
+        wf = walk_forward(
+            n,
+            list(combos),
+            lambda p, s, e: returns[_key(p)][s:e],
+            train=TRAIN,
+            test=TEST,
+            embargo=EMBARGO,
+        )
+        chosen_each, sharpe_each, oos_out = (
+            list(wf.chosen),
+            list(wf.per_window_sharpe),
+            list(wf.oos_returns),
+        )
+    else:  # nothing selected: the same setting in every window
+        chosen_each = [dict(fixed) for _ in wins]
+        sharpe_each = [sharpe_per_period(returns[_key(fixed)][w.test[0] : w.test[1]]) for w in wins]
+        oos_out = [r for w in wins for r in returns[_key(fixed)][w.test[0] : w.test[1]]]
     oos_idx = [i for w in wins for i in range(*w.test)]
     rows, window_returns = [], []
-    for w, chosen, sh in zip(wins, wf.chosen, wf.per_window_sharpe, strict=True):
+    for w, chosen, sh in zip(wins, chosen_each, sharpe_each, strict=True):
         r = returns[_key(chosen)][w.test[0] : w.test[1]]
         window_returns.append(_compound(r))
         rows.append({
@@ -130,17 +147,18 @@ def analyse(
             -i,
         ),
     )
-    base = dict(combos[best])
+    base = dict(fixed) if fixed is not None else dict(combos[best])
     near = [returns.get(_key(c)) for c in neighbours(base, grid)]
     return Analysis(
         base=base,
         base_sharpe=annualised_sharpe(returns[_key(base)]),
         neighbour_sharpes=[None if r is None else annualised_sharpe(r) for r in near],
-        oos_returns=list(wf.oos_returns),
+        oos_returns=oos_out,
         window_returns=window_returns,
         benchmark_oos=[] if benchmark is None else [benchmark[i] for i in oos_idx],
         regime_labels=[str(days[i + 1].year) for i in oos_idx],
         windows=rows,
+        selected=fixed is None,
     )
 
 
@@ -186,6 +204,7 @@ def inputs(
         by_instrument=stock,
         by_month=month,
         by_trade=trade,
+        no_selection=not a.selected,
     )
 
 
