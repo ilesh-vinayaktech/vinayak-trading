@@ -160,20 +160,26 @@ def validate(
         if len(sessions) > CUTS
         else []
     )
-    for n, cut in enumerate(cut_days, 1):
-        if report:
-            report(f"checking {name}", f"look-ahead test {n} of {len(cut_days)} (cut at {cut})")
-        short_sessions = [s for s in sessions if s <= cut]
-        for iid, series in bars.items():
-            history = (fa or {}).get(iid)
-            full = d.calc(sessions, series, history)
+    short_sessions = {cut: [s for s in sessions if s <= cut] for cut in cut_days}
+    total = len(bars)
+    for k, (iid, series) in enumerate(bars.items(), 1):
+        if report and (k == 1 or k % 200 == 0):
+            report(
+                f"checking {name}",
+                f"look-ahead tests: company {k} of {total}, {len(cut_days)} cut dates each",
+            )
+        history = (fa or {}).get(iid)
+        full = d.calc(
+            sessions, series, history
+        )  # the full history is worked out once per company, then compared with each cut
+        for cut in cut_days:
             short = d.calc(
-                short_sessions,
+                short_sessions[cut],
                 {x: b for x, b in series.items() if x <= cut},
                 history.truncated(cut) if history else None,
             )
             checks += 1
-            violations += sum(1 for day in short_sessions if full.get(day) != short.get(day))
+            violations += sum(1 for day in short_sessions[cut] if full.get(day) != short.get(day))
     reasons = []
     if share < min_coverage:
         reasons.append(f"coverage {share:.4f} is below the minimum {min_coverage}")

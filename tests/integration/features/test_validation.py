@@ -253,12 +253,10 @@ def test_progress_is_reported_for_reads_months_and_each_look_ahead_test(world):
         "recomputing every month from the first read (2 months, one pass)",
     ) in seen
     assert ("checking ret_5d", "recomputing every month from the second, independent read") in seen
-    cuts = [m for p, m in seen if m.startswith("look-ahead test")]
+    cuts = [m for p, m in seen if m.startswith("look-ahead tests")]
     assert (
-        cuts
-        and cuts[0].startswith("look-ahead test 1 of ")
-        and all("(cut at 20" in m for m in cuts)
-    )
+        cuts and cuts[0] == "look-ahead tests: company 1 of 2, 3 cut dates each"
+    )  # reported at the first company, then every 200
     quiet = []
     validation.read_bars(conn, fid, JAN, report=None)
     assert quiet == []  # reporting is optional
