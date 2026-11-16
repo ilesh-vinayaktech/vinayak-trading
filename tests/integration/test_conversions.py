@@ -268,3 +268,24 @@ def test_an_instruction_that_cannot_be_trusted_is_refused(world):
     with pytest.raises(ConversionRecordError, match="must cite evidence"):
         store_conversion(conn, {**DOC, "evidence": []}, NOW)
     assert conn.execute("SELECT count(*) FROM security_conversion").fetchone()[0] == 0
+
+
+def test_a_new_isin_with_its_own_earlier_history_is_tradable_throughout_and_needs_no_conversion(
+    world,
+):
+    from datetime import timedelta
+
+    from algo.data.reader import BarReader
+
+    conn, old, new, other = world
+    add_conversion(conn, old, new)
+    put_bars(conn, new, {d: D(2000) for d in OLD_DAYS})
+    conn.execute("UPDATE bar_1d SET source='kite' WHERE instrument_id=ANY(%s)", ([new, other],))
+    reader = BarReader(
+        conn, source="kite", publish_lag=timedelta(0)
+    )  # a Kite series is continuous under the new ISIN
+    strat = Scripted(HoldParams(ids=(new, other), weights=(D(0), D(0))), [{new: D(1)}])
+    res = run_backtest(
+        conn, strat, cfg(start=ALL_DAYS[0], end=ALL_DAYS[-1], initial_cash=D(100000)), reader=reader
+    )
+    assert res.conversions == [] and set(res.final_positions) == {new}

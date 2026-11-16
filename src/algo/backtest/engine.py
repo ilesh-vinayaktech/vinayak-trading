@@ -297,6 +297,8 @@ def run_backtest(
             continue
         c = verified.get((link.source, link.target, link.effective))
         if c is not None and link.target in loaded:
+            if loaded[link.target].days[0] < c.effective:
+                continue  # own earlier history (continuous series): tradable throughout
             ledger.register_conversion(c)
             convs.append(c)
         elif link.source in loaded:
