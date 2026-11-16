@@ -10,6 +10,10 @@ from datetime import time
 from decimal import Decimal
 from typing import Any
 
+NULLABLE = frozenset(
+    {"max_trade_loss"}
+)  # limits that are ON by default: only these can be switched off by writing null
+
 
 class LimitsError(ValueError):
     pass
@@ -63,6 +67,8 @@ class Limits:
                 out[key] = bool(value)
             elif key == "trading_hours":
                 out[key] = (time.fromisoformat(value[0]), time.fromisoformat(value[1]))
+            elif value is None and key in NULLABLE:
+                out[key] = None  # an explicit null switches a limit that has a default off
             elif key in (
                 "max_order_qty",
                 "order_burst",

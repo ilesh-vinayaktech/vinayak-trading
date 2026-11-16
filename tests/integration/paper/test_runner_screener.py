@@ -144,9 +144,12 @@ def test_a_held_stock_that_stops_matching_is_proposed_for_sale_that_same_session
     out = run_day(conn, uid, day=day, now=at(day), lake_root=lake)
     assert out.status == "PROPOSED", out.detail
     rows = orders(conn, uid, day)
-    assert [(r[0], r[1], r[2], r[3]) for r in rows] == [
-        (ids["SLOW"], "SELL", D(100), "exit: no longer matches the screen")
+    assert [(r[0], r[1], r[2]) for r in rows] == [
+        (ids["SLOW"], "SELL", D(100))
     ]  # all of it, and nothing else is bought: no other stock matches
+    assert rows[0][3].startswith(
+        "stop loss: long 100 is 14.93% against its entry"
+    )  # it crashed 15% below its cost, so the per-trade stop is what names the sale
 
 
 def test_it_buys_a_stock_back_on_the_first_session_it_matches_again(env):

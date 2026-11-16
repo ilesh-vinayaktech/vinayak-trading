@@ -37,6 +37,7 @@ from algo.research import fundamentals_book
 from algo.research.study import UniverseSpec
 from algo.research.study_universe import build as segment_universe
 from algo.risk import store as paper_risk_store
+from algo.risk.realtime import OpenPosition, trade_stops
 from algo.sandbox.adapters import membership_spec
 from algo.sandbox.host import Limits as SandboxLimits
 from algo.sandbox.host import SandboxedStrategy, SandboxError, StrategyFailed
@@ -323,8 +324,20 @@ def _decide(
             audit = worker.audit()
         finally:
             worker.stop()
-    base = {"universe": universe, "audit": audit, "equity": equity, "cash": ledger.cash}
-    if targets is None:
+    # the per-trade loss limit: a held position that has moved against its cost by the account's limit is sold whatever the strategy says (the owner still approves the order)
+    positions = [
+        OpenPosition(iid, int(q), ledger.cost_basis(iid) / q, close_on[iid])
+        for iid, q in held.items()
+        if q > 0 and iid in close_on and ledger.cost_basis(iid) > 0
+    ]
+    stops = {
+        s.instrument_id: s for s in trade_stops(positions, paper_risk.get_limits(conn, user_id))
+    }
+    base = {
+        "universe": universe, "audit": audit, "equity": equity, "cash": ledger.cash,
+        "stops": [{"instrument_id": i, "loss": str(s.loss), "detail": s.detail} for i, s in sorted(stops.items())],
+    }  # fmt: skip
+    if targets is None and not stops:
         return _record(
             conn,
             user_id,
@@ -341,13 +354,16 @@ def _decide(
     entry_reason = audit.get("entry_reason", "entry: oversold in an uptrend")
     sells: list[Proposal] = []
     buys: list[Proposal] = []
-    for iid in sorted(set(targets) | set(held)):
+    # a strategy that keeps its targets only has the stopped holdings to act on
+    considered = sorted(stops) if targets is None else sorted(set(targets) | set(held))
+    for iid in considered:
         px = close_on.get(iid)
         if px is None:
             continue  # no bar for the decision day: it can be neither sized nor traded
-        delta = snap_down(
-            targets.get(iid, Decimal(0)) * equity / px, _step(repo, iid, day)
-        ) - held.get(iid, Decimal(0))
+        wanted = (
+            Decimal(0) if iid in stops else (targets or {}).get(iid, Decimal(0))
+        )  # a stopped name goes to zero and is not bought again today
+        delta = snap_down(wanted * equity / px, _step(repo, iid, day)) - held.get(iid, Decimal(0))
         if delta < 0:
             sells.append(
                 (
@@ -355,7 +371,11 @@ def _decide(
                     iid,
                     min(-delta, held[iid]),
                     px,
-                    f"exit: {exits[iid]}" if iid in exits else "reduce to the target weight",
+                    f"stop loss: {stops[iid].detail}"
+                    if iid in stops
+                    else f"exit: {exits[iid]}"
+                    if iid in exits
+                    else "reduce to the target weight",
                 )
             )
         elif delta > 0:

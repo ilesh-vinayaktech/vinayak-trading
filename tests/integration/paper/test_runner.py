@@ -128,7 +128,7 @@ def test_a_holding_that_lost_its_trend_is_proposed_for_sale(env):
         side="BUY",
         iid=weak,
         qty=D(100),
-        price=D(80),
+        price=D(60),  # below today's close: in profit, so the per-trade stop is not what sells it
         commission=D(0),
         charges=[],
         ref="seed",
@@ -468,3 +468,108 @@ def test_a_sandboxed_strategy_that_breaks_a_rule_is_halted_and_its_strategy_paus
         run_day(conn, uid, day=DAY, now=NOW, lake_root=lake, sandbox=SANDBOX).detail["reason"]
         == "the kill switch is PAUSE"
     )
+
+
+# ---- the per-trade loss limit (owner, 2026-11-15: 2% by default) --------------------------------------------------------------
+def hold(conn, uid, iid, cost, qty=100):
+    book.record_fill(
+        conn,
+        uid,
+        day=DAYS[260],
+        side="BUY",
+        iid=iid,
+        qty=D(qty),
+        price=D(str(cost)),
+        commission=D(0),
+        charges=[],
+        ref="seed",
+        now=NOW,
+    )
+
+
+def test_a_holding_that_has_lost_two_percent_from_its_cost_is_proposed_for_sale_with_the_stop_as_the_reason(
+    env,
+):
+    conn, ids, lake = env
+    uid = user(conn)
+    weak = ids[UP]
+    close = falling()[DAY]
+    hold(conn, uid, weak, close * D("1.03"))  # bought 3% above where it closes today
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    sells = [r for r in orders(conn, uid) if r[1] == "SELL"]
+    assert len(sells) == 1 and sells[0][0] == weak and sells[0][2] == D(100)
+    assert sells[0][4].startswith(
+        "stop loss: long 100 is 2.91% against its entry"
+    )  # 1 - 1/1.03: the loss against its entry
+    assert out.detail["stops"] == [
+        {
+            "instrument_id": weak,
+            "loss": out.detail["stops"][0]["loss"],
+            "detail": sells[0][4].removeprefix("stop loss: "),
+        }
+    ]
+    assert out.status == "PROPOSED"
+
+
+def test_a_holding_within_the_limit_is_left_to_the_strategy_and_a_winner_is_never_stopped(env):
+    conn, ids, lake = env
+    uid = user(conn)
+    weak = ids[UP]
+    close = falling()[DAY]
+    hold(conn, uid, weak, close * D("1.01"))  # down 1%: inside the 2% limit
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert out.detail["stops"] == []
+    sells = [r for r in orders(conn, uid) if r[1] == "SELL"]
+    assert (
+        len(sells) == 1 and sells[0][4] == "exit: below_trend"
+    )  # the strategy's own exit, not the stop
+    uid2 = user(conn, email="bob@example.com")
+    hold(conn, uid2, weak, close * D("0.80"))  # up 25%
+    assert run_day(conn, uid2, day=DAY, now=NOW, lake_root=lake).detail["stops"] == []
+
+
+def test_the_stop_acts_even_when_the_strategy_keeps_its_targets(env, monkeypatch):
+    conn, ids, lake = env
+
+    class Keeps(TrendPullback):
+        def on_schedule(self, ctx):
+            return None
+
+    from algo.paper import runner
+
+    monkeypatch.setitem(runner.STRATEGIES, "trend_pullback", (Keeps, TrendPullbackParams))
+    uid = user(conn)
+    weak = ids[UP]
+    hold(conn, uid, weak, falling()[DAY] * D("1.10"))
+    out = run_day(conn, uid, day=DAY, now=NOW, lake_root=lake)
+    assert out.status == "PROPOSED" and [(r[0], r[1], r[2]) for r in orders(conn, uid)] == [
+        (weak, "SELL", D(100))
+    ]
+    assert orders(conn, uid)[0][4].startswith("stop loss: ")
+
+
+def test_a_stopped_name_is_not_bought_again_the_same_day_and_the_limit_can_be_changed_or_switched_off(
+    env,
+):
+    from algo.paper import risk as paper_risk
+
+    conn, ids, lake = env
+    weak = ids[UP]
+    cost = falling()[DAY] * D("1.03")  # a 2.9% loss on the day
+    outcomes = {}
+    for email, limit in (
+        ("wide@example.com", "0.05"),
+        ("off@example.com", None),
+        ("two@example.com", "0.02"),
+    ):
+        uid = user(conn, email=email)
+        hold(conn, uid, weak, cost)
+        paper_risk.set_limits(conn, uid, {"max_trade_loss": limit})
+        outcomes[email] = (uid, run_day(conn, uid, day=DAY, now=NOW, lake_root=lake))
+    assert outcomes["wide@example.com"][1].detail["stops"] == []  # a 5% stop: 2.9% is inside it
+    assert outcomes["off@example.com"][1].detail["stops"] == []  # switched off
+    uid, out = outcomes["two@example.com"]
+    assert len(out.detail["stops"]) == 1
+    assert [
+        r for r in orders(conn, uid) if r[1] == "BUY" and r[0] == weak
+    ] == []  # not bought back the same day

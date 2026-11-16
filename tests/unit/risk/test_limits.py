@@ -69,3 +69,11 @@ def test_every_integer_limit_loads_as_an_integer_from_text_and_several_unknown_n
     with pytest.raises(LimitsError) as e:
         Limits.from_mapping({"zeta": 1, "alpha": 2})
     assert str(e.value) == "unknown limit(s): alpha, zeta"
+
+
+def test_the_per_trade_loss_limit_defaults_to_two_percent_can_be_set_and_can_be_switched_off_with_an_explicit_null():
+    from decimal import Decimal as D
+
+    assert Limits.from_mapping({}).max_trade_loss == D("0.02")
+    assert Limits.from_mapping({"max_trade_loss": "0.05"}).max_trade_loss == D("0.05")
+    assert Limits.from_mapping({"max_trade_loss": None}).max_trade_loss is None
