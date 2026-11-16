@@ -35,6 +35,9 @@ PERCENT_OPS = frozenset(
     {"TOP_PERCENT", "BOTTOM_PERCENT"}
 )  # cross-sectional: 'in the strongest / weakest value% of the stocks that have data that day', so no threshold comes from the data
 VOLATILITY_FEATURE = "vol_20d"  # what INVERSE_VOLATILITY sizing divides by
+MARKET_BREADTH = "market_breadth_200d"  # not a stored feature: the share (0-100) of the stocks that day above their own 200-day average, the same number for every stock; a market filter
+MARKET_FEATURES = frozenset({MARKET_BREADTH})
+BREADTH_SOURCE = "dist_sma_200d"  # the stored feature it is worked out from
 CHAINED = frozenset(
     {"atr_14d", "atr_pct_14d", "rsi_14d"}
 )  # Wilder smoothing never forgets its start: their value depends on all history, not a window, so a definition cannot use them yet
@@ -78,6 +81,10 @@ class Condition(_Frozen):
 
     @model_validator(mode="after")
     def _a_share_is_a_share(self) -> Self:
+        if self.feature in MARKET_FEATURES and self.op in PERCENT_OPS:
+            raise ValueError(
+                f"{self.feature} is the same number for every stock: a share of the stocks by it means nothing, compare it with a number"
+            )
         if self.op in PERCENT_OPS and not 0 < self.value <= 100:
             raise ValueError(
                 f"{self.op} takes a share between 0 and 100 (above 0, up to 100), not {self.value}"
@@ -145,7 +152,11 @@ class StrategyDef(_Frozen):
 
     @model_validator(mode="after")
     def _features_exist(self) -> Self:
-        known = set(feature_registry.DEFINITIONS) - CHAINED - FILINGS_FEATURES
+        known = (set(feature_registry.DEFINITIONS) - CHAINED - FILINGS_FEATURES) | MARKET_FEATURES
+        if self.ranking.feature in MARKET_FEATURES:
+            raise ValueError(
+                f"{self.ranking.feature} is the same number for every stock: it cannot rank them"
+            )
         used = {c.feature for c in self.entry.conditions() + self.exit.conditions()} | {
             self.ranking.feature
         }
@@ -162,6 +173,8 @@ class StrategyDef(_Frozen):
         }
         if self.position.sizing == "INVERSE_VOLATILITY":
             used.add(VOLATILITY_FEATURE)
+        if used & MARKET_FEATURES:  # worked out from the stocks' own 200-day distance, not stored
+            used = (used - MARKET_FEATURES) | {BREADTH_SOURCE}
         return used
 
     def warmup_bars(self) -> int:

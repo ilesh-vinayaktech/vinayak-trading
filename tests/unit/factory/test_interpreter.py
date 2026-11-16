@@ -482,3 +482,62 @@ def test_percentile_and_threshold_conditions_combine_in_one_group():
         10,
         9,
     ]  # the top three are 10, 9 and 8; 8% does not clear 8.5%
+
+
+# ---- the market filter: how much of the market is in an uptrend (review 2026-11-16, section 3.7: the cash filter that cuts a long-only drawdown) -------------------------------
+LONG = sessions(260)
+LAST = LONG[-1]
+
+
+def trending(up, n=260):
+    """Closes that rise (or fall) a little every day: always above (or below) their own 200-day average on the last day."""
+    return [100 + (k if up else -k) * D("0.2") for k in range(n)]
+
+
+def breadth_defn(**over):
+    base = {
+        "entry": {"all": [{"feature": "ret_5d", "op": ">", "value": 0}, {"feature": "market_breadth_200d", "op": ">=", "value": 50}]},
+        "exit": {"any": [{"feature": "ret_5d", "op": "<", "value": 0}, {"feature": "market_breadth_200d", "op": "<", "value": 40}]},
+    }  # fmt: skip
+    return defn(**{**base, **over})
+
+
+def long_market(rising):
+    """ids 1.. : rising ones first, then falling ones (each above or below its own 200-day average)."""
+    return {i + 1: bars(trending(up), LONG) for i, up in enumerate(rising)}
+
+
+def test_the_market_condition_is_the_share_of_stocks_above_their_200_day_average_and_opens_or_closes_the_door_for_everyone():
+    strong = long_market([True, True, True, False])  # 75% above their average
+    targets, audit = interpreter.decide(breadth_defn(), sorted(strong), strong, set(), LAST)
+    assert sorted(targets) == [
+        1,
+        2,
+    ]  # the door is open: the two best of the rising ones are bought (two slots)
+    weak = long_market([True, False, False, False])  # 25%
+    targets, audit = interpreter.decide(breadth_defn(), sorted(weak), weak, set(), LAST)
+    assert (
+        targets == {} and audit["entries"] == []
+    )  # stock 1 qualifies on its own, but the market is too weak to enter
+
+
+def test_a_weak_market_sells_what_is_held_even_when_the_stock_itself_is_fine():
+    weak = long_market([True, False, False, False])
+    targets, audit = interpreter.decide(breadth_defn(), sorted(weak), weak, {1}, LAST)
+    assert audit["exits"] == {1: "exit_condition"} and 1 not in targets
+
+
+def test_the_market_condition_is_validated_and_asks_for_the_history_it_needs():
+    d = breadth_defn()
+    assert (
+        "dist_sma_200d" in d.required_features() and d.warmup_bars() >= 200
+    )  # it needs 200 sessions of every stock
+    assert (
+        "market_breadth_200d" not in d.required_features()
+    )  # it is worked out, not a stored feature
+    with pytest.raises(ValueError, match="market_breadth_200d"):
+        breadth_defn(
+            entry={"all": [{"feature": "market_breadth_200d", "op": "TOP_PERCENT", "value": 20}]}
+        )  # a share of identical values means nothing
+    with pytest.raises(ValueError, match="market_breadth_200d"):
+        breadth_defn(ranking={"feature": "market_breadth_200d", "order": "DESC"})

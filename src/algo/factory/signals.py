@@ -20,7 +20,7 @@ import psycopg
 
 from algo.data import freeze as freeze_mod
 from algo.data.reader import AdjBar
-from algo.factory.dsl import PERCENT_OPS, Group, StrategyDef
+from algo.factory.dsl import MARKET_FEATURES, PERCENT_OPS, Group, StrategyDef
 from algo.factory.interpreter import OPS, Cadence, _cross_sections, _holds, _session_bars
 from algo.features import job, store
 from algo.features import registry as feature_registry
@@ -75,6 +75,10 @@ def explain(
 
 
 def features_used(defn: StrategyDef) -> list[str]:
+    if any(c.feature in MARKET_FEATURES for c in defn.entry.conditions() + defn.exit.conditions()):
+        raise SignalsError(
+            "this definition has a market-level condition, which the chart does not draw yet: it needs every stock's value, not one stock's"
+        )
     return sorted({c.feature for c in defn.entry.conditions() + defn.exit.conditions()})
 
 

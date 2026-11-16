@@ -26,7 +26,16 @@ from math import ceil
 from typing import Any
 
 from algo.data.reader import AdjBar
-from algo.factory.dsl import PERCENT_OPS, VOLATILITY_FEATURE, Group, Ranking, StrategyDef
+from algo.factory.dsl import (
+    BREADTH_SOURCE,
+    MARKET_BREADTH,
+    MARKET_FEATURES,
+    PERCENT_OPS,
+    VOLATILITY_FEATURE,
+    Group,
+    Ranking,
+    StrategyDef,
+)
 from algo.features import registry as feature_registry
 from algo.features._shared import SessionBar
 from algo.strategies.nifty200_momentum import DataNotReady, IntervalMembership
@@ -86,6 +95,12 @@ def _session_bars(bars: Sequence[AdjBar]) -> dict[date, SessionBar]:
     return out
 
 
+def _uses_market(defn: StrategyDef) -> bool:
+    return any(
+        c.feature in MARKET_FEATURES for c in defn.entry.conditions() + defn.exit.conditions()
+    )
+
+
 def _features(
     defn: StrategyDef, members: Sequence[int], hist: Mapping[int, Sequence[AdjBar]], day: date
 ) -> tuple[Values, list[int], list[int]]:
@@ -109,6 +124,14 @@ def _features(
             ready[i] = row
         else:
             warming.append(i)
+    if ready and _uses_market(
+        defn
+    ):  # the market filter: how many of today's ready stocks sit above their own 200-day average
+        breadth = (
+            Decimal(100) * sum(1 for r in ready.values() if r[BREADTH_SOURCE] > 0) / len(ready)
+        )
+        for r in ready.values():
+            r[MARKET_BREADTH] = breadth
     return ready, no_bar, warming
 
 
