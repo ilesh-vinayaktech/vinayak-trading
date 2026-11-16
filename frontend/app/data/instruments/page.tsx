@@ -162,7 +162,7 @@ function Explorer() {
   const marks = useMemo<Mark[]>(
     () =>
       (signals.data?.days ?? []).flatMap((d) =>
-        d.action ? [{ day: d.day, action: d.action }] : [],
+        d.action ? [{ day: d.day, action: d.action, reason: d.reason }] : [],
       ),
     [signals.data],
   );

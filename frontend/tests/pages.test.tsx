@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BacktestsPage from "@/app/research/backtests/page";
@@ -36,7 +36,9 @@ vi.mock("lightweight-charts", () => {
       priceScale: () => ({ applyOptions: vi.fn() }),
       timeScale: () => ({ fitContent: scale.fit, getVisibleLogicalRange: () => scale.range, setVisibleLogicalRange: scale.set, getVisibleRange: () => null, setVisibleRange: vi.fn(), subscribeVisibleLogicalRangeChange: vi.fn(), unsubscribeVisibleLogicalRangeChange: vi.fn(), timeToCoordinate: vi.fn(() => 10), width: vi.fn(() => 800), height: vi.fn(() => 28), coordinateToLogical: vi.fn(() => 0) }),
       applyOptions: vi.fn(),
-      subscribeCrosshairMove: vi.fn(),
+      subscribeCrosshairMove: vi.fn((handler: unknown) => {
+        (globalThis as Record<string, unknown>).__crosshairMove = handler; // lets a test hover a bar
+      }),
       unsubscribeCrosshairMove: vi.fn(),
       subscribeClick: vi.fn(),
       unsubscribeClick: vi.fn(),
@@ -593,6 +595,25 @@ describe("Data Explorer", () => {
       expect(asked).toContain("end=2024-12-31");
       delete (table as Record<string, unknown>)["/api/intel/definitions"];
       delete (table as Record<string, unknown>)["/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals"];
+    });
+
+    it("shows why a decision was made when the mouse is over its bar, and nothing on other bars", async () => {
+      await open();
+      const pick = await screen.findByLabelText("Strategy");
+      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+      fireEvent.change(pick, { target: { value: "c1" } });
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell"));
+      const move = () => (globalThis as unknown as { __crosshairMove: (p: { time: string }) => void }).__crosshairMove;
+      await waitFor(() => expect(typeof move()).toBe("function"));
+      act(() => move()({ time: "2024-06-11" })); // the only stored bar: both decisions (the buy of the 10th, the sell of the 11th) are drawn on it
+      const shown = await screen.findAllByTestId("decision-hover");
+      expect(shown).toHaveLength(2);
+      expect(shown[0]).toHaveTextContent("BUY on 2024-06-10");
+      expect(shown[0]).toHaveTextContent("oversold in an uptrend");
+      expect(shown[1]).toHaveTextContent("SELL on 2024-06-11");
+      expect(shown[1]).toHaveTextContent("rsi_above_exit");
+      act(() => move()({ time: "2024-06-03" })); // not a bar: nothing is shown
+      await waitFor(() => expect(screen.queryByTestId("decision-hover")).not.toBeInTheDocument());
     });
 
     it("keeps corporate-action arrows off the chart until Events is switched on, then draws them", async () => {

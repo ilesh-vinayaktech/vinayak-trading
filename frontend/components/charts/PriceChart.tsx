@@ -27,7 +27,7 @@ import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools
 import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
-export type Mark = { day: string; action: "BUY" | "SELL" };
+export type Mark = { day: string; action: "BUY" | "SELL"; reason?: string | null };
 /** The candle still forming, as the server built it for this timeframe from the live feed (`time`: date or UTC epoch seconds). */
 export type LiveView = { candle: { time: number | string; open: string; high: string; low: string; close: string; volume: string }; prevClose: string | null; live: boolean };
 
@@ -271,6 +271,17 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
     a.click();
   };
 
+  // a decision is drawn on the first bar at or after its day: hovering that bar shows why it was made
+  const decisionByBar = useMemo(() => {
+    const m = new Map<string, Mark[]>();
+    if (isIntraday(timeframe)) return m;
+    for (const s of signals) {
+      const bar = bars.find((b) => b.date >= s.day);
+      if (bar && s.reason) m.set(bar.date, [...(m.get(bar.date) ?? []), s]); // two decisions can land on one bar (a sell and a buy in a gap)
+    }
+    return m;
+  }, [signals, bars, timeframe]);
+  const hoveredDecisions = hover ? (decisionByBar.get(hover.date) ?? []) : [];
   const shown = hover ?? liveBar ?? bars[bars.length - 1];
   const hoverIndex = hover && data ? data.dates.indexOf(hover.date) : -1;
   const index = hoverIndex >= 0 ? hoverIndex : null;
@@ -302,6 +313,13 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
         </div>
       </div>
       {rowsOf("overlay").map(({ a, r }) => row(a, r))}
+      {hoveredDecisions.map((d) => (
+        <div key={`${d.day}-${d.action}`} data-testid="decision-hover" className={`mt-1 max-w-md whitespace-pre-line rounded border bg-white/95 p-2 text-[11px] shadow-sm ${d.action === "BUY" ? "border-emerald-400" : "border-red-400"}`}>
+          <b className={d.action === "BUY" ? "text-emerald-700" : "text-red-700"}>{d.action}</b> on {d.day}
+          {"\n"}
+          {d.reason}
+        </div>
+      ))}
     </div>
   ) : null;
 
