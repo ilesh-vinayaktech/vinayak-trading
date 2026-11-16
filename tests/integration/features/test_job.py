@@ -250,3 +250,32 @@ def test_the_compute_script_reports_live_progress_and_ends_with_its_summary(
 
 
 job_run_real = job.run
+
+
+def test_readiness_is_asked_about_the_companies_still_trading_not_the_ones_delisted_long_before(
+    world,
+):
+    conn, ids, fid = world
+    repo = InstrumentRepo(conn)
+    x = conn.execute("SELECT exchange_id FROM instrument LIMIT 1").fetchone()[0]
+    gone = repo.add_instrument(x, "GONE")
+    early = sessions()[:20]  # a company whose last bar was weeks before the development end
+    put_bars(conn, gone, {d: 50 + n for n, d in enumerate(early)})
+    freeze2 = freeze_mod.take(
+        conn, "nse", sessions()[-2], datetime(2026, 11, 8, tzinfo=UTC), "with a delisted name"
+    )
+    asked = []
+
+    def spy(c, needs):
+        asked.append(needs)
+        return Readiness()
+
+    go(conn, freeze2, ready=spy)
+    assert len(asked) == 1 and set(asked[0].instruments) == set(
+        ids
+    )  # the delisted company is not asked for a bar it can never have
+    assert gone not in asked[0].instruments
+    assert job.active_instruments(conn, "nse", [*ids, gone], date(2026, 2, 27)) == sorted(ids)
+    assert job.active_instruments(conn, "nse", [gone], date(2026, 2, 27)) == [
+        gone
+    ]  # nobody active: ask about all rather than about none

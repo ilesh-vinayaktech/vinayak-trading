@@ -49,6 +49,21 @@ class Report:
     paused_because: str = ""
 
 
+ACTIVE_WITHIN = timedelta(days=15)
+
+
+def active_instruments(
+    conn: psycopg.Connection, source: str, instruments: list[int], day: date
+) -> list[int]:
+    """The instruments that were still trading around `day` (a bar in the 15 days up to it). The readiness gate asks whether the companies that should have a bar on that day do; a company
+    delisted long before it cannot, and counting it as unready would make every history that contains a delisting impossible to compute. If none were active, all are asked about."""
+    rows = conn.execute(
+        "SELECT DISTINCT instrument_id FROM bar_1d WHERE source=%s AND instrument_id = ANY(%s) AND (ts AT TIME ZONE 'Asia/Kolkata')::date BETWEEN %s AND %s ORDER BY 1",
+        (source, instruments, day - ACTIVE_WITHIN, day),
+    ).fetchall()
+    return [r[0] for r in rows] or sorted(instruments)
+
+
 def months_through(first: date, end: date) -> list[date]:
     """First days of every calendar month from `first`'s whose last day is on or before `end`."""
     out, m = [], date(first.year, first.month, 1)
@@ -143,8 +158,12 @@ def run(
     months = months_through(first_month, last)
     instruments = [i["instrument_id"] for i in f["items"]]
     if months:
+        day = store._month_end(months[-1])
         verdict = ready(
-            conn, Needs(day=store._month_end(months[-1]), instruments=tuple(instruments))
+            conn,
+            Needs(
+                day=day, instruments=tuple(active_instruments(conn, f["source"], instruments, day))
+            ),
         )
         if not verdict.ready:
             raise JobRefused("the input data is not ready: " + verdict.summary())
