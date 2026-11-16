@@ -572,6 +572,24 @@ describe("Data Explorer", () => {
       await waitFor(() => expect((vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string }[]).some((m) => m.text === "BUY")).toBe(false));
     });
 
+    it("offers the generated strategy definitions too and runs the chosen one over the whole chart range, to the latest bar", async () => {
+      const def = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, entry: "e", exit: "x", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null };
+      (table as Record<string, unknown>)["/api/intel/definitions"] = { definitions: [def] };
+      (table as Record<string, unknown>)["/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals"] = { ...signals, strategy: "ALPHA_RET_20D_H20 v1" };
+      const urls: string[] = [];
+      await open(urls);
+      const pick = await screen.findByLabelText("Strategy");
+      await waitFor(() => expect(within(pick).getAllByRole("option").map((o) => o.textContent)).toContain("Definition: ALPHA_RET_20D_H20"));
+      fireEvent.change(pick, { target: { value: "def:ALPHA_RET_20D_H20:1" } });
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell"));
+      const asked = urls.find((u) => u.includes("/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals")) ?? "";
+      expect(asked).toContain("instrument_id=7");
+      expect(asked).toContain("start=2024-01-01");
+      expect(asked).toContain("end=2024-12-31");
+      delete (table as Record<string, unknown>)["/api/intel/definitions"];
+      delete (table as Record<string, unknown>)["/api/strategies/definitions/ALPHA_RET_20D_H20/1/signals"];
+    });
+
     it("keeps corporate-action arrows off the chart until Events is switched on, then draws them", async () => {
       (table as Record<string, unknown>)["/api/instruments/7"] = { ...detail, actions: [{ ...detail.actions[0], ex_date: "2024-06-11" }] }; // on the one bar there is
       await open();

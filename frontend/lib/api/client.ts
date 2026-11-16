@@ -231,6 +231,7 @@ export const api = {
   startFamily: (b: { name: string; hypothesis: string; justification: string }) => send("POST", "/api/families", b, familyCreatedSchema),
   live: (id: number, timeframe: string, adjust: string) => get(`/api/live/${id}`, liveSchema, { timeframe, adjust }),
   strategySignals: (id: string, p: { instrument_id: number; start: string; end: string; holding: boolean }) => get(`/api/strategies/${encodeURIComponent(id)}/signals`, signalsSchema, { ...p, holding: p.holding ? "true" : "false" }),
+  definitionSignals: (strategyId: string, version: number, p: { instrument_id: number; start: string; end: string }) => get(`/api/strategies/definitions/${encodeURIComponent(strategyId)}/${version}/signals`, signalsSchema, p),
   deleteStrategy: (id: string) => send("POST", `/api/strategies/${encodeURIComponent(id)}/delete`, undefined, okSchema),
   myDashboard: () => get("/api/dashboard/me", myDashboardSchema),
   opsDashboard: () => get("/api/dashboard/operations", opsDashboardSchema),

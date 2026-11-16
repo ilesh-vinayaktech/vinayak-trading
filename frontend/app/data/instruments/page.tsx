@@ -99,18 +99,39 @@ function Explorer() {
     enabled: can("strategy:own"),
   });
   const strategies = saved.data?.strategies ?? [];
-  const chosen = strategies.some((s) => s.config_id === strategyId)
-    ? strategyId
-    : "";
+  // the generated strategy definitions are offered too, as "def:ID:VERSION"; they are drawn over the chart's own range, to the latest bar
+  const defs = useQuery({
+    queryKey: ["intel", "definitions"],
+    queryFn: api.intelDefinitions,
+    enabled: can("strategy:own"),
+  });
+  const defOptions = (defs.data?.definitions ?? []).map((d) => ({
+    id: `def:${d.strategy_id}:${d.version}`,
+    name: `Definition: ${d.strategy_id}`,
+  }));
+  const chosen =
+    strategies.some((s) => s.config_id === strategyId) ||
+    defOptions.some((o) => o.id === strategyId)
+      ? strategyId
+      : "";
   const signals = useQuery({
     queryKey: ["signals", chosen, id, range.start, range.end],
-    queryFn: () =>
-      api.strategySignals(chosen, {
+    queryFn: () => {
+      if (chosen.startsWith("def:")) {
+        const [, sid = "", version = "1"] = chosen.split(":");
+        return api.definitionSignals(sid, Number(version), {
+          instrument_id: id as number,
+          start: range.start,
+          end: range.end,
+        });
+      }
+      return api.strategySignals(chosen, {
         instrument_id: id as number,
         start: range.start,
         end: range.end,
         holding: false,
-      }),
+      });
+    },
     enabled:
       chosen !== "" && ready && range.start <= range.end && timeframe === "1d",
   });
@@ -239,7 +260,10 @@ function Explorer() {
           points: benchPoints,
         }}
         strategy={{
-          options: strategies.map((s) => ({ id: s.config_id, name: s.name })),
+          options: [
+            ...strategies.map((s) => ({ id: s.config_id, name: s.name })),
+            ...defOptions,
+          ],
           value: chosen,
           onChange: setStrategyId,
           status: strategyStatus,
