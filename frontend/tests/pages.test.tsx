@@ -618,7 +618,7 @@ describe("Data Explorer", () => {
       const mk = (id: string, rebalance: string) => ({ strategy_id: id, version: 1, description: "d", rebalance, max_positions: 20, plain: { when: "w", summary: "s", buy: "b", sell: "x", size: "z" }, entry: "e", exit: "x", created_by: "a", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null });
       const t = table as Record<string, unknown>;
       t["/api/intel/definitions"] = { definitions: [mk("ALPHA_DAILY_H1", "DAILY"), mk("ALPHA_WEEKLY_H5", "WEEKLY"), mk("ALPHA_MONTHLY_H20", "MONTHLY")] };
-      t["/api/strategies/definitions/ALPHA_WEEKLY_H5/1/signals"] = { ...signals, strategy: "ALPHA_WEEKLY_H5 v1", days: [{ ...signals.days[0], day: "2024-06-12", action: "BUY", reason: "weekly reason" }] };
+      t["/api/strategies/definitions/ALPHA_WEEKLY_H5/1/signals"] = { ...signals, strategy: "ALPHA_WEEKLY_H5 v1", days: [{ ...signals.days[0], day: "2024-06-10", action: "BUY", reason: "weekly reason" }] };
       const names = () => within(screen.getByLabelText("Strategy")).getAllByRole("option").map((o) => o.textContent);
       const urls: string[] = [];
       await open(urls);
@@ -634,6 +634,12 @@ describe("Data Explorer", () => {
       fireEvent.change(screen.getByLabelText("Strategy"), { target: { value: "def:ALPHA_WEEKLY_H5:1" } });
       await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 0 sell"));
       expect(urls.some((u) => u.includes("/api/strategies/definitions/ALPHA_WEEKLY_H5/1/signals"))).toBe(true);
+      const move = () => (globalThis as unknown as { __crosshairMove: (p: { time: string }) => void }).__crosshairMove;
+      await waitFor(() => expect(typeof move()).toBe("function"));
+      act(() => move()({ time: "2024-06-10" })); // the popup explains the strategy in plain words, like the Research page, then gives the numbers
+      expect(await screen.findByTestId("decision-plain")).toHaveTextContent("s");
+      expect(screen.getByTestId("decision-hover")).toHaveTextContent("b"); // the plain buy line
+      expect(screen.getByTestId("decision-hover")).toHaveTextContent("weekly reason");
       pickTf("1 month");
       await waitFor(() => expect(names()).toEqual(["No strategy", "Definition: ALPHA_MONTHLY_H20"])); // only monthly ones; the weekly choice is dropped
       expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument();

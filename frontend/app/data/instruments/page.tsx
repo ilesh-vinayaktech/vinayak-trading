@@ -160,12 +160,14 @@ function Explorer() {
         }
       : null;
   }, [liveQ.data]);
+  const [, defId = "", defVersion = ""] = chosen.startsWith("def:") ? chosen.split(":") : [];
+  const plain = defs.data?.definitions.find((d) => d.strategy_id === defId && String(d.version) === defVersion)?.plain;
   const marks = useMemo<Mark[]>(
     () =>
       (signals.data?.days ?? []).flatMap((d) =>
-        d.action ? [{ day: d.day, action: d.action, reason: d.reason }] : [],
+        d.action ? [{ day: d.day, action: d.action, reason: d.reason, plain }] : [],
       ),
-    [signals.data],
+    [signals.data, plain],
   );
   const buys = marks.filter((m) => m.action === "BUY").length;
   const strategyStatus =

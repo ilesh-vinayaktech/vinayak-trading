@@ -20,6 +20,7 @@ from algo.data.minute_reader import minute_history
 from algo.data.reader import IST, AdjBar, BarReader
 from algo.data.resample import resample, resample_calendar
 from algo.indicators.catalog import CATALOG, Bars, Indicator, compute
+from algo.research import holdout_lock
 
 IST_DAY = "(ts AT TIME ZONE 'Asia/Kolkata')::date"
 
@@ -426,8 +427,32 @@ def benchmark_levels(
     }
 
 
+def _beyond_research_end(
+    conn: psycopg.Connection, alias: str = "backtest_run"
+) -> tuple[str, tuple[date, ...]]:
+    """SQL (and its parameter) for "this run has an equity day after the research window".
+    Such runs are hidden from research views, for every strategy (holdout policy v3 section 6;
+    the 8 early studies ran to 2025-01-29). Fails closed when no lock is anchored."""
+    return (
+        f"EXISTS (SELECT 1 FROM backtest_equity q WHERE q.run_id = {alias}.run_id AND q.day > %s)",
+        (holdout_lock.require(conn).development_end,),
+    )
+
+
+def _is_hidden(conn: psycopg.Connection, run_id: int) -> bool:
+    sql, p = _beyond_research_end(conn)
+    return bool(
+        _one(
+            conn,
+            f"SELECT COALESCE((SELECT {sql} FROM backtest_run WHERE run_id=%s), false)",
+            (*p, run_id),
+        )[0]
+    )
+
+
 def backtests(conn: psycopg.Connection, limit: int = 50, offset: int = 0) -> dict[str, Any]:
-    total = _one(conn, "SELECT count(*) FROM backtest_run")[0]
+    hidden, hp = _beyond_research_end(conn, "r")
+    total = _one(conn, f"SELECT count(*) FROM backtest_run r WHERE NOT {hidden}", hp)[0]
     rows = _rows(
         conn,
         "SELECT r.run_id, r.strategy_id, r.strategy_version, r.reader_mode, r.created_at,"
@@ -437,8 +462,8 @@ def backtests(conn: psycopg.Connection, limit: int = 50, offset: int = 0) -> dic
         " SELECT e.experiment_id, e.name FROM study_trial t"
         " JOIN experiment e USING (experiment_id)"
         " WHERE t.backtest_run = r.run_id LIMIT 1) s ON true"
-        " ORDER BY r.run_id DESC LIMIT %s OFFSET %s",
-        (limit, offset),
+        f" WHERE NOT {hidden} ORDER BY r.run_id DESC LIMIT %s OFFSET %s",
+        (*hp, limit, offset),
     )
     items = [
         {"run_id": r[0], "strategy_id": r[1], "strategy_version": r[2], "reader_mode": r[3],
@@ -450,6 +475,8 @@ def backtests(conn: psycopg.Connection, limit: int = 50, offset: int = 0) -> dic
 
 
 def backtest(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
+    if _is_hidden(conn, run_id):
+        return None
     rows = _rows(
         conn,
         "SELECT run_id, strategy_id, strategy_version, params, params_hash, code_version,"
@@ -474,6 +501,8 @@ def backtest(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
 
 
 def backtest_report(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:
+    if _is_hidden(conn, run_id):
+        return None
     """The run explained: buys paired with sells, the equity curve, results per stock."""
     run = _rows(
         conn,

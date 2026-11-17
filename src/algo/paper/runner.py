@@ -130,9 +130,9 @@ def run_day(
         "DELETE FROM paper_run WHERE user_id=%s AND decision_day=%s", (user_id, day)
     )  # a failed or skipped run is retried
     ident = (acct["strategy_id"], "-", "-")
-    if (
-        acct["strategy_id"] not in STRATEGIES or acct["strategy_id"] == "dsl"
-    ):  # "dsl" needs a locked definition only a study carries
+    if acct["strategy_id"] not in STRATEGIES or (acct["strategy_id"] == "dsl") != (
+        acct["definition"] is not None
+    ):  # "dsl" needs the locked definition a passed study handed the account
         return _record(
             conn,
             user_id,
@@ -251,8 +251,15 @@ def _decide(
     sandbox: SandboxConfig | None = None,
 ) -> Outcome:
     strategy_cls, params_cls = STRATEGIES[acct["strategy_id"]]
-    screen = acct["screen"]
-    if screen is None:
+    screen, definition = acct["screen"], acct["definition"]
+    if (
+        definition is not None
+    ):  # the study's own universe: market-cap classes as AMFI's list in force put each stock on this day
+        members, coverage = segment_universe(
+            conn, UniverseSpec.model_validate(definition["universe"]), day, day
+        )
+        universe = {"universe": acct["universe"], "segments": definition["universe"]["segments"], "coverage": coverage}  # fmt: skip
+    elif screen is None:
         members, universe = current_universe(conn, lake_root, day, acct["universe"])
     else:  # a screener picks from market-cap classes as AMFI's list in force put each stock on this day
         members, coverage = segment_universe(
@@ -281,7 +288,17 @@ def _decide(
         keep = sorted(members.ever(), key=lambda i: (-value[i], i))[:cap]
         members = IntervalMembership([Interval(i, FOREVER, None) for i in keep])
         universe = {**universe, "capped_to": cap}
-    if screen is None:
+    if definition is not None:
+        strategy = strategy_cls(params_cls(**acct["params"]), members, definition["definition"])
+        last = conn.execute(
+            "SELECT max(decision_day) FROM paper_run WHERE user_id=%s AND decision_day<%s AND status IN ('PROPOSED','NO_CHANGE')",
+            (user_id, day),
+        ).fetchone()
+        if last is not None and last[0] is not None:
+            strategy.inner.cadence.due(
+                last[0]
+            )  # a new object each day: tell it the last day it decided, so a weekly or monthly rebalance happens once a period
+    elif screen is None:
         strategy = strategy_cls(params_cls(**acct["params"]), members)
     else:
         spec = ScreenSpec.model_validate(screen["screen"])
@@ -320,8 +337,8 @@ def _decide(
         "research",
     )
     if (
-        sandbox is None or screen is not None
-    ):  # a screener's arguments (its screen and filings) cannot cross the boundary yet
+        sandbox is None or screen is not None or definition is not None
+    ):  # a screener's or a definition's arguments cannot cross the boundary yet
         targets = strategy.on_schedule(ctx)
         audit = strategy.audit[-1] if strategy.audit else {}
     else:

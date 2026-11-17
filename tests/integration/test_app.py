@@ -9,6 +9,7 @@ from algo.data.benchmark import ingest, register, store_validation
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 from tests.support.portal import open_app
+from tests.support.research_lock import anchor_open_lock
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 11, 7, tzinfo=UTC)
@@ -80,6 +81,7 @@ def docs(tmp_path):
 @pytest.fixture
 def api(conn, pg_url, docs):
     migrate(conn)
+    anchor_open_lock(conn)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     iid = repo.add_instrument(x, "XYZ")
@@ -327,6 +329,7 @@ def test_backtests_and_system_activity(api):
 
 def test_the_validation_list_tolerates_a_benchmark_with_no_validation(conn, pg_url, docs):
     migrate(conn)
+    anchor_open_lock(conn)
     register(
         conn, name="N", provider="p", index_symbol="X", return_type="PRICE", methodology_version="m"
     )

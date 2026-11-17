@@ -8,7 +8,7 @@ from types import MappingProxyType
 ROLES = ("ADMIN", "OPERATOR", "TRADER", "VIEWER")
 PERMISSIONS = frozenset(
     "research:read kite:own strategy:own ops:read ops:write users:read users:write roles:write crm:read crm:write "
-    "tickets:own tickets:manage audit:read system:settings".split()
+    "tickets:own tickets:manage audit:read system:settings holdout:read".split()  # holdout:read: ADMIN only, the owner (docs/holdout-policy-v3.md section 5)
 )
 _VIEWER = {"research:read", "tickets:own"}
 _TRADER = _VIEWER | {"kite:own", "strategy:own"}

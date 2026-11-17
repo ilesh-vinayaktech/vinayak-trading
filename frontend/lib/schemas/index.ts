@@ -641,9 +641,15 @@ export const paperAccountSchema = z.object({
       timeframe: z.string(),
       params: paperParamsSchema.partial(), // a screener account only has max_positions
       screen: screenConfigSchema.nullable(), // the rules of a screener strategy, else null
+      definition: z.string().nullable(), // the name of the strategy definition the account follows, else null
     })
     .nullable(),
 });
+export const paperDefinitionsSchema = z.object({
+  label: z.string(),
+  definitions: z.array(z.object({ experiment_id: z.number(), strategy_id: z.string(), version: z.number(), name: z.string(), state: z.enum(["awaiting_holdout", "failed_holdout", "ready"]) })),
+});
+export type PaperDefinitions = z.infer<typeof paperDefinitionsSchema>;
 export const paperSummarySchema = z.object({
   equity: decimal,
   cash: decimal,
@@ -1157,3 +1163,26 @@ export const intelFeaturesSchema = z.object({
   ),
 });
 export type IntelFeatures = z.infer<typeof intelFeaturesSchema>;
+
+export const holdoutSchema = z.object({
+  budget: z.number(),
+  consumed: z.number(),
+  reserved: z.number(),
+  left: z.number(),
+  previously_tested: z.number(),
+  audit_signed: z.boolean(),
+  warnings: z.array(z.string()),
+  batches: z.array(z.object({ batch_id: z.number(), state: z.string(), candidates: z.number(), frozen_at: z.string().nullable(), first_read: z.boolean() })),
+  cutoff: z
+    .object({
+      cutoff_id: z.number(),
+      kind: z.string(),
+      fired_at: z.string(),
+      plan: z
+        .object({ members: z.array(z.string()), carry_over: z.array(z.string()), excluded: z.record(z.string(), z.string()), problems: z.array(z.string()), can_freeze: z.boolean() })
+        .nullable(),
+    })
+    .nullable(),
+});
+export type Holdout = z.infer<typeof holdoutSchema>;
+export const holdoutFreezeSchema = z.object({ ok: z.boolean(), batch_id: z.number() });

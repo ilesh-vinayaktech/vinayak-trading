@@ -164,6 +164,34 @@ def test_the_signals_replay_one_stocks_decisions_from_a_chosen_day(env):  # noqa
     assert held["days"][0]["holding_after"] is True or held["days"][0]["action"] == "SELL"
 
 
+def test_a_saved_strategys_decisions_never_reach_past_the_research_window(env, monkeypatch):  # noqa: F811
+    from datetime import date, timedelta
+
+    from algo.research import holdout_lock
+
+    conn, app, clock, ids = env
+    _, c = trader(conn, app, clock)
+    cid = c.post("/api/strategies", json=BODY).json()["config_id"]
+    days = _series(conn, ids["BBB"])
+    cap = days[300]
+    real = holdout_lock.require
+    monkeypatch.setattr(
+        holdout_lock,
+        "require",
+        lambda cn: (
+            holdout_lock.Lock(cap, cap + timedelta(days=1), date(2099, 1, 1)) if cn else real(cn)
+        ),
+    )
+    q = {"instrument_id": ids["BBB"], "start": days[250].isoformat(), "end": days[-1].isoformat()}
+    d = c.get(f"/api/strategies/{cid}/signals", params=q).json()
+    assert (
+        d["days"][-1]["day"] == cap.isoformat()
+    )  # asked to the last bar, served to the research end only
+    assert all(x["day"] <= cap.isoformat() for x in d["days"])
+    after = {**q, "start": (cap + timedelta(days=5)).isoformat()}
+    assert c.get(f"/api/strategies/{cid}/signals", params=after).json()["days"] == []
+
+
 def test_the_signals_refuse_other_peoples_strategies_unknown_stocks_and_bad_ranges(env):  # noqa: F811
     conn, app, clock, ids = env
     _, c = trader(conn, app, clock)

@@ -24,7 +24,7 @@ from algo.factory import signals as def_signals
 from algo.factory import study as fstudy
 from algo.paper import configs
 from algo.portal import audit
-from algo.research import fundamentals_book, study_jobs
+from algo.research import fundamentals_book, holdout_lock, study_jobs
 from algo.research.holdout_lock import HoldoutError
 from algo.research.study import Segment, StudyError
 from algo.strategies import screener_signals
@@ -164,6 +164,15 @@ def run_definition_study(
     return {"experiment_id": eid, "run_id": run}
 
 
+def _research_end(conn: Any, end: date) -> date:
+    """Strategy decisions after the research window (2024-12-31) are never served to research-facing routes, for any strategy (docs/holdout-policy-v3.md section 6):
+    seeing how a strategy behaved on the holdout dates would teach the next candidate. Fails closed when the lock is not anchored."""
+    try:
+        return min(end, holdout_lock.require(conn).development_end)
+    except HoldoutError as e:
+        raise HTTPException(409, str(e)) from e
+
+
 @router.get("/definitions/{strategy_id}/{version}/signals")
 def definition_signals(
     strategy_id: str,
@@ -187,6 +196,7 @@ def definition_signals(
         raise HTTPException(422, "range longer than 11 years")
     if queries.instrument(conn, instrument_id) is None:
         raise HTTPException(404, f"no instrument {instrument_id}")
+    end = _research_end(conn, end)
 
     def bars_of(iid: int, lo: date, hi: date) -> list[Any]:
         return list(
@@ -373,6 +383,7 @@ def signals(
         raise HTTPException(422, "range longer than 10 years")
     if queries.instrument(conn, instrument_id) is None:
         raise HTTPException(404, f"no instrument {instrument_id}")
+    end = _research_end(conn, end)
     if mine["screen"] is not None:
         history = queries.reader_for(conn, instrument_id)[0].issuer_history(
             instrument_id, start - timedelta(days=SCREENER_HISTORY_DAYS), end, adjust="split"

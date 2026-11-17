@@ -27,7 +27,7 @@ import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools
 import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
-export type Mark = { day: string; action: "BUY" | "SELL"; reason?: string | null };
+export type Mark = { day: string; action: "BUY" | "SELL"; reason?: string | null; plain?: { summary: string; buy: string; sell: string } };
 /** The candle still forming, as the server built it for this timeframe from the live feed (`time`: date or UTC epoch seconds). */
 export type LiveView = { candle: { time: number | string; open: string; high: string; low: string; close: string; volume: string }; prevClose: string | null; live: boolean };
 
@@ -316,6 +316,14 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
       {hoveredDecisions.map((d) => (
         <div key={`${d.day}-${d.action}`} data-testid="decision-hover" className={`mt-1 max-w-md whitespace-pre-line rounded border bg-white/95 p-2 text-[11px] shadow-sm ${d.action === "BUY" ? "border-emerald-400" : "border-red-400"}`}>
           <b className={d.action === "BUY" ? "text-emerald-700" : "text-red-700"}>{d.action}</b> on {d.day}
+          {d.plain ? (
+            <>
+              {"\n"}
+              <span className="font-medium text-slate-800" data-testid="decision-plain">{d.plain.summary}</span>
+              {"\n"}
+              {d.action === "BUY" ? d.plain.buy : d.plain.sell}
+            </>
+          ) : null}
           {"\n"}
           {d.reason}
         </div>

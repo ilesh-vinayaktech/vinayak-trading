@@ -58,9 +58,19 @@ ROUTE_PERMISSIONS = {
     ("POST", "/api/costs/schedules/{schedule_id}/{version}/backfill"): "system:settings",
     ("POST", "/api/costs/schedules/{schedule_id}/{version}/new-version"): "system:settings",
     ("POST", "/api/costs/schedules/{schedule_id}/{version}/remove"): "system:settings",
+    ("GET", "/api/holdout"): "holdout:read",
+    ("POST", "/api/holdout/cutoffs/{cutoff_id}/freeze"): "holdout:read",
     ("GET", "/api/paper/account"): "strategy:own",
     ("POST", "/api/paper/account"): "strategy:own",
     ("POST", "/api/paper/account/settings"): "strategy:own",
+    (
+        "GET",
+        "/api/paper/definitions",
+    ): "holdout:read",  # shows candidate-level holdout state: owner only (policy v3 section 5)
+    (
+        "POST",
+        "/api/paper/definitions/{experiment_id}/start",
+    ): "holdout:read",  # its refusals would reveal the verdict
     (
         "GET",
         "/api/risk",

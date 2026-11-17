@@ -21,7 +21,7 @@ from math import sqrt
 from typing import Any
 
 from algo.backtest.report import Trip
-from algo.backtest.validation import registry
+from algo.backtest.validation import mc_bootstrap, registry
 from algo.backtest.validation.evidence import Inputs
 from algo.backtest.validation.gates import Thresholds
 from algo.backtest.validation.stats import (
@@ -249,4 +249,79 @@ def holdout_gates(
     )
     evidence = {"days": len(returns), "sharpe": sharpe, "max_drawdown": None if dd is None else -dd, "benchmark_sharpe": bench,
                 "total_return": math.prod(1 + r for r in returns) - 1 if returns else None}  # fmt: skip
+    return gates, evidence
+
+
+HOLDOUT_ALPHA = (
+    0.05 / 30
+)  # docs/holdout-policy-v3.md section 2: 5% family-wise over the dataset's whole budget of 30 candidates (holdout_batch.BUDGET)
+HOLDOUT_DRAWS = 1_000_000
+V3_GATES = ("holdout_significance", "holdout_sharpe", "holdout_drawdown", "holdout_beats_benchmark")
+
+
+def holdout_gates_v3(
+    returns: Sequence[float],
+    benchmark: Sequence[float] | None,
+    t: Thresholds,
+    *,
+    seed: int,
+    draws: int = HOLDOUT_DRAWS,
+    alpha: float = HOLDOUT_ALPHA,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """The acceptance decision of a holdout batch candidate (policy v3 section 2). A candidate PASSES only if the corrected primary test rejects "true Sharpe <= 0"
+    (Monte Carlo p-value at `alpha`, with the candidate's own committed `seed`) AND the three floors hold: Sharpe, drawdown at most `max_drawdown_vs_benchmark` times the
+    index's over the same dates, and the Sharpe edge over the index. The floors can only remove passes. Evidence that is missing (no index, misaligned index, an index
+    with no drawdown, returns the test cannot use) is INSUFFICIENT_EVIDENCE, never a pass and never replaced by another rule."""
+    r = list(returns)
+    aligned = benchmark is not None and len(benchmark) == len(r)
+    bench = list(benchmark) if benchmark is not None and aligned else None
+    sharpe = annualised_sharpe(r)
+    bench_sharpe = annualised_sharpe(bench) if bench is not None else None
+    dd = abs(max_drawdown(r)) if r else None
+    bench_dd = abs(max_drawdown(bench)) if bench else None
+    ratio = None if dd is None or not bench_dd else dd / bench_dd
+    edge = None if sharpe is None or bench_sharpe is None else sharpe - bench_sharpe
+    result: mc_bootstrap.Result | None
+    try:
+        result = mc_bootstrap.test(r, seed, draws)
+    except ValueError:
+        result = None
+    gates: list[dict[str, Any]] = []
+
+    def gate(name: str, value: float | None, ok: bool, detail: str) -> None:
+        gates.append(
+            {
+                "name": name,
+                "passed": value is not None and ok,
+                "detail": "evidence missing" if value is None else detail,
+                "status": "INSUFFICIENT_EVIDENCE" if value is None else ("PASS" if ok else "FAIL"),
+            }
+        )
+
+    p = None if result is None else result.p
+    gate("holdout_significance", p, (p or 1) <= alpha, f"p {(p or 1):.6f} > {alpha:.6f}")
+    gate(
+        "holdout_sharpe",
+        sharpe,
+        (sharpe or 0) >= t.min_oos_sharpe,
+        f"{sharpe or 0:.2f} < required {t.min_oos_sharpe}",
+    )
+    gate(
+        "holdout_drawdown",
+        ratio,
+        (ratio or 0) <= t.max_drawdown_vs_benchmark + 1e-9,
+        f"drawdown is {(ratio or 0):.2f}x the index's (limit {t.max_drawdown_vs_benchmark})",
+    )
+    gate(
+        "holdout_beats_benchmark",
+        edge,
+        (edge or 0) >= t.min_sharpe_over_benchmark,
+        f"edge over the index {(edge or 0):.2f} < required {t.min_sharpe_over_benchmark}",
+    )
+    evidence = {
+        "days": len(r), "sharpe": sharpe, "max_drawdown": None if dd is None else -dd, "benchmark_sharpe": bench_sharpe,
+        "benchmark_max_drawdown": None if bench_dd is None else -bench_dd, "drawdown_ratio": ratio,
+        "total_return": math.prod(1 + x for x in r) - 1 if r else None,
+        "k": None if result is None else result.k, "draws": draws, "p_mc": p, "alpha": alpha, "seed": f"{seed:032x}",
+    }  # fmt: skip
     return gates, evidence

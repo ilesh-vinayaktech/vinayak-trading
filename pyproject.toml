@@ -6,6 +6,7 @@ dependencies = [
     "argon2-cffi>=23.1",
     "cryptography>=43",
     "fastapi>=0.162.2",
+    "numpy==2.2.6",
     "psycopg[binary]>=3.2",
     "pydantic>=2.8",
     "uvicorn[standard]>=0.54.0",

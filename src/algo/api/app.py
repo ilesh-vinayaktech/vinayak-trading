@@ -23,6 +23,7 @@ from algo.api import (
     crm_routes,
     dashboard_routes,
     freshness,
+    holdout_routes,
     intel_routes,
     kite_routes,
     live_routes,
@@ -125,6 +126,7 @@ def create_app(
     app.include_router(market_routes.router)
     app.include_router(screener_routes.router)
     app.include_router(live_routes.router)
+    app.include_router(holdout_routes.router)
     app.include_router(paper_routes.router)
     app.include_router(risk_routes.router)
     app.include_router(strategy_routes.router)

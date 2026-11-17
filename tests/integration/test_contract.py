@@ -17,6 +17,7 @@ from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 from tests.integration.test_app import NOW, docs, write  # noqa: F401
 from tests.support.portal import open_app
+from tests.support.research_lock import anchor_open_lock
 
 pytestmark = pytest.mark.integration
 OUT = Path(__file__).parents[2] / "frontend" / "tests" / "contract"
@@ -25,6 +26,7 @@ OUT = Path(__file__).parents[2] / "frontend" / "tests" / "contract"
 @pytest.fixture
 def seeded(conn, pg_url, docs):  # noqa: F811
     migrate(conn)
+    anchor_open_lock(conn)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     iid = repo.add_instrument(x, "XYZ")
@@ -509,7 +511,6 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     from algo.paper import book
     from tests.support.bt import put_bars
     from tests.support.portal import add_user, make_app, settings, sign_in
-    from tests.support.research_lock import anchor_open_lock
 
     migrate(conn)
     anchor_open_lock(conn)

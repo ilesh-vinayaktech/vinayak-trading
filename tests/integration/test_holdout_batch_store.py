@@ -6,6 +6,7 @@ import pytest
 from psycopg.types.json import Jsonb
 
 from algo.data.store.migrate import migrate
+from algo.promotion import verdicts as pv
 from algo.research import holdout_batch as hb
 from algo.research import holdout_lock
 from algo.research.holdout_lock import Lock
@@ -72,32 +73,125 @@ def all_pass(cap, m):
     )
 
 
-def reader():
+def reader(_guarded=None):
     return object()
 
 
-def test_only_one_batch_can_ever_be_registered(env):
-    hb.register(env, by="owner", now=NOW)
-    with pytest.raises(hb.BatchError, match="already exists"):
-        hb.register(env, by="owner", now=NOW)
-
-
-def test_two_processes_registering_at_once_leave_exactly_one_batch(env, pg_url):
+def test_batches_are_append_only_and_two_processes_registering_at_once_get_two_numbers(env, pg_url):
     results = []
 
     def go():
         with psycopg.connect(pg_url, autocommit=True) as c:
-            try:
-                hb.register(c, by="owner", now=NOW)
-                results.append("ok")
-            except hb.BatchError:
-                results.append("refused")
+            results.append(hb.register(c, by="owner", now=NOW))
 
     threads = [threading.Thread(target=go) for _ in range(2)]
     [t.start() for t in threads]
     [t.join() for t in threads]
-    assert sorted(results) == ["ok", "refused"]
-    assert env.execute("SELECT count(*) FROM holdout_batch").fetchone()[0] == 1
+    assert len(set(results)) == 2
+    assert env.execute("SELECT count(*) FROM holdout_batch").fetchone()[0] == 2
+
+
+def live(conn):
+    return conn.execute(
+        "SELECT candidate_id, state FROM holdout_candidate WHERE state <> 'RELEASED' ORDER BY 1"
+    ).fetchall()
+
+
+def test_freezing_reserves_a_slot_and_commits_a_seed_per_candidate_and_nothing_is_consumed_yet(env):
+    bid = frozen(env)
+    assert hb.slots(env) == (0, 2, 28)
+    seeds = dict(env.execute("SELECT candidate_id, seed FROM holdout_candidate").fetchall())
+    m = hb.Manifest.from_json(env.execute("SELECT manifest FROM holdout_batch").fetchone()[0])
+    assert seeds == dict(m.seeds) and len(set(seeds.values())) == 2
+    assert all(len(v) == 32 for v in seeds.values()) and m.methodology_version.startswith(
+        "holdout-v3.0/numpy-"
+    )
+    assert env.execute("SELECT first_read_at FROM holdout_batch").fetchone()[0] is None
+    with pytest.raises(psycopg.errors.RaiseException, match="seed cannot change"):
+        env.execute("UPDATE holdout_candidate SET seed = %s", ("0" * 32,))
+    assert bid
+
+
+def test_a_caller_cannot_supply_seeds(env):
+    bid = hb.register(env, by="owner", now=NOW)
+    m = manifest(bid)
+    forged = hb.Manifest(**{**vars(m), "seeds": {"c1": "0" * 32}})
+    with pytest.raises(hb.BatchError, match="never supplied"):
+        hb.freeze(env, bid, forged, NOW)
+
+
+def test_the_first_read_marker_consumes_the_slots_and_a_consumed_candidate_is_never_tested_again(
+    env,
+):
+    bid = frozen(env)
+    seen = {}
+
+    def run(cap, m):
+        seen["slots"] = hb.slots(env)  # the marker is durable before the evaluator can read
+        return all_pass(cap, m)
+
+    hb.evaluate(env, bid, run, reader, NOW)
+    assert seen["slots"] == (2, 0, 28) and hb.slots(env) == (2, 0, 28)
+    again = hb.register(env, by="owner", now=NOW)
+    with pytest.raises(hb.BatchError, match="cannot be frozen"):
+        hb.freeze(env, again, manifest(again), NOW)
+    assert hb.slots(env) == (2, 0, 28)
+    with pytest.raises(psycopg.errors.RaiseException, match="permanent"):
+        env.execute("UPDATE holdout_candidate SET state='RELEASED', settled_at=%s", (NOW,))
+    with pytest.raises(psycopg.errors.RaiseException, match="cannot be deleted"):
+        env.execute("DELETE FROM holdout_candidate")
+
+
+def test_a_batch_that_fails_before_the_marker_releases_its_slots_and_after_it_does_not(env):
+    bid = frozen(env)
+    env.execute(
+        "UPDATE holdout_batch SET state='EVALUATING', evaluating_at=%s", (NOW,)
+    )  # started, nothing read
+    hb.fail(env, bid, "died before any read", NOW)
+    assert hb.slots(env) == (0, 0, 30) and live(env) == []
+    again = hb.register(env, by="owner", now=NOW)  # the same candidates may be frozen again
+    hb.freeze(env, again, manifest(again), NOW)
+    with pytest.raises(RuntimeError):
+        hb.evaluate(
+            env, again, lambda c, m: (_ for _ in ()).throw(RuntimeError("died")), reader, NOW
+        )
+    hb.fail(env, again, "failed after the marker", NOW)
+    assert hb.slots(env) == (2, 0, 28)
+
+
+def test_the_budget_of_30_is_enforced_by_the_database(env):
+    env.execute(
+        "INSERT INTO holdout_batch (state, lock_id, evaluator_version, registered_by, registered_at)"
+        " SELECT 'REGISTERED', lock_id, %s, 'owner', %s FROM research_lock LIMIT 1",
+        (hb.EVALUATOR_VERSION, NOW),
+    )
+    bid = env.execute("SELECT batch_id FROM holdout_batch").fetchone()[0]
+    for i in range(30):
+        env.execute(
+            "INSERT INTO holdout_candidate (batch_id, candidate_id, state, seed, reserved_at) VALUES (%s,%s,'RESERVED',%s,%s)",
+            (bid, f"x{i}", f"{i:032x}", NOW),
+        )
+    with pytest.raises(psycopg.errors.RaiseException, match="30 candidate slots"):
+        env.execute(
+            "INSERT INTO holdout_candidate (batch_id, candidate_id, state, seed, reserved_at) VALUES (%s,'x30','RESERVED',%s,%s)",
+            (bid, "f" * 32, NOW),
+        )
+    assert hb.slots(env) == (0, 30, 0)
+
+
+def test_an_exclusion_needs_one_of_the_four_reasons_and_cannot_hit_a_frozen_candidate(env):
+    env.execute(
+        "INSERT INTO holdout_exclusion VALUES ('z', 3, 'ineligible: provenance', %s)", (NOW,)
+    )
+    with pytest.raises(psycopg.errors.CheckViolation):
+        env.execute(
+            "INSERT INTO holdout_exclusion VALUES ('y', 5, 'an unattractive result', %s)", (NOW,)
+        )
+    with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
+        env.execute("DELETE FROM holdout_exclusion")
+    frozen(env)
+    with pytest.raises(psycopg.errors.RaiseException, match="frozen batch"):
+        env.execute("INSERT INTO holdout_exclusion VALUES ('c1', 1, 'late', %s)", (NOW,))
 
 
 def test_freezing_checks_the_manifest_and_the_development_evidence_before_anything(env):
@@ -165,14 +259,14 @@ def test_a_clean_evaluation_commits_redacted_verdicts_once_and_consumes_the_hold
         return all_pass(cap, m)
 
     token = object()
-    hb.evaluate(env, bid, run, lambda: token, NOW)
+    hb.evaluate(env, bid, run, lambda _g: token, NOW)
     assert (
         seen["state_during"] == "EVALUATING" and seen["reader"] is token
     )  # consumed BEFORE the data was read
     with pytest.raises(hb.BatchError, match="revoked"):
         _ = seen["cap"].reader
     assert env.execute("SELECT state FROM holdout_batch").fetchone()[0] == "CONSUMED"
-    assert sorted(hb.read_verdicts(env)) == [
+    assert sorted(pv.read_verdicts(env)) == [
         ("c1", "oos_sharpe", "PASS"),
         ("c2", "oos_sharpe", "PASS"),
     ]
@@ -190,7 +284,7 @@ def test_verdicts_are_unreadable_until_the_batch_is_consumed_and_only_clean_cand
 ):
     bid = frozen(env)
     with pytest.raises(hb.BatchError, match="no consumed"):
-        hb.read_verdicts(env)
+        pv.read_verdicts(env)
 
     def run(cap, m):
         return hb.Results(
@@ -199,9 +293,9 @@ def test_verdicts_are_unreadable_until_the_batch_is_consumed_and_only_clean_cand
         )  # fmt: skip
 
     hb.evaluate(env, bid, run, reader, NOW)
-    assert hb.promotable(env, "c1") is True
-    assert hb.promotable(env, "c2") is False  # insufficient evidence is never a weak pass
-    assert hb.promotable(env, "nobody") is False
+    assert pv.promotable(env, "c1") is True
+    assert pv.promotable(env, "c2") is False  # insufficient evidence is never a weak pass
+    assert pv.promotable(env, "nobody") is False
 
 
 def test_a_crash_leaves_the_batch_evaluating_with_nothing_exposed_and_only_the_same_manifest_resumes(
@@ -217,13 +311,17 @@ def test_a_crash_leaves_the_batch_evaluating_with_nothing_exposed_and_only_the_s
     assert env.execute("SELECT state FROM holdout_batch").fetchone()[0] == "EVALUATING"
     assert env.execute("SELECT count(*) FROM holdout_verdict").fetchone()[0] == 0
     with pytest.raises(hb.BatchError, match="no consumed"):
-        hb.read_verdicts(env)
-    with pytest.raises(
-        hb.BatchError, match="register"
-    ):  # a second batch is impossible while this one is unresolved
-        hb.register(env, by="owner", now=NOW)
+        pv.read_verdicts(env)
+    other = hb.register(
+        env, by="owner", now=NOW
+    )  # opening a batch is allowed; the crashed batch's candidates still hold their slots
+    with pytest.raises(hb.BatchError, match="cannot be frozen"):
+        hb.freeze(env, other, manifest(other), NOW)
     hb.evaluate(env, bid, all_pass, reader, NOW)  # recovery: same manifest, same evaluator version
-    assert env.execute("SELECT state FROM holdout_batch").fetchone()[0] == "CONSUMED"
+    assert (
+        env.execute("SELECT state FROM holdout_batch WHERE batch_id=%s", (bid,)).fetchone()[0]
+        == "CONSUMED"
+    )
 
 
 def test_a_resume_with_a_different_evaluator_version_or_a_tampered_manifest_is_refused(
@@ -269,8 +367,6 @@ def test_when_recovery_is_impossible_the_batch_is_marked_failed_and_the_holdout_
     )
     with pytest.raises(hb.BatchError, match="EVALUATION_FAILED"):
         hb.evaluate(env, bid, all_pass, reader, NOW)
-    with pytest.raises(hb.BatchError, match="already exists"):
-        hb.register(env, by="owner", now=NOW)
 
 
 def test_the_research_window_cannot_change_once_a_batch_exists(env):
@@ -315,3 +411,32 @@ def test_a_candidate_must_be_a_real_clean_study_whose_dataset_hash_matches_what_
     with pytest.raises(hb.BatchError, match="cannot be reproduced"):
         hb.freeze(env, bid, manifest(bid, [dirty]), NOW)
     hb.freeze(env, bid, manifest(bid, [cand(1), cand(2)]), NOW)
+
+
+def test_the_evaluator_gets_a_guarded_handle_only_after_the_marker_and_never_a_connection(env):
+    from algo.research import holdout_guard
+
+    bid = frozen(env)
+    seen = {}
+
+    def run(cap, m):
+        seen["marker"] = env.execute(
+            "SELECT first_read_at FROM holdout_batch WHERE batch_id=%s", (bid,)
+        ).fetchone()[0]
+        seen["type"] = type(cap.connection)
+        seen["raw"] = isinstance(cap.connection, psycopg.Connection)
+        with pytest.raises(holdout_guard.GuardError):
+            cap.connection.execute("SELECT * FROM definition_signal_day")
+        return all_pass(cap, m)
+
+    hb.evaluate(env, bid, run, reader, NOW)
+    assert (
+        seen["marker"] is not None
+        and seen["type"] is holdout_guard.GuardedConnection
+        and seen["raw"] is False
+    )
+    with pytest.raises(hb.BatchError, match="revoked"):
+        hb.Capability(hb._TOKEN, object(), object())._revoke()  # a fresh capability is live...
+        cap = hb.Capability(hb._TOKEN, object(), object())
+        cap._revoke()
+        cap.connection  # noqa: B018  ...and unusable once revoked

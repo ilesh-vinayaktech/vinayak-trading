@@ -2,14 +2,15 @@
 """The evaluator behind the ONE holdout batch (`holdout_batch`): it runs each frozen candidate's chosen settings over the global holdout and
 judges the holdout gates, and it builds the manifest from the registry so family ids and trial counts are read, never typed in.
 
-What it does not do: it applies no multiple-testing correction beyond recording the manifest's method and trial counts (the three gates are
-the owner's absolute thresholds on Sharpe, drawdown and the index). A candidate that cannot be evaluated (no stocks to trade in the
-window, missing data, an error in the judging) gets INSUFFICIENT_EVIDENCE on every gate: never a pass, and not a plain fail either."""
+Each candidate is judged by `verdict.holdout_gates_v3` (policy v3 section 2): the Monte Carlo bootstrap test at 0.05 / 30 with the candidate's own seed committed at freeze,
+plus the Sharpe, drawdown-against-the-index and edge-over-the-index floors. A candidate that cannot be evaluated (no stocks to trade in the window, missing data, an error in
+the judging) gets INSUFFICIENT_EVIDENCE on every gate: never a pass, and not a plain fail either. Not yet checked here: that the equity curve covers every session of the
+window (needs the trading-calendar trace of policy section 10 step 0) and the capability-scoped data access of section 7."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import psycopg
@@ -29,9 +30,8 @@ from algo.research.study_runner import (
     build,
     cost_policy,
 )
-from algo.research.study_store import get_study
 
-HOLDOUT_GATES = ("holdout_sharpe", "holdout_drawdown", "holdout_beats_benchmark")
+HOLDOUT_GATES = verdict.V3_GATES
 Readers = Callable[
     [datetime], Any
 ]  # known_at -> the unwrapped price reader a candidate's study was pinned to
@@ -42,8 +42,8 @@ def build_manifest(
     batch_id: int,
     experiment_ids: list[int],
     *,
-    correction_method: str = "holm",
-    correction_version: str = "1",
+    correction_method: str = "bonferroni-30",
+    correction_version: str = holdout_batch.METHODOLOGY_VERSION,
 ) -> Manifest:
     """One candidate per study, from what the registry holds: its sealed dataset, its newest PASSED development report, its family and
     the family's whole trial count. Anything missing is named; nothing is guessed."""
@@ -95,6 +95,16 @@ def build_manifest(
     )  # fmt: skip
 
 
+def _sessions(conn: Any, begin: date, end: date) -> set[date]:
+    """The trading sessions of the window: every date the source bars trade on (the platform's own calendar of the history)."""
+    rows = conn.execute(
+        "SELECT DISTINCT (ts AT TIME ZONE 'Asia/Kolkata')::date FROM bar_1d WHERE source='kite'"
+        " AND ts >= %s::date - 1 AND ts < %s::date + 2",
+        (begin, end),
+    ).fetchall()
+    return {r[0] for r in rows if begin <= r[0] <= end}
+
+
 def _candidate(
     conn: psycopg.Connection, c: Candidate, m: Manifest, readers: Readers
 ) -> tuple[dict[str, str], dict[str, Any]]:
@@ -106,7 +116,7 @@ def _candidate(
     if row is None:
         raise BatchError(f"no registered study has study_sha256 {c.study_sha256}")
     exp, doc = row
-    spec = StudySpec.model_validate((get_study(conn, exp) or {})["spec"])
+    spec = StudySpec.model_validate((doc or {})["spec"])
     refs = conn.execute(
         "SELECT refs FROM validation_report WHERE report_id=%s", (c.validation_report_id,)
     ).fetchone()
@@ -132,19 +142,31 @@ def _candidate(
         trade_stop=spec.trade_stop, stop_cooldown_days=spec.stop_cooldown_days,
     )  # fmt: skip
     result = run_backtest(conn, build(spec, chosen, setup), cfg, reader=setup.reader)
+    days = {d for d, _ in result.equity}
+    missing = sorted(_sessions(conn, begin, m.date_to) - days)
+    if (
+        not days or missing
+    ):  # policy section 2: the curve must cover every session of the window, or there is no evidence
+        raise StudyRunError(
+            f"the equity curve misses {len(missing)} session(s) of the holdout window"
+            + (f" (first {missing[0]})" if missing else "")
+        )
     bench, note = _benchmark(conn, spec, [d for d, _ in result.equity])
     thresholds, _ = _thresholds(spec)
-    gates, evidence = verdict.holdout_gates(_returns(result), bench, thresholds)
+    gates, evidence = verdict.holdout_gates_v3(
+        _returns(result), bench, thresholds, seed=int(m.seeds[c.candidate_id], 16)
+    )
     return (
         {g["name"]: g["status"] for g in gates},
         {"chosen": chosen, "window": [begin.isoformat(), m.date_to.isoformat()], "benchmark": spec.benchmark, "benchmark_note": note, "evidence": evidence, "gates": gates},
     )  # fmt: skip
 
 
-def evaluate(conn: psycopg.Connection, cap: Capability, m: Manifest) -> Results:
+def evaluate(cap: Capability, m: Manifest) -> Results:
     """The `run` the batch calls once: every candidate judged over the global holdout. A candidate that cannot be run gets
     INSUFFICIENT_EVIDENCE on every gate, with the reason in the owner-only report."""
     readers: Readers = cap.reader
+    conn = cap.connection  # guarded: source inputs and the study's own record only
     verdicts: dict[tuple[str, str], str] = {}
     detail: dict[str, Any] = {}
     for c in m.candidates:
@@ -168,9 +190,9 @@ def evaluate(conn: psycopg.Connection, cap: Capability, m: Manifest) -> Results:
 def run_batch(conn: psycopg.Connection, batch_id: int, now: datetime) -> None:
     """Evaluate the frozen batch once (or resume an interrupted evaluation): the single path that ever reads the holdout."""
 
-    def factory() -> Readers:
+    def factory(guarded: Any) -> Readers:
         return lambda known_at: BarReader(
-            conn, source="kite", publish_lag=timedelta(0), known_at=known_at
+            guarded, source="kite", publish_lag=timedelta(0), known_at=known_at
         )
 
-    holdout_batch.evaluate(conn, batch_id, lambda cap, m: evaluate(conn, cap, m), factory, now)
+    holdout_batch.evaluate(conn, batch_id, evaluate, factory, now)

@@ -10,7 +10,8 @@ from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
 from algo.paper import book
 from tests.support.bt import put_bars
-from tests.support.portal import add_user, make_app, settings, sign_in
+from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+from tests.support.research_lock import anchor_open_lock
 
 pytestmark = pytest.mark.integration
 START = datetime(2026, 11, 11, 10, 0, tzinfo=UTC)
@@ -27,6 +28,7 @@ CREATE = {
 @pytest.fixture
 def env(conn, pg_url, tmp_path):
     migrate(conn)
+    anchor_open_lock(conn)
     clock = SimClock(START)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
@@ -40,6 +42,13 @@ def env(conn, pg_url, tmp_path):
 def trader(conn, app, clock, email="jane@example.com"):
     uid = add_user(conn, clock, "TRADER", email)
     return uid, sign_in(app, email)
+
+
+def owner(conn, app, clock, email="boss@example.com"):
+    uid = add_user(conn, clock, "ADMIN", email)
+    c = sign_in(app, email)
+    enrol_second_factor(c, clock)
+    return uid, c
 
 
 def order(conn, uid, iid, status="PENDING", side="BUY", qty=10, expires_in=timedelta(hours=20)):
@@ -89,7 +98,13 @@ def test_only_people_who_may_trade_can_use_the_paper_routes(env):
         body = {} if method == "POST" else None
         assert viewer.request(method, path, json=body).status_code == 403, path
         assert TestClient(app).request(method, path, json=body).status_code == 401, path
-    assert sign_in(app, "jane@example.com").get("/api/paper/account").status_code == 200
+    jane = sign_in(app, "jane@example.com")
+    assert jane.get("/api/paper/account").status_code == 200
+    # candidate-level holdout state is for the owner alone (policy v3 section 5): a trader is refused, whatever the state
+    assert jane.get("/api/paper/definitions").status_code == 403
+    assert jane.post("/api/paper/definitions/1/start").status_code == 403
+    assert viewer.get("/api/paper/definitions").status_code == 403
+    assert TestClient(app).get("/api/paper/definitions").status_code == 401
 
 
 def test_no_account_yet_shows_the_choices_that_exist(env):
@@ -127,7 +142,7 @@ def test_an_account_is_started_with_the_chosen_settings_once_and_audited(env):
         "strategy_id": "trend_pullback", "enabled": True, "mode": "PAPER", "initial_cash": "100000",
         "started_on": "2026-11-11", "attention": None, "universe": "nifty100", "max_instruments": 50,
         "timeframe": "1D", "params": {"trend_sma": 200, "entry_rsi": 30, "exit_rsi": 60, "max_positions": 10},
-        "screen": None,
+        "screen": None, "definition": None,
     }  # fmt: skip
     assert c.post("/api/paper/account", json=CREATE).status_code == 400  # already has one
     other, c2 = trader(conn, app, clock, "bob@example.com")
@@ -383,3 +398,19 @@ def test_approving_with_a_limit_price_stores_it_and_a_bad_limit_is_a_400(env):
     got = {r["order_id"]: r for r in c.get("/api/paper/orders").json()["orders"]}
     assert (got[str(good)]["order_type"], got[str(good)]["limit_price"]) == ("LIMIT", "199.5")
     assert c.post(f"/api/paper/orders/{bad}/approve").status_code == 200  # no body: a market order
+
+
+def test_a_strategy_definition_cannot_be_started_before_the_global_holdout_and_the_refusal_is_not_audited(
+    env,
+):
+    conn, app, clock, _ = env
+    uid, c = owner(conn, app, clock)
+    accounts(conn, uid)
+    got = c.get("/api/paper/definitions").json()
+    assert got == {"label": "UNVALIDATED", "definitions": []}  # no study has a passed verdict yet
+    refused = c.post("/api/paper/definitions/1/start")
+    assert refused.status_code == 400 and "no such definition study" in refused.json()["detail"]
+    assert audit_actions(conn, "paper.definition%") == []
+    assert c.get("/api/paper/account").json()["account"]["definition"] is None
+    nobody = owner(conn, app, clock, "joe@example.com")[1]
+    assert nobody.post("/api/paper/definitions/1/start").status_code == 404  # no paper account yet

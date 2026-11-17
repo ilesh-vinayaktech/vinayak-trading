@@ -40,7 +40,7 @@ def test_only_people_who_may_use_strategies_read_a_definitions_decisions(chart):
     assert sign_in(app, "viewer@example.com").get(URL, params=q).status_code == 403
 
 
-def test_the_decisions_run_through_the_stored_window_and_on_into_the_days_computed_after_it(chart):
+def test_decisions_stop_at_the_research_end_and_nothing_after_it_is_computed_or_stored(chart):
     conn, ids, app = chart
     c = sign_in(app, "jane@example.com")
     r = c.get(URL, params={"instrument_id": ids[0], "start": "2026-01-02", "end": "2026-03-06"})
@@ -48,21 +48,22 @@ def test_the_decisions_run_through_the_stored_window_and_on_into_the_days_comput
     body = r.json()
     days = [d["day"] for d in body["days"]]
     assert (
-        days[0] >= "2026-01-02" and days[-1] > "2026-02-28"
-    )  # decisions continue past the development end, computed on the spot
-    assert any("kept nowhere" in n for n in body["notes"]) and body["strategy"].endswith("v1")
-    after = [d for d in body["days"] if d["day"] > "2026-02-28"]
-    assert after and all(d["ready"] for d in after)  # the computed days have values for the stock
+        days[0] >= "2026-01-02" and days[-1] <= "2026-02-28"
+    )  # policy v3 section 6: nothing after the research window, whatever was asked
+    assert body["strategy"].endswith("v1")
+    assert conn.execute(
+        "SELECT count(*) FROM definition_signal_day WHERE day > '2026-02-28'"
+    ).fetchone() == (0,)
     assert conn.execute(
         "SELECT count(*) FROM feature_run WHERE month >= '2026-03-01'"
-    ).fetchone() == (0,)  # nothing was stored
+    ).fetchone() == (0,)
 
 
-def test_a_range_wholly_after_the_stored_window_is_computed_too_and_a_bad_request_is_refused(chart):
+def test_a_range_wholly_after_the_research_end_is_empty_and_a_bad_request_is_refused(chart):
     conn, ids, app = chart
     c = sign_in(app, "jane@example.com")
     r = c.get(URL, params={"instrument_id": ids[0], "start": "2026-03-02", "end": "2026-03-06"})
-    assert r.status_code == 200 and r.json()["days"]
+    assert r.status_code == 200 and r.json()["days"] == []
     assert (
         c.get(
             URL, params={"instrument_id": ids[0], "start": "2026-03-06", "end": "2026-03-02"}
@@ -106,18 +107,18 @@ def test_the_decisions_are_kept_and_a_later_request_computes_only_the_new_days(c
         )[1],
     )
     q = {"instrument_id": ids[0], "start": "2026-01-02"}
-    first = c.get(URL, params={**q, "end": "2026-03-04"}).json()
+    first = c.get(URL, params={**q, "end": "2026-02-20"}).json()
     assert len(asked) == 1 and len(asked[0]) == len(first["days"])
     series = conn.execute("SELECT first_day, last_day FROM definition_signal_series").fetchall()
     assert len(series) == 1 and str(series[0][1]) == first["days"][-1]["day"]
-    again = c.get(URL, params={**q, "end": "2026-03-04"}).json()
+    again = c.get(URL, params={**q, "end": "2026-02-20"}).json()
     assert len(asked) == 2 and asked[1] == []  # nothing new: served from the stored decisions
     assert again == first
-    longer = c.get(URL, params={**q, "end": "2026-03-06"}).json()
+    longer = c.get(URL, params={**q, "end": "2026-02-27"}).json()
     assert [d.isoformat() for d in asked[2]] == [
-        "2026-03-05",
-        "2026-03-06",
-    ]  # only the two new sessions were computed
+        d["day"] for d in longer["days"][len(first["days"]) :]
+    ]  # only the new sessions were computed
+    assert asked[2] and all(d.isoformat() <= "2026-02-27" for d in asked[2])
     assert [d["day"] for d in longer["days"]][: len(first["days"])] == [
         d["day"] for d in first["days"]
     ]
@@ -144,9 +145,9 @@ def test_a_request_that_starts_before_the_kept_range_recomputes_and_replaces_it(
             real(conn_, defn, iid, days, *a, **kw),
         )[1],
     )
-    c.get(URL, params={"instrument_id": ids[0], "start": "2026-02-02", "end": "2026-03-04"})
+    c.get(URL, params={"instrument_id": ids[0], "start": "2026-02-02", "end": "2026-02-27"})
     wider = c.get(
-        URL, params={"instrument_id": ids[0], "start": "2026-01-12", "end": "2026-03-04"}
+        URL, params={"instrument_id": ids[0], "start": "2026-01-12", "end": "2026-02-27"}
     ).json()
     assert len(asked) == 2 and len(asked[1]) == len(wider["days"])  # the whole wider range
     assert (

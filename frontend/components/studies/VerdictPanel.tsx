@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { NextSteps } from "@/components/studies/NextSteps";
 import { Progress, StopButton } from "@/components/studies/Progress";
 import { ConfirmButton } from "@/components/users/ConfirmButton";
 import { Alert } from "@/components/ui/Alert";
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ApiError, api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import type { StudyVerdict } from "@/lib/schemas";
-import { GATE_LABELS, GATE_STATE_LABEL, GATE_STATE_TONE, gateState, gateValue } from "@/lib/studies";
+import { GATE_LABELS, GATE_STATE_LABEL, GATE_STATE_TONE, gateRule, gateState, gateValue } from "@/lib/studies";
 
 type Report = NonNullable<StudyVerdict["report"]>;
 type Gate = Report["gates"][number];
@@ -48,7 +49,7 @@ export function VerdictPanel({ id }: { id: number }) {
     { key: "ok", header: "", cell: (g) => <StatusPill tone={GATE_STATE_TONE[gateState(g)]}>{GATE_STATE_LABEL[gateState(g)]}</StatusPill> },
     { key: "n", header: "Check", cell: (g) => GATE_LABELS[g.name] ?? g.name },
     { key: "v", header: "Result", className: "text-right", cell: (g) => (r ? gateValue(g.name, r.evidence) : "") },
-    { key: "d", header: "Why", hideBelow: "md", cell: (g) => (g.passed ? "" : <span className="text-xs text-ink-soft">{g.detail}</span>) },
+    { key: "d", header: "Why", hideBelow: "md", cell: (g) => { const rule = r ? gateRule(g.name, r.evidence) : null; return rule ? <span className="text-xs text-ink-soft" data-testid="gate-rule">{rule}{g.passed ? "" : ` ${g.detail}`}</span> : g.passed ? "" : <span className="text-xs text-ink-soft">{g.detail}</span>; } },
   ];
   const unmeasured = r ? r.gates.filter((g) => gateState(g) === "INSUFFICIENT_EVIDENCE").length : 0;
   const winCols: Column<Window>[] = [
@@ -103,6 +104,7 @@ export function VerdictPanel({ id }: { id: number }) {
               <DataTable caption="Walk-forward windows" columns={winCols} rows={r.refs.windows} rowKey={(w) => w.test_from} empty={null} />
             </div>
             <HoldoutSection id={id} h={v?.holdout ?? null} run={v?.holdout_run ?? null} passed={r.passed} canOpen={can("strategy:own")} opening={holdout.isPending} error={holdout.error} onOpen={() => holdout.mutate()} />
+            {r.passed ? <NextSteps id={id} inner={v?.holdout ?? null} /> : null}
           </div>
         ) : !active && !run ? <EmptyState icon="flask" title="Not judged yet">When every combination has run, judge the results to see which checks pass.</EmptyState> : null}
       </div>
@@ -128,8 +130,8 @@ function HoldoutSection({ id, h, run, passed, canOpen, opening, error, onOpen }:
   ];
   return (
     <div className="space-y-3 border-t border-line pt-4">
-      <h3 className="text-sm font-medium">The holdout: the final test</h3>
-      <p className="text-xs text-ink-soft">The chosen settings are run once on the last stretch of dates the study never touched. It can be done a single time, and only after a verdict that passed every check. The result is final.</p>
+      <h3 className="text-sm font-medium">The inner holdout: the study&apos;s own last test</h3>
+      <p className="text-xs text-ink-soft">The chosen settings are run once on the last stretch of dates this study did not tune on (2023-2024). Those days were already seen when the features were chosen, so a pass here is a sanity check, not proof. It can be done a single time, and only after a verdict that passed every check. The truly sealed test is the global holdout, 2025 onward, opened separately.</p>
       {error ? <Alert tone="error">{message(error)}</Alert> : null}
       {h ? (
         <div className="space-y-2">

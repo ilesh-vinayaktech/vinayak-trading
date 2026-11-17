@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { DefinitionsSection } from "@/components/paper/DefinitionsSection";
 import { DEFAULTS } from "@/components/strategies/StrategyDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Field } from "@/components/ui/Field";
@@ -88,10 +89,11 @@ export function SettingsForm({ data }: { data: PaperAccount }) {
             </Field>
           </SettingsSection>
         )}
-        <SettingsSection title="What it runs" description={acct ? (acct.screen ? `Screener: holds up to ${acct.params.max_positions} stocks that match the screen, from ${acct.screen.segments.join(" + ")} caps.` : `Index: ${data.options.universes.find((u) => u.key === acct.universe)?.label ?? acct.universe}, ${acct.max_instruments ? `top ${acct.max_instruments} stocks` : "all stocks"}.`) : "Pick a saved strategy, or start with the standard settings (Nifty 200, all stocks)."}>
+        <SettingsSection title="What it runs" description={acct ? (acct.definition ? `Strategy definition ${acct.definition}: its rules and settings are fixed by the study that passed.` : acct.screen ? `Screener: holds up to ${acct.params.max_positions} stocks that match the screen, from ${acct.screen.segments.join(" + ")} caps.` : `Index: ${data.options.universes.find((u) => u.key === acct.universe)?.label ?? acct.universe}, ${acct.max_instruments ? `top ${acct.max_instruments} stocks` : "all stocks"}.`) : "Pick a saved strategy, or start with the standard settings (Nifty 200, all stocks)."}>
           {picker || <p className="text-sm text-ink-soft">You have no saved strategies yet.</p>}
           <p className="mt-3 text-sm"><Link href="/strategies" className="font-medium text-brand underline">{saved.length > 0 ? "Manage strategies" : "Create a strategy"}</Link></p>
         </SettingsSection>
+        <DefinitionsSection hasAccount={!!acct} current={acct?.definition ?? null} />
         {acct ? <p className="mb-4 text-xs text-ink-soft">Changing the strategy does not sell anything right away: holdings that no longer qualify are sold at the next daily decision.</p> : null}
         {acct ? null : <button type="submit" disabled={create.isPending} className={buttonClass("primary")}>Start paper trading</button>}
       </form>

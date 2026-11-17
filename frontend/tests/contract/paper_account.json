@@ -1,6 +1,7 @@
 {
  "account": {
   "attention": null,
+  "definition": null,
   "enabled": true,
   "initial_cash": "1000000",
   "max_instruments": 100,

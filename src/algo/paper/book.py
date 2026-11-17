@@ -22,7 +22,7 @@ from algo.data.adjust.factors import ActionRecord
 from algo.ledger.ledger import Ledger
 from algo.paper.universe import UNIVERSES
 
-COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe, config_id, screen"
+COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe, config_id, screen, definition"
 
 
 class PaperError(ValueError):
@@ -99,6 +99,10 @@ def update_settings(conn: psycopg.Connection, user_id: UUID, **changes: Any) -> 
     """Change what the strategy runs on (universe, instrument cap, timeframe) or its parameters. Holdings the new settings
     no longer allow are sold by the strategy's next decision, not here."""
     acct = _need(conn, user_id)
+    if changes and acct["definition"] is not None:
+        raise PaperError(
+            "this account follows a strategy definition: its settings are fixed by the study that passed"
+        )
     if changes and acct["screen"] is not None:
         raise PaperError(
             "this account follows a screener strategy: change that strategy on the Strategies page"

@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, ValidationError
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data.corporate_actions import upcoming_within
 from algo.live.market_calendar import IST
-from algo.paper import book, orders
+from algo.paper import book, definitions, orders
 from algo.paper.universe import UNIVERSES
 from algo.portal import audit
 from algo.strategies.trend_pullback import TrendPullbackParams
@@ -111,6 +111,7 @@ def account(who: CurrentUser, conn: WConn) -> dict[str, Any]:
             "strategy_id": acct["strategy_id"], "enabled": acct["enabled"], "mode": acct["mode"], "initial_cash": _s(acct["initial_cash"]),
             "started_on": acct["started_on"].isoformat(), "attention": acct["attention"], "universe": acct["universe"],
             "max_instruments": acct["max_instruments"], "timeframe": acct["timeframe"], "params": acct["params"], "screen": acct["screen"],
+            "definition": acct["definition"]["name"] if acct["definition"] else None,
         }  # fmt: skip
     return {"label": "UNVALIDATED", "options": _options(), "account": shown}
 
@@ -149,6 +150,33 @@ def create_account(
             "timeframe": body.timeframe,
             "initial_cash": _s(body.initial_cash),
         },
+    )
+    return {"ok": True}
+
+
+@router.get("/definitions")
+def definition_candidates(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Strategy definitions whose study passed its development verdict, and how far each is from paper trading: only the ones that passed the global holdout can be started."""
+    return {"label": "UNVALIDATED", "definitions": definitions.candidates(conn)}
+
+
+@router.post("/definitions/{experiment_id}/start")
+def start_definition(
+    experiment_id: int, request: Request, who: CurrentUser, conn: WConn
+) -> dict[str, bool]:
+    _own(conn, who)
+    try:
+        name = definitions.start(conn, who.session.user_id, experiment_id)
+    except book.PaperError as e:
+        raise HTTPException(400, str(e)) from e
+    audit.record(
+        conn,
+        now=_st(request).clock.now(),
+        action="paper.definition_started",
+        actor_user_id=who.session.user_id,
+        target_type="paper_account",
+        target_id=str(who.session.user_id),
+        detail={"experiment_id": experiment_id, "name": name},
     )
     return {"ok": True}
 

@@ -68,6 +68,10 @@ class DslStudyStrategy(Strategy):
     def params_hash(self) -> str:
         return self.inner.params_hash
 
+    @property
+    def audit(self) -> list[dict[str, Any]]:
+        return self.inner.audit
+
     def universe(self, ctx: Context) -> list[int]:
         return self.inner.universe(ctx)
 

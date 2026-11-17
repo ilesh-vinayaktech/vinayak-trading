@@ -7,6 +7,7 @@ from algo.api import queries
 from algo.data.benchmark import ingest, register, store_validation
 from algo.data.store.instruments import InstrumentRepo
 from algo.data.store.migrate import migrate
+from tests.support.research_lock import anchor_open_lock
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 11, 7, tzinfo=UTC)
@@ -19,6 +20,7 @@ def ts(d):
 @pytest.fixture
 def env(conn):
     migrate(conn)
+    anchor_open_lock(conn)
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     iid = repo.add_instrument(x, "XYZ")
@@ -205,6 +207,30 @@ def test_a_backtest_run_is_listed_and_returned_in_full(env):
     assert full["created_at"].startswith("2026-11-07") and full["params_hash"] == "ph"
     r = queries.research_health(conn)
     assert r["backtests"] == 1 and r["latest_run"]["strategy_id"] == "s"
+
+
+def test_a_backtest_that_reaches_past_the_research_window_is_hidden_from_every_research_view(env):
+    conn, _ = env
+    for _ in (1, 2):
+        conn.execute(
+            "INSERT INTO backtest_run (strategy_id,strategy_version,params,params_hash,code_version,"
+            "reader_mode,config,cost_model,adjustment_versions,provisional_events,unapplied_events,"
+            "blocked_instruments,unmodelled_events,accounting_complete,dividends_received,metrics,"
+            "result_hash,created_at,ledger_reconciled,reconciliation,pnl) VALUES ('s','1','{}','ph','c','research',"
+            "'{\"initial_cash\": \"100000\"}','{}','{}','[]','[]','[]','[]',true,0,'{}','rh',%s,true,'{}','{}')", (NOW,))  # fmt: skip
+    ids = [r[0] for r in conn.execute("SELECT run_id FROM backtest_run ORDER BY run_id").fetchall()]
+    for run, day in (
+        (ids[0], "2099-12-30"),
+        (ids[1], "2099-12-31"),
+    ):  # the lock in force ends development on 2099-12-30
+        conn.execute(
+            "INSERT INTO backtest_equity (run_id, day, equity) VALUES (%s, %s, 100000)", (run, day)
+        )
+    assert [r["run_id"] for r in queries.backtests(conn)["items"]] == [
+        ids[0]
+    ] and queries.backtests(conn)["total"] == 1
+    assert queries.backtest(conn, ids[0]) is not None
+    assert queries.backtest(conn, ids[1]) is None and queries.backtest_report(conn, ids[1]) is None
 
 
 def test_each_date_shows_only_its_latest_load_so_an_old_failure_or_no_file_never_lingers(conn):

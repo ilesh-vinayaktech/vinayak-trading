@@ -154,7 +154,7 @@ def update(
 def use(conn: psycopg.Connection, owner: UUID, config_id: UUID) -> None:
     c = _need(conn, owner, config_id)
     done = conn.execute(
-        "UPDATE paper_account SET strategy_id=%s, universe=%s, max_instruments=%s, timeframe=%s, params=%s, screen=%s, config_id=%s WHERE user_id=%s",
+        "UPDATE paper_account SET strategy_id=%s, universe=%s, max_instruments=%s, timeframe=%s, params=%s, screen=%s, definition=NULL, config_id=%s WHERE user_id=%s",
         (
             c["strategy_id"],
             c["universe"],

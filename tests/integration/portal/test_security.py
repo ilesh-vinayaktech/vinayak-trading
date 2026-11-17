@@ -9,6 +9,7 @@ from algo.core.clock import SimClock
 from algo.data.store.migrate import migrate
 from algo.portal import accounts, totp
 from tests.support.portal import FAST, ORIGIN, make_app, settings
+from tests.support.research_lock import anchor_open_lock
 
 pytestmark = pytest.mark.integration
 PW = "violet-harbor-lantern-42"
@@ -19,6 +20,7 @@ START = datetime(2026, 11, 11, 10, 0, tzinfo=UTC)
 @pytest.fixture
 def env(conn, pg_url, tmp_path):
     migrate(conn)
+    anchor_open_lock(conn)
     clock = SimClock(START)
     return conn, make_app(pg_url, tmp_path, portal=settings(clock)), clock
 

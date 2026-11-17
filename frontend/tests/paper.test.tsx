@@ -48,6 +48,7 @@ const ACCOUNT = {
   timeframe: "1D",
   params: { trend_sma: 200, entry_rsi: 25, exit_rsi: 60, max_positions: 10 },
   screen: null,
+  definition: null,
 };
 const account = (over: Record<string, unknown> | null = {}) => ({
   label: "UNVALIDATED",
@@ -235,6 +236,7 @@ const ready = (
   "GET /api/paper/orders": ORDERS,
   "GET /api/paper/runs": RUNS,
   "GET /api/strategies": strategies([]),
+  "GET /api/paper/definitions": { label: "UNVALIDATED", definitions: [] },
   ...extra,
 });
 const STRATEGY = {
@@ -291,6 +293,60 @@ describe("relative time", () => {
     expect(fmtRelative("2027-03-01T00:00:00Z", now)).toBe("2027-03-01");
     expect(fmtRelative("2026-01-01T00:00:00Z", now)).toBe("2026-01-01");
     expect(fmtRelative("garbage", now)).toBe("garbage");
+  });
+});
+
+describe("strategies from research", () => {
+  const defs = (state: string) => ({ label: "UNVALIDATED", definitions: [{ experiment_id: 5, strategy_id: "MOMENTUM_12M_M", version: 1, name: "MOMENTUM_12M_M v1 test", state }] });
+
+  it("says a strategy that passed its development test is waiting for the global holdout and offers no start", async () => {
+    backend(ready({}, { "GET /api/paper/definitions": defs("awaiting_holdout") }));
+    mount();
+    fireEvent.click(await screen.findByRole("tab", { name: /Settings/ }));
+    const row = await screen.findByTestId("research-strategy");
+    expect(row).toHaveTextContent("MOMENTUM_12M_M");
+    expect(row).toHaveTextContent("Waiting for the global holdout");
+    expect(within(row).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("says one that failed the global holdout cannot be paper traded", async () => {
+    backend(ready({}, { "GET /api/paper/definitions": defs("failed_holdout") }));
+    mount();
+    fireEvent.click(await screen.findByRole("tab", { name: /Settings/ }));
+    const row = await screen.findByTestId("research-strategy");
+    expect(row).toHaveTextContent("cannot be paper traded");
+    expect(within(row).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("tells anyone but the owner that the state of researched strategies is not for them, instead of saying none passed", async () => {
+    backend(ready({}, { "GET /api/paper/definitions": [403, { detail: "forbidden" }] }));
+    mount();
+    fireEvent.click(await screen.findByRole("tab", { name: /Settings/ }));
+    expect(await screen.findByText(/Only the owner can see/)).toBeInTheDocument();
+    expect(screen.queryByTestId("research-strategy")).not.toBeInTheDocument();
+  });
+
+  it("starts one that passed the global holdout on the account", async () => {
+    backend(ready({}, { "GET /api/paper/definitions": defs("ready"), "POST /api/paper/definitions/5/start": { ok: true } }));
+    mount();
+    fireEvent.click(await screen.findByRole("tab", { name: /Settings/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Paper trade this" }));
+    await waitFor(() => expect(posted().map((c) => c.path)).toEqual(["/api/paper/definitions/5/start"]));
+    expect(await screen.findByText("Strategy changed. It applies from the next daily decision.")).toBeInTheDocument();
+  });
+
+  it("shows which research strategy the account follows and does not offer it again", async () => {
+    backend(ready({ definition: "MOMENTUM_12M_M v1 test" }, { "GET /api/paper/definitions": defs("ready") }));
+    mount();
+    fireEvent.click(await screen.findByRole("tab", { name: /Settings/ }));
+    expect(await screen.findByRole("button", { name: "In use" })).toBeDisabled();
+    expect(screen.getByText(/Strategy definition MOMENTUM_12M_M v1 test/)).toBeInTheDocument();
+  });
+
+  it("cannot start before there is an account", async () => {
+    backend(ready(null, { "GET /api/paper/definitions": defs("ready") }));
+    mount();
+    expect(await screen.findByRole("button", { name: "Paper trade this" })).toBeDisabled();
   });
 });
 

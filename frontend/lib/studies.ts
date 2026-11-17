@@ -76,6 +76,13 @@ export const GATE_STATE_TONE: Record<GateState, "good" | "bad" | "warn" | "neutr
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
+/** The rule a check really used, when it is not the usual one: for a setting fixed in advance, or near-identical variants, the overfitting probability is not the test (it only measures noise between twins) and the bootstrap Sharpe bound is. Shown even when the check passes, so the number beside it is never mistaken for the test. */
+export function gateRule(name: string, e: Record<string, number | null>): string | null {
+  if (name !== "overfitting_probability" || (e["pbo_twins"] ?? null) !== 1) return null;
+  const pbo = e["pbo"] ?? null;
+  return `The setting was fixed in advance or the tried variants are near-identical, so the overfitting probability${pbo === null ? "" : ` (${pbo.toFixed(2)})`} is not the test. Instead the low end of a 90% bootstrap range of the out-of-sample Sharpe must be above 0. This is a lower bar than the usual limit.`;
+}
+
 export function gateValue(name: string, e: Record<string, number | null>): string {
   const n = (k: string) => e[k] ?? null;
   const f = (k: string, fmt: (v: number) => string) => (n(k) === null ? "no evidence" : fmt(n(k) as number));
@@ -85,7 +92,7 @@ export function gateValue(name: string, e: Record<string, number | null>): strin
     case "window_share": return f("window_share", pct);
     case "oos_sharpe": return f("oos_sharpe", (v) => v.toFixed(2));
     case "deflated_sharpe": return f("dsr", (v) => v.toFixed(3));
-    case "overfitting_probability": return f("pbo", (v) => v.toFixed(2));
+    case "overfitting_probability": return n("pbo_twins") === 1 ? f("oos_sharpe_lower", (v) => `Sharpe bound ${v.toFixed(2)}`) : f("pbo", (v) => v.toFixed(2));
     case "max_drawdown": return n("max_drawdown") === null ? "no evidence" : `${pct(Math.abs(n("max_drawdown") as number))}${n("benchmark_max_drawdown") === null ? "" : ` vs index ${pct(Math.abs(n("benchmark_max_drawdown") as number))}`}`;
     case "beats_benchmark": return n("oos_sharpe") === null || n("benchmark_sharpe") === null ? "no evidence" : `${(n("oos_sharpe") as number).toFixed(2)} vs index ${(n("benchmark_sharpe") as number).toFixed(2)}`;
     case "parameter_plateau": return f("plateau_drop", (v) => `${pct(v)} lost`);

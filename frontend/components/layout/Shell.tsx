@@ -28,6 +28,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/paper", label: "Paper trading", icon: "chart", need: "strategy:own" },
       { href: "/broker", label: "Broker account", icon: "benchmark", need: "kite:own" },
       { href: "/risk", label: "Risk and kill switch", icon: "review", need: "research:read" },
+      { href: "/holdout", label: "Holdout ledger", icon: "scroll", need: "holdout:read" },
     ],
   },
   {

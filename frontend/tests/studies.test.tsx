@@ -485,6 +485,22 @@ describe("the verdict", () => {
     const dsr = screen.getByText("Deflated Sharpe (allows for luck across all the tries)").closest("tr") as HTMLElement;
     expect(within(dsr).getByText("Fail")).toBeInTheDocument();
   });
+  it("says which rule judged the overfitting check when the setting was fixed in advance, even when it passes", async () => {
+    const gates = [{ name: "overfitting_probability", passed: true, detail: "ok", status: "PASS" }];
+    open({ holdout: null, holdout_run: null, run: RUNV, report: { ...REPORT, passed: true, gates, evidence: { ...REPORT.evidence, pbo: 0.57, pbo_twins: 1, oos_sharpe_lower: 0.31 } }, trials_done: 12, trials_planned: 12 });
+    const row = (await screen.findByText(/Chance the best settings are overfitted/)).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Sharpe bound 0.31")).toBeInTheDocument(); // not 0.57, which looked like a failure of the 0.2 limit
+    expect(within(row).getByTestId("gate-rule")).toHaveTextContent("overfitting probability (0.57) is not the test");
+    expect(within(row).getByTestId("gate-rule")).toHaveTextContent("lower bar than the usual limit");
+  });
+  it("keeps showing the overfitting probability when the study chose among settings", async () => {
+    const gates = [{ name: "overfitting_probability", passed: false, detail: "0.57 > allowed 0.2", status: "FAIL" }];
+    open({ holdout: null, holdout_run: null, run: RUNV, report: { ...REPORT, gates, evidence: { ...REPORT.evidence, pbo: 0.57, pbo_twins: 0 } }, trials_done: 12, trials_planned: 12 });
+    const row = (await screen.findByText(/Chance the best settings are overfitted/)).closest("tr") as HTMLElement;
+    expect(within(row).getByText("0.57")).toBeInTheDocument();
+    expect(within(row).getByText("0.57 > allowed 0.2")).toBeInTheDocument();
+    expect(within(row).queryByTestId("gate-rule")).not.toBeInTheDocument();
+  });
   it("shows every check with the figure it judged, only explains the failures, and links the runs behind it", async () => {
     open({ holdout: null, holdout_run: null, run: RUNV, report: REPORT, trials_done: 12, trials_planned: 12 });
     expect(await screen.findByText("Failed 2 of 3 checks")).toBeInTheDocument();
@@ -521,6 +537,7 @@ describe("the verdict", () => {
   const HOLDOUT = { run_id: 11, passed: false, created_at: "2026-11-13T08:00:00+00:00", evidence: { days: 60, sharpe: 0.4, max_drawdown: -0.1, benchmark_sharpe: null, total_return: 0.03 },
     gates: [{ name: "holdout_sharpe", passed: false, detail: "0.40 < required 0.8" }, { name: "holdout_drawdown", passed: true, detail: "ok" }, { name: "holdout_beats_benchmark", passed: false, detail: "evidence missing" }],
     refs: { chosen: { entry_rsi: 20 }, benchmark: "Nifty 200 Total Return Index (gross)", benchmark_note: "not loaded", window: ["2024-05-01", "2026-11-06"], verdict_report: 1 } };
+  const HOLDOUT_PASSED = { ...HOLDOUT, passed: true };
   const PASSED = { ...REPORT, passed: true, gates: GATES.slice(0, 1), refs: { ...REPORT.refs, benchmark_note: null } };
   it("opens the holdout only after asking, and only once the verdict passed", async () => {
     open({ holdout: null, holdout_run: null, run: RUNV, report: PASSED, trials_done: 12, trials_planned: 12 }, undefined, { "POST /api/studies/7/holdout": { run_id: 11 } });
@@ -528,6 +545,28 @@ describe("the verdict", () => {
     expect(posted()).toHaveLength(0); // it asks first: this can be done once
     fireEvent.click(screen.getByRole("button", { name: "Open it" }));
     await waitFor(() => expect(posted()[0]?.path).toBe("/api/studies/7/holdout"));
+  });
+  const DEF = (state: string) => ({ "GET /api/paper/definitions": { label: "UNVALIDATED", definitions: [{ experiment_id: 7, strategy_id: "MOMENTUM_12M_M", version: 1, name: "n", state }] } });
+  it("lists the next steps of a passed strategy: the global holdout is next and paper trading waits for it", async () => {
+    open({ holdout: HOLDOUT_PASSED, holdout_run: null, run: RUNV, report: PASSED, trials_done: 12, trials_planned: 12 }, undefined, DEF("awaiting_holdout"));
+    const steps = await screen.findByTestId("next-steps");
+    await waitFor(() => expect(steps).toHaveTextContent("Global holdout (2025 onward)"));
+    expect(steps).toHaveTextContent("It is opened once, for every passing strategy together");
+    expect(steps).toHaveTextContent("Opens only after the global holdout is passed");
+    expect(within(steps).queryByRole("link", { name: "Go to Paper trading" })).not.toBeInTheDocument();
+  });
+  it("links to paper trading once the strategy has passed the global holdout, and stops a failed one", async () => {
+    open({ holdout: null, holdout_run: null, run: RUNV, report: PASSED, trials_done: 12, trials_planned: 12 }, undefined, DEF("ready"));
+    expect(await screen.findByRole("link", { name: "Go to Paper trading" })).toHaveAttribute("href", "/paper");
+  });
+  it("says a strategy that failed the global holdout stops there", async () => {
+    open({ holdout: null, holdout_run: null, run: RUNV, report: PASSED, trials_done: 12, trials_planned: 12 }, undefined, DEF("failed_holdout"));
+    expect(await screen.findByText(/This strategy stops here/)).toBeInTheDocument();
+  });
+  it("shows no next steps for a study that is not a strategy definition, or while the verdict has not passed", async () => {
+    open({ holdout: null, holdout_run: null, run: RUNV, report: PASSED, trials_done: 12, trials_planned: 12 });
+    await screen.findByText("The inner holdout: the study's own last test");
+    expect(screen.queryByTestId("next-steps")).not.toBeInTheDocument();
   });
   it("keeps the holdout closed, and says why, while the verdict has not passed", async () => {
     open({ holdout: null, holdout_run: null, run: RUNV, report: REPORT, trials_done: 12, trials_planned: 12 });

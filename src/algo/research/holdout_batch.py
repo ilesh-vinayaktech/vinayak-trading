@@ -1,35 +1,39 @@
 # ruff: noqa: E501
-"""The one global holdout evaluation (docs/vti-alignment.md section 3, docs/vti-phase1-spec.md work item A, slice 2).
+"""Holdout batches (docs/holdout-policy-v3.md, which replaces the "one batch ever" rule of docs/vti-alignment.md section 3).
 
-  * ONE batch ever (`holdout_batch.only_one` is unique): once registered, no other batch can be, in any state.
+  * Batches are append-only and numbered by `batch_id`. What limits them is the lifetime budget of 30 candidate slots (`holdout_candidate`, enforced by
+    a database trigger): `freeze` reserves a slot and commits a 128-bit bootstrap seed per candidate in the same transaction that stores the manifest.
   * States move forward only, enforced by a database trigger: REGISTERED -> FROZEN -> EVALUATING -> CONSUMED | EVALUATION_FAILED.
   * `freeze` validates the manifest (every candidate with its hashes, family and a PASSED development validation report; the window
     equal to the lock; the evaluator version) BEFORE any holdout data is read, then stores it immutably with its hash.
-  * `evaluate` commits EVALUATING first (the holdout counts as consumed from then on), only then hands the evaluator a one-use
-    capability holding the unwrapped reader. A crash leaves the batch EVALUATING with nothing exposed; only the same manifest and
-    evaluator version may resume it. Verdicts are written once, atomically, with the move to CONSUMED. `fail` ends a batch whose
-    recovery is impossible: the holdout stays consumed and nothing may be re-run with changed inputs.
+  * `evaluate` commits EVALUATING, then the durable first-read marker (which consumes the batch's slots for good), and only then hands the evaluator a
+    one-use capability holding the unwrapped reader. A batch that fails before the marker releases its slots; after it they stay consumed. A crash leaves
+    the batch EVALUATING; only the same manifest and evaluator version may resume it. Verdicts are written once, atomically, with the move to CONSUMED.
   * Research code can read only `read_verdicts`: PASS, FAIL, INSUFFICIENT_EVIDENCE or NOT_APPLICABLE per candidate and gate.
     The detailed report is stored for the owner and has no research-facing accessor.
-Not here yet: the evaluator itself (running the frozen candidates over the holdout and judging the gates), and a family id that the
-trial counter enforces (the manifest carries family ids and trial counts as given)."""
+Not here yet (policy section 10): the automatic cutoff and its snapshot, the minimum batch size, the capability-scoped evaluator with the Monte Carlo test, and the owner-only
+access. The manifest carries family ids and trial counts as given."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from typing import Any
 
+import numpy as np
 import psycopg
 from psycopg.types.json import Jsonb
 
-from algo.research import holdout_lock
+from algo.backtest.validation import mc_bootstrap
+from algo.research import holdout_guard, holdout_lock
 from algo.research.holdout_lock import HoldoutError, Lock
 
 EVALUATOR_VERSION = "holdout-evaluator-1"
+METHODOLOGY_VERSION = "holdout-v3.0"  # docs/holdout-policy-v3.md; the numpy version is recorded beside it in the manifest
+BUDGET = 30  # candidate slots for the life of the dataset (policy section 3); the database enforces it too
 VERDICTS = ("PASS", "FAIL", "INSUFFICIENT_EVIDENCE", "NOT_APPLICABLE")
 _TOKEN = object()  # only this module can mint a Capability
 _ADVISORY_KEY = 7_203_001  # one evaluation at a time, even across processes
@@ -60,6 +64,10 @@ class Manifest:
     correction_method: str
     correction_version: str
     evaluator_version: str
+    seeds: Mapping[str, str] = field(
+        default_factory=dict
+    )  # candidate_id -> 128-bit bootstrap seed (hex), drawn at freeze, never supplied by a caller
+    methodology_version: str = ""
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -71,6 +79,8 @@ class Manifest:
             "correction_method": self.correction_method,
             "correction_version": self.correction_version,
             "evaluator_version": self.evaluator_version,
+            "seeds": dict(sorted(self.seeds.items())),
+            "methodology_version": self.methodology_version,
         }
 
     @classmethod
@@ -84,6 +94,8 @@ class Manifest:
             d["correction_method"],
             d["correction_version"],
             d["evaluator_version"],
+            dict(d.get("seeds", {})),
+            d.get("methodology_version", ""),
         )
 
     @property
@@ -100,18 +112,25 @@ class Results:
 class Capability:
     """Holds the unwrapped reader for exactly one evaluation; unusable once it ends."""
 
-    __slots__ = ("_live", "_reader")
+    __slots__ = ("_connection", "_live", "_reader")
 
-    def __init__(self, token: object, reader: Any) -> None:
+    def __init__(self, token: object, reader: Any, connection: Any = None) -> None:
         if token is not _TOKEN:
             raise BatchError("only the evaluator can create the holdout capability")
-        self._reader, self._live = reader, True
+        self._reader, self._connection, self._live = reader, connection, True
 
     @property
     def reader(self) -> Any:
         if not self._live:
             raise BatchError("the holdout capability has been revoked")
         return self._reader
+
+    @property
+    def connection(self) -> Any:
+        """The guarded handle (`holdout_guard`): the only way the evaluator reaches the database. Never a raw connection."""
+        if not self._live:
+            raise BatchError("the holdout capability has been revoked")
+        return self._connection
 
     def _revoke(self) -> None:
         self._live = False
@@ -143,6 +162,8 @@ def manifest_problems(m: Manifest, lock: Lock, batch_id: int) -> list[str]:
         out.append(
             f"the evaluation dates {m.date_from}..{m.date_to} must equal the global holdout {lock.holdout_start}..{lock.holdout_end}"
         )
+    if m.seeds or m.methodology_version:
+        out.append("seeds and the methodology version are set by the freeze, never supplied")
     if m.evaluator_version != EVALUATOR_VERSION:
         out.append(f"the evaluator version {m.evaluator_version!r} is not {EVALUATOR_VERSION!r}")
     if not m.correction_method or not m.correction_version:
@@ -191,22 +212,17 @@ def _row(conn: psycopg.Connection, batch_id: int) -> tuple[Any, ...]:
 
 
 def register(conn: psycopg.Connection, *, by: str, now: datetime) -> int:
-    """Reserve the one holdout batch. Refused, in every later state too, when a batch already exists."""
+    """Open a batch. Batches are append-only; what limits them is the slot budget at freeze."""
     holdout_lock.require(conn)  # fails closed
     newest = conn.execute(
         "SELECT lock_id FROM research_lock ORDER BY lock_id DESC LIMIT 1"
     ).fetchone()
     assert newest is not None  # require() found one
-    try:
-        row = conn.execute(
-            "INSERT INTO holdout_batch (state, lock_id, evaluator_version, registered_by, registered_at)"
-            " VALUES ('REGISTERED', %s, %s, %s, %s) RETURNING batch_id",
-            (newest[0], EVALUATOR_VERSION, by, now),
-        ).fetchone()
-    except psycopg.errors.UniqueViolation as e:
-        raise BatchError(
-            "cannot register: a holdout batch already exists (there is at most one, ever)"
-        ) from e
+    row = conn.execute(
+        "INSERT INTO holdout_batch (state, lock_id, evaluator_version, registered_by, registered_at)"
+        " VALUES ('REGISTERED', %s, %s, %s, %s) RETURNING batch_id",
+        (newest[0], EVALUATOR_VERSION, by, now),
+    ).fetchone()
     assert row is not None
     return int(row[0])
 
@@ -254,11 +270,27 @@ def freeze(conn: psycopg.Connection, batch_id: int, m: Manifest, now: datetime) 
             )
     if problems:
         raise BatchError("the manifest is refused: " + "; ".join(problems))
-    sha = m.sha256
-    conn.execute(
-        "UPDATE holdout_batch SET state='FROZEN', manifest=%s, manifest_sha256=%s, frozen_at=%s WHERE batch_id=%s",
-        (Jsonb(m.to_json()), sha, now, batch_id),
+    m = replace(
+        m,
+        seeds={c.candidate_id: f"{mc_bootstrap.new_seed():032x}" for c in m.candidates},
+        methodology_version=f"{METHODOLOGY_VERSION}/numpy-{np.__version__}",
     )
+    sha = m.sha256
+    try:
+        with (
+            conn.transaction()
+        ):  # the slots, the seeds and the manifest become durable together or not at all
+            for c in m.candidates:
+                conn.execute(
+                    "INSERT INTO holdout_candidate (batch_id, candidate_id, state, seed, reserved_at) VALUES (%s,%s,'RESERVED',%s,%s)",
+                    (batch_id, c.candidate_id, m.seeds[c.candidate_id], now),
+                )
+            conn.execute(
+                "UPDATE holdout_batch SET state='FROZEN', manifest=%s, manifest_sha256=%s, methodology_version=%s, frozen_at=%s WHERE batch_id=%s",
+                (Jsonb(m.to_json()), sha, m.methodology_version, now, batch_id),
+            )
+    except (psycopg.errors.RaiseException, psycopg.errors.UniqueViolation) as e:
+        raise BatchError(f"the batch cannot be frozen: {e}") from e
     return sha
 
 
@@ -266,7 +298,7 @@ def evaluate(
     conn: psycopg.Connection,
     batch_id: int,
     run: Callable[[Capability, Manifest], Results],
-    reader_factory: Callable[[], Any],
+    reader_factory: Callable[[Any], Any],
     now: datetime,
 ) -> None:
     """Run the one evaluation (or resume an interrupted one with the same manifest and evaluator version)."""
@@ -296,7 +328,11 @@ def evaluate(
             if not moved:
                 raise BatchError("the batch was started by someone else")
             _commit(conn)  # durable BEFORE the evaluator can read a single holdout day
-        cap = Capability(_TOKEN, reader_factory())
+        mark_first_read(
+            conn, batch_id, now
+        )  # durable BEFORE the reader exists: from here the batch's slots are consumed for good
+        guarded = holdout_guard.guard(conn)  # exists only now, after the marker
+        cap = Capability(_TOKEN, reader_factory(guarded), guarded)
         try:
             results = run(cap, manifest)
         finally:
@@ -321,6 +357,25 @@ def evaluate(
         conn.execute("SELECT pg_advisory_unlock(%s)", (_ADVISORY_KEY,))
 
 
+def mark_first_read(conn: psycopg.Connection, batch_id: int, now: datetime) -> None:
+    """Commit the first-read marker (once; a resume finds it already there). It consumes every reserved slot of the batch."""
+    with conn.transaction():
+        conn.execute(
+            "UPDATE holdout_batch SET first_read_at=%s WHERE batch_id=%s AND state='EVALUATING' AND first_read_at IS NULL",
+            (now, batch_id),
+        )
+    _commit(conn)
+
+
+def slots(conn: psycopg.Connection) -> tuple[int, int, int]:
+    """(consumed, reserved, left) of the lifetime budget, from the ledger."""
+    row = conn.execute(
+        "SELECT count(*) FILTER (WHERE state='CONSUMED'), count(*) FILTER (WHERE state='RESERVED') FROM holdout_candidate"
+    ).fetchone()
+    assert row is not None
+    return int(row[0]), int(row[1]), BUDGET - int(row[0]) - int(row[1])
+
+
 def fail(conn: psycopg.Connection, batch_id: int, reason: str, now: datetime) -> None:
     """End an evaluation that cannot be recovered deterministically. The holdout stays consumed; nothing can be re-run."""
     with conn.transaction():
@@ -331,20 +386,3 @@ def fail(conn: psycopg.Connection, batch_id: int, reason: str, now: datetime) ->
     if not moved:
         raise BatchError("the batch is not being evaluated: only an EVALUATING batch can fail")
     _commit(conn)
-
-
-def read_verdicts(conn: psycopg.Connection) -> list[tuple[str, str, str]]:
-    """The only thing research code may read of the evaluation: (candidate, gate, verdict), once the batch is CONSUMED."""
-    rows = conn.execute(
-        "SELECT v.candidate_id, v.gate, v.verdict FROM holdout_verdict v JOIN holdout_batch b USING (batch_id)"
-        " WHERE b.state='CONSUMED' ORDER BY 1, 2"
-    ).fetchall()
-    if not rows:
-        raise BatchError("no consumed holdout batch: there are no verdicts to read")
-    return [(r[0], r[1], r[2]) for r in rows]
-
-
-def promotable(conn: psycopg.Connection, candidate_id: str) -> bool:
-    """Every verdict PASS or NOT_APPLICABLE and at least one PASS. Insufficient evidence is never a weak pass."""
-    got = {v for c, _, v in read_verdicts(conn) if c == candidate_id}
-    return bool(got) and got <= {"PASS", "NOT_APPLICABLE"} and "PASS" in got
