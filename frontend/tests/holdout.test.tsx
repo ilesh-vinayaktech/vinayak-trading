@@ -74,7 +74,7 @@ describe("Holdout ledger", () => {
     fireEvent.click(screen.getByLabelText(/A@1/));
     fireEvent.click(screen.getByLabelText(/B@1/));
     expect(screen.getByRole("button", { name: /Submit 2/ })).toBeDisabled(); // still no declaration
-    fireEvent.change(screen.getByLabelText(/not built from 2025-2026/), { target: { value: "from 2016-2022 only" } });
+    fireEvent.change(screen.getByLabelText("Declaration"), { target: { value: "from 2016-2022 only" } });
     fireEvent.click(screen.getByRole("button", { name: /Submit 2/ }));
     expect(calls.some((c) => c.method === "POST")).toBe(false);
     expect(screen.getByRole("group")).toHaveTextContent("reserves 2 of 30 slots and commits the seeds");
@@ -86,7 +86,7 @@ describe("Holdout ledger", () => {
     backend({ "GET /api/auth/me": me, "GET /api/holdout": overview(), "POST /api/holdout/submit": [409, { detail: "A@1: no study registered from a clean commit has passed development yet" }] });
     mount();
     fireEvent.click(await screen.findByLabelText(/A@1/));
-    fireEvent.change(screen.getByLabelText(/not built from 2025-2026/), { target: { value: "x" } });
+    fireEvent.change(screen.getByLabelText("Declaration"), { target: { value: "x" } });
     fireEvent.click(screen.getByRole("button", { name: /Submit 1/ }));
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
     expect(await screen.findByText(/no study registered from a clean commit/)).toBeInTheDocument();

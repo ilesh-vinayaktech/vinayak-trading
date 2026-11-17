@@ -7,6 +7,7 @@ import { ErrorBox, Loading } from "@/components/status/LoadState";
 import { Alert } from "@/components/ui/Alert";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Panel, StatusPill } from "@/components/ui/Layout";
+import { Field } from "@/components/ui/Field";
 import { inputFull } from "@/components/ui/styles";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmButton } from "@/components/users/ConfirmButton";
@@ -52,7 +53,7 @@ export default function HoldoutPage() {
         </Alert>
       ))}
       <Panel title="Slots">
-        <p className="text-sm" data-testid="slots">
+        <p className="p-4 text-sm" data-testid="slots">
           <strong>{d.consumed}</strong> used, <strong>{d.reserved}</strong> reserved, <strong>{d.left}</strong> left of {d.budget}. Previously tested strategies: <strong>{d.previously_tested}</strong>.
         </p>
       </Panel>
@@ -61,7 +62,7 @@ export default function HoldoutPage() {
       </Panel>
       {d.results.length ? (
         <Panel title="Outer holdout results (2025-2026)">
-          <div className="space-y-3 text-sm" data-testid="results">
+          <div className="space-y-3 p-4 text-sm" data-testid="results">
             {d.results.map((r) => (
               <div key={r.name} className="flex flex-wrap items-center gap-2">
                 <span className="w-64 font-medium">{r.name}</span>
@@ -84,13 +85,13 @@ export default function HoldoutPage() {
       ) : null}
       <Panel title="Submit strategies to the outer holdout">
         {d.eligible.length === 0 ? (
-          <p className="text-sm text-ink-soft">No strategy is waiting: each one needs a passed development verdict from a clean commit, and must not have used a slot yet.</p>
+          <p className="p-4 text-sm text-ink-soft">No strategy is waiting: each one needs a passed development verdict from a clean commit, and must not have used a slot yet.</p>
         ) : (
-          <div className="space-y-3 text-sm" data-testid="eligible">
-            <ul className="space-y-1">
+          <div className="space-y-4 p-4 text-sm" data-testid="eligible">
+            <ul className="divide-y divide-line rounded-lg border border-line">
               {d.eligible.map((e) => (
                 <li key={e.candidate_id}>
-                  <label className="flex flex-wrap items-center gap-2">
+                  <label className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                     <input type="checkbox" checked={picked.includes(e.candidate_id)} onChange={() => setPicked((p) => (p.includes(e.candidate_id) ? p.filter((x) => x !== e.candidate_id) : [...p, e.candidate_id]))} />
                     <span className="font-medium">{e.candidate_id}</span>
                     {e.inner === null ? (
@@ -103,12 +104,9 @@ export default function HoldoutPage() {
                 </li>
               ))}
             </ul>
-            <div>
-              <label htmlFor="declaration" className="block text-xs font-medium text-ink-soft">
-                One line: this idea was not built from 2025-2026 results (including earlier verdicts)
-              </label>
+            <Field id="declaration" label="Declaration" hint="One line: this idea was not built from 2025-2026 results (including earlier verdicts).">
               <input id="declaration" className={inputFull} value={declaration} onChange={(e) => setDeclaration(e.target.value)} maxLength={300} />
-            </div>
+            </Field>
             <ConfirmButton
               question={`Submit ${picked.length} strateg${picked.length === 1 ? "y" : "ies"}? This reserves ${picked.length} of ${d.left} slots and commits the seeds. It cannot be undone.`}
               confirmLabel="Submit"
@@ -121,9 +119,11 @@ export default function HoldoutPage() {
           </div>
         )}
         {d.batches.some((b) => b.state === "FROZEN") ? (
+          <div className="px-4 pb-4">
           <Alert tone="info">
             A frozen batch is ready. Evaluating it reads 2025-2026 once and cannot be undone: run <code>research_holdout.py evaluate --batch N --yes</code> from the terminal.
           </Alert>
+          </div>
         ) : null}
       </Panel>
     </div>
