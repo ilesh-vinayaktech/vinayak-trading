@@ -1,5 +1,6 @@
 "use client";
 
+import { OrderContext } from "@/components/paper/OrderContext";
 import { UpcomingNote } from "@/components/paper/UpcomingNote";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -38,7 +39,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   const error = approve.error ?? reject.error;
 
   const pendingColumns: Column<PaperOrder>[] = [
-    { key: "symbol", header: "Stock", cell: (o) => <div><span className="inline-flex items-center gap-2"><span className="font-medium">{o.symbol}</span><span className="sm:hidden"><SidePill side={o.side} /></span></span><UpcomingNote items={o.upcoming} /></div> },
+    { key: "symbol", header: "Stock", cell: (o) => <div><span className="inline-flex items-center gap-2"><span className="font-medium">{o.symbol}</span><span className="sm:hidden"><SidePill side={o.side} /></span></span><OrderContext symbol={o.symbol} side={o.side} /><UpcomingNote items={o.upcoming} /></div> },
     { key: "side", header: "Action", hideBelow: "sm", cell: (o) => <SidePill side={o.side} /> },
     { key: "qty", header: "Shares", className: "text-right", cell: (o) => fmtMoney(o.qty, 0) },
     { key: "value", header: "About", className: "text-right", hideBelow: "sm", cell: (o) => `₹${fmtMoney(o.ref_price)} each` },
