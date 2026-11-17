@@ -220,3 +220,30 @@ def levels_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) ->
         "symbol": sym, "name": name, "as_of": days[-1].isoformat(), "enough_history": True, "since_split": cut.isoformat() if cut else None,
         **out, "series": [{"day": d.isoformat(), "close": c} for d, c in zip(days[shown], close[shown], strict=True)],
     }  # fmt: skip
+
+
+@router.get("/news")
+def news_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Recent market headlines with their sentiment, the mood by day over the last week and the stocks named most in the last three days.
+    The sentiment is a crude word list that has not been checked against what markets did next: a gauge to look at, not a signal."""
+    now = _st(request).clock.now()
+    items = [
+        {"title": t, "url": u, "source": s, "published_at": p.isoformat(), "sentiment": None if v is None else float(v), "symbols": sy}
+        for t, u, s, p, v, sy in conn.execute(
+            "SELECT title, url, source, published_at, sentiment, symbols FROM news_item ORDER BY published_at DESC LIMIT 30"
+        )
+    ]  # fmt: skip
+    mood = [
+        {"day": d.isoformat(), "avg": float(a), "n": n, "positive": pos, "negative": neg}
+        for d, a, n, pos, neg in conn.execute(
+            "SELECT (published_at AT TIME ZONE 'Asia/Kolkata')::date d, avg(sentiment), count(sentiment), count(*) FILTER (WHERE sentiment > 0.15), count(*) FILTER (WHERE sentiment < -0.15)"
+            " FROM news_item WHERE sentiment IS NOT NULL AND published_at > %s::timestamptz - interval '8 days' GROUP BY 1 ORDER BY 1", (now,)
+        )
+    ]  # fmt: skip
+    stocks = [
+        {"symbol": sym, "mentions": n, "avg": float(a)}
+        for sym, n, a in conn.execute(
+            "SELECT sym, count(*), coalesce(avg(sentiment), 0) FROM news_item, unnest(symbols) sym WHERE published_at > %s::timestamptz - interval '3 days' GROUP BY sym ORDER BY count(*) DESC, sym LIMIT 12", (now,)
+        )
+    ]  # fmt: skip
+    return {"items": items, "mood": mood, "stocks": stocks}

@@ -287,6 +287,13 @@ JOBS: tuple[Job, ...] = (
         timeout_s=1800,
     ),
     Job(
+        "news-feed",
+        "*-*-* 07,10,13,16,19,22:20 Asia/Kolkata",
+        ((*_PY, "scripts/ingest_news.py", "--db", "{db}", "--lake", "data/lake"),),
+        "Market news headlines from four public RSS feeds, with a word-list sentiment reading and the stocks each names (a feed that fails is reported, the others still load)",
+        timeout_s=900,
+    ),
+    Job(
         "benchmarks-daily",
         f"{WEEKDAYS} *-*-* 07:30 Asia/Kolkata",
         ((*_PY, "scripts/sync_benchmarks.py", "--db", "{db}"),),

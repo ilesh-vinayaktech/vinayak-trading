@@ -216,3 +216,33 @@ def test_levels_for_a_stock_come_from_its_bars_since_its_last_split(env):  # noq
         and len(got["series"]) == 120
     )
     assert c.get("/api/market/levels", params={"symbol": "NOPE"}).status_code == 404
+
+
+def test_news_gives_recent_headlines_the_mood_by_day_and_the_stocks_named_most(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/news").json() == {"items": [], "mood": [], "stocks": []}
+    now = clock.now()
+    for k, (title, sent, syms) in enumerate(
+        [
+            ("Sensex surges", 0.6, ["TCS"]),
+            ("Nifty slides", -0.5, ["TCS", "ITC"]),
+            ("Board meeting", None, []),
+        ]
+    ):
+        conn.execute(
+            "INSERT INTO news_item (item_id, source, title, url, published_at, first_seen_at, sentiment, hits, symbols) VALUES (%s,'feed',%s,%s,%s,%s,%s,1,%s)",
+            (f"i{k}", title, f"https://ex.com/{k}", now - timedelta(hours=k), now, sent, syms),
+        )
+    got = c.get("/api/market/news").json()
+    assert [i["title"] for i in got["items"]] == [
+        "Sensex surges",
+        "Nifty slides",
+        "Board meeting",
+    ] and got["items"][2]["sentiment"] is None
+    assert (
+        sum(m["n"] for m in got["mood"]) == 2
+        and sum(m["positive"] for m in got["mood"]) == 1
+        and sum(m["negative"] for m in got["mood"]) == 1
+    )  # the unscored one is not counted
+    assert got["stocks"][0] == {"symbol": "TCS", "mentions": 2, "avg": pytest.approx(0.05)}

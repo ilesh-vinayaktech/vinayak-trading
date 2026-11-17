@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ForecastPanel } from "@/components/market/ForecastPanel";
+import { NewsPanel } from "@/components/market/NewsPanel";
 import { SectorPanel } from "@/components/market/SectorPanel";
 import { ZonePanel } from "@/components/market/ZonePanel";
 import { Alert } from "@/components/ui/Alert";
@@ -55,6 +56,7 @@ export default function OverviewPage() {
       <ZonePanel />
       <SectorPanel />
       <ForecastPanel />
+      <NewsPanel />
       {q.isError ? <Alert tone="error" title="Could not load your overview">Try again in a moment.</Alert> : null}
       {q.isLoading ? <div role="status" aria-label="Loading your overview" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /></div> : null}
       {d ? (

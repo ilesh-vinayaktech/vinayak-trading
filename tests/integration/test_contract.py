@@ -768,6 +768,18 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             ),
         )
     shots["market_forecast"] = c.get("/api/market/forecast")
+    for k, (title, sent, syms) in enumerate(
+        [
+            ("Sensex surges as FII inflows return", 0.6, ["TCS"]),
+            ("Nifty slides on recession fears", -0.5, ["TCS", "ITC"]),
+            ("Board meeting on Thursday", None, []),
+        ]
+    ):
+        conn.execute(
+            "INSERT INTO news_item (item_id, source, title, url, published_at, first_seen_at, sentiment, hits, symbols) VALUES (%s,'economictimes',%s,%s,timestamptz '2026-11-11 08:00+00' - make_interval(hours => %s),timestamptz '2026-11-11 08:30+00',%s,1,%s)",
+            (f"n{k}", title, f"https://example.com/{k}", k, sent, syms),
+        )
+    shots["market_news"] = c.get("/api/market/news")
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})
     c.post("/api/risk/switch", json={"action": "pause", "reason": "looking at the data"})

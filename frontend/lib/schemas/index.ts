@@ -748,6 +748,12 @@ export const forecastSchema = z.object({
   labels: z.record(z.string(), z.string()).optional(),
 });
 export type Forecast = z.infer<typeof forecastSchema>;
+export const marketNewsSchema = z.object({
+  items: z.array(z.object({ title: z.string(), url: z.string(), source: z.string(), published_at: z.string(), sentiment: z.number().nullable(), symbols: z.array(z.string()) })), // newest first
+  mood: z.array(z.object({ day: z.string(), avg: z.number(), n: z.number(), positive: z.number(), negative: z.number() })), // oldest first
+  stocks: z.array(z.object({ symbol: z.string(), mentions: z.number(), avg: z.number() })),
+});
+export type MarketNews = z.infer<typeof marketNewsSchema>;
 const stockLevelSchema = z.object({ price: z.number(), touches: z.number(), bars_since: z.number(), distance_pct: z.number() });
 export const stockLevelsSchema = z.object({
   symbol: z.string(),

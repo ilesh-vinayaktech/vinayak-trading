@@ -1,0 +1,54 @@
+{
+ "items": [
+  {
+   "published_at": "2026-11-11T08:00:00+00:00",
+   "sentiment": 0.6,
+   "source": "economictimes",
+   "symbols": [
+    "TCS"
+   ],
+   "title": "Sensex surges as FII inflows return",
+   "url": "https://example.com/0"
+  },
+  {
+   "published_at": "2026-11-11T07:00:00+00:00",
+   "sentiment": -0.5,
+   "source": "economictimes",
+   "symbols": [
+    "TCS",
+    "ITC"
+   ],
+   "title": "Nifty slides on recession fears",
+   "url": "https://example.com/1"
+  },
+  {
+   "published_at": "2026-11-11T06:00:00+00:00",
+   "sentiment": null,
+   "source": "economictimes",
+   "symbols": [],
+   "title": "Board meeting on Thursday",
+   "url": "https://example.com/2"
+  }
+ ],
+ "mood": [
+  {
+   "avg": 0.050000011920928955,
+   "day": "2026-11-11",
+   "n": 2,
+   "negative": 1,
+   "positive": 1
+  }
+ ],
+ "stocks": [
+  {
+   "avg": 0.050000011920928955,
+   "mentions": 2,
+   "symbol": "TCS"
+  },
+  {
+   "avg": -0.5,
+   "mentions": 1,
+   "symbol": "ITC"
+  }
+ ]
+}

@@ -251,6 +251,13 @@
    "name": "market-zone"
   },
   {
+   "calendar": "*-*-* 07,10,13,16,19,22:20 Asia/Kolkata",
+   "description": "Market news headlines from four public RSS feeds, with a word-list sentiment reading and the stocks each names (a feed that fails is reported, the others still load)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "news-feed"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 07:30 Asia/Kolkata",
    "description": "Index total-return series (Nifty 50/200 and every broad, sector and thematic index) up to yesterday: capture, ingest, validate; a failed series alerts, the rest still load",
    "last_run": null,
@@ -319,7 +326,7 @@
    },
    {
     "level": "attention",
-    "text": "36 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 33 more."
+    "text": "37 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 34 more."
    }
   ],
   "status": "DOWN"
@@ -341,7 +348,7 @@
   "operational_reliability": {
    "items": [
     {
-     "detail": "none of the 36 jobs has run yet",
+     "detail": "none of the 37 jobs has run yet",
      "name": "scheduled jobs",
      "status": "UNKNOWN"
     },
