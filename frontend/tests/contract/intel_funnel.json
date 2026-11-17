@@ -39,7 +39,7 @@
    "dropped": [],
    "entered": 0,
    "key": "definitions",
-   "note": "Registered strategy versions that an experiment has actually run.",
+   "note": "Registered strategies (generated definitions and saved screeners) that an experiment has actually run.",
    "passed": 0,
    "title": "Strategy definitions",
    "unit": "definitions"
@@ -59,7 +59,7 @@
    "dropped": [],
    "entered": 0,
    "key": "validation",
-   "note": "Walk-forward, 2x costs, capacity and benchmark, then the one-time holdout. Studies of generated definitions only so far.",
+   "note": "Walk-forward, 2x costs, capacity and benchmark, then the one-time holdout. Studies of generated definitions and saved screeners.",
    "passed": 0,
    "title": "Validation gates",
    "unit": "studies"

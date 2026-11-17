@@ -511,6 +511,37 @@ def test_a_fundamental_features_coverage_says_how_many_companies_it_could_exist_
     assert by["fund_roe"]["family"] == "fundamental"
 
 
+def test_a_saved_screeners_study_counts_as_a_strategy_in_the_funnel_once_per_rule(client):
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+
+    c, conn = client
+    before = stage(c.get("/api/intel/funnel").json(), "definitions")
+    mk = lambda name: vreg.register(  # noqa: E731
+        conn, name=name, strategy_id="screener", hypothesis="h" * 25, style="long_only", param_ranges={"max_positions": [5, 10]},
+        holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW, study={"spec": {"screen": {"sort": "x"}}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    old, new = (
+        mk("Golden cross"),
+        mk("Golden cross 2016-2022"),
+    )  # the same rule registered again with corrected settings
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, created_at) VALUES (%s,'trials','CANCELLED',%s)",
+        (old, NOW),
+    )
+    conn.execute(
+        "INSERT INTO study_trial (experiment_id, variant, params, params_hash, status, finished_at) VALUES (%s,'base','{}','h','DONE',%s)",
+        (new, NOW),
+    )
+    conn.commit()
+    after = stage(c.get("/api/intel/funnel").json(), "definitions")
+    assert (
+        after["entered"] == before["entered"] + 1
+    )  # one rule, however many times it was registered
+    assert after["passed"] == before["passed"]  # the newest study of the rule has not been run: the older one is superseded
+
+
 def test_a_study_of_a_generated_definition_shows_in_the_trial_and_validation_stages(client):
     from datetime import date
 

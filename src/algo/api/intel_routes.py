@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, Query, Request
 
+from algo.api.pipeline_routes import NEWEST
 from algo.api.security import WConn
 from algo.factory import plain
 from algo.factory.dsl import StrategyDef
@@ -244,15 +245,22 @@ def funnel(conn: WConn) -> dict[str, Any]:
     assert tests is not None
     total, candidates, no_result, too_small = (int(x) for x in tests)
     not_significant = total - candidates - no_result - too_small
-    definitions = one("SELECT count(*) FROM strategy_definition")
-    dsl = (
-        f"FROM experiment e WHERE e.strategy_id = 'dsl' AND e.study IS NOT NULL AND {CURRENT_SETUP}"
+    # every strategy with a study: a generated definition of this round (fixed setting before it ran), or any other kind (a saved screener...) by its newest study per rule
+    rules = f"SELECT n.experiment_id FROM ({NEWEST}) n JOIN experiment x USING (experiment_id) WHERE x.strategy_id <> 'dsl'"  # noqa: S608
+    other = one(f"SELECT count(*) FROM ({rules}) r")  # noqa: S608
+    other_tried = one(
+        f"SELECT count(*) FROM ({rules}) r WHERE EXISTS (SELECT 1 FROM study_run s WHERE s.experiment_id = r.experiment_id)"
+    )  # noqa: S608
+    definitions = one("SELECT count(*) FROM strategy_definition") + other
+    dsl = f"FROM experiment e WHERE e.study IS NOT NULL AND ((e.strategy_id = 'dsl' AND {CURRENT_SETUP}) OR e.experiment_id IN ({rules}))"
+    tested = (
+        one(
+            "SELECT count(*) FROM (SELECT base_strategy_id, base_version::text FROM factory_experiment"
+            f" UNION SELECT e.study->'spec'->'definition'->>'strategy_id', e.study->'spec'->'definition'->>'version' {dsl} AND e.strategy_id = 'dsl') t"  # noqa: S608 - fixed fragment
+        )
+        + other_tried
     )
-    tested = one(
-        "SELECT count(*) FROM (SELECT base_strategy_id, base_version::text FROM factory_experiment"
-        f" UNION SELECT e.study->'spec'->'definition'->>'strategy_id', e.study->'spec'->'definition'->>'version' {dsl}) t"  # noqa: S608 - fixed fragment
-    )
-    study_trials = f"FROM study_trial t JOIN experiment e USING (experiment_id) WHERE e.strategy_id = 'dsl' AND {CURRENT_SETUP}"
+    study_trials = f"FROM study_trial t JOIN experiment e USING (experiment_id) WHERE ((e.strategy_id = 'dsl' AND {CURRENT_SETUP}) OR e.experiment_id IN ({rules}))"  # noqa: S608
     trials = one("SELECT count(*) FROM factory_trial") + one(f"SELECT count(*) {study_trials}")  # noqa: S608
     done = one("SELECT count(*) FROM factory_trial WHERE status = 'DONE'") + one(
         f"SELECT count(*) {study_trials} AND t.status = 'DONE'"
@@ -276,12 +284,12 @@ def funnel(conn: WConn) -> dict[str, Any]:
                    [("No result (too little data)", no_result), ("Effect too small to matter", too_small), ("Not significant after counting every test ever run", not_significant)],
                    "Each feature at each horizon is one test. A candidate means worth validating, never that it works."),
             _stage("definitions", "Strategy definitions", "definitions", definitions, tested, [("Not tried in an experiment yet", definitions - tested)],
-                   "Registered strategy versions that an experiment has actually run."),
+                   "Registered strategies (generated definitions and saved screeners) that an experiment has actually run."),
             _stage("trials", "Experiment trials", "trials", trials, done, [("Not a valid definition", skipped), ("Could not run", trials - done - skipped)],
                    "Every combination tried counts, finished or not, because the number of tries is what makes a result honest."),
             _stage("validation", "Validation gates", "studies", run, passed_gates,
                    [("Failed a gate (latest verdict)", judged - passed_gates), ("Not judged yet", run - judged)],
-                   "Walk-forward, 2x costs, capacity and benchmark, then the one-time holdout. Studies of generated definitions only so far."),
+                   "Walk-forward, 2x costs, capacity and benchmark, then the one-time holdout. Studies of generated definitions and saved screeners."),
             _stage("paper", "Paper trading", "strategies", 0, 0, [], "Strategies that passed validation and run on a paper account. Nothing reaches here automatically yet.", connected=False),
         ]
     }  # fmt: skip
