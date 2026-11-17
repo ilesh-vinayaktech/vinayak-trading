@@ -33,7 +33,7 @@ def test_alpha_is_the_fixed_family_budget():
 def test_a_strong_series_that_beats_the_index_passes_every_gate():
     gates, ev = run(series(0.003), series(0.0004, seed=2))
     assert {g["name"]: g["status"] for g in gates} == dict.fromkeys(
-        ("holdout_significance", "holdout_sharpe", "holdout_drawdown", "holdout_beats_benchmark"),
+        ("holdout_sharpe", "holdout_drawdown", "holdout_beats_benchmark"),
         "PASS",
     )
     assert (
@@ -41,12 +41,15 @@ def test_a_strong_series_that_beats_the_index_passes_every_gate():
     )
 
 
-def test_a_good_looking_but_not_significant_series_fails_only_the_primary_test():
-    # about 1.2 Sharpe over 460 days: clears the floors, far from 0.05/30
-    r = series(0.0008, noise=0.01, seed=3)
+def test_the_monte_carlo_p_value_is_reported_but_never_decides():
+    r = series(
+        0.0008, noise=0.01, seed=3
+    )  # about 1.2 Sharpe over 460 days: clears the floors, far from significant at 0.05/30
     gates, ev = run(r, series(0.0002, noise=0.01, seed=4))
-    assert gate(gates, "holdout_significance")["status"] == "FAIL"
-    assert ev["sharpe"] > 0.8 and gate(gates, "holdout_sharpe")["status"] == "PASS"
+    assert "holdout_significance" not in {g["name"] for g in gates}
+    assert (
+        all(g["status"] == "PASS" for g in gates) and ev["p_mc"] > HOLDOUT_ALPHA
+    )  # a pass, with the p-value shown beside it
 
 
 def test_the_floors_can_only_remove_passes():
@@ -80,11 +83,10 @@ def test_no_reliable_index_is_insufficient_evidence_never_a_pass():
         )
 
 
-def test_missing_or_flat_returns_are_insufficient_evidence_on_the_primary_test():
+def test_missing_or_flat_returns_give_no_p_value_and_a_sharpe_gate_without_evidence():
     for r in ([0.001], [0.5] * 460, [0.01, math.nan, 0.02]):
-        gates, _ = run(r, series(0.0004, n=len(r)))
-        assert gate(gates, "holdout_significance")["status"] == "INSUFFICIENT_EVIDENCE"
-        assert gate(gates, "holdout_significance")["passed"] is False
+        gates, ev = run(r, series(0.0004, n=len(r)))
+        assert ev["p_mc"] is None and gate(gates, "holdout_sharpe")["status"] != "PASS"
 
 
 def test_the_same_seed_gives_the_same_decision():

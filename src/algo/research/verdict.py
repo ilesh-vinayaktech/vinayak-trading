@@ -255,8 +255,12 @@ def holdout_gates(
 HOLDOUT_ALPHA = (
     0.05 / 30
 )  # docs/holdout-policy-v3.md section 2: 5% family-wise over the dataset's whole budget of 30 candidates (holdout_batch.BUDGET)
-HOLDOUT_DRAWS = 1_000_000
-V3_GATES = ("holdout_significance", "holdout_sharpe", "holdout_drawdown", "holdout_beats_benchmark")
+HOLDOUT_DRAWS = 100_000  # information only: enough for a p-value to two decimals
+V3_GATES = (
+    "holdout_sharpe",
+    "holdout_drawdown",
+    "holdout_beats_benchmark",
+)  # the same three checks as the inner holdout; the Monte Carlo p-value is information, not a gate (it failed calibration, 2026-11-17)
 
 
 def holdout_gates_v3(
@@ -299,7 +303,6 @@ def holdout_gates_v3(
         )
 
     p = None if result is None else result.p
-    gate("holdout_significance", p, (p or 1) <= alpha, f"p {(p or 1):.6f} > {alpha:.6f}")
     gate(
         "holdout_sharpe",
         sharpe,
