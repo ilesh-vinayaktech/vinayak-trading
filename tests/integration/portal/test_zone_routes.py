@@ -293,3 +293,80 @@ def test_score_for_a_stock_gives_today_its_parts_and_the_history(env):  # noqa: 
         and [h["score"] for h in got["history"]] == [60, 61, 62]
     )
     assert c.get("/api/market/score", params={"symbol": "NOPE"}).status_code == 404
+
+
+def test_industries_count_breadth_inside_each_group_and_skip_stocks_with_no_sector(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/industries").json() == {"as_of": None, "industries": []}
+    from algo.data.store.instruments import InstrumentRepo
+
+    ids = [
+        r[0]
+        for r in conn.execute(
+            "SELECT instrument_id FROM instrument WHERE asset_class='equity' ORDER BY instrument_id LIMIT 2"
+        )
+    ]
+    ids.append(
+        InstrumentRepo(conn).add_instrument(
+            conn.execute("SELECT min(exchange_id) FROM exchange").fetchone()[0], "NOSECTOR"
+        )
+    )  # a listed stock that is not on the Nifty 500 list
+    for iid, sector in ((ids[0], "IT"), (ids[1], "IT"), (ids[2], None)):
+        if sector:
+            conn.execute(
+                "INSERT INTO instrument_sector (instrument_id, sector, effective_from, source_sha256, ingested_at) VALUES (%s,%s,%s,'x',now())",
+                (iid, sector, date(2026, 1, 1)),
+            )
+    rows = [
+        (
+            ids[0],
+            {
+                "symbol": "A",
+                "as_of": "2026-11-11",
+                "price_vs_sma50": 3,
+                "price_vs_sma200": 5,
+                "chg_1d": 1.0,
+                "chg_1m": 4.0,
+                "score": 80.0,
+            },
+        ),
+        (
+            ids[1],
+            {
+                "symbol": "B",
+                "as_of": "2026-11-11",
+                "price_vs_sma50": -2,
+                "price_vs_sma200": 5,
+                "chg_1d": -1.0,
+                "chg_1m": -6.0,
+                "score": 40.0,
+            },
+        ),
+        (
+            ids[2],
+            {
+                "symbol": "C",
+                "as_of": "2026-11-11",
+                "price_vs_sma50": 9,
+                "chg_1d": 2.0,
+                "score": 99.0,
+            },
+        ),  # no sector: not counted
+    ]
+    for iid, r in rows:
+        conn.execute(
+            "INSERT INTO screener_snapshot (instrument_id, as_of, row, built_at) VALUES (%s,%s,%s,now())",
+            (iid, TODAY, Jsonb(r)),
+        )
+    got = c.get("/api/market/industries").json()
+    (it,) = got["industries"]
+    assert got["as_of"] == "2026-11-11" and it["name"] == "IT" and it["stocks"] == 2
+    assert (
+        it["above_50"] == 50.0
+        and it["above_200"] == 100.0
+        and it["up_today"] == 50.0
+        and it["avg_score"] == 60.0
+        and it["top"] == ["A", "B"]
+        and it["scored"] == 2
+    )

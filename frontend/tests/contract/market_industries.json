@@ -1,0 +1,18 @@
+{
+ "as_of": "2026-11-11",
+ "industries": [
+  {
+   "above_200": 100.0,
+   "above_50": 100.0,
+   "avg_score": 80.0,
+   "median_1m": 4.0,
+   "name": "Information Technology",
+   "scored": 1,
+   "stocks": 1,
+   "top": [
+    "TCS"
+   ],
+   "up_today": 100.0
+  }
+ ]
+}

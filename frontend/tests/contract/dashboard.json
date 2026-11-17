@@ -238,7 +238,7 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 21:30 Asia/Kolkata",
-   "description": "Rebuild the stored stock-screener table from the day's bars and results (after both have loaded)",
+   "description": "Load the latest Nifty 500 sector list, then rebuild the stored stock-screener table from the day's bars and results (after both have loaded)",
    "last_run": null,
    "last_success_at": null,
    "name": "screener-refresh"

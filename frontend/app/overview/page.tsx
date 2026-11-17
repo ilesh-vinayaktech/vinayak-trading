@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ForecastPanel } from "@/components/market/ForecastPanel";
+import { IndustriesPanel } from "@/components/market/IndustriesPanel";
 import { NewsPanel } from "@/components/market/NewsPanel";
 import { PositionsPanel } from "@/components/market/PositionsPanel";
 import { SetupsPanel } from "@/components/market/SetupsPanel";
@@ -62,6 +63,7 @@ export default function OverviewPage() {
           <SetupsPanel />
           <PositionsPanel />
           <SectorPanel />
+          <IndustriesPanel />
           <NewsPanel />
         </>
       ) : null}

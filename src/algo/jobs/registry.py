@@ -271,8 +271,11 @@ JOBS: tuple[Job, ...] = (
     Job(
         "screener-refresh",
         f"{WEEKDAYS} *-*-* 21:30 Asia/Kolkata",
-        ((*_PY, "scripts/refresh_screener.py", "--db", "{db}"),),
-        "Rebuild the stored stock-screener table from the day's bars and results (after both have loaded)",
+        (
+            (*_PY, "scripts/load_sectors.py", "--db", "{db}", "--lake", "data/lake"),
+            (*_PY, "scripts/refresh_screener.py", "--db", "{db}"),
+        ),
+        "Load the latest Nifty 500 sector list, then rebuild the stored stock-screener table from the day's bars and results (after both have loaded)",
         timeout_s=1800,
     ),
     Job(

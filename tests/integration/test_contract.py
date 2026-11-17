@@ -807,6 +807,28 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
                 500,
             ),
         )
+    conn.execute(
+        "INSERT INTO instrument_sector (instrument_id, sector, effective_from, source_sha256, ingested_at) VALUES (%s,'Information Technology','2026-01-01','x','2026-01-01T00:00:00Z')",
+        (stock[0],),
+    )
+    conn.execute(
+        "INSERT INTO screener_snapshot (instrument_id, as_of, row, built_at) VALUES (%s,'2026-11-10',%s,'2026-11-10T16:00:00Z')",
+        (
+            stock[0],
+            Jsonb(
+                {
+                    "symbol": stock[1],
+                    "as_of": "2026-11-10",
+                    "price_vs_sma50": 3,
+                    "price_vs_sma200": 5,
+                    "chg_1d": 1.0,
+                    "chg_1m": 4.0,
+                    "score": 80.0,
+                }
+            ),
+        ),
+    )
+    shots["market_industries"] = c.get("/api/market/industries")
     shots["market_levels"] = c.get("/api/market/levels", params={"symbol": stock[1]})
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})

@@ -748,6 +748,21 @@ export const forecastSchema = z.object({
   labels: z.record(z.string(), z.string()).optional(),
 });
 export type Forecast = z.infer<typeof forecastSchema>;
+export const industriesSchema = z.object({
+  as_of: z.string().nullable(),
+  industries: z.array(z.object({
+    name: z.string(),
+    stocks: z.number(),
+    above_50: z.number().nullable(), // % of the group's stocks above their 50-day average
+    above_200: z.number().nullable(),
+    up_today: z.number().nullable(),
+    median_1m: z.number().nullable(),
+    avg_score: z.number().nullable(),
+    scored: z.number(),
+    top: z.array(z.string()), // best-scored names
+  })), // best average score first
+});
+export type Industries = z.infer<typeof industriesSchema>;
 export const stockScoreSchema = z.object({
   symbol: z.string(),
   name: z.string().nullable(),

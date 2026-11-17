@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
+from algo.data import sectors as sectors_data
 from algo.live.market_calendar import IST
 from algo.market import forecast, levels, predict, sectors
 
@@ -279,3 +280,37 @@ def score_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) -> 
         "setup": today.get("setup"), "why": today.get("score_why"), "history": hist,
         "scored": today.get("score") is not None,
     }  # fmt: skip
+
+
+@router.get("/industries")
+def industries_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Breadth inside each industry group of the Nifty 500 (sectors as NSE lists them): how many stocks are above their 50 and 200-day averages and rose today, the median
+    1-month move, the average swing score and the best-scored names, from today's screener table. Only stocks with a sector are counted."""
+    sector_of = sectors_data.sectors_on(conn, _st(request).clock.now().astimezone(IST).date())
+    rows = conn.execute("SELECT instrument_id, row FROM screener_snapshot").fetchall()
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for iid, r in rows:
+        sec = sector_of.get(int(iid))
+        if sec is not None:
+            groups.setdefault(sec, []).append(r)
+    out = []
+    for name, rs in groups.items():
+
+        def share(key: str, test: Any, rs: list[dict[str, Any]] = rs) -> float | None:
+            have = [_num(r.get(key)) for r in rs if r.get(key) is not None]
+            return (
+                None
+                if not have
+                else 100.0 * sum(1 for v in have if v is not None and test(v)) / len(have)
+            )
+
+        m1 = sorted(v for v in (_num(r.get("chg_1m")) for r in rs) if v is not None)
+        scored = [(float(r["score"]), r["symbol"]) for r in rs if r.get("score") is not None]
+        out.append({
+            "name": name, "stocks": len(rs), "above_50": share("price_vs_sma50", lambda v: v > 0), "above_200": share("price_vs_sma200", lambda v: v > 0),
+            "up_today": share("chg_1d", lambda v: v > 0), "median_1m": m1[len(m1) // 2] if m1 else None,
+            "avg_score": sum(s for s, _ in scored) / len(scored) if scored else None, "scored": len(scored),
+            "top": [sym for _, sym in sorted(scored, reverse=True)[:3]],
+        })  # fmt: skip
+    out.sort(key=lambda g: -float(g["avg_score"]) if isinstance(g["avg_score"], float) else 1.0)
+    return {"as_of": max((r["as_of"] for _, r in rows), default=None), "industries": out}
