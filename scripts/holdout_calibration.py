@@ -16,7 +16,12 @@ ap = argparse.ArgumentParser()
 ap.add_argument("cmd", choices=("run", "report", "power"))
 ap.add_argument("--out", required=True, type=Path)
 ap.add_argument("--datasets", type=int, default=310_000)
-ap.add_argument("--draws", type=int, default=cal.DRAWS, help="bootstrap draws per dataset (a multiple of 10,000)")
+ap.add_argument(
+    "--draws",
+    type=int,
+    default=cal.DRAWS,
+    help="bootstrap draws per dataset (a multiple of 10,000)",
+)
 ap.add_argument("--workers", type=int, default=12)
 ap.add_argument(
     "--series",

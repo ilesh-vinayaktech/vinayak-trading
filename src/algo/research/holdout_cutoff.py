@@ -43,6 +43,19 @@ def _fixed_study(conn: psycopg.Connection, strategy_id: str, version: int) -> in
     return None if row is None else int(row[0])
 
 
+def _clean_passed_study(conn: psycopg.Connection, strategy_id: str, version: int) -> int | None:
+    """The newest fixed-setting study of a definition that was registered from clean code (so it can be reproduced and locked) and whose development verdict passed."""
+    for (exp,) in conn.execute(
+        "SELECT experiment_id FROM experiment WHERE strategy_id='dsl'"
+        " AND study->'spec'->'definition'->>'strategy_id'=%s AND (study->'spec'->'definition'->>'version')::int=%s"
+        " AND study->'spec'->'fixed' IS NOT NULL AND study->'spec'->'fixed' <> 'null'::jsonb AND study->'code'->>'dirty' = 'false' ORDER BY experiment_id DESC",
+        (strategy_id, version),
+    ).fetchall():
+        if _verdict_state(conn, exp) == (True, "PASSED"):
+            return int(exp)
+    return None
+
+
 def _verdict_state(conn: psycopg.Connection, experiment_id: int) -> tuple[bool, str]:
     """(terminal, 'PASSED' | 'FAILED' | 'NO_VERDICT'): the latest verdict run's end and the newest development report."""
     run = conn.execute(
@@ -225,7 +238,7 @@ def plan(conn: psycopg.Connection, cutoff_id: int) -> Plan:
         and c["excluded_reason"] is None
         and c["experiment_id"] is not None
     ]
-    members, experiments, excluded = [], {}, {}
+    members, experiments, excluded, unlockable = [], {}, {}, []
     for (
         c
     ) in passed:  # the audit's result applies to the snapshot's members only; it can never add one
@@ -233,8 +246,15 @@ def plan(conn: psycopg.Connection, cutoff_id: int) -> Plan:
         if status == "INELIGIBLE":
             excluded[c["candidate_id"]] = why
         elif status == "ELIGIBLE":
+            sid, ver = c["candidate_id"].split("@")
+            clean = _clean_passed_study(conn, sid, int(ver))
+            if clean is None:
+                unlockable.append(c["candidate_id"])
+                continue
             members.append(c["candidate_id"])
-            experiments[c["candidate_id"]] = c["experiment_id"]
+            experiments[c["candidate_id"]] = (
+                clean  # membership comes from the snapshot's verdict; the study evaluated is the clean-code one
+            )
     pending = [
         c["candidate_id"] for c in passed if provenance(conn, c["candidate_id"])[0] == "PROVISIONAL"
     ]
@@ -243,6 +263,10 @@ def plan(conn: psycopg.Connection, cutoff_id: int) -> Plan:
         problems.append("the provenance audit is not signed: the batch stays PENDING")
     if pending:
         problems.append(f"provenance not resolved for {', '.join(sorted(pending))}")
+    if unlockable:
+        problems.append(
+            f"no clean-code study with a passed development verdict yet for {', '.join(sorted(unlockable))}: re-register it from a clean commit"
+        )
     left = holdout_batch.slots(conn)[2]
     if len(members) > left:
         problems.append(f"{len(members)} candidates do not fit the {left} slots left")

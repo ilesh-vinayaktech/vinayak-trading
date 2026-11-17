@@ -262,3 +262,47 @@ def test_a_quarter_end_on_a_weekend_uses_the_last_trading_day_before_it(env):
     from algo.research import holdout_cutoff as c2
 
     assert c2.last_trading_day(env, date(2027, 1, 31)) == date(2027, 1, 29)  # a Sunday
+
+
+def test_a_member_is_evaluated_through_its_newest_clean_passed_study_and_without_one_the_batch_waits(
+    env,
+):
+    population(env, ("A", "B", "C"))
+    cid = co.fire_batch1(env, NOW)
+    for n in "ABC":
+        co.record_provenance(env, f"{n}@1", "ELIGIBLE", "x", NOW)
+    co.sign_audit(env, "owner", "audit", NOW)
+    dirty = env.execute("SELECT experiment_id FROM experiment WHERE name='A fixed'").fetchone()[0]
+    env.execute("SET session_replication_role = replica")
+    env.execute(
+        "UPDATE experiment SET study = jsonb_set(study, '{code,dirty}', 'true') WHERE experiment_id=%s",
+        (dirty,),
+    )
+    env.execute("SET session_replication_role = DEFAULT")
+    p = co.plan(env, cid)
+    assert (
+        not p.can_freeze
+        and "A@1" not in p.members
+        and any("clean-code study" in x and "A@1" in x for x in p.problems)
+    )
+    env.execute("SET session_replication_role = replica")
+    env.execute(
+        "INSERT INTO experiment (name, strategy_id, hypothesis, style, param_ranges, holdout_start, holdout_end, registered_at, study, study_sha256, family_id)"
+        " SELECT 'A fixed clean', strategy_id, hypothesis, style, param_ranges, holdout_start, holdout_end, registered_at, jsonb_set(study, '{code,dirty}', 'false'), 'sha-A-clean', family_id FROM experiment WHERE experiment_id=%s",
+        (dirty,),
+    )
+    new = env.execute("SELECT experiment_id FROM experiment WHERE name='A fixed clean'").fetchone()[
+        0
+    ]
+    env.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, requested_by, created_at) VALUES (%s,'verdict','DONE','00000000-0000-0000-0000-000000000001',%s) RETURNING run_id",
+        (new, NOW),
+    )
+    run = env.execute("SELECT max(run_id) FROM study_run").fetchone()[0]
+    env.execute(
+        "INSERT INTO validation_report (experiment_id, run_id, passed, thresholds_status, n_trials, evidence, gates, created_at, refs) VALUES (%s,%s,true,'confirmed',3,'{}','[]',%s,%s)",
+        (new, run, NOW, Jsonb({"chosen": {"exit_share": 50, "max_positions": 20}})),
+    )
+    env.execute("SET session_replication_role = DEFAULT")
+    p = co.plan(env, cid)
+    assert p.members == ("A@1", "B@1", "C@1") and p.experiments["A@1"] == new
