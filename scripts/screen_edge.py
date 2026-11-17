@@ -7,7 +7,7 @@ every 4th week (so overlapping windows do not count twice) and the same by year.
 
 import argparse
 import os
-from datetime import date
+from datetime import UTC, date, datetime
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ H = a.horizon
 OPS = {"gt": np.greater, "gte": np.greater_equal, "lt": np.less, "lte": np.less_equal}
 
 with psycopg.connect(a.db) as conn:
-    days = history.week_ends(conn, a.since, date.today())
+    days = history.week_ends(conn, a.since, datetime.now(UTC).date())
     splits = pd.DataFrame(
         conn.execute(
             "SELECT instrument_id, ex_date FROM corporate_action WHERE kind IN ('split','bonus') AND status='ok'"
@@ -33,7 +33,7 @@ with psycopg.connect(a.db) as conn:
         columns=["instrument_id", "ex_date"],
     )
     frames = []
-    for year in range(a.since.year, date.today().year + 1):
+    for year in range(a.since.year, datetime.now(UTC).date().year + 1):
         ds = [d for d in days if d.year == year]
         if ds:
             bars = history.load_bars(conn, ds[0], ds[-1])
