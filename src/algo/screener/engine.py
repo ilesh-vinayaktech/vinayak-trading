@@ -64,7 +64,7 @@ SMART_MONEY_FIELDS: tuple[tuple[str, str, str, str], ...] = (
     ("insider_buys_90d", "Insider buy filings, 90 days", "insider", "x"),
     ("deal_net_30d", "Bulk and block deals, net buying, 30 days", "deals", "crore"),
 )
-# the swing score and its parts (algo.screener.score), 0 to 100; built from the fields above incl. smart money, so NOT usable by a strategy (kind "score")
+# the swing score and its parts (algo.screener.score), 0 to 100; built from the fields above incl. smart money; the numeric ones (not setup / score_why) CAN drive a strategy because they are read from stock_score_history, each built from what was known on its own day (algo.strategies.scorebook); today's values here are for looking
 SCORE_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("score", "Swing score (0 to 100)", "x"),
     ("score_trend", "Score: trend", "x"),

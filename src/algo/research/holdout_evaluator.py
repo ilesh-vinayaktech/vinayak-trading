@@ -18,7 +18,14 @@ import psycopg
 from algo.backtest.engine import BacktestConfig, run_backtest
 from algo.backtest.validation import registry
 from algo.data.reader import BarReader
-from algo.research import fundamentals_book, holdout_batch, holdout_lock, study_universe, verdict
+from algo.research import (
+    fundamentals_book,
+    holdout_batch,
+    holdout_lock,
+    score_book,
+    study_universe,
+    verdict,
+)
 from algo.research.holdout_batch import BatchError, Candidate, Capability, Manifest, Results
 from algo.research.study import StudySpec
 from algo.research.study_runner import (
@@ -135,6 +142,7 @@ def _candidate(
     setup = Setup(
         membership, coverage, begin, m.date_to, cost_policy(conn, spec), readers(known_at),
         fundamentals_book.load(conn, membership.ever(), begin, m.date_to, lag=timedelta(days=spec.filing_lag_days)) if spec.screen is not None and spec.screen.needs_fundamentals() else None,
+        score_book.load(conn, membership.ever(), begin, m.date_to) if spec.screen is not None and spec.screen.needs_scores() else None,
     )  # fmt: skip
     cfg = BacktestConfig(
         start=begin, end=m.date_to, initial_cash=spec.capital, cost=setup.policy,

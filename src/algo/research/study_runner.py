@@ -41,6 +41,7 @@ from algo.research import (
     dataset,
     fundamentals_book,
     holdout_lock,
+    score_book,
     study_jobs,
     study_universe,
     verdict,
@@ -74,7 +75,7 @@ def build(spec: StudySpec, combo: dict[str, Any], setup: Setup) -> Any:
     """The study's strategy for one parameter combination; a screener strategy also gets the study's screen (and the filings, if it reads them)."""
     cls, params_cls = STRATEGIES[spec.strategy_id]
     extra = (
-        (spec.screen, setup.fundamentals)
+        (spec.screen, setup.fundamentals, setup.scores)
         if spec.screen
         else (spec.definition,)
         if spec.definition
@@ -133,6 +134,7 @@ class Setup:
     policy: CostPolicy
     reader: PriceReader
     fundamentals: Any = None  # the filings a screener strategy reads (a FundamentalsBook), only when its screen uses them
+    scores: Any = None  # the swing scores it reads (a ScoreBook), only when its screen uses them
     feature_cache: dict[Any, Any] = field(
         default_factory=dict
     )  # the day's feature values of a generated definition, shared by every run of the study
@@ -196,6 +198,9 @@ def prepare(conn: psycopg.Connection, spec: StudySpec, exp: int, *, holdout: boo
         )
         if spec.screen is not None and spec.screen.needs_fundamentals()
         else None,
+        score_book.load(conn, membership.ever(), start, research_end)
+        if spec.screen is not None and spec.screen.needs_scores()
+        else None,
     )
 
 
@@ -230,6 +235,7 @@ def run_study(conn: psycopg.Connection, run_id: int, now: datetime) -> None:
                 "universe_coverage": coverage,
                 "research_window": [begin.isoformat(), research_end.isoformat()],
                 "done_at_start": len(combos) - len(todo),
+                **({"score_digest": setup.scores.digest()} if setup.scores is not None else {}),
             },
             now,
         )

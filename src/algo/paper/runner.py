@@ -33,7 +33,7 @@ from algo.live.market_calendar import windows_for
 from algo.paper import book
 from algo.paper import risk as paper_risk
 from algo.paper.universe import FOREVER, UniverseError, current_universe
-from algo.research import fundamentals_book
+from algo.research import fundamentals_book, score_book
 from algo.research.study import UniverseSpec
 from algo.research.study_universe import build as segment_universe
 from algo.risk import store as paper_risk_store
@@ -307,7 +307,14 @@ def _decide(
             if spec.needs_fundamentals()
             else None
         )
-        strategy = ScreenerStrategy(ScreenerParams(**acct["params"]), members, spec, filings)
+        points = (  # swing scores as known by the decision day
+            score_book.load(conn, sorted(set(members.ever()) | set(held)), day, day)
+            if spec.needs_scores()
+            else None
+        )
+        strategy = ScreenerStrategy(
+            ScreenerParams(**acct["params"]), members, spec, filings, points
+        )
     ident = (strategy.id, strategy.version, strategy.params_hash)
     book.apply_actions(
         conn, user_id, {i: loaded[i].recs for i in held if i in loaded}, through=day, now=now

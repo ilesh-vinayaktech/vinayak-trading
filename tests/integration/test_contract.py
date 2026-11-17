@@ -780,6 +780,34 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             (f"n{k}", title, f"https://example.com/{k}", k, sent, syms),
         )
     shots["market_news"] = c.get("/api/market/news")
+    shots["screener_meta"] = c.get("/api/screener/meta")
+    shots["screener_run_empty"] = c.post(
+        "/api/screener/run",
+        json={"preset": "top-swing-scores", "conditions": [], "match": "all", "limit": 5},
+    )
+    stock = conn.execute(
+        "SELECT instrument_id, symbol FROM instrument WHERE asset_class='equity' AND instrument_id NOT IN (SELECT instrument_id FROM bar_1d) ORDER BY instrument_id LIMIT 1"
+    ).fetchone()
+    shots["market_score_unscored"] = c.get("/api/market/score", params={"symbol": stock[1]})
+    for k in range(
+        90
+    ):  # a stock bouncing between about 100 and 110, ending just under its resistance
+        level = round(105 + 5 * __import__("math").sin(2 * __import__("math").pi * k / 20), 2)
+        conn.execute(
+            "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, series, delivery_qty, source, dataset_version, ingested_at)"
+            " VALUES (%s, %s::date + time '03:45', %s, %s, %s, %s, %s, 'EQ', %s, 'nse', 1, now())",
+            (
+                stock[0],
+                datetime(2026, 11, 11, tzinfo=UTC).date() - timedelta(days=89 - k),
+                level,
+                level + 0.3,
+                level - 0.3,
+                level,
+                1000 + k,
+                500,
+            ),
+        )
+    shots["market_levels"] = c.get("/api/market/levels", params={"symbol": stock[1]})
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})
     c.post("/api/risk/switch", json={"action": "pause", "reason": "looking at the data"})

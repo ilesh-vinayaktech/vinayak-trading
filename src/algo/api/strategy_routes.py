@@ -24,7 +24,7 @@ from algo.factory import signals as def_signals
 from algo.factory import study as fstudy
 from algo.paper import configs
 from algo.portal import audit
-from algo.research import fundamentals_book, holdout_lock, study_jobs
+from algo.research import fundamentals_book, holdout_lock, score_book, study_jobs
 from algo.research.holdout_lock import HoldoutError
 from algo.research.study import Segment, StudyError
 from algo.strategies import screener_signals
@@ -418,7 +418,10 @@ def signals(
             if spec.needs_fundamentals()
             else None
         )
-        rows = screener_signals.replay(history.bars, start, end, spec, filings, instrument_id)
+        points = score_book.load(conn, [instrument_id], start, end) if spec.needs_scores() else None
+        rows = screener_signals.replay(
+            history.bars, start, end, spec, filings, instrument_id, points
+        )
     else:
         params = TrendPullbackParams(**mine["params"])
         history = queries.reader_for(conn, instrument_id)[0].issuer_history(

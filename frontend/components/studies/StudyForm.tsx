@@ -44,7 +44,8 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const meta = useQuery({ queryKey: ["screener-meta"], queryFn: api.screenerMeta, staleTime: Infinity });
   const kind = (k: string) => meta.data?.fields.find((f) => f.key === k)?.kind;
   const label = (k: string) => meta.data?.fields.find((f) => f.key === k)?.label ?? k;
-  const usable = (k: string) => ["technical", "fundamental"].includes(kind(k) ?? "");
+  const unit = (k: string) => meta.data?.fields.find((f) => f.key === k)?.unit;
+  const usable = (k: string) => ["technical", "fundamental"].includes(kind(k) ?? "") || (kind(k) === "score" && unit(k) !== "text"); // the numeric swing-score fields have a point-in-time history; the text ones do not
   const backtestable = (meta.data?.presets ?? []).filter((p) => p.conditions.every((c) => usable(c.field)) && usable(p.sort));
   const end0 = STANDARD.end;
   const start0 = STANDARD.start;

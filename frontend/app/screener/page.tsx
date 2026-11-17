@@ -106,7 +106,10 @@ export default function ScreenerPage() {
   const used = [...conds.map((c) => c.field), ...(sort ? [sort.key] : [])];
   const canBacktest =
     conds.length > 0 &&
-    used.every((k) => ["technical", "fundamental"].includes(byKey.get(k)?.kind ?? ""));
+    used.every((k) => {
+      const f = byKey.get(k);
+      return ["technical", "fundamental"].includes(f?.kind ?? "") || (f?.kind === "score" && f.unit !== "text"); // the numeric swing-score fields have a point-in-time history
+    });
   const asScreen = () => ({
     conditions: conds.map(toApi),
     match,

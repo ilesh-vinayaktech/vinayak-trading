@@ -1,0 +1,1346 @@
+{
+ "fields": [
+  {
+   "group": "valuation",
+   "key": "market_cap",
+   "kind": "fundamental",
+   "label": "Market value",
+   "unit": "crore"
+  },
+  {
+   "group": "valuation",
+   "key": "pe",
+   "kind": "fundamental",
+   "label": "Price to earnings (P/E)",
+   "unit": "x"
+  },
+  {
+   "group": "valuation",
+   "key": "pb",
+   "kind": "fundamental",
+   "label": "Price to book (P/B)",
+   "unit": "x"
+  },
+  {
+   "group": "valuation",
+   "key": "ps",
+   "kind": "fundamental",
+   "label": "Price to sales",
+   "unit": "x"
+  },
+  {
+   "group": "valuation",
+   "key": "ev_ebitda",
+   "kind": "fundamental",
+   "label": "EV to operating profit",
+   "unit": "x"
+  },
+  {
+   "group": "valuation",
+   "key": "earnings_yield",
+   "kind": "fundamental",
+   "label": "Earnings yield",
+   "unit": "pct"
+  },
+  {
+   "group": "valuation",
+   "key": "dividend_yield",
+   "kind": "fundamental",
+   "label": "Dividend yield",
+   "unit": "pct"
+  },
+  {
+   "group": "profitability",
+   "key": "roe",
+   "kind": "fundamental",
+   "label": "Return on equity (ROE)",
+   "unit": "pct"
+  },
+  {
+   "group": "profitability",
+   "key": "roa",
+   "kind": "fundamental",
+   "label": "Return on assets (ROA)",
+   "unit": "pct"
+  },
+  {
+   "group": "profitability",
+   "key": "roce",
+   "kind": "fundamental",
+   "label": "Return on capital employed (ROCE)",
+   "unit": "pct"
+  },
+  {
+   "group": "profitability",
+   "key": "operating_margin",
+   "kind": "fundamental",
+   "label": "Operating margin",
+   "unit": "pct"
+  },
+  {
+   "group": "profitability",
+   "key": "net_margin",
+   "kind": "fundamental",
+   "label": "Net profit margin",
+   "unit": "pct"
+  },
+  {
+   "group": "profitability",
+   "key": "cost_to_income",
+   "kind": "fundamental",
+   "label": "Cost to income",
+   "unit": "pct"
+  },
+  {
+   "group": "growth",
+   "key": "revenue_growth",
+   "kind": "fundamental",
+   "label": "Sales growth (quarter, YoY)",
+   "unit": "pct"
+  },
+  {
+   "group": "growth",
+   "key": "profit_growth",
+   "kind": "fundamental",
+   "label": "Profit growth (quarter, YoY)",
+   "unit": "pct"
+  },
+  {
+   "group": "growth",
+   "key": "eps_growth",
+   "kind": "fundamental",
+   "label": "EPS growth (quarter, YoY)",
+   "unit": "pct"
+  },
+  {
+   "group": "growth",
+   "key": "revenue_growth_ttm",
+   "kind": "fundamental",
+   "label": "Sales growth (12 months)",
+   "unit": "pct"
+  },
+  {
+   "group": "growth",
+   "key": "profit_growth_ttm",
+   "kind": "fundamental",
+   "label": "Profit growth (12 months)",
+   "unit": "pct"
+  },
+  {
+   "group": "strength",
+   "key": "debt_to_equity",
+   "kind": "fundamental",
+   "label": "Debt to equity",
+   "unit": "x"
+  },
+  {
+   "group": "strength",
+   "key": "net_debt_to_ebitda",
+   "kind": "fundamental",
+   "label": "Net debt to operating profit",
+   "unit": "x"
+  },
+  {
+   "group": "strength",
+   "key": "interest_coverage",
+   "kind": "fundamental",
+   "label": "Interest cover",
+   "unit": "x"
+  },
+  {
+   "group": "strength",
+   "key": "current_ratio",
+   "kind": "fundamental",
+   "label": "Current ratio",
+   "unit": "x"
+  },
+  {
+   "group": "strength",
+   "key": "quick_ratio",
+   "kind": "fundamental",
+   "label": "Quick ratio",
+   "unit": "x"
+  },
+  {
+   "group": "strength",
+   "key": "gross_npa",
+   "kind": "fundamental",
+   "label": "Gross bad loans",
+   "unit": "pct"
+  },
+  {
+   "group": "strength",
+   "key": "net_npa",
+   "kind": "fundamental",
+   "label": "Net bad loans",
+   "unit": "pct"
+  },
+  {
+   "group": "efficiency",
+   "key": "asset_turnover",
+   "kind": "fundamental",
+   "label": "Asset turnover",
+   "unit": "x"
+  },
+  {
+   "group": "efficiency",
+   "key": "receivable_days",
+   "kind": "fundamental",
+   "label": "Days of sales owed by customers",
+   "unit": "days"
+  },
+  {
+   "group": "cash",
+   "key": "cfo_to_profit",
+   "kind": "fundamental",
+   "label": "Cash from operations vs profit",
+   "unit": "x"
+  },
+  {
+   "group": "cash",
+   "key": "free_cash_flow",
+   "kind": "fundamental",
+   "label": "Free cash flow (year so far)",
+   "unit": "crore"
+  },
+  {
+   "group": "cash",
+   "key": "fcf_margin",
+   "kind": "fundamental",
+   "label": "Free cash flow margin",
+   "unit": "pct"
+  },
+  {
+   "group": "trend",
+   "key": "price",
+   "kind": "technical",
+   "label": "Last close",
+   "unit": "inr"
+  },
+  {
+   "group": "momentum",
+   "key": "chg_1d",
+   "kind": "technical",
+   "label": "Change, 1 day",
+   "unit": "pct"
+  },
+  {
+   "group": "momentum",
+   "key": "chg_1w",
+   "kind": "technical",
+   "label": "Change, 1 week",
+   "unit": "pct"
+  },
+  {
+   "group": "momentum",
+   "key": "chg_1m",
+   "kind": "technical",
+   "label": "Change, 1 month",
+   "unit": "pct"
+  },
+  {
+   "group": "momentum",
+   "key": "chg_3m",
+   "kind": "technical",
+   "label": "Change, 3 months",
+   "unit": "pct"
+  },
+  {
+   "group": "momentum",
+   "key": "chg_6m",
+   "kind": "technical",
+   "label": "Change, 6 months",
+   "unit": "pct"
+  },
+  {
+   "group": "momentum",
+   "key": "chg_1y",
+   "kind": "technical",
+   "label": "Change, 1 year",
+   "unit": "pct"
+  },
+  {
+   "group": "momentum",
+   "key": "rsi_14",
+   "kind": "technical",
+   "label": "RSI (14)",
+   "unit": "x"
+  },
+  {
+   "group": "momentum",
+   "key": "macd_hist",
+   "kind": "technical",
+   "label": "MACD histogram",
+   "unit": "x"
+  },
+  {
+   "group": "trend",
+   "key": "adx_14",
+   "kind": "technical",
+   "label": "ADX (14), trend strength",
+   "unit": "x"
+  },
+  {
+   "group": "trend",
+   "key": "price_vs_sma50",
+   "kind": "technical",
+   "label": "Price vs 50-day average",
+   "unit": "pct"
+  },
+  {
+   "group": "trend",
+   "key": "price_vs_sma200",
+   "kind": "technical",
+   "label": "Price vs 200-day average",
+   "unit": "pct"
+  },
+  {
+   "group": "trend",
+   "key": "sma50_vs_sma200",
+   "kind": "technical",
+   "label": "50-day vs 200-day average",
+   "unit": "pct"
+  },
+  {
+   "group": "trend",
+   "key": "pct_from_52w_high",
+   "kind": "technical",
+   "label": "From 52-week high",
+   "unit": "pct"
+  },
+  {
+   "group": "trend",
+   "key": "pct_from_52w_low",
+   "kind": "technical",
+   "label": "From 52-week low",
+   "unit": "pct"
+  },
+  {
+   "group": "volume",
+   "key": "volume_ratio",
+   "kind": "technical",
+   "label": "Volume vs 20-day average",
+   "unit": "x"
+  },
+  {
+   "group": "volume",
+   "key": "turnover_cr",
+   "kind": "technical",
+   "label": "Daily traded value (20-day avg)",
+   "unit": "crore"
+  },
+  {
+   "group": "delivery",
+   "key": "delivery_pct",
+   "kind": "smart_money",
+   "label": "Delivery %, last session",
+   "unit": "pct"
+  },
+  {
+   "group": "delivery",
+   "key": "delivery_pct_20d",
+   "kind": "smart_money",
+   "label": "Delivery %, 20-session average",
+   "unit": "pct"
+  },
+  {
+   "group": "delivery",
+   "key": "delivery_vs_avg",
+   "kind": "smart_money",
+   "label": "Delivery % vs its 20-session average (1 = same)",
+   "unit": "x"
+  },
+  {
+   "group": "ownership",
+   "key": "promoter_pct",
+   "kind": "smart_money",
+   "label": "Promoter holding",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "fii_pct",
+   "kind": "smart_money",
+   "label": "FII / FPI holding",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "dii_pct",
+   "kind": "smart_money",
+   "label": "DII holding (mutual funds, insurers, banks ...)",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "mf_pct",
+   "kind": "smart_money",
+   "label": "Mutual fund holding",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "retail_pct",
+   "kind": "smart_money",
+   "label": "Retail holding (up to Rs 2 lakh)",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "promoter_change",
+   "kind": "smart_money",
+   "label": "Promoter holding, change since last quarter (points)",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "fii_change",
+   "kind": "smart_money",
+   "label": "FII / FPI holding, change since last quarter (points)",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "dii_change",
+   "kind": "smart_money",
+   "label": "DII holding, change since last quarter (points)",
+   "unit": "pct"
+  },
+  {
+   "group": "ownership",
+   "key": "mf_change",
+   "kind": "smart_money",
+   "label": "Mutual fund holding, change since last quarter (points)",
+   "unit": "pct"
+  },
+  {
+   "group": "insider",
+   "key": "insider_net_90d",
+   "kind": "smart_money",
+   "label": "Insider net buying, 90 days",
+   "unit": "crore"
+  },
+  {
+   "group": "insider",
+   "key": "insider_buys_90d",
+   "kind": "smart_money",
+   "label": "Insider buy filings, 90 days",
+   "unit": "x"
+  },
+  {
+   "group": "deals",
+   "key": "deal_net_30d",
+   "kind": "smart_money",
+   "label": "Bulk and block deals, net buying, 30 days",
+   "unit": "crore"
+  },
+  {
+   "group": "score",
+   "key": "score",
+   "kind": "score",
+   "label": "Swing score (0 to 100)",
+   "unit": "x"
+  },
+  {
+   "group": "score",
+   "key": "score_trend",
+   "kind": "score",
+   "label": "Score: trend",
+   "unit": "x"
+  },
+  {
+   "group": "score",
+   "key": "score_participation",
+   "kind": "score",
+   "label": "Score: volume and delivery",
+   "unit": "x"
+  },
+  {
+   "group": "score",
+   "key": "score_smart_money",
+   "kind": "score",
+   "label": "Score: smart money",
+   "unit": "x"
+  },
+  {
+   "group": "score",
+   "key": "score_quality",
+   "kind": "score",
+   "label": "Score: quality",
+   "unit": "x"
+  },
+  {
+   "group": "score",
+   "key": "setup",
+   "kind": "score",
+   "label": "Setup flags (breakout, accumulation, ...)",
+   "unit": "text"
+  },
+  {
+   "group": "score",
+   "key": "score_why",
+   "kind": "score",
+   "label": "Why it scores",
+   "unit": "text"
+  },
+  {
+   "group": "profile",
+   "key": "segment",
+   "kind": "profile",
+   "label": "Market-cap class (AMFI)",
+   "unit": "text"
+  },
+  {
+   "group": "profile",
+   "key": "sector",
+   "kind": "profile",
+   "label": "Sector (NSE industry)",
+   "unit": "text"
+  },
+  {
+   "group": "valuation",
+   "key": "pe_sector_median",
+   "kind": "profile",
+   "label": "P/E, median of its sector peers",
+   "unit": "x"
+  },
+  {
+   "group": "valuation",
+   "key": "pe_vs_sector",
+   "kind": "profile",
+   "label": "P/E relative to its sector peers (1 = same)",
+   "unit": "x"
+  }
+ ],
+ "presets": [
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "roce",
+     "op": "gte",
+     "value": 18
+    },
+    {
+     "field": "roe",
+     "op": "gte",
+     "value": 15
+    },
+    {
+     "field": "debt_to_equity",
+     "op": "lte",
+     "value": 0.5
+    },
+    {
+     "field": "profit_growth_ttm",
+     "op": "gte",
+     "value": 10
+    }
+   ],
+   "descending": true,
+   "description": "High returns on capital, low debt, profits still growing.",
+   "id": "<id>",
+   "name": "Quality compounders",
+   "sort": "roce"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "pe",
+     "op": "between",
+     "value": [
+      1,
+      15
+     ]
+    },
+    {
+     "field": "pb",
+     "op": "lte",
+     "value": 2
+    },
+    {
+     "field": "roe",
+     "op": "gte",
+     "value": 12
+    }
+   ],
+   "descending": false,
+   "description": "Cheap on earnings and book value, yet earning a decent return.",
+   "id": "<id>",
+   "name": "Value picks",
+   "sort": "pe"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "pe",
+     "op": "between",
+     "value": [
+      1,
+      30
+     ]
+    },
+    {
+     "field": "profit_growth_ttm",
+     "op": "gte",
+     "value": 20
+    },
+    {
+     "field": "revenue_growth_ttm",
+     "op": "gte",
+     "value": 15
+    }
+   ],
+   "descending": true,
+   "description": "Sales and profit both growing fast without a rich P/E.",
+   "id": "<id>",
+   "name": "Growth at a reasonable price",
+   "sort": "profit_growth_ttm"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "dividend_yield",
+     "op": "gte",
+     "value": 2.5
+    },
+    {
+     "field": "roe",
+     "op": "gte",
+     "value": 10
+    },
+    {
+     "field": "debt_to_equity",
+     "op": "lte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "A real dividend yield from a profitable, not over-borrowed company.",
+   "id": "<id>",
+   "name": "Dividend payers",
+   "sort": "dividend_yield"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "debt_to_equity",
+     "op": "lte",
+     "value": 0.1
+    },
+    {
+     "field": "interest_coverage",
+     "op": "gte",
+     "value": 10
+    }
+   ],
+   "descending": true,
+   "description": "Very little borrowing and interest easily covered.",
+   "id": "<id>",
+   "name": "Almost debt-free",
+   "sort": "interest_coverage"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "fcf_margin",
+     "op": "gte",
+     "value": 10
+    },
+    {
+     "field": "cfo_to_profit",
+     "op": "gte",
+     "value": 0.8
+    }
+   ],
+   "descending": true,
+   "description": "Profits that turn into free cash.",
+   "id": "<id>",
+   "name": "Cash generators",
+   "sort": "fcf_margin"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "roa",
+     "op": "gte",
+     "value": 1
+    },
+    {
+     "field": "gross_npa",
+     "op": "lte",
+     "value": 3
+    },
+    {
+     "field": "net_npa",
+     "op": "lte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Good return on assets with few bad loans (banks report these ratios).",
+   "id": "<id>",
+   "name": "Strong banks and lenders",
+   "sort": "roa"
+  },
+  {
+   "category": "fundamental",
+   "conditions": [
+    {
+     "field": "segment",
+     "op": "eq",
+     "value": "large"
+    },
+    {
+     "field": "pe",
+     "op": "between",
+     "value": [
+      1,
+      20
+     ]
+    },
+    {
+     "field": "roe",
+     "op": "gte",
+     "value": 12
+    }
+   ],
+   "descending": false,
+   "description": "AMFI large caps that are not expensive.",
+   "id": "<id>",
+   "name": "Large-cap value",
+   "sort": "pe"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "rsi_14",
+     "op": "lte",
+     "value": 30
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": false,
+   "description": "Sold hard recently; candidates for a bounce, or for further falls.",
+   "id": "<id>",
+   "name": "Oversold (RSI below 30)",
+   "sort": "rsi_14"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "rsi_14",
+     "op": "gte",
+     "value": 70
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Run up fast; stretched in the short term.",
+   "id": "<id>",
+   "name": "Overbought (RSI above 70)",
+   "sort": "rsi_14"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "sma50_vs_sma200",
+     "op": "between",
+     "value": [
+      0,
+      3
+     ]
+    },
+    {
+     "field": "price_vs_sma200",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": false,
+   "description": "50-day average just above the 200-day (within 3%), price above both.",
+   "id": "<id>",
+   "name": "Golden-cross zone",
+   "sort": "sma50_vs_sma200"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "pct_from_52w_high",
+     "op": "gte",
+     "value": -3
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Within 3% of the year's high with decent volume.",
+   "id": "<id>",
+   "name": "Near 52-week high",
+   "sort": "pct_from_52w_high"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "pct_from_52w_low",
+     "op": "lte",
+     "value": 10
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": false,
+   "description": "Within 10% of the year's low.",
+   "id": "<id>",
+   "name": "Near 52-week low",
+   "sort": "pct_from_52w_low"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "volume_ratio",
+     "op": "gte",
+     "value": 2
+    },
+    {
+     "field": "chg_1d",
+     "op": "gte",
+     "value": 2
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Up 2%+ today on at least twice the usual volume.",
+   "id": "<id>",
+   "name": "Volume breakout",
+   "sort": "volume_ratio"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "adx_14",
+     "op": "gte",
+     "value": 25
+    },
+    {
+     "field": "price_vs_sma50",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "price_vs_sma200",
+     "op": "gt",
+     "value": 0
+    }
+   ],
+   "descending": true,
+   "description": "ADX above 25 with price above its 50- and 200-day averages.",
+   "id": "<id>",
+   "name": "Strong uptrend",
+   "sort": "adx_14"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "chg_3m",
+     "op": "gte",
+     "value": 20
+    },
+    {
+     "field": "price_vs_sma200",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "rsi_14",
+     "op": "between",
+     "value": [
+      55,
+      75
+     ]
+    }
+   ],
+   "descending": true,
+   "description": "Up 20%+ in 3 months, above the 200-day average, RSI healthy but not stretched.",
+   "id": "<id>",
+   "name": "Momentum leaders",
+   "sort": "chg_3m"
+  },
+  {
+   "category": "technical",
+   "conditions": [
+    {
+     "field": "macd_hist",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "price_vs_sma50",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "MACD histogram positive while price is above the 50-day average.",
+   "id": "<id>",
+   "name": "Bullish MACD",
+   "sort": "macd_hist"
+  },
+  {
+   "category": "combined",
+   "conditions": [
+    {
+     "field": "roce",
+     "op": "gte",
+     "value": 15
+    },
+    {
+     "field": "profit_growth_ttm",
+     "op": "gte",
+     "value": 10
+    },
+    {
+     "field": "price_vs_sma200",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "rsi_14",
+     "op": "between",
+     "value": [
+      45,
+      70
+     ]
+    }
+   ],
+   "descending": true,
+   "description": "Good business (high ROCE, growing profit) whose price is also trending up.",
+   "id": "<id>",
+   "name": "Quality in an uptrend",
+   "sort": "roce"
+  },
+  {
+   "category": "combined",
+   "conditions": [
+    {
+     "field": "pe",
+     "op": "between",
+     "value": [
+      1,
+      20
+     ]
+    },
+    {
+     "field": "roe",
+     "op": "gte",
+     "value": 12
+    },
+    {
+     "field": "rsi_14",
+     "op": "lte",
+     "value": 40
+    }
+   ],
+   "descending": false,
+   "description": "Cheap, decent returns, and the price has been sold down.",
+   "id": "<id>",
+   "name": "Value on a dip",
+   "sort": "rsi_14"
+  },
+  {
+   "category": "combined",
+   "conditions": [
+    {
+     "field": "profit_growth_ttm",
+     "op": "gte",
+     "value": 20
+    },
+    {
+     "field": "chg_3m",
+     "op": "gte",
+     "value": 10
+    },
+    {
+     "field": "pct_from_52w_high",
+     "op": "gte",
+     "value": -10
+    }
+   ],
+   "descending": true,
+   "description": "Fast profit growth and a price near its high.",
+   "id": "<id>",
+   "name": "Growth with momentum",
+   "sort": "profit_growth_ttm"
+  },
+  {
+   "category": "combined",
+   "conditions": [
+    {
+     "field": "dividend_yield",
+     "op": "gte",
+     "value": 2
+    },
+    {
+     "field": "price_vs_sma50",
+     "op": "lt",
+     "value": 0
+    },
+    {
+     "field": "rsi_14",
+     "op": "lte",
+     "value": 45
+    }
+   ],
+   "descending": true,
+   "description": "A solid yield, price below the 50-day average and RSI soft.",
+   "id": "<id>",
+   "name": "Dividend stocks on a dip",
+   "sort": "dividend_yield"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "delivery_pct",
+     "op": "gte",
+     "value": 60
+    },
+    {
+     "field": "delivery_vs_avg",
+     "op": "gte",
+     "value": 1.2
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 5
+    }
+   ],
+   "descending": true,
+   "description": "Most of the day's volume was taken home (delivery), not traded in and out: buyers who mean to hold. Liquid stocks only.",
+   "id": "<id>",
+   "name": "High delivery %",
+   "sort": "delivery_pct"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "delivery_vs_avg",
+     "op": "gte",
+     "value": 1.5
+    },
+    {
+     "field": "chg_1d",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "turnover_cr",
+     "op": "gte",
+     "value": 5
+    }
+   ],
+   "descending": true,
+   "description": "Delivery well above its own 20-session norm on a day the price rose.",
+   "id": "<id>",
+   "name": "Delivery surge on a rising price",
+   "sort": "delivery_vs_avg"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "fii_change",
+     "op": "gte",
+     "value": 0.5
+    },
+    {
+     "field": "fii_pct",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Foreign institutions raised their holding by half a point or more since the previous quarter.",
+   "id": "<id>",
+   "name": "FIIs adding",
+   "sort": "fii_change"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "dii_change",
+     "op": "gte",
+     "value": 0.5
+    },
+    {
+     "field": "dii_pct",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Domestic institutions (mutual funds, insurers, banks) raised their holding by half a point or more.",
+   "id": "<id>",
+   "name": "DIIs adding",
+   "sort": "dii_change"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "fii_change",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "dii_change",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "fii_pct",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "Foreign and domestic institutions both raised their holding.",
+   "id": "<id>",
+   "name": "FIIs and DIIs both adding",
+   "sort": "fii_change"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "promoter_change",
+     "op": "gt",
+     "value": 0.25
+    }
+   ],
+   "descending": true,
+   "description": "The promoter group holds more than at the previous quarter end.",
+   "id": "<id>",
+   "name": "Promoters raising their stake",
+   "sort": "promoter_change"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "promoter_change",
+     "op": "lt",
+     "value": -1
+    }
+   ],
+   "descending": false,
+   "description": "The promoter group holds clearly less than at the previous quarter end (worth reading why).",
+   "id": "<id>",
+   "name": "Promoters cutting their stake",
+   "sort": "promoter_change"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "insider_net_90d",
+     "op": "gt",
+     "value": 0.1
+    },
+    {
+     "field": "insider_buys_90d",
+     "op": "gte",
+     "value": 2
+    }
+   ],
+   "descending": true,
+   "description": "Net insider purchases over the last 90 days, from at least two filings.",
+   "id": "<id>",
+   "name": "Insiders buying",
+   "sort": "insider_net_90d"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "deal_net_30d",
+     "op": "gt",
+     "value": 10
+    }
+   ],
+   "descending": true,
+   "description": "Bulk and block deals net bought more than Rs 10 crore over 30 days.",
+   "id": "<id>",
+   "name": "Heavy bulk / block buying",
+   "sort": "deal_net_30d"
+  },
+  {
+   "category": "smart_money",
+   "conditions": [
+    {
+     "field": "dii_change",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "price_vs_sma200",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "delivery_vs_avg",
+     "op": "gte",
+     "value": 1
+    }
+   ],
+   "descending": true,
+   "description": "An institution raised its stake and the price is above its 200-day average with delivery above norm.",
+   "id": "<id>",
+   "name": "Institutions adding in an uptrend",
+   "sort": "delivery_vs_avg"
+  },
+  {
+   "category": "score",
+   "conditions": [
+    {
+     "field": "score",
+     "op": "gte",
+     "value": 70
+    }
+   ],
+   "descending": true,
+   "description": "The highest overall swing scores among stocks that trade at least Rs 5 crore a day: trend, volume and delivery, smart money and quality together.",
+   "id": "<id>",
+   "name": "Top swing scores",
+   "sort": "score"
+  },
+  {
+   "category": "score",
+   "conditions": [
+    {
+     "field": "score",
+     "op": "gte",
+     "value": 65
+    },
+    {
+     "field": "rsi_14",
+     "op": "lte",
+     "value": 65
+    }
+   ],
+   "descending": true,
+   "description": "A high swing score with RSI still below 65, so it has not already run too far.",
+   "id": "<id>",
+   "name": "Strong score, not overbought",
+   "sort": "score"
+  },
+  {
+   "category": "score",
+   "conditions": [
+    {
+     "field": "score_smart_money",
+     "op": "gte",
+     "value": 70
+    },
+    {
+     "field": "score_trend",
+     "op": "gte",
+     "value": 70
+    }
+   ],
+   "descending": true,
+   "description": "Both the smart-money score and the trend score are high: buyers with size and a price that is already rising.",
+   "id": "<id>",
+   "name": "Smart money and trend agree",
+   "sort": "score_smart_money"
+  },
+  {
+   "category": "score",
+   "conditions": [
+    {
+     "field": "score_smart_money",
+     "op": "gte",
+     "value": 80
+    },
+    {
+     "field": "score_trend",
+     "op": "between",
+     "value": [
+      30,
+      60
+     ]
+    }
+   ],
+   "descending": true,
+   "description": "Heavy buying by deals, insiders or institutions, but the price trend is still middling: the setup before a move, if it comes.",
+   "id": "<id>",
+   "name": "Smart money first, price not yet",
+   "sort": "score_smart_money"
+  },
+  {
+   "category": "score",
+   "conditions": [
+    {
+     "field": "score_quality",
+     "op": "gte",
+     "value": 75
+    },
+    {
+     "field": "score_trend",
+     "op": "gte",
+     "value": 70
+    }
+   ],
+   "descending": true,
+   "description": "A high quality score (returns, growth, low debt) with a high trend score.",
+   "id": "<id>",
+   "name": "Quality in an uptrend",
+   "sort": "score_quality"
+  }
+ ]
+}

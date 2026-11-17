@@ -15,6 +15,7 @@ from datetime import date
 
 from algo.data.reader import IST, AdjBar
 from algo.strategies.fundamentals import FundamentalsBook
+from algo.strategies.scorebook import ScoreBook
 from algo.strategies.screener import ScreenSpec, still_matches
 from algo.strategies.signals import SignalDay
 
@@ -32,6 +33,7 @@ def replay(
     spec: ScreenSpec,
     book: FundamentalsBook | None = None,
     iid: int | None = None,
+    scores: ScoreBook | None = None,
 ) -> list[SignalDay]:
     """The decision on each session from `start` to `end` (`bars` should reach back a year before `start`, for the indicators).
     Whether the stock was already in the buy zone just before `start` is read from the bars before it. A decision is made after
@@ -42,7 +44,7 @@ def replay(
         day = _day(b)
         if day > end:
             break
-        now = still_matches(spec, bars[max(0, i + 1 - LOOKBACK_BARS) : i + 1], book, iid)
+        now = still_matches(spec, bars[max(0, i + 1 - LOOKBACK_BARS) : i + 1], book, iid, scores)
         if day >= start:
             action = reason = None
             if now and not held:

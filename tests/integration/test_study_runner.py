@@ -932,3 +932,30 @@ def test_the_runs_of_one_study_load_each_stocks_data_once_and_give_exactly_the_s
         first.trades
     )  # identical
     assert len(loads) == after_first  # the second run asked the reader for nothing new
+
+
+def test_a_study_on_the_swing_score_runs_through_the_real_engine_and_records_which_scores_it_read(
+    env,
+):
+    conn, owner = env
+    for (iid,) in conn.execute(
+        "SELECT instrument_id FROM instrument WHERE asset_class='equity'"
+    ).fetchall():
+        for d in DAYS[::5]:  # a weekly row per stock, as the backfill writes them
+            conn.execute(
+                "INSERT INTO stock_score_history (day, instrument_id, score) VALUES (%s,%s,%s)",
+                (d, iid, 70 + iid % 20),
+            )
+    screen = {"conditions": [{"field": "score", "op": "gt", "value": 60}], "sort": "score"}
+    sid = registered(
+        conn, owner, strategy_id="screener", grid={"max_positions": [5]}, screen=screen
+    )
+    rid = study_jobs.enqueue(conn, sid, owner, NOW)
+    run_study(conn, rid, NOW)
+    run = study_jobs.get_run(conn, rid)
+    assert (run["status"], run["error"]) == ("DONE", None)
+    (t,) = study_jobs.trials(conn, sid)
+    assert t["status"] == "DONE" and t["metrics"]["trades"] > 0
+    assert (
+        len(run["detail"]["score_digest"]) == 64
+    )  # the run says exactly which scores it read, so a rebuilt history cannot change it silently

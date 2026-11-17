@@ -6,7 +6,7 @@ so no order is proposed for mere price drift. Stateless: it reads what is held, 
 session decides the same as one that ran all along.
 
 The screen is part of the locked study (not code), so the owner builds it the way they build a screen on the Screener page.
-A screen may use price fields (technicals), filed ratios (fundamentals) or both. Technicals are computed here, per day, from
+A screen may use price fields (technicals), filed ratios (fundamentals), the numeric swing-score fields (read from a `ScoreBook` of scores as known on each day, TODO 6.13) or any mix. Technicals are computed here, per day, from
 split-adjusted bars the Context bounds to that day. Fundamentals come from a `FundamentalsBook` of the filings known on that
 day (a restatement counts once filed), through the same `algo.data.ratios` code the Screener page uses; never from today's
 Screener table, which would leak the future. Both read as the Screener page reads them.
@@ -27,6 +27,8 @@ from algo.screener import engine
 from algo.screener.technical import technicals
 from algo.strategies.fundamentals import FundamentalsBook
 from algo.strategies.nifty200_momentum import IntervalMembership
+from algo.strategies.scorebook import FIELDS as SCORE_FIELDS
+from algo.strategies.scorebook import ScoreBook
 from algo.strategy.base import Requirements, Strategy, StrategyParams, Targets
 from algo.strategy.context import Context
 
@@ -61,6 +63,9 @@ class ScreenSpec(BaseModel):
         """The fields the conditions and the ranking read: all that has to be worked out for a stock."""
         return {c.field for c in self.conditions} | {self.sort}
 
+    def needs_scores(self) -> bool:
+        return any(f in SCORE_FIELDS for f in self.fields_used())
+
     def needs_fundamentals(self) -> bool:
         return any(
             engine.FIELDS[f].kind == "fundamental" for f in self.fields_used() if f in engine.FIELDS
@@ -70,14 +75,14 @@ class ScreenSpec(BaseModel):
         return [engine.Condition(c.field, c.op, c.value) for c in self.conditions]
 
     def problem(self) -> str | None:
-        """Why this screen cannot be run, or None: a field must be a price field or a filed ratio. A market-cap class is not one
-        (a study and a saved strategy both pick their market-cap segments separately)."""
+        """Why this screen cannot be run, or None: a field must be a price field, a filed ratio or one of the numeric swing-score fields. A market-cap class is not
+        one (a study and a saved strategy both pick their market-cap segments separately), nor are the smart-money fields (only as of today) or the score's text fields."""
         bad = sorted(
             f for f in self.fields_used()
-            if f not in engine.FIELDS or engine.FIELDS[f].kind not in ("technical", "fundamental")
+            if f not in engine.FIELDS or (engine.FIELDS[f].kind not in ("technical", "fundamental") and f not in SCORE_FIELDS)
         )  # fmt: skip
         if bad:
-            return f"{', '.join(bad)}: unknown, or a market-cap class (choose the market-cap segments separately)"
+            return f"{', '.join(bad)}: unknown, a market-cap class (choose the market-cap segments separately), as-of-today data or text"
         try:
             for c in self.engine_conditions():
                 engine.validate(c)
@@ -91,6 +96,7 @@ def still_matches(
     bars: Sequence[Any],
     book: FundamentalsBook | None = None,
     iid: int | None = None,
+    scores: ScoreBook | None = None,
 ) -> bool:
     """Does the screen's condition set hold for this stock on the last of `bars` (oldest first)? Filed ratios are read from
     `book` (as known at the end of that day) when it is given."""
@@ -99,6 +105,8 @@ def still_matches(
     if book is not None and iid is not None:
         day = bars[-1].ts.astimezone(IST).date()
         row.update(book.ratios(iid, datetime.combine(day, time.max, IST), bars[-1].close, day))
+    if scores is not None and iid is not None:
+        row.update(scores.fields(iid, bars[-1].ts.astimezone(IST).date()))
     hit, _ = engine.run([row], spec.engine_conditions(), match=spec.match, limit=1)
     return bool(hit)
 
@@ -112,11 +120,20 @@ class ScreenerStrategy(Strategy):
         membership: IntervalMembership,
         screen: ScreenSpec,
         book: FundamentalsBook | None = None,
+        scores: ScoreBook | None = None,
     ) -> None:
         super().__init__(params)
         if book is None and screen.needs_fundamentals():
             raise ValueError("this screen reads filed ratios: it needs a FundamentalsBook")
-        self.p, self.membership, self.screen, self.book = params, membership, screen, book
+        if scores is None and screen.needs_scores():
+            raise ValueError("this screen reads the swing score: it needs a ScoreBook")
+        self.p, self.membership, self.screen, self.book, self.scores = (
+            params,
+            membership,
+            screen,
+            book,
+            scores,
+        )
         self.audit: list[
             dict[str, Any]
         ] = []  # one entry per change: who entered, who left (the paper runner records it)
@@ -147,6 +164,8 @@ class ScreenerStrategy(Strategy):
                 row = {"instrument_id": iid, **technicals(Bars(*cols), self.screen.fields_used())}
                 if self.book is not None:
                     row.update(self.book.ratios(iid, ctx.now(), bars[-1].close, day))
+                if self.scores is not None:
+                    row.update(self.scores.fields(iid, day))
                 rows.append(row)
         if not rows:
             return None  # no data today: decide on the next session

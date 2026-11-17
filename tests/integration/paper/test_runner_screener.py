@@ -222,3 +222,38 @@ def test_a_screen_on_filed_ratios_proposes_only_stocks_whose_results_were_filed_
     out = run_day(conn, uid, day=JAN, now=at(JAN), lake_root=lake)
     assert out.status == "PROPOSED", out.detail
     assert sorted(r[0] for r in orders(conn, uid, JAN)) == sorted([ids["FAST"], ids["EXTRA"]])
+
+
+def test_a_screen_on_the_swing_score_buys_by_score_known_on_the_day_and_not_by_a_later_one(env):
+    conn, ids, uid, lake = env
+    score_screen = {
+        "screen": {
+            "conditions": [{"field": "score", "op": "gt", "value": 60}],
+            "match": "all",
+            "sort": "score",
+            "descending": True,
+        },
+        "segments": ["large", "mid"],
+    }
+    cid = configs.create(
+        conn, uid, name="Scored", universe=configs.SEGMENTS, max_instruments=None, timeframe="1D",
+        params={"max_positions": 5}, now=NOW, strategy_id="screener", screen=score_screen,
+    )  # fmt: skip
+    configs.use(conn, uid, cid)
+    for name, s, day in (
+        ("FAST", 90, JAN),
+        ("EXTRA", 70, JAN),
+        ("FALLING", 95, JAN),
+        ("SLOW", 50, JAN),
+        ("SLOW", 99, date(2025, 1, 6)),
+    ):
+        conn.execute(
+            "INSERT INTO stock_score_history (day, instrument_id, score) VALUES (%s,%s,%s)",
+            (day, ids[name], s),
+        )
+    out = run_day(conn, uid, day=JAN, now=at(JAN), lake_root=lake)
+    assert out.status == "PROPOSED", out.detail
+    got = {r[0] for r in orders(conn, uid, JAN)}
+    assert (
+        got == {ids["FAST"], ids["EXTRA"], ids["FALLING"]}
+    )  # the faller is bought because its score is high; SLOW's 99 is dated five days later and is not seen
