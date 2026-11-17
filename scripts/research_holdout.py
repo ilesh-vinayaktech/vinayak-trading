@@ -5,6 +5,7 @@ usage: research_holdout.py migrate                       apply database migratio
        research_holdout.py cutoff                        fire the Batch 1 cutoff (the worker does this by itself when the round ends)
        research_holdout.py provenance ID STATUS REASON   ID like ALPHA_VOL_20D_H5@1, STATUS ELIGIBLE | INELIGIBLE | PROVISIONAL
        research_holdout.py sign-audit --by NAME FILE     sign the procedure-provenance audit (FILE is its text, e.g. docs/holdout-audit-step0.md)
+       research_holdout.py submit ID [ID...] --declaration TEXT   NEW strategies, any time: freezes a batch of them (needs a clean-code study that passed development)
        research_holdout.py locks [--write]               strategy_locked_at and forward start per candidate (prints; --write records them)
        research_holdout.py freeze --cutoff N             freeze the batch of that cutoff (needs the audit; reserves slots, commits seeds)
        research_holdout.py evaluate --batch N --yes      the ONE evaluation of that batch: spends its slots, cannot be repeated
@@ -38,6 +39,13 @@ p.add_argument("reason")
 s = sub.add_parser("sign-audit")
 s.add_argument("--by", required=True)
 s.add_argument("file", type=Path)
+sb = sub.add_parser("submit")
+sb.add_argument("candidates", nargs="+")
+sb.add_argument(
+    "--declaration",
+    required=True,
+    help="one line: the idea was not built from 2025-2026 results (including earlier verdicts)",
+)
 lk = sub.add_parser("locks")
 lk.add_argument("--write", action="store_true")
 f = sub.add_parser("freeze")
@@ -88,6 +96,12 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             print("recorded", a.candidate, a.status)
         elif a.cmd == "sign-audit":
             print("audit signed:", co.sign_audit(conn, a.by, a.file.read_text(), now))
+        elif a.cmd == "submit":
+            print(
+                "frozen batch",
+                co.submit(conn, a.candidates, a.declaration, "owner", now),
+                "- evaluate it with: evaluate --batch N --yes",
+            )
         elif a.cmd == "locks":
             ok, refused = hl.compute_all(conn)
             for r in ok:
@@ -118,5 +132,5 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         else:
             for row in verdicts.read_verdicts(conn):
                 print(*row)
-    except (hb.BatchError, hl.LockError) as err:
+    except (hb.BatchError, hl.LockError) as err:  # CutoffError is a BatchError
         sys.exit(f"refused: {err}")

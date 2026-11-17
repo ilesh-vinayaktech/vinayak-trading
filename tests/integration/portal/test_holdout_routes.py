@@ -76,7 +76,7 @@ def test_a_freeze_needs_a_confirmation_and_a_plan_that_allows_it(env):
         c.post("/api/holdout/cutoffs/99/freeze", json={"confirm": True}).status_code == 404
     )  # no such cutoff
     cid = conn.execute(
-        "INSERT INTO holdout_cutoff (kind, due_on, fired_at, snapshot, snapshot_sha256) VALUES ('BATCH1', NULL, %s, '{\"candidates\": []}', %s) RETURNING cutoff_id",
+        "INSERT INTO holdout_cutoff (kind, fired_at, snapshot, snapshot_sha256) VALUES ('BATCH1', %s, '{\"candidates\": []}', %s) RETURNING cutoff_id",
         (START, "0" * 64),
     ).fetchone()[0]
     r = c.post(f"/api/holdout/cutoffs/{cid}/freeze", json={"confirm": True})

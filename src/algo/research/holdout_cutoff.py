@@ -4,24 +4,21 @@
 Two separate events, in this order. (1) The cutoff fires by itself when every definition's fixed-setting study has reached a terminal state; it records, once, who was
 in the population with each development verdict, registration time and provenance status. Nobody supplies a list, delays it or changes it afterwards. (2) The batch is frozen
 later, only when the provenance audit is signed: membership is every candidate of the snapshot whose development verdict passed and whose provenance is ELIGIBLE. Nobody
-chooses among them; an INELIGIBLE one is excluded with reason 3; fewer than 3 carry over to the next cutoff (decision D2: the last batch may be smaller only when it uses the
-entire remaining budget)."""
+chooses among them; an INELIGIBLE one is excluded with reason 3; a batch of one is allowed (owner amendment 2026-11-17: no minimum size, no fixed calendar dates after Batch 1)."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
 
-from algo.live.market_calendar import windows_for
 from algo.research import holdout_batch, holdout_evaluator
 
-MIN_BATCH = 3
 TERMINAL = ("DONE", "FAILED", "CANCELLED")
 EXCLUSION_REASON_INELIGIBLE = (
     3  # policy section 3: ineligibility under section 4 (provenance or independence failure)
@@ -96,13 +93,15 @@ def round_complete(conn: psycopg.Connection) -> bool:
     return True
 
 
-def snapshot(conn: psycopg.Connection) -> dict[str, Any]:
+def snapshot(conn: psycopg.Connection, only: list[str] | None = None) -> dict[str, Any]:
     """The candidate population as it stands: every definition with its study, development verdict, registration time, provenance status and slot state."""
     out = []
     for sid, ver, created in conn.execute(
         "SELECT strategy_id, version, created_at FROM strategy_definition ORDER BY strategy_id, version"
     ).fetchall():
         cid = f"{sid}@{ver}"
+        if only is not None and cid not in only:
+            continue
         exp = _fixed_study(conn, sid, ver)
         verdict = _verdict_state(conn, exp)[1] if exp is not None else "NO_VERDICT"
         slot = conn.execute(
@@ -134,61 +133,24 @@ def fire_batch1(conn: psycopg.Connection, now: datetime) -> int | None:
         return None
     snap = snapshot(conn)
     row = conn.execute(
-        "INSERT INTO holdout_cutoff (kind, due_on, fired_at, snapshot, snapshot_sha256) VALUES ('BATCH1', NULL, %s, %s, %s) RETURNING cutoff_id",
+        "INSERT INTO holdout_cutoff (kind, fired_at, snapshot, snapshot_sha256) VALUES ('BATCH1', %s, %s, %s) RETURNING cutoff_id",
         (now, Jsonb(snap), _sha(snap)),
     ).fetchone()
     assert row is not None
     return int(row[0])
 
 
-def fire_quarter(conn: psycopg.Connection, due_on: date, now: datetime) -> int | None:
-    """Fire the calendar cutoff `due_on` (the last trading day of a quarter) once its date has come. The date is not chosen by the owner: it is a fixed calendar date."""
-    if (
-        now.date() < due_on
-        or conn.execute(
-            "SELECT 1 FROM holdout_cutoff WHERE kind='QUARTER' AND due_on=%s", (due_on,)
-        ).fetchone()
-    ):
-        return None
-    snap = snapshot(conn)
+def fire_on_demand(conn: psycopg.Connection, candidate_ids: list[str], now: datetime) -> int:
+    """Record a cutoff for the candidates the owner submits. Its snapshot is immutable like any other; the batch is frozen from it by `freeze_batch`."""
+    snap = snapshot(conn, only=candidate_ids)
+    if len(snap["candidates"]) != len(set(candidate_ids)):
+        raise CutoffError(f"unknown definition among {candidate_ids}")
     row = conn.execute(
-        "INSERT INTO holdout_cutoff (kind, due_on, fired_at, snapshot, snapshot_sha256) VALUES ('QUARTER', %s, %s, %s, %s) RETURNING cutoff_id",
-        (due_on, now, Jsonb(snap), _sha(snap)),
+        "INSERT INTO holdout_cutoff (kind, fired_at, snapshot, snapshot_sha256) VALUES ('ON_DEMAND', %s, %s, %s) RETURNING cutoff_id",
+        (now, Jsonb(snap), _sha(snap)),
     ).fetchone()
     assert row is not None
     return int(row[0])
-
-
-def last_trading_day(conn: psycopg.Connection, month_end: date) -> date:
-    """The last trading day on or before a quarter's last calendar day, from the platform's market calendar."""
-    day = month_end
-    while not windows_for(conn, day):
-        day -= timedelta(days=1)
-    return day
-
-
-def quarter_dates(first_after: date, until: date) -> list[date]:
-    """Quarter-end calendar days after `first_after` and up to `until` (the cutoffs are fixed calendar dates, never chosen)."""
-    out = []
-    for year in range(first_after.year, until.year + 1):
-        for m, d in ((3, 31), (6, 30), (9, 30), (12, 31)):
-            q = date(year, m, d)
-            if first_after < q <= until + timedelta(days=7):
-                out.append(q)
-    return out
-
-
-def fire_due_quarters(conn: psycopg.Connection, now: datetime) -> list[int]:
-    """Fire every quarterly cutoff whose last trading day has come, once the Batch 1 cutoff exists. Nobody can delay one or trigger it early."""
-    first = conn.execute("SELECT fired_at FROM holdout_cutoff WHERE kind='BATCH1'").fetchone()
-    if first is None:
-        return []
-    fired = []
-    for q in quarter_dates(first[0].date(), now.date()):
-        cid = fire_quarter(conn, last_trading_day(conn, q), now)
-        if cid is not None:
-            fired.append(cid)
-    return fired
 
 
 def record_provenance(
@@ -270,12 +232,7 @@ def plan(conn: psycopg.Connection, cutoff_id: int) -> Plan:
     left = holdout_batch.slots(conn)[2]
     if len(members) > left:
         problems.append(f"{len(members)} candidates do not fit the {left} slots left")
-    elif members and len(members) < MIN_BATCH and len(members) != left:
-        problems.append(
-            f"fewer than {MIN_BATCH} candidates and not the last batch: they carry over to the next cutoff"
-        )
-    carry = tuple(members) if members and len(members) < MIN_BATCH and len(members) != left else ()
-    return Plan(tuple(members), experiments, carry, excluded, tuple(problems))
+    return Plan(tuple(members), experiments, (), excluded, tuple(problems))
 
 
 def freeze_batch(conn: psycopg.Connection, cutoff_id: int, by: str, now: datetime) -> int | None:
@@ -296,3 +253,28 @@ def freeze_batch(conn: psycopg.Connection, cutoff_id: int, by: str, now: datetim
         now,
     )
     return batch_id
+
+
+def submit(
+    conn: psycopg.Connection, candidate_ids: list[str], declaration: str, by: str, now: datetime
+) -> int:
+    """Put new strategies through the holdout as the 19 went: each needs a clean-code study that passed development (re-register it from a clean commit if not); the owner's
+    one-line declaration that the idea was not built from holdout-period results is recorded as its provenance; a cutoff is recorded and the batch frozen (slots reserved, seeds
+    committed). The evaluation itself stays a separate, confirmed step."""
+    if not declaration.strip():
+        raise CutoffError(
+            "say, in one line, that the idea was not built from 2025-2026 results (including earlier verdicts)"
+        )
+    for cid in candidate_ids:
+        sid, ver = cid.split("@")
+        if _clean_passed_study(conn, sid, int(ver)) is None:
+            raise CutoffError(
+                f"{cid}: no study registered from a clean commit has passed development yet"
+            )
+    for cid in candidate_ids:
+        record_provenance(conn, cid, "ELIGIBLE", f"owner declaration: {declaration}", now)
+    cutoff = fire_on_demand(conn, candidate_ids, now)
+    batch = freeze_batch(conn, cutoff, by, now)
+    if batch is None:
+        raise CutoffError("cannot freeze: " + "; ".join(plan(conn, cutoff).problems))
+    return batch

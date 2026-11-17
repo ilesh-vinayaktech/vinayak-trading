@@ -177,30 +177,27 @@ def test_unresolved_provenance_blocks_the_freeze_and_the_audit_cannot_add_a_memb
     assert "Z@1" not in co.plan(env, cid).members
 
 
-def test_fewer_than_three_carry_over_unless_it_is_the_last_batch_using_all_the_budget(env):
+def test_a_single_candidate_can_be_frozen_but_more_than_the_slots_left_cannot(env):
     population(env, ("A", "B"))
     cid = co.fire_batch1(env, NOW)
     for n in "AB":
         co.record_provenance(env, f"{n}@1", "ELIGIBLE", "x", NOW)
     co.sign_audit(env, "owner", "audit", NOW)
-    p = co.plan(env, cid)
-    assert (
-        not p.can_freeze
-        and p.carry_over == ("A@1", "B@1")
-        and co.freeze_batch(env, cid, "owner", NOW) is None
-    )
-    # leave exactly two slots: D2, the last batch may be smaller when it uses the entire remaining budget
     env.execute(
-        "INSERT INTO holdout_batch (state, lock_id, evaluator_version, registered_by, registered_at) SELECT 'REGISTERED', lock_id, %s, 'o', %s FROM research_lock LIMIT 1 ON CONFLICT DO NOTHING",
+        "INSERT INTO holdout_batch (state, lock_id, evaluator_version, registered_by, registered_at) SELECT 'REGISTERED', lock_id, %s, 'o', %s FROM research_lock LIMIT 1",
         (hb.EVALUATOR_VERSION, NOW),
     )
     bid = env.execute("SELECT batch_id FROM holdout_batch").fetchone()[0]
-    for i in range(28):
+    for i in range(29):  # one slot left
         env.execute(
             "INSERT INTO holdout_candidate (batch_id, candidate_id, state, seed, reserved_at) VALUES (%s,%s,'RESERVED',%s,%s)",
             (bid, f"x{i}", f"{i:032x}", NOW),
         )
-    assert co.plan(env, cid).can_freeze
+    p = co.plan(env, cid)
+    assert not p.can_freeze and any("do not fit the 1 slots left" in x for x in p.problems)
+    single = co.fire_on_demand(env, ["A@1"], NOW)
+    assert co.plan(env, single).can_freeze and co.freeze_batch(env, single, "owner", NOW)
+    assert hb.slots(env) == (0, 30, 0)
 
 
 def test_a_candidate_of_the_snapshot_that_already_holds_a_slot_is_not_a_member_again(env):
@@ -210,58 +207,9 @@ def test_a_candidate_of_the_snapshot_that_already_holds_a_slot_is_not_a_member_a
         co.record_provenance(env, f"{n}@1", "ELIGIBLE", "x", NOW)
     co.sign_audit(env, "owner", "audit", NOW)
     assert co.freeze_batch(env, cid, "owner", NOW)
-    again = env.execute(
-        "INSERT INTO holdout_cutoff (kind, due_on, fired_at, snapshot, snapshot_sha256) VALUES ('QUARTER','2027-03-31',%s,%s,%s) RETURNING cutoff_id",
-        (NOW, Jsonb(co.snapshot(env)), "0" * 64),
-    ).fetchone()[0]
+    again = co.fire_on_demand(env, ["A@1", "B@1", "C@1"], NOW)
     assert co.plan(env, again).members == ()
     assert pv  # the verdict reader is not involved: a cutoff reads development verdicts only
-
-
-def test_a_calendar_cutoff_fires_on_its_date_not_before_and_only_once(env):
-    population(env, ("A",))
-    assert co.fire_quarter(env, date(2027, 3, 31), datetime(2027, 3, 30, tzinfo=UTC)) is None
-    assert co.fire_quarter(env, date(2027, 3, 31), datetime(2027, 3, 31, 12, tzinfo=UTC))
-    assert co.fire_quarter(env, date(2027, 3, 31), datetime(2027, 4, 2, tzinfo=UTC)) is None
-
-
-def test_quarterly_cutoffs_fire_on_the_last_trading_day_of_each_quarter_after_batch_1_and_never_early(
-    env,
-):
-    from algo.research import holdout_cutoff as c2
-
-    population(env, ("A",))
-    assert (
-        c2.fire_due_quarters(env, datetime(2027, 4, 5, tzinfo=UTC)) == []
-    )  # no Batch 1 cutoff yet
-    assert c2.fire_batch1(env, NOW)  # 2026-11-17
-    assert c2.last_trading_day(env, date(2026, 12, 31)) == date(2026, 12, 31)  # a Thursday
-    assert c2.last_trading_day(env, date(2027, 3, 31)) == date(2027, 3, 31)
-    assert c2.last_trading_day(env, date(2027, 6, 30)) == date(2027, 6, 30)
-    assert c2.last_trading_day(env, date(2026, 9, 30)) == date(2026, 9, 30)
-    assert c2.quarter_dates(date(2026, 11, 17), date(2027, 3, 31)) == [
-        date(2026, 12, 31),
-        date(2027, 3, 31),
-    ]
-    assert (
-        c2.fire_due_quarters(env, datetime(2026, 12, 30, 12, tzinfo=UTC)) == []
-    )  # the day has not come
-    first = c2.fire_due_quarters(env, datetime(2026, 12, 31, 12, tzinfo=UTC))
-    assert (
-        len(first) == 1 and c2.fire_due_quarters(env, datetime(2027, 1, 5, tzinfo=UTC)) == []
-    )  # once
-    assert (
-        len(c2.fire_due_quarters(env, datetime(2027, 4, 2, tzinfo=UTC))) == 1
-    )  # only March: June is not due
-    assert (
-        env.execute("SELECT count(*) FROM holdout_cutoff WHERE kind='QUARTER'").fetchone()[0] == 2
-    )
-
-
-def test_a_quarter_end_on_a_weekend_uses_the_last_trading_day_before_it(env):
-    from algo.research import holdout_cutoff as c2
-
-    assert c2.last_trading_day(env, date(2027, 1, 31)) == date(2027, 1, 29)  # a Sunday
 
 
 def test_a_member_is_evaluated_through_its_newest_clean_passed_study_and_without_one_the_batch_waits(
@@ -306,3 +254,45 @@ def test_a_member_is_evaluated_through_its_newest_clean_passed_study_and_without
     env.execute("SET session_replication_role = DEFAULT")
     p = co.plan(env, cid)
     assert p.members == ("A@1", "B@1", "C@1") and p.experiments["A@1"] == new
+
+
+def test_submit_puts_a_new_strategy_through_the_holdout_at_any_time_on_the_owners_declaration(env):
+    population(env, ("A", "B"))
+    co.sign_audit(env, "owner", "audit", NOW)
+    with pytest.raises(co.CutoffError, match="not built from 2025-2026"):
+        co.submit(env, ["A@1"], "  ", "owner", NOW)
+    batch = co.submit(
+        env, ["A@1"], "the idea came from a paper, not from any 2025-2026 result", "owner", NOW
+    )  # a batch of one, no calendar date
+    assert (
+        env.execute("SELECT state FROM holdout_batch WHERE batch_id=%s", (batch,)).fetchone()[0]
+        == "FROZEN"
+    )
+    assert hb.slots(env) == (0, 1, 29)
+    assert (
+        env.execute(
+            "SELECT status, reason FROM holdout_provenance WHERE candidate_id='A@1'"
+        ).fetchone()[0]
+        == "ELIGIBLE"
+    )
+    second = co.submit(env, ["B@1"], "declared", "owner", NOW)  # later, on its own
+    assert second != batch and hb.slots(env) == (0, 2, 28)
+    assert (
+        env.execute("SELECT count(*) FROM holdout_cutoff WHERE kind='ON_DEMAND'").fetchone()[0] == 2
+    )
+    with pytest.raises(co.CutoffError, match="cannot freeze"):
+        co.submit(
+            env, ["A@1"], "again", "owner", NOW
+        )  # a candidate already holding a slot is never tested twice
+
+
+def test_submit_refuses_a_strategy_without_a_clean_passed_study_and_an_unknown_one(env):
+    add_definition(env, "D", dirty=True)
+    add_definition(env, "E", passed=False)
+    for cid in ("D@1", "E@1"):
+        with pytest.raises(
+            co.CutoffError, match="no study registered from a clean commit has passed"
+        ):
+            co.submit(env, [cid], "declared", "owner", NOW)
+    with pytest.raises(co.CutoffError, match="unknown definition"):
+        co.fire_on_demand(env, ["NOPE@1"], NOW)
