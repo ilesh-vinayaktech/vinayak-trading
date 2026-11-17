@@ -6,11 +6,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.live.market_calendar import IST
-from algo.market import forecast, predict, sectors
+from algo.market import forecast, levels, predict, sectors
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 HISTORY_DAYS = 260
@@ -172,3 +172,51 @@ def forecast_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, 
         "misses": misses,
         "labels": predict.LABELS,
     }
+
+
+@router.get("/levels")
+def levels_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Support and resistance, breakout status and the volume-at-price and return histograms for one stock, from its daily bars since its latest split or bonus."""
+    sym = symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id, name FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    iid, name = row
+    split = conn.execute(
+        "SELECT max(ex_date) FROM corporate_action WHERE instrument_id=%s AND kind IN ('split','bonus') AND status='ok' AND ex_date <= current_date",
+        (iid,),
+    ).fetchone()
+    cut = split[0] if split else None
+    bars = conn.execute(
+        "SELECT (ts AT TIME ZONE 'Asia/Kolkata')::date, high::float8, low::float8, close::float8, volume::float8, CASE WHEN series='EQ' THEN delivery_qty::float8 END FROM ("
+        " SELECT DISTINCT ON (ts) * FROM bar_1d WHERE instrument_id=%s AND source='nse' ORDER BY ts, dataset_version DESC) x"
+        " WHERE (ts AT TIME ZONE 'Asia/Kolkata')::date >= coalesce(%s::date, '1900-01-01') ORDER BY ts DESC LIMIT 400", (iid, cut)
+    ).fetchall()[::-1]  # fmt: skip
+    if not bars:
+        raise HTTPException(404, f"no daily bars for {sym}")
+    days = [b[0] for b in bars]
+    high, low, close, vol = ([b[i] for b in bars] for i in (1, 2, 3, 4))
+    pct = [100 * b[5] / b[4] if b[5] is not None and b[4] > 0 else None for b in bars]
+    norm = [p for p in pct[-21:-1] if p is not None]
+    deliv = (
+        pct[-1] / (sum(norm) / len(norm))
+        if pct[-1] is not None and norm and sum(norm) > 0
+        else None
+    )
+    out = levels.analyse(high, low, close, vol, deliv)
+    if out is None:
+        return {
+            "symbol": sym,
+            "name": name,
+            "as_of": days[-1].isoformat(),
+            "enough_history": False,
+            "bars": len(bars),
+        }
+    shown = slice(-250, None)
+    return {
+        "symbol": sym, "name": name, "as_of": days[-1].isoformat(), "enough_history": True, "since_split": cut.isoformat() if cut else None,
+        **out, "series": [{"day": d.isoformat(), "close": c} for d, c in zip(days[shown], close[shown], strict=True)],
+    }  # fmt: skip

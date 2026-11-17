@@ -748,6 +748,24 @@ export const forecastSchema = z.object({
   labels: z.record(z.string(), z.string()).optional(),
 });
 export type Forecast = z.infer<typeof forecastSchema>;
+const stockLevelSchema = z.object({ price: z.number(), touches: z.number(), bars_since: z.number(), distance_pct: z.number() });
+export const stockLevelsSchema = z.object({
+  symbol: z.string(),
+  name: z.string().nullable(),
+  as_of: z.string(),
+  enough_history: z.boolean(),
+  since_split: z.string().nullable().optional(),
+  price: z.number().optional(),
+  supports: z.array(stockLevelSchema).optional(), // below the price, nearest first
+  resistances: z.array(stockLevelSchema).optional(), // above the price, nearest first
+  status: z.object({ state: z.string(), level: z.number().nullable(), volume_ratio: z.number().nullable(), delivery_vs_avg: z.number().nullable() }).optional(),
+  profile: z.object({ bins: z.array(z.object({ price: z.number(), share: z.number() })), poc: z.number(), value_low: z.number(), value_high: z.number() }).nullable().optional(),
+  returns: z.object({ bins: z.array(z.object({ low: z.number(), high: z.number(), count: z.number() })), last: z.number(), last_percentile: z.number(), worst: z.number(), best: z.number() }).nullable().optional(),
+  high_52w: z.number().optional(),
+  low_52w: z.number().optional(),
+  series: z.array(z.object({ day: z.string(), close: z.number() })).optional(),
+});
+export type StockLevels = z.infer<typeof stockLevelsSchema>;
 export const liveStatusSchema = z.object({
   account: z.boolean(),
   open: z.boolean(), // the gate is open: live can run

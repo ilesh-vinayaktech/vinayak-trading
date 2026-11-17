@@ -185,3 +185,34 @@ def test_forecast_gives_tonights_probabilities_the_track_record_and_the_biggest_
 def test_forecast_needs_a_signed_in_user(env):  # noqa: F811
     _, app, _, _ = env
     assert TestClient(app).get("/api/market/forecast").status_code in (401, 403)
+
+
+def test_levels_for_a_stock_come_from_its_bars_since_its_last_split(env):  # noqa: F811
+    import math
+
+    from tests.integration.conftest import bar
+
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    iid = conn.execute(
+        "SELECT min(instrument_id) FROM instrument WHERE asset_class='equity' AND instrument_id NOT IN (SELECT instrument_id FROM bar_1d)"
+    ).fetchone()[0]
+    sym = conn.execute("SELECT symbol FROM instrument WHERE instrument_id=%s", (iid,)).fetchone()[0]
+    for k in range(120):  # a stock bouncing between about 100 and 110
+        bar(
+            conn,
+            iid,
+            TODAY - timedelta(days=119 - k),
+            round(105 + 5 * math.sin(2 * math.pi * k / 20), 2),
+            1000 + k,
+            500,
+        )
+    got = c.get("/api/market/levels", params={"symbol": sym}).json()
+    assert got["symbol"] == sym and got["enough_history"] and got["as_of"] == "2026-11-11"
+    assert got["supports"] and got["resistances"] and got["status"]["state"]
+    assert (
+        len(got["profile"]["bins"]) == 24
+        and sum(b["count"] for b in got["returns"]["bins"]) == 119
+        and len(got["series"]) == 120
+    )
+    assert c.get("/api/market/levels", params={"symbol": "NOPE"}).status_code == 404
