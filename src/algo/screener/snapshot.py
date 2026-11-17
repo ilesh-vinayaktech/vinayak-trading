@@ -19,7 +19,7 @@ from psycopg.types.json import Jsonb
 from algo.data import ratios as fr
 from algo.data import sectors as sec
 from algo.indicators.catalog import Bars
-from algo.screener import smart_money
+from algo.screener import score, smart_money
 from algo.screener.engine import FIELDS
 from algo.screener.technical import technicals
 
@@ -126,7 +126,7 @@ def compute(conn: psycopg.Connection) -> list[dict[str, Any]]:
             row.update({k: v.value for k, v in fr.compute(known, market).items()})
             row["latest_period"] = known[0].period_end.isoformat()
         rows.append(row)
-    return add_sector_view(rows, sec.sectors_on(conn, day))
+    return score.attach(add_sector_view(rows, sec.sectors_on(conn, day)))
 
 
 def add_sector_view(rows: list[dict[str, Any]], sector_of: dict[int, str]) -> list[dict[str, Any]]:

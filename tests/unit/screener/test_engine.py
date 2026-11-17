@@ -72,7 +72,7 @@ def test_bad_sort_or_match_is_refused():
 def test_fields_cover_ratios_technicals_and_profile():
     kinds = {f.kind for f in FIELDS.values()}
     assert (
-        kinds == {"fundamental", "technical", "profile", "smart_money"}
+        kinds == {"fundamental", "technical", "profile", "smart_money", "score"}
         and "roce" in FIELDS
         and "rsi_14" in FIELDS
     )

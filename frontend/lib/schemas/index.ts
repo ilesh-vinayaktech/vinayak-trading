@@ -1025,7 +1025,7 @@ export type StudyVerdict = z.infer<typeof studyVerdictSchema>;
 export const screenerMetaSchema = z.object({
   fields: z.array(z.object({ key: z.string(), label: z.string(), group: z.string(), kind: z.enum(["fundamental", "technical", "profile", "smart_money"]), unit: z.string() })),
   presets: z.array(z.object({
-    id: z.string(), name: z.string(), category: z.enum(["fundamental", "technical", "combined", "smart_money"]), description: z.string(), sort: z.string(), descending: z.boolean(),
+    id: z.string(), name: z.string(), category: z.enum(["fundamental", "technical", "combined", "smart_money", "score"]), description: z.string(), sort: z.string(), descending: z.boolean(),
     conditions: z.array(z.object({ field: z.string(), op: z.string(), value: z.unknown() })),
   })),
 });

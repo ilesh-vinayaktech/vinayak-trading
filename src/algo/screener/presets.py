@@ -12,7 +12,7 @@ from algo.screener.engine import Condition as C
 class Preset:
     id: str
     name: str
-    category: str  # fundamental | technical | combined
+    category: str  # fundamental | technical | combined | smart_money | score
     description: str
     conditions: tuple[C, ...]
     sort: str
@@ -335,6 +335,50 @@ PRESETS: tuple[Preset, ...] = (
         C("dii_change", "gt", 0),
         C("price_vs_sma200", "gt", 0),
         C("delivery_vs_avg", "gte", 1),
+    ),
+    _p(
+        "top-swing-scores",
+        "Top swing scores",
+        "score",
+        "The highest overall swing scores among stocks that trade at least Rs 5 crore a day: trend, volume and delivery, smart money and quality together.",
+        "score",
+        C("score", "gte", 70),
+    ),
+    _p(
+        "strong-not-overbought",
+        "Strong score, not overbought",
+        "score",
+        "A high swing score with RSI still below 65, so it has not already run too far.",
+        "score",
+        C("score", "gte", 65),
+        C("rsi_14", "lte", 65),
+    ),
+    _p(
+        "money-and-trend",
+        "Smart money and trend agree",
+        "score",
+        "Both the smart-money score and the trend score are high: buyers with size and a price that is already rising.",
+        "score_smart_money",
+        C("score_smart_money", "gte", 70),
+        C("score_trend", "gte", 70),
+    ),
+    _p(
+        "early-accumulation",
+        "Smart money first, price not yet",
+        "score",
+        "Heavy buying by deals, insiders or institutions, but the price trend is still middling: the setup before a move, if it comes.",
+        "score_smart_money",
+        C("score_smart_money", "gte", 80),
+        C("score_trend", "between", [30, 60]),
+    ),
+    _p(
+        "quality-uptrend",
+        "Quality in an uptrend",
+        "score",
+        "A high quality score (returns, growth, low debt) with a high trend score.",
+        "score_quality",
+        C("score_quality", "gte", 75),
+        C("score_trend", "gte", 70),
     ),
 )
 BY_ID = {p.id: p for p in PRESETS}

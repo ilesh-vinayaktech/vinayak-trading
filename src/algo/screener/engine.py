@@ -23,7 +23,7 @@ class Field:
     key: str
     label: str
     group: str  # valuation | profitability | growth | strength | efficiency | cash | momentum | trend | volume | profile
-    kind: str  # fundamental | technical | profile | smart_money
+    kind: str  # fundamental | technical | profile | smart_money | score
     unit: str  # pct | x | days | crore | inr | text
 
 
@@ -64,10 +64,21 @@ SMART_MONEY_FIELDS: tuple[tuple[str, str, str, str], ...] = (
     ("insider_buys_90d", "Insider buy filings, 90 days", "insider", "x"),
     ("deal_net_30d", "Bulk and block deals, net buying, 30 days", "deals", "crore"),
 )
+# the swing score and its parts (algo.screener.score), 0 to 100; built from the fields above incl. smart money, so NOT usable by a strategy (kind "score")
+SCORE_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("score", "Swing score (0 to 100)", "x"),
+    ("score_trend", "Score: trend", "x"),
+    ("score_participation", "Score: volume and delivery", "x"),
+    ("score_smart_money", "Score: smart money", "x"),
+    ("score_quality", "Score: quality", "x"),
+)
 FIELDS: dict[str, Field] = {
     **{r.key: Field(r.key, r.label, r.group, "fundamental", r.unit) for r in RATIOS},
     **{k: Field(k, label, g, "technical", u) for k, label, g, u in _TECH},
     **{k: Field(k, label, g, "smart_money", u) for k, label, g, u in SMART_MONEY_FIELDS},
+    **{k: Field(k, label, "score", "score", u) for k, label, u in SCORE_FIELDS},
+    "setup": Field("setup", "Setup flags (breakout, accumulation, ...)", "score", "score", "text"),
+    "score_why": Field("score_why", "Why it scores", "score", "score", "text"),
     "segment": Field("segment", "Market-cap class (AMFI)", "profile", "profile", "text"),
     "sector": Field("sector", "Sector (NSE industry)", "profile", "profile", "text"),
     "pe_sector_median": Field(

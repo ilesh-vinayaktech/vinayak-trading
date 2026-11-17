@@ -32,7 +32,7 @@ const UNIT: Record<string, string> = {
   inr: "₹",
   text: "",
 };
-const BASE_COLS = ["price", "chg_1d"];
+const BASE_COLS = ["price", "chg_1d", "score"];
 
 const fmt = (v: string | number | boolean | null | undefined, unit: string) => {
   if (v === null || v === undefined) return "–";
@@ -148,6 +148,7 @@ export default function ScreenerPage() {
                 { key: "technical", label: "Technical" },
                 { key: "combined", label: "Combined" },
                 { key: "smart_money", label: "Smart money" },
+                { key: "score", label: "Scores" },
               ]}
             />
             {meta.isLoading ? (
@@ -202,8 +203,8 @@ export default function ScreenerPage() {
                         })
                       }
                     >
-                      {["fundamental", "technical", "smart_money", "profile"].map((k) => (
-                        <optgroup key={k} label={k === "smart_money" ? "smart money (latest filings, not for backtests)" : k}>
+                      {["fundamental", "technical", "smart_money", "score", "profile"].map((k) => (
+                        <optgroup key={k} label={k === "smart_money" ? "smart money (latest filings, not for backtests)" : k === "score" ? "swing score (not for backtests)" : k}>
                           {fields
                             .filter((x) => x.kind === k)
                             .map((x) => (

@@ -10,8 +10,14 @@ def test_every_preset_is_valid_and_sorts_on_a_real_field():
             validate(c)
 
 
-def test_there_are_fundamental_technical_combined_and_smart_money_screens():
-    assert {p.category for p in PRESETS} == {"fundamental", "technical", "combined", "smart_money"}
+def test_there_are_fundamental_technical_combined_smart_money_and_score_screens():
+    assert {p.category for p in PRESETS} == {
+        "fundamental",
+        "technical",
+        "combined",
+        "smart_money",
+        "score",
+    }
     for p in PRESETS:
         kinds = {FIELDS[c.field].kind for c in p.conditions} - {"profile"}
         want = {
@@ -19,6 +25,11 @@ def test_there_are_fundamental_technical_combined_and_smart_money_screens():
             "technical": {"technical"},
             "combined": {"fundamental", "technical"},
         }
+        if (
+            p.category == "score"
+        ):  # about the swing score and its parts, which a strategy cannot use
+            assert "score" in kinds, p.id
+            continue
         if (
             p.category == "smart_money"
         ):  # may be combined with price and volume conditions, but is always about the NSE flow data
