@@ -1,0 +1,52 @@
+{
+ "drivers": [
+  {
+   "key": "momentum",
+   "name": "Index trend against its 125-day average",
+   "score": 80.5
+  },
+  {
+   "key": "volatility",
+   "name": "India VIX (calm is greed)",
+   "score": 55.0
+  },
+  {
+   "key": "breadth",
+   "name": "Stocks above their 50-day average",
+   "score": 20.0
+  }
+ ],
+ "history": [
+  {
+   "day": "2026-11-09",
+   "fear_greed": 41.0,
+   "trend": "SIDEWAYS"
+  },
+  {
+   "day": "2026-11-10",
+   "fear_greed": 52.5,
+   "trend": "SIDEWAYS"
+  },
+  {
+   "day": "2026-11-11",
+   "fear_greed": 63.5,
+   "trend": "BULL"
+  }
+ ],
+ "latest": {
+  "advancers": 900,
+  "age_days": 0,
+  "day": "2026-11-11",
+  "decliners": 600,
+  "fear_greed": 63.5,
+  "highs": 45,
+  "label": "Greed",
+  "lows": 12,
+  "pct_above_200": 57.1,
+  "pct_above_50": 40.0,
+  "trend": "BULL",
+  "unchanged": 100,
+  "universe": 1600,
+  "volatility": "NORMAL"
+ }
+}

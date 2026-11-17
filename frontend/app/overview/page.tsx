@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ZonePanel } from "@/components/market/ZonePanel";
 import { Alert } from "@/components/ui/Alert";
 import { DataTable, EmptyState, Skeleton, type Column } from "@/components/ui/DataTable";
 import { Icon } from "@/components/ui/Icon";
@@ -49,6 +50,7 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={first ? `Welcome back, ${first}` : "Overview"} subtitle="Your connection, requests and account at a glance." actions={can("research:read") ? <Link href="/data/instruments" className={buttonClass("secondary")}>Open data explorer</Link> : null} />
+      <ZonePanel />
       {q.isError ? <Alert tone="error" title="Could not load your overview">Try again in a moment.</Alert> : null}
       {q.isLoading ? <div role="status" aria-label="Loading your overview" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /></div> : null}
       {d ? (

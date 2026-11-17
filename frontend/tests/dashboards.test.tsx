@@ -111,9 +111,8 @@ describe("my overview", () => {
   it("says so when the overview cannot load", async () => {
     backend({ "/api/auth/me": who(["kite:own"]) });
     mount(<OverviewPage />);
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not load your overview",
-    );
+    const alerts = await screen.findAllByRole("alert"); // the market zone panel fails on its own, too
+    expect(alerts.some((a) => a.textContent?.includes("Could not load your overview"))).toBe(true);
   });
 });
 

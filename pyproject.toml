@@ -7,8 +7,11 @@ dependencies = [
     "cryptography>=43",
     "fastapi>=0.162.2",
     "numpy==2.2.6",
+    "pandas>=3.1.1",
     "psycopg[binary]>=3.2",
     "pydantic>=2.8",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
     "uvicorn[standard]>=0.54.0",
     "websockets>=13",
 ]
@@ -26,6 +29,7 @@ dev = [
     "mutmut>=3",
     "testcontainers[postgres]>=4.8",
     "httpx>=0.28.1",
+    "pandas-stubs>=3.1.0.261029",
 ]
 
 [build-system]

@@ -244,6 +244,13 @@
    "name": "screener-refresh"
   },
   {
+   "calendar": "Mon..Fri *-*-* 21:45 Asia/Kolkata",
+   "description": "Market breadth, the fear/greed score and the bull/bear regime for the day (after the bars and the screener refresh)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "market-zone"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 07:30 Asia/Kolkata",
    "description": "Index total-return series (Nifty 50/200 and every broad, sector and thematic index) up to yesterday: capture, ingest, validate; a failed series alerts, the rest still load",
    "last_run": null,
@@ -312,7 +319,7 @@
    },
    {
     "level": "attention",
-    "text": "35 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 32 more."
+    "text": "36 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 33 more."
    }
   ],
   "status": "DOWN"
@@ -334,7 +341,7 @@
   "operational_reliability": {
    "items": [
     {
-     "detail": "none of the 35 jobs has run yet",
+     "detail": "none of the 36 jobs has run yet",
      "name": "scheduled jobs",
      "status": "UNKNOWN"
     },

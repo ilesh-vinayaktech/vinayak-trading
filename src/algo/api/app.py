@@ -42,6 +42,7 @@ from algo.api import (
     study_routes,
     tickets_routes,
     users_routes,
+    zone_routes,
 )
 from algo.api.security import PortalSettings, WConn, guard
 from algo.core.clock import Clock, SystemClock
@@ -127,6 +128,7 @@ def create_app(
     app.include_router(users_routes.router)
     app.include_router(kite_routes.router)
     app.include_router(market_routes.router)
+    app.include_router(zone_routes.router)
     app.include_router(screener_routes.router)
     app.include_router(live_routes.router)
     app.include_router(holdout_routes.router)

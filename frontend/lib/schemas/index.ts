@@ -680,6 +680,29 @@ export const paperOrderSchema = z.object({
   tick_size: decimal.nullable(), // the exchange price step of an open order's stock (a limit is rounded to it by the server)
   upcoming: z.array(actionSchema), // announced actions within days of an order that is still open
 });
+export const marketZoneSchema = z.object({
+  latest: z
+    .object({
+      day: z.string(),
+      age_days: z.number(),
+      fear_greed: z.number().nullable(),
+      label: z.string().nullable(),
+      trend: z.string().nullable(), // BULL | BEAR | SIDEWAYS | UNKNOWN
+      volatility: z.string().nullable(), // CALM | NORMAL | STRESSED | UNKNOWN
+      universe: z.number(),
+      advancers: z.number(),
+      decliners: z.number(),
+      unchanged: z.number(),
+      pct_above_50: z.number().nullable(),
+      pct_above_200: z.number().nullable(),
+      highs: z.number(),
+      lows: z.number(),
+    })
+    .nullable(),
+  drivers: z.array(z.object({ key: z.string(), name: z.string(), score: z.number() })), // greediest first
+  history: z.array(z.object({ day: z.string(), fear_greed: z.number().nullable(), trend: z.string().nullable() })), // oldest first
+});
+export type MarketZone = z.infer<typeof marketZoneSchema>;
 export const liveStatusSchema = z.object({
   account: z.boolean(),
   open: z.boolean(), // the gate is open: live can run

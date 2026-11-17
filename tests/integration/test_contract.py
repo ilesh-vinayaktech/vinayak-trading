@@ -708,6 +708,22 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     shots["paper_orders"] = c.get("/api/paper/orders")
     shots["paper_runs"] = c.get("/api/paper/runs")
     shots["paper_live_status"] = c.get("/api/paper/live-status")
+    for k, (fg, label, trend) in enumerate(
+        [(41.0, "Fear", "SIDEWAYS"), (52.5, "Neutral", "SIDEWAYS"), (63.5, "Greed", "BULL")]
+    ):
+        conn.execute(
+            "INSERT INTO market_regime_daily (day, universe, advancers, decliners, unchanged, n50, above50, n200, above200, highs, lows, fear_greed, label, trend, volatility, components, computed_at)"
+            " VALUES (%s,1600,900,600,100,1500,600,1400,800,45,12,%s,%s,%s,'NORMAL',%s,%s)",
+            (
+                datetime(2026, 11, 9 + k, tzinfo=UTC).date(),
+                fg,
+                label,
+                trend,
+                '{"momentum": 80.5, "breadth": 20.0, "volatility": 55.0, "stocks_vs_bonds": null}',
+                datetime(2026, 11, 12, 4, tzinfo=UTC),
+            ),
+        )
+    shots["market_zone"] = c.get("/api/market/zone")
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})
     c.post("/api/risk/switch", json={"action": "pause", "reason": "looking at the data"})
