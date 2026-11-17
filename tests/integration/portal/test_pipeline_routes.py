@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from algo.api import pipeline_routes as p
+from algo.backtest.validation import registry
 from algo.core.clock import SimClock
 from algo.data.store.migrate import migrate
 from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
@@ -110,3 +111,38 @@ def test_the_pipeline_is_open_to_researchers_and_shows_the_outer_window_to_the_o
     boss = sign_in(app, "boss@example.com")
     enrol_second_factor(boss, clock)
     assert boss.get("/api/pipeline").json()["outer_visible"] is True
+
+
+@pytest.mark.integration
+def test_unrun_studies_are_listed_by_family_until_they_have_a_run(env):
+    conn, app, clock = env
+    uid = add_user(conn, clock, "TRADER", "t@example.com")
+    c = sign_in(app, "t@example.com")
+    assert c.get("/api/pipeline/unrun").json() == {"families": []}
+    fid = registry.create_family(
+        conn,
+        name="Tech",
+        hypothesis="technical rules that work",
+        justification="a different idea from the others",
+        created_by=uid,
+        now=START,
+    )
+
+    def mk(name):
+        return registry.register(
+            conn, name=name, strategy_id="screener", hypothesis="h", style="long_only", param_ranges={},
+            holdout=(START.date(), START.date()), now=START, study={"combinations": []}, family_id=fid,
+        )  # fmt: skip
+
+    a, b = mk("A study"), mk("B study")
+    got = c.get("/api/pipeline/unrun").json()["families"]
+    assert [(f["name"], [s["name"] for s in f["studies"]]) for f in got] == [
+        ("Tech", ["A study", "B study"])
+    ]
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, status, requested_by, created_at) VALUES (%s,'QUEUED',%s,%s)",
+        (a, uid, START),
+    )
+    assert [
+        s["experiment_id"] for s in c.get("/api/pipeline/unrun").json()["families"][0]["studies"]
+    ] == [b]

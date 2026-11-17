@@ -126,21 +126,35 @@ def _inner(conn: Any, exp: int) -> dict[str, Any] | None:
 @router.get("")
 def overview(who: CurrentUser, conn: WConn) -> dict[str, Any]:
     owner = "holdout:read" in who.permissions
-    outer = {r["name"]: r for r in holdout_routes._results(conn)} if owner else {}
+    outer = {r["candidate"]: r for r in holdout_routes._results(conn)} if owner else {}
     paper = {d["strategy_id"]: d["state"] for d in definitions.candidates(conn)}
     rows = []
-    for exp, name in conn.execute(
-        "SELECT DISTINCT ON (sid) experiment_id, sid FROM (SELECT experiment_id, study->'spec'->'definition'->>'strategy_id' AS sid FROM experiment WHERE strategy_id='dsl') x"
-        " WHERE sid IS NOT NULL ORDER BY sid, experiment_id DESC"
+    for exp, name, family in conn.execute(
+        "SELECT DISTINCT ON (key) experiment_id, key, family FROM (SELECT e.experiment_id, coalesce(e.study->'spec'->'definition'->>'strategy_id', e.name) AS key, f.name AS family"
+        " FROM experiment e LEFT JOIN research_family f USING (family_id) WHERE e.study IS NOT NULL) x ORDER BY key, experiment_id DESC"
     ).fetchall():
         run = conn.execute(
             "SELECT kind, status FROM study_run WHERE experiment_id=%s ORDER BY run_id DESC LIMIT 1",
             (exp,),
         ).fetchone()
         running = f"{run[0]} {run[1].lower()}" if run and run[1] in ("QUEUED", "RUNNING") else None
-        dev, inner, out = _dev(conn, exp), _inner(conn, exp), outer.get(name)
+        dev, inner, out = _dev(conn, exp), _inner(conn, exp), outer.get(f"study-{exp}")
         rows.append({
-            "experiment_id": exp, "name": name, "development": dev, "inner": inner, "outer": out, "paper": paper.get(name),
+            "experiment_id": exp, "name": name, "family": family, "development": dev, "inner": inner, "outer": out, "paper": paper.get(name),
             **summarise(dev, inner, out, paper.get(name), running),
         })  # fmt: skip
     return {"rows": rows, "outer_visible": owner, "code_dirty": git_state()[1]}
+
+
+@router.get("/unrun")
+def unrun(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Registered studies that have never been run, grouped by research family: what the Run popup offers."""
+    fams: dict[int, dict[str, Any]] = {}
+    for exp, name, strategy, fid, fname in conn.execute(
+        "SELECT e.experiment_id, e.name, e.strategy_id, f.family_id, f.name FROM experiment e JOIN research_family f USING (family_id)"
+        " WHERE e.study IS NOT NULL AND NOT EXISTS (SELECT 1 FROM study_run r WHERE r.experiment_id = e.experiment_id) ORDER BY f.family_id, e.experiment_id"
+    ).fetchall():
+        fams.setdefault(fid, {"family_id": fid, "name": fname, "studies": []})["studies"].append(
+            {"experiment_id": exp, "name": name, "strategy_id": strategy}
+        )
+    return {"families": list(fams.values())}

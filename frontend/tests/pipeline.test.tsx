@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
 
 const me = { user: { id: "u1", email: "boss@example.com", name: "Boss", role: "ADMIN", permissions: ["research:read", "holdout:read"], mfa_enabled: true, enrolment_required: false, must_change_password: false } };
 const fig = (over: Record<string, unknown> = {}) => ({ passed: true, failed: [], cagr: 0.33, total_return: 4.5, sharpe: 1.23, max_drawdown: -0.28, benchmark_sharpe: 0.9, window: null, oos_sharpe: 1.4, ...over });
-const row = (over: Record<string, unknown>) => ({ experiment_id: 1, name: "X", stage: "development", outcome: "stopped", why: "Failed development: oos_sharpe.", paper: null, development: fig({ passed: false, failed: ["oos_sharpe"] }), inner: null, outer: null, ...over });
+const row = (over: Record<string, unknown>) => ({ experiment_id: 1, name: "X", family: null, stage: "development", outcome: "stopped", why: "Failed development: oos_sharpe.", paper: null, development: fig({ passed: false, failed: ["oos_sharpe"] }), inner: null, outer: null, ...over });
 const rows = [
   row({ experiment_id: 1, name: "FAILED_DEV" }),
   row({ experiment_id: 2, name: "READY_ONE", stage: "paper", outcome: "ready", why: "Passed development and both holdouts. Ready for paper trading.", paper: "ready", development: fig(), inner: fig({ cagr: 0.48 }), outer: { overall: "PASS", checks: [] } }),
@@ -31,6 +31,9 @@ function backend(outer_visible: boolean, dirty = false, perms = ["research:read"
     "GET /api/pipeline": { rows, outer_visible, code_dirty: dirty },
     "GET /api/intel/definitions": { definitions: [DEF("NEW_ONE", "none"), DEF("NEW_TWO", "none"), DEF("OLD_ONE", "judged")] },
     "GET /api/studies/options": OPTIONS,
+    "GET /api/pipeline/unrun": { families: [{ family_id: 4, name: "Technical Screener 2", studies: [{ experiment_id: 20, name: "Golden Cross", strategy_id: "screener" }, { experiment_id: 21, name: "Volume Breakout", strategy_id: "screener" }] }] },
+    "POST /api/studies/20/runs": { run_id: 1 },
+    "POST /api/studies/21/runs": { run_id: 2 },
     "POST /api/strategies/definitions/NEW_TWO/1/study": { experiment_id: 30, run_id: 40 },
   };
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -79,21 +82,34 @@ describe("Strategy pipeline", () => {
     expect(screen.queryByText("Outer holdout 2025-2026")).not.toBeInTheDocument();
   });
 
-  it("has one place to run: a popup with the strategies not run yet, a family, and a Run button", async () => {
+  it("has one place to run: a popup listing families with studies not run yet, to run a whole family", async () => {
     backend(true, true);
     render(<Providers><PipelinePage /></Providers>);
     await screen.findByTestId("funnel");
     fireEvent.click(await screen.findByRole("button", { name: "Run strategies" }));
-    expect(await screen.findByText("NEW_TWO summary")).toBeInTheDocument();
-    expect(screen.queryByText("OLD_ONE summary")).not.toBeInTheDocument(); // already run
+    expect(await screen.findByText("Technical Screener 2")).toBeInTheDocument();
+    expect(screen.getByText("Golden Cross")).toBeInTheDocument();
     expect(screen.getByText(/uncommitted code/)).toBeInTheDocument();
     const buttons = screen.getAllByRole("button", { name: /^Run\s+strategies$/ }); // the page's, then the popup's
     expect(buttons[buttons.length - 1]).toBeDisabled(); // nothing chosen yet
-    fireEvent.change(await screen.findByLabelText("Research family"), { target: { value: "5" } });
+    fireEvent.click(screen.getByLabelText(/Technical Screener 2/)); // the whole family
+    fireEvent.click(screen.getByRole("button", { name: "Run 2 strategies" }));
+    await waitFor(() => expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/api/studies/20/runs", "/api/studies/21/runs"]));
+    expect(calls.filter((c) => c.method === "POST").every((c) => (c.body as { chain: boolean }).chain)).toBe(true);
+  });
+
+  it("can run a single study of a family, and definitions with no study in a chosen family", async () => {
+    backend(true);
+    render(<Providers><PipelinePage /></Providers>);
+    fireEvent.click(await screen.findByRole("button", { name: "Run strategies" }));
+    fireEvent.click(await screen.findByLabelText(/Volume Breakout/));
+    fireEvent.change(await screen.findByLabelText("Research family for these"), { target: { value: "5" } });
     fireEvent.click(screen.getByLabelText(/NEW_TWO/));
-    fireEvent.click(screen.getByRole("button", { name: "Run 1 strategy" }));
-    await waitFor(() => expect(calls.find((c) => c.method === "POST")?.body).toEqual({ family_id: 5, chain: true }));
-    expect(calls.filter((c) => c.method === "POST")).toHaveLength(1); // only the one picked
+    fireEvent.click(screen.getByRole("button", { name: "Run 2 strategies" }));
+    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(2));
+    const posts = calls.filter((c) => c.method === "POST");
+    expect(posts[0]).toMatchObject({ path: "/api/studies/21/runs", body: { chain: true } });
+    expect(posts[1]).toMatchObject({ path: "/api/strategies/definitions/NEW_TWO/1/study", body: { family_id: 5, chain: true } });
   });
 
   it("offers no Run button to someone who may not run strategies", async () => {

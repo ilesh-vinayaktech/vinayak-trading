@@ -58,7 +58,13 @@ export default function PipelinePage() {
     ["Ready for paper", rows.filter((r) => r.outcome === "ready").length],
   ];
   const columns: Column<Row>[] = [
-    { key: "name", header: "Strategy", cell: (r) => <Link href={`/research/studies/${r.experiment_id}`} className="font-medium text-brand hover:underline">{r.name}</Link> },
+    { key: "name", header: "Strategy", cell: (r) => (
+        <div>
+          <Link href={`/research/studies/${r.experiment_id}`} className="font-medium text-brand hover:underline">{r.name}</Link>
+          {r.family ? <div className="text-xs text-ink-soft">{r.family}</div> : null}
+        </div>
+      ),
+    },
     {
       key: "now",
       header: "Where it stands",

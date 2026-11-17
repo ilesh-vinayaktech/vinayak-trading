@@ -65,7 +65,9 @@ def _results(conn: Any) -> list[dict[str, Any]]:
             if got <= {"PASS", "NOT_APPLICABLE"} and "PASS" in got
             else "INCOMPLETE"
         )
-        rows.append({"name": names.get(cand, cand), "overall": overall, "checks": checks})
+        rows.append(
+            {"candidate": cand, "name": names.get(cand, cand), "overall": overall, "checks": checks}
+        )
     return sorted(rows, key=lambda r: r["name"])
 
 

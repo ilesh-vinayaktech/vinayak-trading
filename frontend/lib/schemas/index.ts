@@ -1226,6 +1226,7 @@ export const pipelineSchema = z.object({
     z.object({
       experiment_id: z.number(),
       name: z.string(),
+      family: z.string().nullable(),
       stage: z.enum(["development", "inner", "outer", "paper"]),
       outcome: z.enum(["ready", "stopped", "waiting", "running"]),
       why: z.string(),
@@ -1237,3 +1238,4 @@ export const pipelineSchema = z.object({
   ),
 });
 export type Pipeline = z.infer<typeof pipelineSchema>;
+export const pipelineUnrunSchema = z.object({ families: z.array(z.object({ family_id: z.number(), name: z.string(), studies: z.array(z.object({ experiment_id: z.number(), name: z.string(), strategy_id: z.string() })) })) });
