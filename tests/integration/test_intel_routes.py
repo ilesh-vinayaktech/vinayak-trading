@@ -567,6 +567,34 @@ def test_a_running_study_of_a_generated_definition_shows_with_the_other_jobs(cli
     assert v["label"] == "Validation gates: my study" and (t["status"], t["done"]) == ("DONE", 9)
 
 
+def test_a_screener_studys_runs_and_an_inner_holdout_show_with_the_other_jobs_too(client):
+    from datetime import date
+
+    from algo.backtest.validation import registry as vreg
+
+    c, conn = client
+    eid = vreg.register(
+        conn, name="Golden cross", strategy_id="screener", hypothesis="h" * 25, style="long_only",
+        param_ranges={"max_positions": [10, 20]}, holdout=(date(2023, 10, 1), date(2024, 12, 31)), now=NOW,
+        study={"spec": {}}, owner_user_id=None, family_id=1,
+    )  # fmt: skip
+    for kind, status in (("trials", "RUNNING"), ("holdout", "QUEUED")):
+        conn.execute(
+            "INSERT INTO study_run (experiment_id, kind, status, total, done, created_at) VALUES (%s,%s,%s,1,0,%s)",
+            (eid, kind, status, NOW),
+        )
+        conn.commit()
+        conn.execute(
+            "UPDATE study_run SET status='DONE' WHERE kind='trials'"
+        )  # the one-active-run rule: only one may be live at once
+        conn.commit()
+    jobs = {j["job"]: j["label"] for j in c.get("/api/intel/progress").json()["jobs"]}
+    assert (
+        jobs["study_trials"] == "Experiment trials: Golden cross"
+    )  # a screener study is not hidden
+    assert jobs["study_holdout"] == "Inner holdout: Golden cross"
+
+
 def test_running_jobs_come_first_whatever_kind_they_are_and_then_the_newest(client):
     from datetime import date, timedelta
 
