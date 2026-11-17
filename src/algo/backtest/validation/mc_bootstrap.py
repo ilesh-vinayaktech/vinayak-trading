@@ -17,6 +17,7 @@ from numpy.typing import NDArray
 BLOCK_DRAWS = 10_000
 RESTART = 1 / 21  # mean block of 21 sessions: the platform's BOOTSTRAP_MEAN_BLOCK
 TRADING_DAYS = 252
+ROWS = 256  # rows processed at a time inside a block; any value gives the same result
 
 
 def new_seed() -> int:
@@ -40,17 +41,24 @@ def indices(starts: NDArray[Any], u: NDArray[Any], jumps: NDArray[Any], n: int) 
     return out
 
 
-def block_indices(
+def block_draws(
     seed: int, block: int, n: int, d: int = BLOCK_DRAWS, prefix: tuple[int, ...] = ()
-) -> NDArray[Any]:
-    """The index matrix of one draw block. The three draws are made in this order, with these dtypes, every time."""
+) -> tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
+    """The three draws of one block (starts, u, jumps), in this order and with these dtypes, every time: the stream is fixed whatever is done with it."""
     rng = np.random.Generator(
         np.random.PCG64(np.random.SeedSequence(entropy=seed, spawn_key=(*prefix, block)))
     )
     starts = rng.integers(0, n, size=d, dtype=np.int32)
     u = rng.random(size=(d, n - 1))
     jumps = rng.integers(0, n, size=(d, n - 1), dtype=np.int32)
-    return indices(starts, u, jumps, n)
+    return starts, u, jumps
+
+
+def block_indices(
+    seed: int, block: int, n: int, d: int = BLOCK_DRAWS, prefix: tuple[int, ...] = ()
+) -> NDArray[Any]:
+    """The whole index matrix of one draw block."""
+    return indices(*block_draws(seed, block, n, d, prefix), n)
 
 
 def sharpe_rows(y: NDArray[Any]) -> NDArray[Any]:
@@ -84,7 +92,7 @@ def test(
     returns: Sequence[float],
     seed: int,
     draws: int = 1_000_000,
-    blocks_at_once: int = 1,
+    rows: int = ROWS,
     prefix: tuple[int, ...] = (),
 ) -> Result:
     """H0: true annualised Sharpe <= 0. Statistic: the observed Sharpe of the raw returns; null series: the returns with their sample mean removed."""
@@ -101,13 +109,12 @@ def test(
         raise ValueError("returns have no variation")
     observed = float(r.mean() / sd * math.sqrt(TRADING_DAYS))
     y = r - r.mean()
-    k, blocks = 0, draws // BLOCK_DRAWS
-    for first in range(0, blocks, blocks_at_once):
-        stats = np.concatenate(
-            [
-                sharpe_rows(y[block_indices(seed, b, n, prefix=prefix)])
-                for b in range(first, min(first + blocks_at_once, blocks))
-            ]
-        )
-        k += int((stats >= observed).sum())
+    k = 0
+    for b in range(draws // BLOCK_DRAWS):
+        starts, u, jumps = block_draws(seed, b, n, prefix=prefix)
+        for lo in range(
+            0, BLOCK_DRAWS, rows
+        ):  # slices that fit the cache: the same indices and statistics, far less memory traffic
+            idx = indices(starts[lo : lo + rows], u[lo : lo + rows], jumps[lo : lo + rows], n)
+            k += int((sharpe_rows(y[idx]) >= observed).sum())
     return Result(observed, k, draws)

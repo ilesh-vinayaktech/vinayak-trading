@@ -66,7 +66,7 @@ def test_statistic_matches_reference_where_defined():
 
 
 def test_chunking_and_seed_reproducibility():
-    ks = {mc.test(RET, seed=99, draws=40_000, blocks_at_once=m).k for m in (1, 2, 4)}
+    ks = {mc.test(RET, seed=99, draws=30_000, rows=m).k for m in (1, 77, 256, 10_000)}
     assert len(ks) == 1
     assert mc.test(RET, seed=99, draws=20_000).k == mc.test(RET, seed=99, draws=20_000).k
     assert mc.block_indices(100, 0, 8).tolist() != mc.block_indices(99, 0, 8).tolist()
