@@ -2,7 +2,7 @@
 """Did the swing score predict anything? (TODO 6.2a check; the full learning loop is 6.5.)
 usage: score_edge.py [--db URL]   (needs stock_score_history: scripts/build_score_history.py --all)
 For every stored day: each stock's return over the next 20 sessions (windows containing a split or bonus are dropped, returns clipped to -90%..+300%), minus the
-median stock that day. Prints, for the score and each component: the average excess return of each fifth (bottom to top), top minus bottom, the rank
+average stock that day. Prints, for the score and each component: the average excess return of each fifth (bottom to top), top minus bottom, the rank
 correlation with the next return (IC, with a t-stat that is OVERSTATED because weekly 4-week windows overlap) and the share of weeks it was positive; then the
 score's fifths by year. Before costs, equal weight over the scored stocks (liquid, 5 crore a day or more). Read-only."""
 
@@ -51,7 +51,9 @@ bad = [
 ]
 m = m[~np.array(bad)]
 m["fwd"] = m["fwd"].clip(-0.9, 3)  # tame data errors
-m["mkt"] = m.groupby("day")["fwd"].transform("median")
+m["mkt"] = m.groupby("day")["fwd"].transform(
+    "mean"
+)  # the AVERAGE stock: returns are right-skewed, so the median sits below the mean and would flatter every bucket
 m["ex"] = m["fwd"] - m["mkt"]
 print("rows", len(m), "days", m.day.nunique())
 for col in ["score", "trend", "participation", "smart_money", "quality"]:

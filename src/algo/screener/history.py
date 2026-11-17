@@ -56,17 +56,33 @@ def week_ends(conn: psycopg.Connection, since: date, until: date) -> list[date]:
 # --- prices ----------------------------------------------------------------------------------------------------------------
 
 
-def _adx(rows: pd.DataFrame) -> pd.Series:
-    """The live ADX (the indicator catalog) over one stock's run of bars since its last split."""
-    if len(rows) <= 28:
+def _indicator(rows: pd.DataFrame, spec: str, key: str, min_bars: int) -> pd.Series:
+    """One output of the live indicator catalog over one stock's run of bars since its last split (NaN where the catalog has no value)."""
+    if len(rows) <= min_bars:
         return pd.Series(np.nan, index=rows.index)
     cols = [[Decimal(str(x)) for x in rows[c]] for c in ("open", "high", "low", "close", "volume")]
-    series = compute("adx:14", Bars(*cols))[2]["adx"]
+    series = compute(spec, Bars(*cols))[2][key]
     return pd.Series([np.nan if v is None else float(v) for v in series], index=rows.index)
 
 
-def technical_frame(bars: pd.DataFrame, splits: pd.DataFrame, days: Sequence[date]) -> pd.DataFrame:
-    """The price and volume fields on each of `days`, for every stock that has a bar that day.
+def _adx(rows: pd.DataFrame) -> pd.Series:
+    return _indicator(rows, "adx:14", "adx", 28)
+
+
+EXTRA = (
+    "chg_1d",
+    "price_vs_sma200",
+    "sma50_vs_sma200",
+    "pct_from_52w_low",
+    "rsi_14",
+    "macd_hist",
+)  # what the technical presets read beyond the score's inputs
+
+
+def technical_frame(
+    bars: pd.DataFrame, splits: pd.DataFrame, days: Sequence[date], extra: bool = False
+) -> pd.DataFrame:
+    """The price and volume fields on each of `days`, for every stock that has a bar that day; with `extra`, also the EXTRA fields (slower: RSI and MACD).
     bars: instrument_id, d, open, high, low, close, volume, delivery_qty. splits: instrument_id, ex_date."""
     b = bars.sort_values(["instrument_id", "d"]).reset_index(drop=True)
     seg = np.zeros(
@@ -91,6 +107,21 @@ def technical_frame(bars: pd.DataFrame, splits: pd.DataFrame, days: Sequence[dat
     prior = g["volume"].transform(lambda s: s.shift(1).rolling(20).mean())
     b["volume_ratio"] = (b["volume"] / prior).where(prior > 0)
     b["adx_14"] = g["close"].transform(lambda s: _adx(b.loc[s.index]))
+    if extra:
+        sma50 = g["close"].transform(lambda s: s.rolling(50).mean())
+        sma200 = g["close"].transform(lambda s: s.rolling(200).mean())
+        b["chg_1d"] = (b["close"] / g["close"].shift(1) - 1) * 100
+        b["price_vs_sma200"] = (b["close"] / sma200 - 1) * 100
+        b["sma50_vs_sma200"] = (sma50 / sma200 - 1) * 100
+        b["pct_from_52w_low"] = (
+            b["close"] / g["close"].transform(lambda s: s.rolling(252, min_periods=126).min()) - 1
+        ) * 100
+        b["rsi_14"] = g["close"].transform(
+            lambda s: _indicator(b.loc[s.index], "rsi:14", "value", 14)
+        )
+        b["macd_hist"] = g["close"].transform(
+            lambda s: _indicator(b.loc[s.index], "macd", "hist", 35)
+        )
     by_stock = b[
         "instrument_id"
     ]  # liquidity and delivery are not cut at a split: a share count does not change what traded
@@ -104,9 +135,14 @@ def technical_frame(bars: pd.DataFrame, splits: pd.DataFrame, days: Sequence[dat
     b["delivery_pct"] = pct
     b["delivery_vs_avg"] = (pct / avg).where(avg > 0)
     keep = b[b["d"].isin(set(days))]
-    return keep[
-        ["instrument_id", "d", "turnover_cr", *[f for f in FIELDS if f in keep.columns]]
-    ].reset_index(drop=True)
+    cols = [
+        "instrument_id",
+        "d",
+        "turnover_cr",
+        *[f for f in FIELDS if f in keep.columns],
+        *([e for e in EXTRA if e in keep.columns] if extra else []),
+    ]
+    return keep[cols].reset_index(drop=True)
 
 
 def load_bars(conn: psycopg.Connection, first: date, last: date) -> pd.DataFrame:
