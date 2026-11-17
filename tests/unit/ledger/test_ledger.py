@@ -113,6 +113,17 @@ def test_a_source_event_can_be_booked_only_once():
     assert lg.qty(A) == 1 and len(lg.entries) == 3  # nothing was half-posted
 
 
+def test_a_buy_the_broker_really_made_books_past_the_cash_and_still_reconciles():
+    lg = ledger(1000)
+    lg.buy(
+        DAY, A, D(11), D(100), D(1), "fill:1", overdraft=True
+    )  # 1101 against 1000: a fact, not a request
+    assert lg.cash == D(-101) and lg.qty(A) == 11
+    assert lg.reconcile({A: D(100)}) == []
+    with pytest.raises(InsufficientCash):  # the default stays strict
+        ledger(1000).buy(DAY, A, D(11), D(100), D(1), "fill:2")
+
+
 def test_cash_and_position_limits():
     lg = ledger(1000)
     with pytest.raises(InsufficientCash):

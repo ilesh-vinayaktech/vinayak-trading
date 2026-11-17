@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
@@ -343,12 +343,18 @@ def move_stage(
 
 
 @router.post("/{config_id}/use")
-def use(config_id: UUID, request: Request, who: CurrentUser, conn: WConn) -> dict[str, bool]:
+def use(
+    config_id: UUID,
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    mode: Literal["paper", "live"] = "paper",
+) -> dict[str, bool]:
     try:
-        configs.use(conn, who.session.user_id, config_id)
+        configs.use(conn, who.session.user_id, config_id, mode.upper())
     except configs.ConfigError as e:
         raise _fail(e) from e
-    _change(request, who, conn, "used", config_id, {})
+    _change(request, who, conn, "used", config_id, {"mode": mode})
     return {"ok": True}
 
 

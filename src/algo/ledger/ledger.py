@@ -168,15 +168,18 @@ class Ledger:
         ref: str,
         *,
         charges: Sequence[tuple[str, Decimal]] = (),
+        overdraft: bool = False,
     ) -> None:
         """`fee` is a single commission; `charges` are itemised (type, amount) lines, each booked as
-        its own fee entry with its own matching cash entry."""
+        its own fee entry with its own matching cash entry. `overdraft` books a buy the broker
+        REALLY made even when it costs more than the cash this book holds (a fact, not a
+        request); a simulated buy never sets it."""
         if qty <= 0 or price <= 0 or fee < 0:
             raise ValueError("buy needs qty > 0, price > 0, fee >= 0")
         self._guard_trade(day, iid)
         extra = self._check_charges(charges)
         value = qty * price
-        if value + fee + extra > self._cash + TOL:
+        if not overdraft and value + fee + extra > self._cash + TOL:
             raise InsufficientCash(f"need {value + fee + extra}, have {self._cash}")
         self._book(ref)
         self._add(day, "position", "BUY", iid, qty, value, ref)

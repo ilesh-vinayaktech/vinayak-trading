@@ -75,7 +75,7 @@ def _rows(conn: psycopg.Connection) -> list[_Row]:
         for r in conn.execute(
             "SELECT o.order_id, o.user_id, a.strategy_id, o.instrument_id, o.side, o.qty, o.status, o.fill_price, o.failure, o.limit_price"
             " FROM paper_order o JOIN paper_account a USING (user_id)"
-            " WHERE o.decided_at IS NOT NULL AND o.status <> 'REJECTED' ORDER BY o.created_at, o.order_id"
+            " WHERE o.decided_at IS NOT NULL AND o.status <> 'REJECTED' AND a.mode='PAPER' ORDER BY o.created_at, o.order_id"
         )
     ]
 
@@ -95,7 +95,7 @@ class PaperBroker:
             raise BrokerRejected("this order is not pending")
         order_id, user_id = self._expected.pop(client_order_id)
         sent = self.conn.execute(
-            "UPDATE paper_order SET status='APPROVED', decided_at=%s, decided_by=%s WHERE order_id=%s AND status='PENDING'",
+            "UPDATE paper_order SET status='APPROVED', decided_at=%s, decided_by=(SELECT owner_user_id FROM paper_account WHERE user_id=%s) WHERE order_id=%s AND status='PENDING'",
             (self.now, user_id, order_id),
         ).rowcount
         if not sent:
@@ -154,7 +154,9 @@ def position_mismatches(conn: psycopg.Connection) -> list[Mismatch]:
     """Per account, what its FILLED orders add up to against what the paper book recorded as bought and sold. Two records of the same
     fills that only agree when every fill was booked exactly once (splits change the ledger's holdings, so those are not compared)."""
     out: list[Mismatch] = []
-    for (user_id,) in conn.execute("SELECT user_id FROM paper_account ORDER BY user_id").fetchall():
+    for (user_id,) in conn.execute(
+        "SELECT user_id FROM paper_account WHERE mode='PAPER' ORDER BY user_id"
+    ).fetchall():
         orders = {
             int(i): int(q)
             for i, q in conn.execute(
@@ -216,7 +218,7 @@ def flatten(conn: psycopg.Connection, now: datetime) -> FlattenResult:
     sent: list[UUID] = []
     refused: list[tuple[UUID, int, str]] = []
     for user_id, strategy in conn.execute(
-        "SELECT user_id, strategy_id FROM paper_account ORDER BY user_id"
+        "SELECT user_id, strategy_id FROM paper_account WHERE mode='PAPER' ORDER BY user_id"
     ).fetchall():
         if switch.mode(strategy) is not Mode.FLATTEN:
             continue

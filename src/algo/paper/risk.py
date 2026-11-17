@@ -77,14 +77,15 @@ def inputs(
     values = {i: ledger.cost_basis(i) for i in held}
     today = now.astimezone(IST).date()
     day_row = conn.execute(
-        "SELECT count(*), coalesce(sum(qty * ref_price), 0) FROM paper_order WHERE user_id=%s AND status IN ('APPROVED', 'FILLED')"
+        "SELECT count(*), coalesce(sum(qty * ref_price), 0) FROM paper_order WHERE user_id=%s AND status IN ('APPROVED', 'FILLED') AND order_id <> %s"
         " AND (decided_at AT TIME ZONE 'Asia/Kolkata')::date=%s",
-        (user_id, today),
+        (user_id, order_id, today),
     ).fetchone()
     assert day_row is not None
     count, turnover = day_row
     open_row = conn.execute(
-        "SELECT count(*) FROM paper_order WHERE user_id=%s AND status='APPROVED'", (user_id,)
+        "SELECT count(*) FROM paper_order WHERE user_id=%s AND status='APPROVED' AND order_id <> %s",
+        (user_id, order_id),
     ).fetchone()
     assert open_row is not None
     request = OrderRequest(

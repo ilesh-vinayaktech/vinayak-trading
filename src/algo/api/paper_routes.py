@@ -7,6 +7,7 @@ formatted by the browser. UNVALIDATED research: nothing here can place a real or
 
 from __future__ import annotations
 
+import os
 from decimal import Decimal
 from typing import Any, Literal, get_args
 from uuid import UUID
@@ -16,11 +17,14 @@ from pydantic import BaseModel, Field, ValidationError
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data.corporate_actions import upcoming_within
+from algo.execution import live_gate, regulatory
+from algo.live import heartbeat
 from algo.live.market_calendar import IST
 from algo.paper import book, definitions, orders
 from algo.paper.universe import UNIVERSES
-from algo.portal import audit
+from algo.portal import audit, kite_vault
 from algo.strategies.trend_pullback import TrendPullbackParams
+from algo.strategy import stage
 
 router = APIRouter(prefix="/api/paper", tags=["paper"])
 TIMEFRAMES = (("1D", "Daily", True), ("1h", "1 hour", False), ("15m", "15 minutes", False))
@@ -47,6 +51,9 @@ class CreateBody(BaseModel):
     max_instruments: int | None = Field(default=None, ge=5, le=500)
     timeframe: str = Field(default="1D", max_length=5)
     params: dict[str, int] = Field(default_factory=dict)
+    mode: Venue = (
+        "paper"  # live: the capital is the money the platform may use, never the whole Kite account
+    )
 
 
 class SettingsBody(BaseModel):
@@ -95,16 +102,24 @@ def _options() -> dict[str, Any]:
     }
 
 
-def _own(conn: Any, who: CurrentUser) -> dict[str, Any]:
-    acct = book.get_account(conn, who.session.user_id)
+Venue = Literal["paper", "live"]
+
+
+def _key(who: CurrentUser, mode: Venue = "paper") -> UUID:
+    """The account key of the caller's paper or live account (a person can run one of each)."""
+    return book.account_key(who.session.user_id, mode.upper())
+
+
+def _own(conn: Any, who: CurrentUser, mode: Venue = "paper") -> dict[str, Any]:
+    acct = book.get_account(conn, _key(who, mode))
     if acct is None:
-        raise HTTPException(404, "no paper account yet")
+        raise HTTPException(404, f"no {mode} account yet")
     return acct
 
 
 @router.get("/account")
-def account(who: CurrentUser, conn: WConn) -> dict[str, Any]:
-    acct = book.get_account(conn, who.session.user_id)
+def account(who: CurrentUser, conn: WConn, mode: Venue = "paper") -> dict[str, Any]:
+    acct = book.get_account(conn, _key(who, mode))
     shown = None
     if acct is not None:
         shown = {
@@ -126,6 +141,7 @@ def create_account(
         book.create_account(
             conn,
             who.session.user_id,
+            mode=body.mode.upper(),
             strategy_id="trend_pullback",
             params=params,
             initial_cash=body.initial_cash,
@@ -143,8 +159,9 @@ def create_account(
         action="paper.account_created",
         actor_user_id=who.session.user_id,
         target_type="paper_account",
-        target_id=str(who.session.user_id),
+        target_id=str(_key(who, body.mode)),
         detail={
+            "mode": body.mode,
             "universe": body.universe,
             "max_instruments": body.max_instruments,
             "timeframe": body.timeframe,
@@ -152,6 +169,31 @@ def create_account(
         },
     )
     return {"ok": True}
+
+
+@router.get("/live-status")
+def live_status(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Whether live trading can run for this person right now, and why not when it cannot: the same gate the live process refuses to start without
+    (ALGO_LIVE, the strategy in the LIVE stage, a valid Kite session, regulatory rules recorded and fresh) and whether that process is alive."""
+    st, now = _st(request), _st(request).clock.now()
+    acct = book.get_account(conn, _key(who, "live"))
+    config_id = None if acct is None else acct["config_id"]
+    strategy_stage = "RESEARCH" if config_id is None else stage.current(conn, config_id)
+    session = kite_vault.user_credentials(conn, st.ring, user_id=who.session.user_id, now=now)
+    problems = live_gate.problems(
+        os.environ, strategy_stage, session is not None, regulatory.check(conn, now.date())
+    )
+    if acct is not None and config_id is None:
+        problems.append("the live account has no strategy yet")
+    beat = heartbeat.load(conn).get("live")
+    silent = None if beat is None else int((now - beat.beat_at).total_seconds())
+    return {
+        "account": acct is not None,
+        "open": acct is not None and not problems,
+        "problems": problems,
+        "stage": strategy_stage,
+        "process": None if beat is None else {"state": beat.state, "silent_s": silent, "detail": beat.detail},
+    }  # fmt: skip
 
 
 @router.get("/definitions")
@@ -162,11 +204,11 @@ def definition_candidates(who: CurrentUser, conn: WConn) -> dict[str, Any]:
 
 @router.post("/definitions/{experiment_id}/start")
 def start_definition(
-    experiment_id: int, request: Request, who: CurrentUser, conn: WConn
+    experiment_id: int, request: Request, who: CurrentUser, conn: WConn, mode: Venue = "paper"
 ) -> dict[str, bool]:
-    _own(conn, who)
+    _own(conn, who, mode)
     try:
-        name = definitions.start(conn, who.session.user_id, experiment_id)
+        name = definitions.start(conn, _key(who, mode), experiment_id)
     except book.PaperError as e:
         raise HTTPException(400, str(e)) from e
     audit.record(
@@ -175,7 +217,7 @@ def start_definition(
         action="paper.definition_started",
         actor_user_id=who.session.user_id,
         target_type="paper_account",
-        target_id=str(who.session.user_id),
+        target_id=str(_key(who, mode)),
         detail={"experiment_id": experiment_id, "name": name},
     )
     return {"ok": True}
@@ -183,9 +225,9 @@ def start_definition(
 
 @router.post("/account/settings")
 def change_settings(
-    body: SettingsBody, request: Request, who: CurrentUser, conn: WConn
+    body: SettingsBody, request: Request, who: CurrentUser, conn: WConn, mode: Venue = "paper"
 ) -> dict[str, bool]:
-    acct = _own(conn, who)
+    acct = _own(conn, who, mode)
     changes: dict[str, Any] = {}
     if body.universe is not None:
         changes["universe"] = body.universe
@@ -196,9 +238,9 @@ def change_settings(
     if body.params is not None:
         changes["params"] = _params({**acct["params"], **body.params})
     try:
-        book.update_settings(conn, who.session.user_id, **changes)
+        book.update_settings(conn, _key(who, mode), **changes)
         if body.enabled is not None:
-            book.set_enabled(conn, who.session.user_id, body.enabled)
+            book.set_enabled(conn, _key(who, mode), body.enabled)
     except book.PaperError as e:
         raise HTTPException(400, str(e)) from e
     detail = {**changes, **({"enabled": body.enabled} if body.enabled is not None else {})}
@@ -208,16 +250,18 @@ def change_settings(
         action="paper.settings_changed",
         actor_user_id=who.session.user_id,
         target_type="paper_account",
-        target_id=str(who.session.user_id),
+        target_id=str(_key(who, mode)),
         detail=detail,
     )
     return {"ok": True}
 
 
 @router.get("/summary")
-def summary(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
-    uid = who.session.user_id
-    _own(conn, who)
+def summary(
+    request: Request, who: CurrentUser, conn: WConn, mode: Venue = "paper"
+) -> dict[str, Any]:
+    uid = _key(who, mode)
+    _own(conn, who, mode)
     ledger = book.load(conn, uid)
     held = ledger.quantities()
     prices: dict[int, Decimal] = dict(
@@ -277,6 +321,7 @@ def list_orders(
     who: CurrentUser,
     conn: WConn,
     status: str | None = Query(default=None, max_length=100),
+    mode: Venue = "paper",
 ) -> dict[str, Any]:
     wanted = None if status is None else [s for s in status.split(",") if s in STATUSES]
     if wanted is not None and not wanted:
@@ -284,7 +329,7 @@ def list_orders(
     orders.expire_due(
         conn, _st(request).clock.now()
     )  # the status must be true when it is read: the periodic job may not have run yet
-    rows = orders.list_orders(conn, who.session.user_id, statuses=wanted)
+    rows = orders.list_orders(conn, _key(who, mode), statuses=wanted)
     heads_up = _heads_up(request, conn, [o["instrument_id"] for o in rows if o["status"] in OPEN])
     ticks = {
         i: orders.tick_size(conn, i)
@@ -305,6 +350,7 @@ def _answer(
     who: CurrentUser,
     conn: WConn,
     how: ApproveBody | None = None,
+    mode: Venue = "paper",
 ) -> dict[str, bool]:
     try:
         oid = UUID(order_id)
@@ -317,13 +363,13 @@ def _answer(
             orders.approve(
                 conn,
                 oid,
-                user_id=who.session.user_id,
+                user_id=_key(who, mode),
                 now=now,
                 order_type=how.order_type,
                 limit_price=how.limit_price,
             )
         else:
-            orders.reject(conn, oid, user_id=who.session.user_id, now=now)
+            orders.reject(conn, oid, user_id=_key(who, mode), now=now)
     except orders.OrderError as e:
         raise HTTPException(404 if str(e) == "no such order" else 400, str(e)) from e
     audit.record(
@@ -344,22 +390,25 @@ def approve_order(
     who: CurrentUser,
     conn: WConn,
     body: ApproveBody | None = None,
+    mode: Venue = "paper",
 ) -> dict[str, bool]:
-    return _answer("approved", order_id, request, who, conn, body)
+    return _answer("approved", order_id, request, who, conn, body, mode)
 
 
 @router.post("/orders/{order_id}/reject")
-def reject_order(order_id: str, request: Request, who: CurrentUser, conn: WConn) -> dict[str, bool]:
-    return _answer("rejected", order_id, request, who, conn)
+def reject_order(
+    order_id: str, request: Request, who: CurrentUser, conn: WConn, mode: Venue = "paper"
+) -> dict[str, bool]:
+    return _answer("rejected", order_id, request, who, conn, None, mode)
 
 
 @router.get("/runs")
-def runs(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+def runs(who: CurrentUser, conn: WConn, mode: Venue = "paper") -> dict[str, Any]:
     rows = conn.execute(
         "SELECT r.decision_day, r.status, r.detail, r.strategy_version, r.created_at,"
         " (SELECT count(*) FROM paper_order o WHERE o.user_id = r.user_id AND o.decision_day = r.decision_day)"
         " FROM paper_run r WHERE r.user_id=%s ORDER BY r.decision_day DESC LIMIT 30",
-        (who.session.user_id,),
+        (_key(who, mode),),
     ).fetchall()
     return {
         "runs": [

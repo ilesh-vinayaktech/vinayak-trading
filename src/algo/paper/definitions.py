@@ -53,6 +53,11 @@ def candidates(conn: psycopg.Connection) -> list[dict[str, Any]]:
 
 def start(conn: psycopg.Connection, user_id: UUID, experiment_id: int) -> str:
     """Put the account on this study's definition and chosen settings; returns its name. Refused unless the study passed the global holdout."""
+    acct = conn.execute("SELECT mode FROM paper_account WHERE user_id=%s", (user_id,)).fetchone()
+    if acct is not None and acct[0] == "LIVE":
+        raise PaperError(
+            "a live account runs only a strategy promoted to the LIVE stage, not a research definition"
+        )
     found = [c for c in candidates(conn) if c["experiment_id"] == experiment_id]
     if not found:
         raise PaperError("no such definition study with a passed verdict")

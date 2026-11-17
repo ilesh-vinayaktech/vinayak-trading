@@ -92,7 +92,7 @@ def _decide(
     conn: psycopg.Connection, order_id: UUID, user_id: UUID, now: datetime, status: str
 ) -> None:
     conn.execute(
-        "UPDATE paper_order SET status=%s, decided_at=%s, decided_by=%s WHERE order_id=%s",
+        "UPDATE paper_order SET status=%s, decided_at=%s, decided_by=(SELECT owner_user_id FROM paper_account WHERE user_id=%s) WHERE order_id=%s",
         (status, now, user_id, order_id),
     )
 
@@ -172,6 +172,11 @@ def approve(
             + " - "
             + "; ".join(r.detail for r in decision.rejections)
         )
+    if (
+        acct["mode"] == "LIVE"
+    ):  # the one place the venues part: the live process sends it (it alone holds the broker and the OMS)
+        _decide(conn, order_id, user_id, now, "APPROVED")
+        return
     sent = paper_oms.submit_approved(
         conn, user_id, order_id, now
     )  # through the OMS to the paper broker
@@ -191,7 +196,7 @@ def expire_due(conn: psycopg.Connection, now: datetime) -> tuple[int, int]:
         (now,),
     ).rowcount
     failed = conn.execute(
-        "UPDATE paper_order SET status='FAILED', failure='not filled before the order expired' WHERE status='APPROVED' AND expires_at <= %s",
+        "UPDATE paper_order SET status='FAILED', failure='not filled before the order expired' WHERE status='APPROVED' AND expires_at <= %s AND user_id IN (SELECT user_id FROM paper_account WHERE mode='PAPER')",
         (now,),
     ).rowcount
     paper_oms.sync(conn, now)
@@ -223,7 +228,7 @@ def fill_due(
     filled = failed = waiting = 0
     switch = paper_risk.load_switch(conn)
     due = conn.execute(
-        "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at, limit_price, reason FROM paper_order WHERE status='APPROVED' AND expires_at > %s ORDER BY created_at, order_id",
+        "SELECT order_id, user_id, instrument_id, side, qty, not_before, expires_at, decided_at, limit_price, reason FROM paper_order WHERE status='APPROVED' AND expires_at > %s AND user_id IN (SELECT user_id FROM paper_account WHERE mode='PAPER') ORDER BY created_at, order_id",
         (now,),
     ).fetchall()
     for order_id, user_id, iid, side, qty, not_before, expires_at, decided_at, limit, why in due:

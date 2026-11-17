@@ -41,6 +41,7 @@ CLOCK_TOLERANCE_S = 60.0  # a beat from the future by more than this means the c
 DEFAULT_EXPECTED = {
     "feed": Expectation("feed", timedelta(seconds=120), session_only=True),
     "study_worker": Expectation("study_worker", timedelta(seconds=300), session_only=False),
+    "live": Expectation("live", timedelta(seconds=120), session_only=True),
 }
 
 _FEED_STATE = {

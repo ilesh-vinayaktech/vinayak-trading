@@ -121,20 +121,32 @@ def _email(conn: Any, who: CurrentUser) -> str:
     return str(row[0])
 
 
-def _strategy(conn: Any, who: CurrentUser) -> str | None:
-    acct = book.get_account(conn, who.session.user_id)
+def _mode(conn: Any, who: CurrentUser, mode: str | None) -> str:
+    """The account the caller means: the one named, else their paper account, else their live one."""
+    if mode is not None:
+        return mode.upper()
+    paper = book.get_account(conn, book.account_key(who.session.user_id, "PAPER"))
+    return "PAPER" if paper is not None else "LIVE"
+
+
+def _strategy(conn: Any, who: CurrentUser, mode: str | None = None) -> str | None:
+    key = book.account_key(who.session.user_id, _mode(conn, who, mode))
+    acct = book.get_account(conn, key)
     return None if acct is None else str(acct["strategy_id"])
 
 
 @router.get("")
-def state(who: CurrentUser, conn: WConn) -> dict[str, Any]:
-    strategy_id = _strategy(conn, who)
+def state(
+    who: CurrentUser, conn: WConn, mode: Literal["paper", "live"] | None = None
+) -> dict[str, Any]:
+    strategy_id = _strategy(conn, who, mode)
     view = _view(store.load(conn), strategy_id)
     events = view.pop("_events")
     limits = None
     if strategy_id is not None:
         row = conn.execute(
-            "SELECT risk FROM paper_account WHERE user_id=%s", (who.session.user_id,)
+            "SELECT risk FROM paper_account WHERE user_id=%s",
+            (book.account_key(who.session.user_id, _mode(conn, who, mode)),),
         ).fetchone()
         limits = (row[0] if row else None) or {}
     return {
@@ -191,11 +203,18 @@ def switch_global(
 
 
 @router.put("/limits")
-def set_limits(body: LimitsBody, request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
-    if _strategy(conn, who) is None:
-        raise HTTPException(404, "no paper account yet")
+def set_limits(
+    body: LimitsBody,
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    mode: Literal["paper", "live"] | None = None,
+) -> dict[str, Any]:
+    if _strategy(conn, who, mode) is None:
+        raise HTTPException(404, "no trading account yet")
+    key = book.account_key(who.session.user_id, _mode(conn, who, mode))
     try:
-        paper_risk.set_limits(conn, who.session.user_id, body.limits or None)
+        paper_risk.set_limits(conn, key, body.limits or None)
     except (LimitsError, ValueError, TypeError, ArithmeticError) as e:
         raise HTTPException(422, str(e)) from e
     audit.record(
@@ -204,7 +223,7 @@ def set_limits(body: LimitsBody, request: Request, who: CurrentUser, conn: WConn
         action="risk.limits_changed",
         actor_user_id=who.session.user_id,
         target_type="paper_account",
-        target_id=str(who.session.user_id),
+        target_id=str(key),
         detail={"limits": body.limits},
     )
     return {"limits": body.limits}

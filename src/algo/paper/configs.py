@@ -15,7 +15,9 @@ from uuid import UUID
 import psycopg
 from psycopg.types.json import Jsonb
 
+from algo.paper import book
 from algo.paper.book import PaperError, _check_settings
+from algo.strategy import stage
 
 COLUMNS = "config_id, name, strategy_id, universe, max_instruments, timeframe, params, screen, created_at, EXISTS (SELECT 1 FROM paper_account a WHERE a.config_id = c.config_id) AS in_use"
 KEYS = [
@@ -151,8 +153,11 @@ def update(
         raise _taken() from e
 
 
-def use(conn: psycopg.Connection, owner: UUID, config_id: UUID) -> None:
+def use(conn: psycopg.Connection, owner: UUID, config_id: UUID, mode: str = "PAPER") -> None:
+    """Give this person's paper (or live) account the strategy. A LIVE account runs only a strategy in the LIVE stage."""
     c = _need(conn, owner, config_id)
+    if mode == "LIVE" and stage.current(conn, config_id) != "LIVE":
+        raise ConfigError("a live account runs only a strategy promoted to the LIVE stage")
     done = conn.execute(
         "UPDATE paper_account SET strategy_id=%s, universe=%s, max_instruments=%s, timeframe=%s, params=%s, screen=%s, definition=NULL, config_id=%s WHERE user_id=%s",
         (
@@ -163,11 +168,11 @@ def use(conn: psycopg.Connection, owner: UUID, config_id: UUID) -> None:
             Jsonb(c["params"]),
             None if c["screen"] is None else Jsonb(c["screen"]),
             config_id,
-            owner,
+            book.account_key(owner, mode),
         ),
     )
     if done.rowcount == 0:
-        raise ConfigError("no paper account yet")
+        raise ConfigError(f"no {mode.lower()} account yet")
 
 
 def delete(conn: psycopg.Connection, owner: UUID, config_id: UUID) -> None:

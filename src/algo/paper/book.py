@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid5
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -22,11 +22,26 @@ from algo.data.adjust.factors import ActionRecord
 from algo.ledger.ledger import Ledger
 from algo.paper.universe import UNIVERSES
 
-COLUMNS = "user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe, config_id, screen, definition"
+REAL_FILL = (
+    "BROKER"  # the note on a fill the broker really made: always booked, even past the book's cash
+)
+COLUMNS = "user_id, owner_user_id, strategy_id, params, enabled, mode, initial_cash, started_on, actions_through, attention, created_at, universe, max_instruments, timeframe, config_id, screen, definition"
 
 
 class PaperError(ValueError):
     pass
+
+
+MODES = ("PAPER", "LIVE")
+_LIVE_KEY_NS = UUID("c0a1d3a5-7e57-4b6e-8f0e-2d9a5b1c4e11")
+
+
+def account_key(owner: UUID, mode: str) -> UUID:
+    """The key every account table uses (`user_id` in paper_account, paper_event, paper_order, ...). A person's paper account keeps the person's own id,
+    so nothing that existed changes; the live account has its own, derived from the owner, so one person can run both side by side."""
+    if mode not in MODES:
+        raise PaperError(f"the mode must be one of {', '.join(MODES)}")
+    return owner if mode == "PAPER" else uuid5(_LIVE_KEY_NS, str(owner))
 
 
 SETTINGS = ("universe", "max_instruments", "timeframe", "params")
@@ -53,16 +68,21 @@ def create_account(
     universe: str = "nifty200",
     max_instruments: int | None = None,
     timeframe: str = "1D",
+    mode: str = "PAPER",
 ) -> None:
+    """`user_id` is the PERSON; the account is keyed by `account_key(user_id, mode)`."""
     if initial_cash <= 0:
         raise PaperError("the starting cash must be positive")
     _check_settings(universe, max_instruments, timeframe)
-    if get_account(conn, user_id) is not None:
-        raise PaperError("this user already has a paper account")
+    key = account_key(user_id, mode)
+    if get_account(conn, key) is not None:
+        raise PaperError(f"this user already has a {mode.lower()} account")
     conn.execute(
-        "INSERT INTO paper_account (user_id, strategy_id, params, initial_cash, started_on, actions_through, created_at, universe, max_instruments, timeframe) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "INSERT INTO paper_account (user_id, owner_user_id, mode, strategy_id, params, initial_cash, started_on, actions_through, created_at, universe, max_instruments, timeframe) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (
+            key,
             user_id,
+            mode,
             strategy_id,
             Jsonb(dict(params)),
             initial_cash,
@@ -146,17 +166,29 @@ def _replay(
     ref: str,
 ) -> None:
     if kind in ("BUY", "SELL"):
-        post = ledger.buy if kind == "BUY" else ledger.sell
+        post = ledger.sell
         extra = [(str(t), Decimal(a)) for t, a in (charges or [])]
-        post(
-            day,
-            iid,
-            qty or Decimal(0),
-            price or Decimal(0),
-            commission or Decimal(0),
-            ref,
-            charges=extra,
-        )
+        if kind == "BUY":
+            ledger.buy(
+                day,
+                iid,
+                qty or Decimal(0),
+                price or Decimal(0),
+                commission or Decimal(0),
+                ref,
+                charges=extra,
+                overdraft=note == REAL_FILL,
+            )
+        else:
+            post(
+                day,
+                iid,
+                qty or Decimal(0),
+                price or Decimal(0),
+                commission or Decimal(0),
+                ref,
+                charges=extra,
+            )
     elif kind == "SPLIT":
         ledger.apply_split(day, iid, num or Decimal(1), den or Decimal(1), ref)
     elif kind == "DIVIDEND":
@@ -223,15 +255,17 @@ def record_fill(
     charges: Sequence[tuple[str, Decimal]],
     ref: str,
     now: datetime,
+    enforce: bool = True,
 ) -> bool:
-    """Book a simulated fill. False if this ref was already booked. A fill the account could not afford or does not hold is refused."""
+    """Book a fill. False if this ref was already booked. A simulated fill the account could not afford or does not hold is refused; a REAL one
+    (`enforce=False`, what the broker says happened) is a fact and is always booked."""
     if side not in ("BUY", "SELL"):
         raise PaperError("side must be BUY or SELL")
     ledger = load(conn, user_id)
     extra = sum((a for _, a in charges), Decimal(0))
-    if side == "BUY" and qty * price + commission + extra > ledger.cash:
+    if enforce and side == "BUY" and qty * price + commission + extra > ledger.cash:
         raise PaperError("not enough cash for this order")
-    if side == "SELL" and qty > ledger.qty(iid):
+    if enforce and side == "SELL" and qty > ledger.qty(iid):
         raise PaperError("you do not hold that many shares")
     return _insert(
         conn,
@@ -245,6 +279,7 @@ def record_fill(
         price=price,
         commission=commission,
         charges=[[t, str(a)] for t, a in charges],
+        **({} if enforce else {"note": REAL_FILL}),
     )
 
 

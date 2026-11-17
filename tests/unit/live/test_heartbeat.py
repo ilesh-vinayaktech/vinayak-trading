@@ -75,7 +75,7 @@ def test_which_processes_are_expected_comes_from_the_environment_and_defaults_to
 
     with pytest.raises(ValueError, match="unknown process"):
         expected_from_env({"ALGO_EXPECT_PROCESSES": "feed,nope"})
-    assert set(DEFAULT_EXPECTED) == {"feed", "study_worker"}
+    assert set(DEFAULT_EXPECTED) == {"feed", "study_worker", "live"}
 
 
 def test_a_beat_dated_ahead_of_this_clock_is_clock_skew_and_a_small_difference_is_tolerated():

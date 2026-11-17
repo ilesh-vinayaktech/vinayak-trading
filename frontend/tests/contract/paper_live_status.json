@@ -1,0 +1,15 @@
+{
+ "account": false,
+ "open": false,
+ "problems": [
+  "ALGO_LIVE=1 is not set",
+  "the strategy is in the RESEARCH stage, not the LIVE stage",
+  "there is no valid broker session",
+  "regulatory: ops_limit is not recorded for NSE CM",
+  "regulatory: order_types is not recorded for NSE CM",
+  "regulatory: tagging is not recorded for NSE CM",
+  "regulatory: static_ip is not recorded for NSE CM"
+ ],
+ "process": null,
+ "stage": "RESEARCH"
+}
