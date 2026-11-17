@@ -278,8 +278,11 @@ JOBS: tuple[Job, ...] = (
     Job(
         "market-zone",
         f"{WEEKDAYS} *-*-* 21:45 Asia/Kolkata",
-        ((*_PY, "scripts/build_market_zone.py", "--db", "{db}"),),
-        "Market breadth, the fear/greed score and the bull/bear regime for the day (after the bars and the screener refresh)",
+        (
+            (*_PY, "scripts/build_market_zone.py", "--db", "{db}"),
+            (*_PY, "scripts/build_score_history.py", "--db", "{db}"),
+        ),
+        "Market breadth, the fear/greed score and the bull/bear regime for the day, then the day's point-in-time swing scores (after the bars and the screener refresh)",
         timeout_s=1800,
     ),
     Job(
