@@ -10,8 +10,8 @@ def test_every_preset_is_valid_and_sorts_on_a_real_field():
             validate(c)
 
 
-def test_there_are_fundamental_technical_and_combined_screens():
-    assert {p.category for p in PRESETS} == {"fundamental", "technical", "combined"}
+def test_there_are_fundamental_technical_combined_and_smart_money_screens():
+    assert {p.category for p in PRESETS} == {"fundamental", "technical", "combined", "smart_money"}
     for p in PRESETS:
         kinds = {FIELDS[c.field].kind for c in p.conditions} - {"profile"}
         want = {
@@ -19,4 +19,9 @@ def test_there_are_fundamental_technical_and_combined_screens():
             "technical": {"technical"},
             "combined": {"fundamental", "technical"},
         }
+        if (
+            p.category == "smart_money"
+        ):  # may be combined with price and volume conditions, but is always about the NSE flow data
+            assert "smart_money" in kinds, p.id
+            continue
         assert kinds == want[p.category] or p.id == "large-cap-value", p.id

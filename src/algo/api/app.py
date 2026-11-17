@@ -28,9 +28,10 @@ from algo.api import (
     kite_routes,
     live_routes,
     market_routes,
+    nse_routes,
     paper_routes,
-    platform_health,
     pipeline_routes,
+    platform_health,
     queries,
     reviews,
     risk_routes,
@@ -128,8 +129,8 @@ def create_app(
     app.include_router(screener_routes.router)
     app.include_router(live_routes.router)
     app.include_router(holdout_routes.router)
-    app.include_router(paper_routes.router)
     app.include_router(pipeline_routes.router)
+    app.include_router(paper_routes.router)
     app.include_router(risk_routes.router)
     app.include_router(strategy_routes.router)
     app.include_router(study_routes.router)
@@ -138,6 +139,7 @@ def create_app(
     app.include_router(crm_routes.router)
     app.include_router(dashboard_routes.router)
     app.include_router(intel_routes.router)
+    app.include_router(nse_routes.router)
     app.include_router(tickets_routes.router)
     app.add_middleware(SecurityHeaders)
     app.state.dsn = dsn

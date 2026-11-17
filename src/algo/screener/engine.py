@@ -23,7 +23,7 @@ class Field:
     key: str
     label: str
     group: str  # valuation | profitability | growth | strength | efficiency | cash | momentum | trend | volume | profile
-    kind: str  # fundamental | technical | profile
+    kind: str  # fundamental | technical | profile | smart_money
     unit: str  # pct | x | days | crore | inr | text
 
 
@@ -46,9 +46,28 @@ _TECH = (
     ("volume_ratio", "Volume vs 20-day average", "volume", "x"),
     ("turnover_cr", "Daily traded value (20-day avg)", "volume", "crore"),
 )
+# (key, label, group, unit) of the NSE delivery / ownership / insider / deal fields; computed by algo.screener.smart_money
+SMART_MONEY_FIELDS: tuple[tuple[str, str, str, str], ...] = (
+    ("delivery_pct", "Delivery %, last session", "delivery", "pct"),
+    ("delivery_pct_20d", "Delivery %, 20-session average", "delivery", "pct"),
+    ("delivery_vs_avg", "Delivery % vs its 20-session average (1 = same)", "delivery", "x"),
+    ("promoter_pct", "Promoter holding", "ownership", "pct"),
+    ("fii_pct", "FII / FPI holding", "ownership", "pct"),
+    ("dii_pct", "DII holding (mutual funds, insurers, banks ...)", "ownership", "pct"),
+    ("mf_pct", "Mutual fund holding", "ownership", "pct"),
+    ("retail_pct", "Retail holding (up to Rs 2 lakh)", "ownership", "pct"),
+    ("promoter_change", "Promoter holding, change since last quarter (points)", "ownership", "pct"),
+    ("fii_change", "FII / FPI holding, change since last quarter (points)", "ownership", "pct"),
+    ("dii_change", "DII holding, change since last quarter (points)", "ownership", "pct"),
+    ("mf_change", "Mutual fund holding, change since last quarter (points)", "ownership", "pct"),
+    ("insider_net_90d", "Insider net buying, 90 days", "insider", "crore"),
+    ("insider_buys_90d", "Insider buy filings, 90 days", "insider", "x"),
+    ("deal_net_30d", "Bulk and block deals, net buying, 30 days", "deals", "crore"),
+)
 FIELDS: dict[str, Field] = {
     **{r.key: Field(r.key, r.label, r.group, "fundamental", r.unit) for r in RATIOS},
     **{k: Field(k, label, g, "technical", u) for k, label, g, u in _TECH},
+    **{k: Field(k, label, g, "smart_money", u) for k, label, g, u in SMART_MONEY_FIELDS},
     "segment": Field("segment", "Market-cap class (AMFI)", "profile", "profile", "text"),
     "sector": Field("sector", "Sector (NSE industry)", "profile", "profile", "text"),
     "pe_sector_median": Field(

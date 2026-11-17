@@ -10,6 +10,7 @@ import {
   presetStart,
 } from "@/components/charts/ChartWorkspace";
 import { FundamentalsPanel } from "@/components/fundamentals/FundamentalsPanel";
+import { SmartMoneyPanel } from "@/components/market/SmartMoneyPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import type { LiveView, Mark } from "@/components/charts/PriceChart";
 import { useAuth } from "@/lib/auth";
@@ -321,6 +322,8 @@ function Explorer() {
           symbol={detail.data.symbol}
         />
       ) : null}
+
+      {detail.data ? <SmartMoneyPanel key={`sm-${detail.data.id}`} instrumentId={detail.data.id} /> : null}
 
       {detail.data ? (
         <>

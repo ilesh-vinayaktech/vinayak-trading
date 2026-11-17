@@ -237,7 +237,7 @@ describe("Data Explorer", () => {
   it("shows announced future actions in their own card, apart from the history, and nothing when none are announced", async () => {
     const soon = { ex_date: "2026-11-24", kind: "dividend", status: "ok", num: null, den: null, amount: "7", subject: "Interim Dividend - Rs 7 Per Share" };
     const withUpcoming = { ...detail, upcoming: [soon] };
-    const routes = (d: unknown) => route({ "/api/instruments": [inst], "/api/instruments/7": d, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } });
+    const routes = (d: unknown) => route({ "/api/instruments": [inst], "/api/instruments/7": d, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } });
     vi.stubGlobal("fetch", routes(withUpcoming));
     const { unmount } = wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
@@ -259,7 +259,7 @@ describe("Data Explorer", () => {
   it("lists corporate actions newest first in a list whose scrollbar is always visible", async () => {
     const action = (ex_date: string, kind: string) => ({ ex_date, kind, status: "ok", num: null, den: null, amount: "5", subject: `${kind} ${ex_date}` });
     const long = { ...detail, actions: [action("2005-07-11", "dividend"), action("2015-03-02", "dividend"), action("2026-10-14", "dividend")] }; // the API sends oldest first
-    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": long, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": long, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
@@ -273,7 +273,7 @@ describe("Data Explorer", () => {
   });
 
   it("labels the price basis, shows the adjustment version and surfaces data-quality warnings", async () => {
-    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
@@ -310,7 +310,7 @@ describe("Data Explorer", () => {
   });
 
   it("closes the suggestion list once an instrument is chosen and reopens it when typing again", async () => {
-    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } }));
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     const box = screen.getByLabelText("Symbol, ISIN or name");
     fireEvent.change(box, { target: { value: "xy" } });
@@ -325,7 +325,7 @@ describe("Data Explorer", () => {
 
   it("offers intraday timeframes: asks the API for them, narrows the ranges and keeps indicators on", async () => {
     const urls: string[] = [];
-    const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] } });
+    const respond = route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } });
     vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
       urls.push(String(input));
       return respond(input);

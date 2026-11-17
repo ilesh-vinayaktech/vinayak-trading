@@ -19,6 +19,7 @@ from psycopg.types.json import Jsonb
 from algo.data import ratios as fr
 from algo.data import sectors as sec
 from algo.indicators.catalog import Bars
+from algo.screener import smart_money
 from algo.screener.engine import FIELDS
 from algo.screener.technical import technicals
 
@@ -100,6 +101,7 @@ def compute(conn: psycopg.Connection) -> list[dict[str, Any]]:
         ).fetchall()
     )
     quarters = quarters_since(conn, day - timedelta(days=365 * FILING_YEARS))
+    smart = smart_money.compute(conn, day, {sym: iid for iid, (sym, _) in names.items()})
     rows: list[dict[str, Any]] = []
     for iid, bars in _bars(conn, day).items():
         if iid not in names or bars[-1][0] < day - timedelta(days=STALE_DAYS):
@@ -115,6 +117,7 @@ def compute(conn: psycopg.Connection) -> list[dict[str, Any]]:
         }
         row.update(technicals(Bars(*([b[i] for b in kept] for i in range(1, 6)))))
         row["segment"] = segment.get(iid)
+        row.update(smart.get(iid, {}))
         basis = "CONSOLIDATED" if (iid, "CONSOLIDATED") in quarters else "STANDALONE"
         known = fr.known_quarters(quarters.get((iid, basis), []))
         if known:

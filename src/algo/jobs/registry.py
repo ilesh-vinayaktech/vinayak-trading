@@ -165,6 +165,42 @@ JOBS: tuple[Job, ...] = (
         retry_wait_s=900,
     ),
     Job(
+        "nse-deals-fiidii",
+        f"{WEEKDAYS} *-*-* 18,19,20,21:20 Asia/Kolkata",
+        (
+            (*_PY, "scripts/ingest_nse_intel.py", "deals", "--db", "{db}"),
+            (*_PY, "scripts/ingest_nse_intel.py", "fiidii", "--db", "{db}"),
+        ),
+        "Bulk and block deals and FII/DII cash flows: NSE publishes only the latest session, in the evening, at no fixed minute, so it is polled four times; a re-poll of what is stored changes nothing",
+        retries=2,
+        retry_wait_s=300,
+    ),
+    Job(
+        "nse-insider-hourly",
+        f"{WEEKDAYS} *-*-* 09..21:10 Asia/Kolkata",
+        ((*_PY, "scripts/ingest_nse_intel.py", "insider", "--db", "{db}"),),
+        "Insider (SEBI PIT) trade disclosures: NSE lists one row per filing (a new list since 2026-05-03); companies file through the day, so the last 7 days are re-listed hourly and the file of each NEW filing is read for person, quantity and value",
+        retries=2,
+        retry_wait_s=300,
+    ),
+    Job(
+        "nse-shareholding-daily",
+        f"{WEEKDAYS} *-*-* 20:40 Asia/Kolkata",
+        ((*_PY, "scripts/ingest_nse_intel.py", "shareholding", "--db", "{db}"),),
+        "Shareholding patterns: a quarterly filing (within 21 days of quarter end, revisions any time); one request lists every company's latest, new and revised filings are stored",
+        retries=2,
+        retry_wait_s=300,
+    ),
+    Job(
+        "nse-shareholding-split",
+        "*-*-* 22:40 Asia/Kolkata",
+        ((*_PY, "scripts/ingest_nse_intel.py", "split", "--db", "{db}", "--limit", "600"),),
+        "Read the XBRL of new shareholding filings for the FII / DII / mutual fund / retail split (600 a night at about one a second; the first backfill of about 2,400 filings takes four nights, newest first; a filing that cannot be read is recorded and not retried)",
+        timeout_s=2 * 3600,
+        retries=2,
+        retry_wait_s=900,
+    ),
+    Job(
         "kite-daily-candles",
         f"{WEEKDAYS} *-*-* 17:00 Asia/Kolkata",
         (
@@ -202,6 +238,13 @@ JOBS: tuple[Job, ...] = (
         ),  # fmt: skip
         "Re-read the last week of Kite daily candles and keep the final values: yesterday's evening candle is provisional, a changed candle is stored as the next dataset version and the history is kept (also fills a missed day); frozen days are never touched",
         timeout_s=2 * 3600,
+        needs_kite=True,
+    ),
+    Job(
+        "kite-index-daily",
+        f"{WEEKDAYS} *-*-* 17:30 Asia/Kolkata",
+        ((*_PY, "scripts/load_index_days.py", "--db", "{db}", "--from", "{d7}"),),
+        "Daily OHLC of every NSE and BSE index (about 207, for trend setup): the last 7 days are re-read and upserted, so the evening's provisional candle is replaced by the final one and a missed day is filled; no volume (indexes have none)",
         needs_kite=True,
     ),
     Job(

@@ -147,6 +147,7 @@ export default function ScreenerPage() {
                 { key: "fundamental", label: "Fundamental" },
                 { key: "technical", label: "Technical" },
                 { key: "combined", label: "Combined" },
+                { key: "smart_money", label: "Smart money" },
               ]}
             />
             {meta.isLoading ? (
@@ -201,8 +202,8 @@ export default function ScreenerPage() {
                         })
                       }
                     >
-                      {["fundamental", "technical", "profile"].map((k) => (
-                        <optgroup key={k} label={k}>
+                      {["fundamental", "technical", "smart_money", "profile"].map((k) => (
+                        <optgroup key={k} label={k === "smart_money" ? "smart money (latest filings, not for backtests)" : k}>
                           {fields
                             .filter((x) => x.kind === k)
                             .map((x) => (

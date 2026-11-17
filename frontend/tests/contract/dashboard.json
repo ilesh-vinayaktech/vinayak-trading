@@ -181,6 +181,34 @@
    "name": "corporate-actions-monthly"
   },
   {
+   "calendar": "Mon..Fri *-*-* 18,19,20,21:20 Asia/Kolkata",
+   "description": "Bulk and block deals and FII/DII cash flows: NSE publishes only the latest session, in the evening, at no fixed minute, so it is polled four times; a re-poll of what is stored changes nothing",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "nse-deals-fiidii"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 09..21:10 Asia/Kolkata",
+   "description": "Insider (SEBI PIT) trade disclosures: NSE lists one row per filing (a new list since 2026-05-03); companies file through the day, so the last 7 days are re-listed hourly and the file of each NEW filing is read for person, quantity and value",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "nse-insider-hourly"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 20:40 Asia/Kolkata",
+   "description": "Shareholding patterns: a quarterly filing (within 21 days of quarter end, revisions any time); one request lists every company's latest, new and revised filings are stored",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "nse-shareholding-daily"
+  },
+  {
+   "calendar": "*-*-* 22:40 Asia/Kolkata",
+   "description": "Read the XBRL of new shareholding filings for the FII / DII / mutual fund / retail split (600 a night at about one a second; the first backfill of about 2,400 filings takes four nights, newest first; a filing that cannot be read is recorded and not retried)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "nse-shareholding-split"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 17:00 Asia/Kolkata",
    "description": "Today's Kite daily candle for the mapped instruments (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
    "last_run": null,
@@ -193,6 +221,13 @@
    "last_run": null,
    "last_success_at": null,
    "name": "kite-daily-revise"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 17:30 Asia/Kolkata",
+   "description": "Daily OHLC of every NSE and BSE index (about 207, for trend setup): the last 7 days are re-read and upserted, so the evening's provisional candle is replaced by the final one and a missed day is filled; no volume (indexes have none)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "kite-index-daily"
   },
   {
    "calendar": "Mon..Fri *-*-* 21:00 Asia/Kolkata",
@@ -277,7 +312,7 @@
    },
    {
     "level": "attention",
-    "text": "30 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 27 more."
+    "text": "35 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 32 more."
    }
   ],
   "status": "DOWN"
@@ -299,7 +334,7 @@
   "operational_reliability": {
    "items": [
     {
-     "detail": "none of the 30 jobs has run yet",
+     "detail": "none of the 35 jobs has run yet",
      "name": "scheduled jobs",
      "status": "UNKNOWN"
     },
