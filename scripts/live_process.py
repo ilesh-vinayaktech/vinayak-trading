@@ -1,7 +1,8 @@
 # ruff: noqa: E501
 """The live process (TODO 5.3): recovers the order log on start, then every few seconds takes the kill switch from the database, reconciles the OMS
 with the Kite account once a minute in session and once after the close, and beats as process `live` (add `live` to ALGO_EXPECT_PROCESSES to be alerted).
-It does NOT decide or place orders: the runner that submits them is a separate step. It refuses to start unless the live gate is open
+It exits 0 at once on a closed day and 10 minutes after the last session window ends (the final reconcile pass runs inside that).
+It does not decide orders: proposals come from the daily paper/live runner and your approval; this process sends what is approved. It refuses to start unless the live gate is open
 (ALGO_LIVE=1, the strategy in the LIVE stage, a valid Kite session of this user, every regulatory rule recorded and recently verified): exit 3, with the reasons.
 Never touches the owner's own holdings: the OMS runs with own_positions_only.
 usage: live_process.py --user-id UUID [--db URL] [--every 5]   (the person: their LIVE account says which strategy runs and with what capital)"""
@@ -12,7 +13,7 @@ import signal
 import socket
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import psycopg
@@ -25,6 +26,7 @@ from algo.execution.kite_account import KiteAccount
 from algo.execution.kite_broker import KiteBroker
 from algo.execution.live_gate import LiveRefused, open_gate
 from algo.execution.oms import Oms
+from algo.live.market_calendar import IST, windows_for
 from algo.live.process import LiveProcess
 from algo.paper import book
 from algo.paper.jobs import cost_policy
@@ -46,6 +48,13 @@ if not a.db:
 clock = SystemClock()
 with psycopg.connect(a.db, autocommit=True) as conn:
     now = clock.now()
+    windows = windows_for(conn, now.astimezone(IST).date())
+    if not windows:
+        print("no trading session today: nothing to do", flush=True)
+        sys.exit(0)
+    until = windows[-1][1] + timedelta(
+        minutes=10
+    )  # the final pass after the close runs inside this
     acct = book.get_account(conn, book.account_key(UUID(a.user_id), "LIVE"))
     if acct is None or acct["config_id"] is None:
         print("this person has no live account with a strategy yet: create one on the Trading page")
@@ -96,7 +105,7 @@ with psycopg.connect(a.db, autocommit=True) as conn:
     signal.signal(signal.SIGTERM, stop)
     proc.start()
     print(f"{datetime.now(UTC):%H:%M:%S}Z live process started", flush=True)
-    while not stopping:
+    while not stopping and clock.now() < until:
         for m in proc.tick():
             print(f"  {m.kind} {m.client_order_id} {m.detail}", flush=True)
         time.sleep(a.every)

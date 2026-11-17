@@ -1,0 +1,10 @@
+[Unit]
+Description=Start the live trading process every morning (it reads the trading calendar and exits on closed days)
+
+[Timer]
+# production only: never enable this timer on a dev machine (job timers run in prod, not locally)
+OnCalendar=*-*-* 08:30 Asia/Kolkata
+Persistent=false
+
+[Install]
+WantedBy=timers.target

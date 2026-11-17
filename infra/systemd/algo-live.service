@@ -1,0 +1,17 @@
+[Unit]
+Description=Live trading process (recovers the order log, sends approved orders, books fills, reconciles, obeys the kill switch)
+# the market-data feed is a separate unit; this one needs only the database and the Kite session
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Work/trading
+# ALGO_LIVE_USER_ID (the person whose LIVE account runs) and ALGO_DB_URL come from .env. ALGO_LIVE=1 must ALSO be set in .env: it is the explicit
+# switch, nothing here sets it. Without an open live gate (that flag, the strategy in the LIVE stage, a valid Kite session, regulatory rules recorded and
+# fresh) the process prints why and exits with code 3, which is NOT retried. On a closed day it exits at once; otherwise it runs through the session,
+# makes the final pass after the close and exits 0.
+ExecStart=/bin/bash -c 'set -a; . ./.env; set +a; exec %h/.local/bin/uv run python scripts/live_process.py --user-id "$ALGO_LIVE_USER_ID"'
+# a crash is retried (the process recovers the order log on every start); a clean end or a closed gate is not
+Restart=on-failure
+RestartSec=20
+RestartPreventExitStatus=3
