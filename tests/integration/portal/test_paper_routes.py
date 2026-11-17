@@ -414,3 +414,30 @@ def test_a_strategy_definition_cannot_be_started_before_the_global_holdout_and_t
     assert c.get("/api/paper/account").json()["account"]["definition"] is None
     nobody = owner(conn, app, clock, "joe@example.com")[1]
     assert nobody.post("/api/paper/definitions/1/start").status_code == 404  # no paper account yet
+
+
+def test_an_order_past_its_answer_by_time_reads_as_expired_even_if_the_job_has_not_run(env):
+    conn, app, clock, ids = env
+    uid, c = trader(conn, app, clock)
+    accounts(conn, uid)
+    late = order(
+        conn, uid, ids["BBB"], expires_in=timedelta(hours=-1)
+    )  # answer-by time already passed
+    unpaid = order(conn, uid, ids["BBB"], status="APPROVED", expires_in=timedelta(hours=-1))
+    live = order(conn, uid, ids["BBB"])
+    rows = {r["order_id"]: r["status"] for r in c.get("/api/paper/orders").json()["orders"]}
+    assert (
+        rows[str(late)] == "EXPIRED"
+        and rows[str(unpaid)] == "FAILED"
+        and rows[str(live)] == "PENDING"
+    )
+    assert (
+        c.post(f"/api/paper/orders/{late}/approve", json={}).status_code != 200
+    )  # and it cannot be answered
+    conn.execute(
+        "UPDATE paper_order SET status='PENDING', expires_at=%s WHERE order_id=%s",
+        (START - timedelta(hours=1), late),
+    )
+    assert (
+        c.get("/api/paper/summary").json()["pending_orders"] == 1
+    )  # only the live one needs an answer

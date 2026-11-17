@@ -244,6 +244,7 @@ def summary(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
     curve = conn.execute(
         "SELECT day, equity FROM paper_equity WHERE user_id=%s ORDER BY day", (uid,)
     ).fetchall()
+    orders.expire_due(conn, _st(request).clock.now())
     pending = conn.execute(
         "SELECT count(*) FROM paper_order WHERE user_id=%s AND status='PENDING'", (uid,)
     ).fetchone()
@@ -280,6 +281,9 @@ def list_orders(
     wanted = None if status is None else [s for s in status.split(",") if s in STATUSES]
     if wanted is not None and not wanted:
         return {"orders": []}
+    orders.expire_due(
+        conn, _st(request).clock.now()
+    )  # the status must be true when it is read: the periodic job may not have run yet
     rows = orders.list_orders(conn, who.session.user_id, statuses=wanted)
     heads_up = _heads_up(request, conn, [o["instrument_id"] for o in rows if o["status"] in OPEN])
     ticks = {
