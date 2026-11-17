@@ -6,7 +6,7 @@ so no order is proposed for mere price drift. Stateless: it reads what is held, 
 session decides the same as one that ran all along.
 
 The screen is part of the locked study (not code), so the owner builds it the way they build a screen on the Screener page.
-A screen may use price fields (technicals), filed ratios (fundamentals), the numeric swing-score fields (read from a `ScoreBook` of scores as known on each day, TODO 6.13) or any mix. Technicals are computed here, per day, from
+A screen may use price fields (technicals), filed ratios (fundamentals), the numeric swing-score and market-zone fields (read from a `ScoreBook` as known on each day, TODO 6.13) or any mix. Technicals are computed here, per day, from
 split-adjusted bars the Context bounds to that day. Fundamentals come from a `FundamentalsBook` of the filings known on that
 day (a restatement counts once filed), through the same `algo.data.ratios` code the Screener page uses; never from today's
 Screener table, which would leak the future. Both read as the Screener page reads them.
@@ -28,7 +28,7 @@ from algo.screener.technical import technicals
 from algo.strategies.fundamentals import FundamentalsBook
 from algo.strategies.nifty200_momentum import IntervalMembership
 from algo.strategies.scorebook import FIELDS as SCORE_FIELDS
-from algo.strategies.scorebook import ScoreBook
+from algo.strategies.scorebook import MARKET_FIELDS, ScoreBook
 from algo.strategy.base import Requirements, Strategy, StrategyParams, Targets
 from algo.strategy.context import Context
 
@@ -64,7 +64,7 @@ class ScreenSpec(BaseModel):
         return {c.field for c in self.conditions} | {self.sort}
 
     def needs_scores(self) -> bool:
-        return any(f in SCORE_FIELDS for f in self.fields_used())
+        return any(f in SCORE_FIELDS or f in MARKET_FIELDS for f in self.fields_used())
 
     def needs_fundamentals(self) -> bool:
         return any(
@@ -79,7 +79,7 @@ class ScreenSpec(BaseModel):
         one (a study and a saved strategy both pick their market-cap segments separately), nor are the smart-money fields (only as of today) or the score's text fields."""
         bad = sorted(
             f for f in self.fields_used()
-            if f not in engine.FIELDS or (engine.FIELDS[f].kind not in ("technical", "fundamental") and f not in SCORE_FIELDS)
+            if f not in engine.FIELDS or (engine.FIELDS[f].kind not in ("technical", "fundamental") and f not in SCORE_FIELDS and f not in MARKET_FIELDS)
         )  # fmt: skip
         if bad:
             return f"{', '.join(bad)}: unknown, a market-cap class (choose the market-cap segments separately), as-of-today data or text"
@@ -126,7 +126,9 @@ class ScreenerStrategy(Strategy):
         if book is None and screen.needs_fundamentals():
             raise ValueError("this screen reads filed ratios: it needs a FundamentalsBook")
         if scores is None and screen.needs_scores():
-            raise ValueError("this screen reads the swing score: it needs a ScoreBook")
+            raise ValueError(
+                "this screen reads the swing score or the market zone: it needs a ScoreBook"
+            )
         self.p, self.membership, self.screen, self.book, self.scores = (
             params,
             membership,

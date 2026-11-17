@@ -72,11 +72,18 @@ SCORE_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("score_smart_money", "Score: smart money", "x"),
     ("score_quality", "Score: quality", "x"),
 )
+# the market zone as known on the day (algo.market, table market_regime_daily): the same value for every stock, so it is a REGIME FILTER inside a screen ("only while the market is not in extreme fear")
+MARKET_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("mkt_fear_greed", "Market fear/greed (0 extreme fear to 100 extreme greed)", "x"),
+    ("mkt_bull", "Market is in a bull regime (1 yes, 0 no)", "x"),
+    ("mkt_stressed", "Market volatility is stressed (1 yes, 0 no)", "x"),
+)
 FIELDS: dict[str, Field] = {
     **{r.key: Field(r.key, r.label, r.group, "fundamental", r.unit) for r in RATIOS},
     **{k: Field(k, label, g, "technical", u) for k, label, g, u in _TECH},
     **{k: Field(k, label, g, "smart_money", u) for k, label, g, u in SMART_MONEY_FIELDS},
     **{k: Field(k, label, "score", "score", u) for k, label, u in SCORE_FIELDS},
+    **{k: Field(k, label, "market", "score", u) for k, label, u in MARKET_FIELDS},
     "setup": Field("setup", "Setup flags (breakout, accumulation, ...)", "score", "score", "text"),
     "score_why": Field("score_why", "Why it scores", "score", "score", "text"),
     "segment": Field("segment", "Market-cap class (AMFI)", "profile", "profile", "text"),

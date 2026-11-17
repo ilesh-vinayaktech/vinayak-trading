@@ -470,6 +470,27 @@
    "unit": "x"
   },
   {
+   "group": "market",
+   "key": "mkt_fear_greed",
+   "kind": "score",
+   "label": "Market fear/greed (0 extreme fear to 100 extreme greed)",
+   "unit": "x"
+  },
+  {
+   "group": "market",
+   "key": "mkt_bull",
+   "kind": "score",
+   "label": "Market is in a bull regime (1 yes, 0 no)",
+   "unit": "x"
+  },
+  {
+   "group": "market",
+   "key": "mkt_stressed",
+   "kind": "score",
+   "label": "Market volatility is stressed (1 yes, 0 no)",
+   "unit": "x"
+  },
+  {
    "group": "score",
    "key": "setup",
    "kind": "score",

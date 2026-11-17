@@ -206,10 +206,10 @@ export default function ScreenerPage() {
                         })
                       }
                     >
-                      {["fundamental", "technical", "smart_money", "score", "profile"].map((k) => (
-                        <optgroup key={k} label={k === "smart_money" ? "smart money (latest filings, not for backtests)" : k === "score" ? "swing score (not for backtests)" : k}>
+                      {["fundamental", "technical", "smart_money", "score", "market", "profile"].map((k) => (
+                        <optgroup key={k} label={k === "smart_money" ? "smart money (latest filings, not for backtests)" : k === "score" ? "swing score (the numeric fields can be backtested)" : k === "market" ? "market zone (can be backtested)" : k}>
                           {fields
-                            .filter((x) => x.kind === k)
+                            .filter((x) => (x.group === "market" ? "market" : x.kind) === k)
                             .map((x) => (
                               <option key={x.key} value={x.key}>
                                 {x.label}

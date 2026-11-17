@@ -89,3 +89,25 @@ def test_a_score_screen_mixes_with_price_fields():
     closes = {1: uptrend("0.002"), 2: uptrend("-0.001")}  # 2 has the better score but is falling
     got = run(closes, book({1: 70, 2: 90}), spec(TOP, {"field": "chg_3m", "op": "gt", "value": 0}))
     assert got == {1: D("0.2")}
+
+
+def test_a_market_regime_condition_switches_the_whole_screen_off_in_fear_and_back_on():
+    closes = {i: uptrend() for i in range(1, 5)}
+    gate = {"field": "mkt_fear_greed", "op": "gt", "value": 30}
+    s = spec(TOP, gate)
+    assert s.problem() is None and s.needs_scores()
+
+    def go(fear):
+        market = [(LAST - timedelta(days=1), {"mkt_fear_greed": fear})]
+        scores = ScoreBook(
+            {i: [(LAST - timedelta(days=3), {"score": 80.0})] for i in closes}, market
+        )
+        return run(closes, scores, s)
+
+    assert go(55.0) is not None and set(go(55.0)) == {
+        1,
+        2,
+        3,
+        4,
+    }  # calm market: the scored stocks are bought
+    assert go(20.0) is None  # extreme fear: nothing matches, so nothing is bought

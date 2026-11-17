@@ -126,7 +126,28 @@ def compute(conn: psycopg.Connection) -> list[dict[str, Any]]:
             row.update({k: v.value for k, v in fr.compute(known, market).items()})
             row["latest_period"] = known[0].period_end.isoformat()
         rows.append(row)
-    return score.attach(add_sector_view(rows, sec.sectors_on(conn, day)))
+    scored = score.attach(add_sector_view(rows, sec.sectors_on(conn, day)))
+    mkt = market_fields(conn, day)
+    return [{**r, **mkt} for r in scored] if mkt else scored
+
+
+def market_fields(conn: psycopg.Connection, day: date) -> dict[str, Decimal]:
+    """The market zone as of `day` (the same figures on every row, so a screen can use it as a regime filter); {} when the zone has not been built."""
+    row = conn.execute(
+        "SELECT fear_greed, trend, volatility FROM market_regime_daily WHERE day <= %s ORDER BY day DESC LIMIT 1",
+        (day,),
+    ).fetchone()
+    if row is None:
+        return {}
+    fg, trend, vol = row
+    out: dict[str, Decimal] = {}
+    if fg is not None:
+        out["mkt_fear_greed"] = Decimal(fg)
+    if trend in ("BULL", "BEAR", "SIDEWAYS"):
+        out["mkt_bull"] = Decimal(int(trend == "BULL"))
+    if vol in ("CALM", "NORMAL", "STRESSED"):
+        out["mkt_stressed"] = Decimal(int(vol == "STRESSED"))
+    return out
 
 
 def add_sector_view(rows: list[dict[str, Any]], sector_of: dict[int, str]) -> list[dict[str, Any]]:

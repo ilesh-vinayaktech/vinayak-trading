@@ -42,3 +42,35 @@ def test_the_digest_names_exactly_the_rows_held_so_a_rebuilt_history_is_detectab
     changed = {1: [ROWS[1][0], (date(2024, 3, 8), {"score": 75.1})]}
     assert ScoreBook(changed).digest() != a
     assert ScoreBook({}).digest() != a
+
+
+MARKET = [
+    (date(2024, 3, 4), {"mkt_fear_greed": 35.0, "mkt_bull": 0.0, "junk": 9.0}),
+    (date(2024, 3, 5), {"mkt_fear_greed": 62.0, "mkt_bull": 1.0}),
+]
+
+
+def test_the_market_zone_is_added_to_every_stock_as_known_on_the_day_and_never_from_a_later_day():
+    b = ScoreBook(ROWS, MARKET)
+    assert b.fields(1, date(2024, 3, 5)) == {
+        "mkt_fear_greed": D("62.0"),
+        "mkt_bull": D("1.0"),
+        "score": D("60.0"),
+        "score_trend": D("70.5"),
+    }
+    assert b.fields(1, date(2024, 3, 4))["mkt_fear_greed"] == D("35.0") and "junk" not in b.fields(
+        1, date(2024, 3, 4)
+    )
+    assert (
+        b.fields(1, date(2024, 3, 3)).get("mkt_fear_greed") is None
+    )  # the day before the first reading: no reading
+    assert b.fields(9, date(2024, 3, 5)) == {
+        "mkt_fear_greed": D("62.0"),
+        "mkt_bull": D("1.0"),
+    }  # a stock with no score still gets the zone
+
+
+def test_a_market_reading_older_than_a_long_weekend_is_not_used_and_the_digest_covers_it():
+    b = ScoreBook({}, MARKET)
+    assert b.market_on(date(2024, 3, 10)) != {} and b.market_on(date(2024, 3, 11)) == {}
+    assert b.digest() != ScoreBook({}, MARKET[:1]).digest() != ScoreBook({}).digest()
