@@ -70,7 +70,7 @@ def block_slices(
     )
     starts = rng.integers(0, n, size=d, dtype=np.int32)
     ahead = np.random.PCG64()
-    ahead.state = rng.bit_generator.state
+    ahead.state = dict(rng.bit_generator.state)  # type: ignore[assignment]  # numpy types the setter narrower than the getter
     ahead.advance(d * (n - 1))
     jump_rng = np.random.Generator(ahead)
     for lo in range(0, d, rows):
