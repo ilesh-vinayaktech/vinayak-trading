@@ -72,7 +72,7 @@ describe("the strategies list", () => {
     expect(screen.getByText("Screener: 1 condition, ranked by rsi_14, up to 10 stocks")).toBeInTheDocument();
     const row = screen.getByText("Dip buyer").closest("tr") as HTMLElement;
     expect(within(row).queryByRole("button", { name: "Change" })).not.toBeInTheDocument();
-    expect(within(row).getByRole("button", { name: "Use for paper trading" })).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Use in my trading account" })).toBeInTheDocument();
     expect(within(row).getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe("the strategies list", () => {
     expect(screen.getByText("Not used")).toBeInTheDocument();
     const used = screen.getByText("Bolder").closest("tr") as HTMLElement;
     expect(within(used).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument(); // one in use cannot be deleted
-    expect(within(used).queryByRole("button", { name: "Use for paper trading" })).not.toBeInTheDocument();
+    expect(within(used).queryByRole("button", { name: "Use in my trading account" })).not.toBeInTheDocument();
   });
 
   it("invites the first strategy when there are none", async () => {
@@ -154,7 +154,7 @@ describe("creating and changing", () => {
     expect(await screen.findByLabelText("Name")).toHaveValue("Cautious");
     expect(screen.getByLabelText("Index")).toHaveValue("nifty50");
     expect(screen.getByLabelText("Number of stocks")).toHaveValue("20");
-    expect(screen.getByText(/Your paper account uses this strategy/)).toBeInTheDocument();
+    expect(screen.getByText(/Your trading account uses this strategy/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Number of stocks"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save strategy" }));
     await waitFor(() => expect(posted()[0]).toMatchObject({ path: "/api/strategies/c1", body: { name: "Cautious", max_instruments: null } }));
@@ -175,9 +175,9 @@ describe("using and deleting", () => {
   it("gives the paper account a strategy", async () => {
     backend(ready([S], { "POST /api/strategies/c1/use": { ok: true } }));
     mount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use for paper trading" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use in my trading account" }));
     await waitFor(() => expect(posted()[0]?.path).toBe("/api/strategies/c1/use"));
-    expect(await screen.findByText("Your paper account now uses this strategy.")).toBeInTheDocument();
+    expect(await screen.findByText("Your trading account now uses this strategy.")).toBeInTheDocument();
   });
 
   it("asks before deleting and then deletes", async () => {
@@ -193,7 +193,7 @@ describe("using and deleting", () => {
   it("shows the server's reason when giving the strategy fails", async () => {
     backend(ready([S], { "POST /api/strategies/c1/use": [400, { detail: "no paper account yet" }] }));
     mount();
-    fireEvent.click(await screen.findByRole("button", { name: "Use for paper trading" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use in my trading account" }));
     expect(await screen.findByText("no paper account yet")).toBeInTheDocument();
   });
 });

@@ -680,6 +680,14 @@ export const paperOrderSchema = z.object({
   tick_size: decimal.nullable(), // the exchange price step of an open order's stock (a limit is rounded to it by the server)
   upcoming: z.array(actionSchema), // announced actions within days of an order that is still open
 });
+export const liveStatusSchema = z.object({
+  account: z.boolean(),
+  open: z.boolean(), // the gate is open: live can run
+  problems: z.array(z.string()),
+  stage: z.string(),
+  process: z.object({ state: z.string(), silent_s: z.number().nullable(), detail: z.string() }).nullable(),
+});
+export type LiveStatus = z.infer<typeof liveStatusSchema>;
 export const paperOrdersSchema = z.object({ orders: z.array(paperOrderSchema) });
 export const paperRunsSchema = z.object({
   runs: z.array(z.object({ decision_day: z.string(), status: z.enum(["PROPOSED", "NO_CHANGE", "SKIPPED", "ERROR"]), reason: z.string().nullable(), orders: z.number(), universe: z.string().nullable(), strategy_version: z.string(), created_at: z.string() })),

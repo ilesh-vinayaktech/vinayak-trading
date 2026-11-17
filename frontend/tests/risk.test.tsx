@@ -103,7 +103,7 @@ describe("Risk and kill switch", () => {
   it("without a paper account, hides the controls", async () => {
     backend(base({ ...running, account: null, limits: null }));
     mount();
-    expect(await screen.findByText("No paper account yet")).toBeTruthy();
+    expect(await screen.findByText("No trading account yet")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
     expect(screen.queryByLabelText("Limits (JSON)")).toBeNull();
   });

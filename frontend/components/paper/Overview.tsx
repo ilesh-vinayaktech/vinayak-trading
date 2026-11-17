@@ -8,6 +8,7 @@ import { Panel, StatCard } from "@/components/ui/Layout";
 import { api } from "@/lib/api/client";
 import { fmtMoney, plotNumber } from "@/lib/formatting";
 import type { PaperSummary } from "@/lib/schemas";
+import { useVenue } from "@/lib/venue";
 
 const sign = (s: string) => (s.startsWith("-") ? "bad" : /^0(\.0+)?$/.test(s) ? undefined : "good");
 const rupees = (s: string) => (s.startsWith("-") ? `-₹${fmtMoney(s.slice(1))}` : `₹${fmtMoney(s)}`);
@@ -45,7 +46,8 @@ const columns: Column<PaperSummary["positions"][number]>[] = [
 ];
 
 export function Overview({ showPositions = true }: { showPositions?: boolean }) {
-  const q = useQuery({ queryKey: ["paper", "summary"], queryFn: api.paperSummary, refetchInterval: 60_000 });
+  const mode = useVenue();
+  const q = useQuery({ queryKey: ["paper", mode, "summary"], queryFn: () => api.paperSummary(mode), refetchInterval: 60_000 });
   const d = q.data;
   return (
     <div className="space-y-6">

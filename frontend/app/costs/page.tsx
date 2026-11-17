@@ -101,7 +101,7 @@ export default function CostsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Trading costs"
-        subtitle="The charges every backtest and paper trade pays, by provider and the date they start. Each rate cites where it came from."
+        subtitle="The charges every backtest and trade pays, by provider and the date they start. Each rate cites where it came from."
         actions={manage && brokers.length > 0 ? <button type="button" onClick={() => setDialog("provider")} className={buttonClass("secondary")}>Add provider</button> : null}
       />
       {q.isError ? <Alert tone="error" title="Could not load the costs">Try again in a moment.</Alert> : null}
@@ -113,7 +113,7 @@ export default function CostsPage() {
           <Tabs tabs={[{ key: "DELIVERY", label: "Delivery" }, { key: "INTRADAY", label: "Intraday" }]} value={product} onChange={(p) => { setProduct(p); setSelected(undefined); }} label="Product" />
           {flagged.length > 0 ? (
             <Alert tone="warn" title={`${flagged.length} of ${rows.length} schedule${rows.length === 1 ? "" : "s"} not verified`}>
-              A backtest or paper trade that uses a schedule marked Needs checking or Assumed says so in its results. Check the rates against the cited sources, then verify.
+              A backtest or trade that uses a schedule marked Needs checking or Assumed says so in its results. Check the rates against the cited sources, then verify.
             </Alert>
           ) : null}
           <Panel title="Rates over time">

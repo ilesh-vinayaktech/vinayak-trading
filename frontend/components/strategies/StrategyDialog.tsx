@@ -27,7 +27,7 @@ function Choice({ id, label, hint, value, options, onChange }: { id: string; lab
   );
 }
 
-/** Create a strategy, or change one (then `strategy` is given). Changing one changes it for the paper account that uses it. */
+/** Create a strategy, or change one (then `strategy` is given). Changing one changes it for the trading account that uses it. */
 export function StrategyDialog({ open, onClose, options, strategy }: { open: boolean; onClose: () => void; options: Strategies["options"]; strategy?: StrategyConfig }) {
   const qc = useQueryClient();
   const toast = useToast();
@@ -59,7 +59,7 @@ export function StrategyDialog({ open, onClose, options, strategy }: { open: boo
       open={open}
       onClose={onClose}
       title={strategy ? "Change strategy" : "New strategy"}
-      description={strategy?.in_use ? "Your paper account uses this strategy. Changes apply from its next daily decision." : "A named set of choices you can run, test and give your paper account."}
+      description={strategy?.in_use ? "Your trading account uses this strategy. Changes apply from its next daily decision." : "A named set of choices you can run, test and give your paper account."}
       footer={
         <>
           <button type="button" onClick={onClose} className={buttonClass("secondary")}>Cancel</button>

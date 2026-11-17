@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Venue } from "@/lib/venue";
 import {
   activitySchema,
   backtestPageSchema,
@@ -28,6 +29,7 @@ import {
   nseInsiderSchema,
   nseInstrumentSchema,
   screenerRunSchema,
+  liveStatusSchema,
   paperAccountSchema,
   paperDefinitionsSchema,
   paperOrdersSchema,
@@ -179,6 +181,10 @@ export type { StudySpec } from "@/lib/schemas";
 import type { StudySpec, SwitchAction } from "@/lib/schemas";
 export type StrategyBody = { name: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number>; screen?: { conditions: { field: string; op: string; value?: unknown }[]; match: string; sort: string; descending: boolean; segments: string[] } };
 
+// the paper account is the default and its requests carry no mode, so they are exactly what they always were
+const modeParam = (mode: Venue): Record<string, string> => (mode === "live" ? { mode } : {});
+const modeQuery = (mode: Venue) => (mode === "live" ? "?mode=live" : "");
+
 export const api = {
   login: (email: string, password: string, totpCode?: string) => send("POST", "/api/auth/login", { email, password, totp_code: totpCode || undefined }, loginSchema),
   logout: () => send("POST", "/api/auth/logout", undefined, okSchema),
@@ -220,7 +226,8 @@ export const api = {
   newCostVersion: (id: string, version: string, b: { valid_from: string; valid_until: string | null; note: string; changes: { type: string; side: string; rate_pct?: string | null; amount?: string | null }[] }) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/new-version`, b, okSchema),
   removeCostSchedule: (id: string, version: string) => send("POST", `/api/costs/schedules/${encodeURIComponent(id)}/${encodeURIComponent(version)}/remove`, undefined, okSchema),
   addCostProvider: (b: { name: string; template_broker: string; valid_from: string; note: string }) => send("POST", "/api/costs/providers", b, okSchema),
-  paperAccount: () => get("/api/paper/account", paperAccountSchema),
+  paperAccount: (mode: Venue = "paper") => get("/api/paper/account", paperAccountSchema, modeParam(mode)),
+  paperLiveStatus: () => get("/api/paper/live-status", liveStatusSchema),
   holdout: () => get("/api/holdout", holdoutSchema),
   pipeline: () => get("/api/pipeline", pipelineSchema),
   pipelineUnrun: () => get("/api/pipeline/unrun", pipelineUnrunSchema),
@@ -228,20 +235,20 @@ export const api = {
   freezeHoldoutBatch: (cutoffId: number) => send("POST", `/api/holdout/cutoffs/${cutoffId}/freeze`, { confirm: true }, holdoutFreezeSchema),
   paperDefinitions: () => get("/api/paper/definitions", paperDefinitionsSchema),
   startPaperDefinition: (experimentId: number) => send("POST", `/api/paper/definitions/${experimentId}/start`, undefined, okSchema),
-  createPaperAccount: (b: { initial_cash: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number> }) => send("POST", "/api/paper/account", b, okSchema),
-  updatePaperSettings: (b: { enabled?: boolean; universe?: string; max_instruments?: number | null; timeframe?: string; params?: Record<string, number> }) => send("POST", "/api/paper/account/settings", b, okSchema),
-  paperSummary: () => get("/api/paper/summary", paperSummarySchema),
-  paperOrders: (statuses?: string[]) => get("/api/paper/orders", paperOrdersSchema, statuses ? { status: statuses.join(",") } : undefined),
-  approvePaperOrder: (id: string, how: { order_type: "MARKET" | "LIMIT"; limit_price?: string } = { order_type: "MARKET" }) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/approve`, how, okSchema),
-  rejectPaperOrder: (id: string) => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/reject`, undefined, okSchema),
-  paperRuns: () => get("/api/paper/runs", paperRunsSchema),
+  createPaperAccount: (b: { initial_cash: string; universe: string; max_instruments: number | null; timeframe: string; params: Record<string, number>; mode?: Venue }) => send("POST", "/api/paper/account", b, okSchema),
+  updatePaperSettings: (b: { enabled?: boolean; universe?: string; max_instruments?: number | null; timeframe?: string; params?: Record<string, number> }, mode: Venue = "paper") => send("POST", `/api/paper/account/settings${modeQuery(mode)}`, b, okSchema),
+  paperSummary: (mode: Venue = "paper") => get("/api/paper/summary", paperSummarySchema, modeParam(mode)),
+  paperOrders: (statuses?: string[], mode: Venue = "paper") => get("/api/paper/orders", paperOrdersSchema, { ...(statuses ? { status: statuses.join(",") } : {}), ...modeParam(mode) }),
+  approvePaperOrder: (id: string, how: { order_type: "MARKET" | "LIMIT"; limit_price?: string } = { order_type: "MARKET" }, mode: Venue = "paper") => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/approve${modeQuery(mode)}`, how, okSchema),
+  rejectPaperOrder: (id: string, mode: Venue = "paper") => send("POST", `/api/paper/orders/${encodeURIComponent(id)}/reject${modeQuery(mode)}`, undefined, okSchema),
+  paperRuns: (mode: Venue = "paper") => get("/api/paper/runs", paperRunsSchema, modeParam(mode)),
   strategies: () => get("/api/strategies", strategiesSchema),
   createStrategy: (b: StrategyBody) => send("POST", "/api/strategies", b, strategyCreatedSchema),
   changeStrategy: (id: string, b: StrategyBody) => send("POST", `/api/strategies/${encodeURIComponent(id)}`, b, okSchema),
   strategyStage: (id: string) => get(`/api/strategies/${encodeURIComponent(id)}/stage`, stageHistorySchema),
   moveStrategyStage: (id: string, body: { to_stage: string; reason: string; run_id: number | null }) =>
     send("POST", `/api/strategies/${encodeURIComponent(id)}/stage`, body, z.object({ stage: z.string() })),
-  useStrategy: (id: string) => send("POST", `/api/strategies/${encodeURIComponent(id)}/use`, undefined, okSchema),
+  useStrategy: (id: string, mode: Venue = "paper") => send("POST", `/api/strategies/${encodeURIComponent(id)}/use${modeQuery(mode)}`, undefined, okSchema),
   studyOptions: () => get("/api/studies/options", studyOptionsSchema),
   studies: () => get("/api/studies", studiesSchema),
   study: (id: number) => get(`/api/studies/${id}`, studySchema),

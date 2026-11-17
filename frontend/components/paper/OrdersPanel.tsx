@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ApiError, api } from "@/lib/api/client";
 import { fmtMoney } from "@/lib/formatting";
 import type { PaperOrder } from "@/lib/schemas";
+import { useVenue } from "@/lib/venue";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not save. Try again.");
 const TONE: Record<PaperOrder["status"], "good" | "warn" | "bad" | "neutral" | "info"> = { PENDING: "warn", APPROVED: "info", FILLED: "good", REJECTED: "neutral", EXPIRED: "neutral", FAILED: "bad" };
@@ -24,10 +25,11 @@ export function SidePill({ side }: { side: PaperOrder["side"] }) {
 export function OrdersPanel({ only }: { only?: "pending" }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const q = useQuery({ queryKey: ["paper", "orders"], queryFn: () => api.paperOrders(), refetchInterval: 30_000 });
+  const mode = useVenue();
+  const q = useQuery({ queryKey: ["paper", mode, "orders"], queryFn: () => api.paperOrders(undefined, mode), refetchInterval: 30_000 });
   const done = () => void qc.invalidateQueries({ queryKey: ["paper"] });
-  const approve = useMutation({ mutationFn: ({ id, how }: { id: string; how?: { order_type: "MARKET" | "LIMIT"; limit_price?: string } }) => api.approvePaperOrder(id, how), onSuccess: (_r, v) => { toast.success(v.how?.order_type === "LIMIT" ? `Approved. It fills only at the limit (₹${v.how.limit_price}, rounded to the price step) or better.` : "Approved. It fills at the next live price."); done(); } });
-  const reject = useMutation({ mutationFn: (id: string) => api.rejectPaperOrder(id), onSuccess: () => { toast.success("Rejected."); done(); } });
+  const approve = useMutation({ mutationFn: ({ id, how }: { id: string; how?: { order_type: "MARKET" | "LIMIT"; limit_price?: string } }) => api.approvePaperOrder(id, how, mode), onSuccess: (_r, v) => { toast.success(mode === "live" ? "Approved. The live process sends it to your broker while live trading is allowed." : v.how?.order_type === "LIMIT" ? `Approved. It fills only at the limit (₹${v.how.limit_price}, rounded to the price step) or better.` : "Approved. It fills at the next live price."); done(); } });
+  const reject = useMutation({ mutationFn: (id: string) => api.rejectPaperOrder(id, mode), onSuccess: () => { toast.success("Rejected."); done(); } });
   const all = q.data?.orders ?? [];
   const pending = all.filter((o) => o.status === "PENDING");
   const history = all.filter((o) => o.status !== "PENDING");

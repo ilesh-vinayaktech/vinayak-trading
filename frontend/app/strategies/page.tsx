@@ -34,7 +34,7 @@ export default function StrategiesPage() {
     void qc.invalidateQueries({ queryKey: ["paper"] });
     toast.success(text);
   };
-  const use = useMutation({ mutationFn: (id: string) => api.useStrategy(id), onSuccess: () => done("Your paper account now uses this strategy.") });
+  const use = useMutation({ mutationFn: (id: string) => api.useStrategy(id), onSuccess: () => done("Your trading account now uses this strategy.") });
   const remove = useMutation({ mutationFn: (id: string) => api.deleteStrategy(id), onSuccess: () => done("Strategy deleted.") });
   const options = q.data?.options as Strategies["options"] | undefined;
   const err = use.error ?? remove.error;
@@ -43,7 +43,7 @@ export default function StrategiesPage() {
     { key: "on", header: "Trades", cell: (s) => s.screen ? `${s.screen.segments.join(" + ")} caps` : `${options?.universes.find((u) => u.key === s.universe)?.label ?? s.universe}, ${s.max_instruments ? `top ${s.max_instruments} stocks` : "all stocks"}` },
     { key: "rules", header: "Rules", hideBelow: "md", cell: (s) => <span className="text-ink-soft">{rules(s)}</span> },
     { key: "stage", header: "Stage", cell: (s) => <StatusPill tone={s.stage === "LIVE" ? "bad" : s.stage === "PAPER" ? "info" : "neutral"}>{STAGE_LABEL[s.stage]}</StatusPill> },
-    { key: "used", header: "Paper account", cell: (s) => (s.in_use ? <StatusPill tone="good">In use</StatusPill> : <span className="text-ink-soft">Not used</span>) },
+    { key: "used", header: "Trading account", cell: (s) => (s.in_use ? <StatusPill tone="good">In use</StatusPill> : <span className="text-ink-soft">Not used</span>) },
     {
       key: "actions",
       header: "",
@@ -52,7 +52,7 @@ export default function StrategiesPage() {
         <span className="inline-flex flex-wrap justify-end gap-2">
           {!s.screen ? <button type="button" onClick={() => setEditing(s)} className={buttonClass("secondary")}>Change</button> : null}
           <button type="button" onClick={() => setStaging(s)} className={buttonClass("secondary")}>Stage</button>
-          {!s.in_use ? <button type="button" onClick={() => use.mutate(s.config_id)} disabled={use.isPending} className={buttonClass("secondary")}>Use for paper trading</button> : null}
+          {!s.in_use ? <button type="button" onClick={() => use.mutate(s.config_id)} disabled={use.isPending} className={buttonClass("secondary")}>Use in my trading account</button> : null}
           {!s.in_use ? <ConfirmButton tone="danger" question={`Delete ${s.name}?`} confirmLabel="Delete" onConfirm={() => remove.mutate(s.config_id)}>Delete</ConfirmButton> : null}
         </span>
       ),
@@ -62,7 +62,7 @@ export default function StrategiesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Strategies"
-        subtitle="Save named sets of choices: which stocks, how many, and the rules. Your paper account runs the one you pick."
+        subtitle="Save named sets of choices: which stocks, how many, and the rules. Your trading account runs the one you pick."
         actions={options ? <button type="button" onClick={() => setEditing("new")} className={buttonClass("primary")}>New strategy</button> : undefined}
       />
       <Alert tone="warn" title="Unvalidated research">
@@ -77,7 +77,7 @@ export default function StrategiesPage() {
           rows={q.data?.strategies}
           rowKey={(s) => s.config_id}
           loading={q.isLoading}
-          empty={<EmptyState icon="flask" title="No strategies yet">Create one to choose the stocks and rules, then give it to your paper account.</EmptyState>}
+          empty={<EmptyState icon="flask" title="No strategies yet">Create one to choose the stocks and rules, then give it to your trading account.</EmptyState>}
         />
       </Panel>
       <DefinitionsPanel canRun />

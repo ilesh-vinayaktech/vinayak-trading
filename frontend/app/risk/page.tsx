@@ -20,7 +20,7 @@ const MEANING: Record<string, string> = {
   RUNNING: "Orders can be proposed and approved as usual.",
   PAUSE: "No new orders: proposals are skipped and approvals are refused. Orders already approved can still fill.",
   CANCEL: "No new orders, and approved orders that have not filled are cancelled.",
-  FLATTEN: "Everything CANCEL does, and closing the positions was requested. On paper, closing them is still your decision.",
+  FLATTEN: "Everything CANCEL does, and closing the positions was requested. Closing them is still your decision.",
 };
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not save. Try again.");
 
@@ -93,7 +93,7 @@ function Limits({ state }: { state: RiskState }) {
     }
   })();
   return (
-    <Panel title="Limits for your paper account">
+    <Panel title="Limits for your trading account">
       <div className="space-y-3 p-4">
         <p className="text-sm text-ink-soft">Checked when you approve an order: a breach refuses the approval and the order stays pending. A limit left out is not checked. Values are at cost on paper.</p>
         <Field id="limits-json" label="Limits (JSON)" error={invalid}>
@@ -158,8 +158,8 @@ export default function RiskPage() {
             </Panel>
           ) : (
             <Panel>
-              <EmptyState icon="info" title="No paper account yet">
-                Create one on the Paper trading page to switch your own strategy and set limits.
+              <EmptyState icon="info" title="No trading account yet">
+                Create one on the Trading page to switch your own strategy and set limits.
               </EmptyState>
             </Panel>
           )}

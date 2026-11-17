@@ -264,6 +264,87 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+describe("one page for both venues", () => {
+  it("names the venue in the title and says what happens to an approved order", async () => {
+    backend(ready({ mode: "LIVE" }));
+    mount();
+    expect(await screen.findByRole("heading", { name: "Trading (live)" })).toBeInTheDocument();
+    expect(screen.getByText(/Real money\. You approve every order/)).toBeInTheDocument();
+  });
+  it("keeps the paper wording for a paper account", async () => {
+    backend(ready({ mode: "PAPER" }));
+    mount();
+    expect(await screen.findByRole("heading", { name: "Trading (paper)" })).toBeInTheDocument();
+    expect(screen.getByText(/nothing here places a real one/)).toBeInTheDocument();
+  });
+});
+
+const LIVE_STATUS = {
+  account: true,
+  open: false,
+  problems: ["ALGO_LIVE=1 is not set", "there is no valid broker session"],
+  stage: "RESEARCH",
+  process: null,
+};
+const liveTab = () => screen.findByRole("tab", { name: "Live" });
+
+describe("the live account on the same page", () => {
+  it("asks for the live account only when Live is chosen, and paper requests carry no mode", async () => {
+    backend(ready({}, { "GET /api/paper/live-status": LIVE_STATUS }));
+    mount();
+    await screen.findByRole("heading", { name: "Trading (paper)" });
+    expect(calls.filter((c) => c.path === "/api/paper/account").every((c) => c.query === "")).toBe(true);
+    fireEvent.click(await liveTab());
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/paper/account" && c.query === "?mode=live")).toBe(true));
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/paper/summary" && c.query === "?mode=live")).toBe(true));
+  });
+  it("says why live cannot run and whether the live process is alive", async () => {
+    backend(ready({ mode: "LIVE" }, { "GET /api/paper/live-status": LIVE_STATUS }));
+    mount();
+    fireEvent.click(await liveTab());
+    expect(await screen.findByText("Live cannot run yet")).toBeInTheDocument();
+    expect(screen.getByText("Live process has not reported")).toBeInTheDocument();
+    expect(screen.getByText("ALGO_LIVE=1 is not set")).toBeInTheDocument();
+    expect(screen.getByText("there is no valid broker session")).toBeInTheDocument();
+    expect(screen.getByText("Real money")).toBeInTheDocument();
+  });
+  it("shows a running live process and an open gate", async () => {
+    const open = { ...LIVE_STATUS, open: true, problems: [], stage: "LIVE", process: { state: "RUNNING", silent_s: 12, detail: "" } };
+    backend(ready({ mode: "LIVE" }, { "GET /api/paper/live-status": open }));
+    mount();
+    fireEvent.click(await liveTab());
+    expect(await screen.findByText("Live can run")).toBeInTheDocument();
+    expect(screen.getByText("Live process running")).toBeInTheDocument();
+  });
+  it("starts a live account with its capital and a LIVE-stage strategy, and sends the mode", async () => {
+    const live = { ...STRATEGY, stage: "LIVE" };
+    backend(
+      ready(null, {
+        "GET /api/paper/live-status": { ...LIVE_STATUS, account: false },
+        "GET /api/strategies": strategies([live, { ...STRATEGY, config_id: "c2", name: "Research only", stage: "RESEARCH" }]),
+        "POST /api/paper/account": { ok: true },
+        "POST /api/strategies/c1/use": { ok: true },
+      }),
+    );
+    mount();
+    fireEvent.click(await liveTab());
+    expect(await screen.findByText(/no live account yet/)).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Research only" })).not.toBeInTheDocument(); // only what was promoted
+    fireEvent.change(await screen.findByLabelText("Capital (₹)"), { target: { value: "50000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Start live trading" }));
+    await waitFor(() => expect(posted().find((c) => c.path === "/api/paper/account")?.body).toMatchObject({ initial_cash: "50000", mode: "live" }));
+    await waitFor(() => expect(posted().some((c) => c.path === "/api/strategies/c1/use" && c.query === "?mode=live")).toBe(true));
+  });
+  it("will not start a live account without a strategy in the LIVE stage", async () => {
+    backend(ready(null, { "GET /api/paper/live-status": { ...LIVE_STATUS, account: false }, "GET /api/strategies": strategies([{ ...STRATEGY, stage: "RESEARCH" }]) }));
+    mount();
+    fireEvent.click(await liveTab());
+    fireEvent.click(await screen.findByRole("button", { name: "Start live trading" }));
+    expect(await screen.findByText("Pick a strategy that has been promoted to the LIVE stage first.")).toBeInTheDocument();
+    expect(posted()).toHaveLength(0);
+  });
+});
+
 describe("money formatting", () => {
   it("groups the Indian way from the decimal string, without touching the digits", () => {
     expect(fmtMoney("1234567.5")).toBe("12,34,567.50");
@@ -540,7 +621,7 @@ describe("the account overview", () => {
     mount();
     expect(await screen.findByText("Paused")).toBeInTheDocument();
     expect(screen.getByText(/rights \(ex 2026-11-05/)).toBeInTheDocument();
-    expect(screen.getByText("Paper trading is off")).toBeInTheDocument();
+    expect(screen.getByText("Trading is off")).toBeInTheDocument();
   });
 });
 
@@ -825,22 +906,22 @@ describe("settings", () => {
 
   it("switches paper trading off and on", async () => {
     await open();
-    const sw = await screen.findByRole("switch", { name: "Paper trading" });
+    const sw = await screen.findByRole("switch", { name: "Trading" });
     expect(sw).toHaveAttribute("aria-checked", "true");
     fireEvent.click(sw);
     await waitFor(() => expect(posted()[0]?.body).toEqual({ enabled: false }));
     expect(
-      await screen.findByText(/Paper trading is off\. No new orders/),
+      await screen.findByText(/Trading is off\. No new orders/),
     ).toBeInTheDocument();
   });
 
   it("confirms turning it back on", async () => {
     await open({ enabled: false });
     fireEvent.click(
-      await screen.findByRole("switch", { name: "Paper trading" }),
+      await screen.findByRole("switch", { name: "Trading" }),
     );
     await waitFor(() => expect(posted()[0]?.body).toEqual({ enabled: true }));
-    expect(await screen.findByText("Paper trading is on.")).toBeInTheDocument();
+    expect(await screen.findByText("Trading is on.")).toBeInTheDocument();
   });
 
   it("shows the server's reason when a change is refused", async () => {
@@ -854,7 +935,7 @@ describe("settings", () => {
       },
     );
     fireEvent.click(
-      await screen.findByRole("switch", { name: "Paper trading" }),
+      await screen.findByRole("switch", { name: "Trading" }),
     );
     expect(await screen.findByText("unknown universe 'x'")).toBeInTheDocument();
   });
@@ -865,7 +946,7 @@ describe("loading and failure", () => {
     backend({ "GET /api/auth/me": who() });
     mount();
     expect(
-      await screen.findByText("Could not load your paper account"),
+      await screen.findByText("Could not load your trading account"),
     ).toBeInTheDocument();
   });
 });
