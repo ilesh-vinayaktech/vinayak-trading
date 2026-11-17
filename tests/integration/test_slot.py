@@ -127,3 +127,22 @@ def test_nice_lowers_priority_and_a_non_autocommit_connection_is_refused(conn, p
         with pytest.raises(ValueError, match="autocommit"):
             with slot.hold(manual, "x"):
                 pass
+
+
+def test_study_runs_can_share_several_slots_while_other_jobs_still_take_turns(conn, pg_url):
+    with (
+        psycopg.connect(pg_url, autocommit=True) as b,
+        psycopg.connect(pg_url, autocommit=True) as c,
+        psycopg.connect(pg_url, autocommit=True) as d,
+    ):
+        with slot.hold(conn, "study 1", slots=2), slot.hold(b, "study 2", slots=2):
+            with pytest.raises(slot.SlotTimeout):  # a third study finds both taken
+                with slot.hold(c, "study 3", slots=2, timeout_s=0.3, poll_s=0.05):
+                    pytest.fail("three studies held two slots")
+            with pytest.raises(
+                slot.SlotTimeout
+            ):  # and any other job (one slot) still waits for the first
+                with slot.hold(d, "feature job", timeout_s=0.3, poll_s=0.05):
+                    pytest.fail("a single-slot job ran beside two studies")
+        with slot.hold(c, "study 3", slots=2, timeout_s=1):
+            pass  # both released: free again

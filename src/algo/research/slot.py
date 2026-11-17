@@ -47,9 +47,11 @@ def hold(
     timeout_s: float | None = None,
     poll_s: float = 1.0,
     nice: int = 0,
+    slots: int = 1,
 ) -> Iterator[None]:
     """Wait for the slot, hold it for the body, release it. `who` is for the message of whoever times out behind us (and sets the connection's
-    application_name while held). `nice` > 0 lowers this process's CPU priority for the rest of its life."""
+    application_name while held). `nice` > 0 lowers this process's CPU priority for the rest of its life. `slots` > 1 lets that many holders work at once
+    (study runs only; each is about 2 GB, so it is the machine's memory that sets it); every other job asks for one, and so still waits for the first."""
     if id(conn) in _held:
         raise SlotTimeout(f"{who}: this connection already holds the research slot")
     if conn.autocommit is False:
@@ -57,12 +59,19 @@ def hold(
             "the research slot needs an autocommit connection (its lock must not wait for a transaction)"
         )
     deadline = None if timeout_s is None else time.monotonic() + timeout_s
-    while not conn.execute("SELECT pg_try_advisory_lock(%s, %s)", KEY).fetchone()[0]:  # type: ignore[index]
-        if deadline is not None and time.monotonic() >= deadline:
-            raise SlotTimeout(
-                f"{who}: the research slot is held by {holder(conn)}; gave up after {timeout_s}s"
-            )
-        time.sleep(poll_s)
+    got: tuple[int, int] | None = None
+    while got is None:
+        for i in range(slots):
+            k = (KEY[0], KEY[1] + i)
+            if conn.execute("SELECT pg_try_advisory_lock(%s, %s)", k).fetchone()[0]:  # type: ignore[index]
+                got = k
+                break
+        else:
+            if deadline is not None and time.monotonic() >= deadline:
+                raise SlotTimeout(
+                    f"{who}: the research slot is held by {holder(conn)}; gave up after {timeout_s}s"
+                )
+            time.sleep(poll_s)
     _held.add(id(conn))
     conn.execute("SELECT set_config('application_name', %s, false)", (f"research:{who}",))
     if nice:
@@ -71,7 +80,7 @@ def hold(
         yield
     finally:
         _held.discard(id(conn))
-        conn.execute("SELECT pg_advisory_unlock(%s, %s)", KEY)
+        conn.execute("SELECT pg_advisory_unlock(%s, %s)", got)
 
 
 def busy_reason(now: datetime, commandlines: Iterable[str]) -> str | None:

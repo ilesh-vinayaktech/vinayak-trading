@@ -100,7 +100,10 @@ with psycopg.connect(a.db, autocommit=True) as conn:
         try:
             doing = f"run {run_id} (waiting for the research slot)"
             with slot.hold(
-                conn, f"study run {run_id}", nice=10
+                conn,
+                f"study run {run_id}",
+                nice=10,
+                slots=int(os.environ.get("ALGO_STUDY_SLOTS", "1")),
             ):  # one research job at a time on this machine
                 doing = f"run {run_id}"
                 execute(conn, run_id, datetime.now(UTC))
