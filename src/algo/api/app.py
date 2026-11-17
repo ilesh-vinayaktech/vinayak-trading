@@ -30,6 +30,7 @@ from algo.api import (
     market_routes,
     paper_routes,
     platform_health,
+    pipeline_routes,
     queries,
     reviews,
     risk_routes,
@@ -128,6 +129,7 @@ def create_app(
     app.include_router(live_routes.router)
     app.include_router(holdout_routes.router)
     app.include_router(paper_routes.router)
+    app.include_router(pipeline_routes.router)
     app.include_router(risk_routes.router)
     app.include_router(strategy_routes.router)
     app.include_router(study_routes.router)

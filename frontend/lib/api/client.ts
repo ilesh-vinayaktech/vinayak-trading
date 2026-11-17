@@ -86,6 +86,7 @@ import {
   type ScreenerCondition,
   type Adjust,
   type Timeframe,
+  pipelineSchema,
 } from "@/lib/schemas";
 
 /** The browser talks to its own origin; Next proxies /api to the backend, so the session cookie never crosses sites. */
@@ -219,6 +220,8 @@ export const api = {
   paperRuns: () => get("/api/paper/runs", paperRunsSchema),
   strategies: () => get("/api/strategies", strategiesSchema),
   createStrategy: (b: StrategyBody) => send("POST", "/api/strategies", b, strategyCreatedSchema),
+  pipeline: () => get("/api/pipeline", pipelineSchema),
+  submitHoldout: (candidates: string[], declaration: string) => send("POST", "/api/holdout/submit", { candidates, declaration, confirm: true }, holdoutFreezeSchema),
   submitHoldout: (candidates: string[], declaration: string) => send("POST", "/api/holdout/submit", { candidates, declaration, confirm: true }, holdoutFreezeSchema),
   changeStrategy: (id: string, b: StrategyBody) => send("POST", `/api/strategies/${encodeURIComponent(id)}`, b, okSchema),
   strategyStage: (id: string) => get(`/api/strategies/${encodeURIComponent(id)}/stage`, stageHistorySchema),

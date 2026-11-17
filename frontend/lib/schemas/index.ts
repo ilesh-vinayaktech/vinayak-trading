@@ -1188,3 +1188,51 @@ export const holdoutSchema = z.object({
 });
 export type Holdout = z.infer<typeof holdoutSchema>;
 export const holdoutFreezeSchema = z.object({ ok: z.boolean(), batch_id: z.number() });
+
+// ---- NSE smart money: FII/DII flows, most active, delivery, deals, insider, one stock ------------------------------------
+const n = z.number().nullable();
+export const nseFlowsSchema = z.object({ rows: z.array(z.object({ date: z.string(), fii_buy: n, fii_sell: n, fii_net: n, dii_buy: n, dii_sell: n, dii_net: n })) });
+export const nseActiveSchema = z.object({ day: z.string().nullable(), rows: z.array(z.object({ id: n, symbol: z.string(), close: z.number(), volume: z.number(), traded_value: z.number() })) });
+export const nseDeliverySchema = z.object({ day: z.string().nullable(), rows: z.array(z.object({ id: n, symbol: z.string(), close: z.number(), volume: z.number(), delivery_qty: z.number(), delivery_pct: z.number() })) });
+const dealRow = z.object({ date: z.string(), kind: z.string(), client: z.string(), side: z.string(), quantity: z.number(), price: z.number(), value_cr: z.number(), remarks: z.string().nullable() });
+export const nseDealsSchema = z.object({ rows: z.array(dealRow.extend({ id: n, symbol: z.string() })) });
+const insiderRow = z.object({ id: n.optional(), did: z.string(), symbol: z.string(), person: z.string(), category: z.string().nullable(), type: z.string().nullable(), mode: z.string().nullable(), quantity: n, value: n, pct_after: n, from_date: z.string().nullable(), intimation_date: z.string().nullable(), broadcast_at: z.string().nullable() });
+export const nseInsiderSchema = z.object({ rows: z.array(insiderRow) });
+export const nseInstrumentSchema = z.object({
+  symbol: z.string(),
+  delivery: z.array(z.object({ date: z.string(), close: z.number(), volume: z.number(), delivery_qty: z.number(), delivery_pct: n })),
+  holdings: z.array(z.object({ period_end: z.string(), promoter: n, fii: n, dii: n, mf: n, insurance: n, retail: n, public: n, filed_at: z.string().nullable(), revised: z.boolean() })),
+  insider: z.array(insiderRow),
+  deals: z.array(dealRow),
+});
+export type NseFlows = z.infer<typeof nseFlowsSchema>;
+export type NseInstrument = z.infer<typeof nseInstrumentSchema>;
+
+// ---- Strategy pipeline: every strategy, how far it got and what it returned --------------------------------------------
+const stageFigures = z.object({
+  passed: z.boolean(),
+  failed: z.array(z.string()),
+  cagr: z.number().nullable(),
+  total_return: z.number().nullable(),
+  sharpe: z.number().nullable(),
+  max_drawdown: z.number().nullable(),
+  benchmark_sharpe: z.number().nullable(),
+  window: z.array(z.string()).nullable(),
+});
+export const pipelineSchema = z.object({
+  outer_visible: z.boolean(),
+  rows: z.array(
+    z.object({
+      experiment_id: z.number(),
+      name: z.string(),
+      stage: z.enum(["development", "inner", "outer", "paper"]),
+      outcome: z.enum(["ready", "stopped", "waiting", "running"]),
+      why: z.string(),
+      paper: z.string().nullable(),
+      development: stageFigures.extend({ oos_sharpe: z.number().nullable() }).nullable(),
+      inner: stageFigures.nullable(),
+      outer: z.object({ overall: z.enum(["PASS", "FAIL", "INCOMPLETE"]), checks: z.array(z.object({ gate: z.string(), verdict: z.string(), later: z.boolean() })) }).nullable(),
+    }),
+  ),
+});
+export type Pipeline = z.infer<typeof pipelineSchema>;
