@@ -217,8 +217,8 @@ def flatten(conn: psycopg.Connection, now: datetime) -> FlattenResult:
     switch = kill_switch.load(conn)
     sent: list[UUID] = []
     refused: list[tuple[UUID, int, str]] = []
-    for user_id, strategy in conn.execute(
-        "SELECT user_id, strategy_id FROM paper_account WHERE mode='PAPER' ORDER BY user_id"
+    for user_id, strategy, mode in conn.execute(
+        "SELECT user_id, strategy_id, mode FROM paper_account ORDER BY user_id"
     ).fetchall():
         if switch.mode(strategy) is not Mode.FLATTEN:
             continue
@@ -249,6 +249,16 @@ def flatten(conn: psycopg.Connection, now: datetime) -> FlattenResult:
             if not decision.approved:  # not sent: take the row back so the next run tries again
                 conn.execute("DELETE FROM paper_order WHERE order_id=%s", (oid,))
                 refused.append((user_id, iid, ", ".join(decision.codes)))
+                continue
+            if (
+                mode == "LIVE"
+            ):  # the one place the venues part: approved by the FLATTEN itself, sent by the live process
+                conn.execute(
+                    "UPDATE paper_order SET status='APPROVED', decided_at=%s, decided_by=(SELECT owner_user_id FROM paper_account WHERE user_id=%s)"
+                    " WHERE order_id=%s AND status='PENDING'",
+                    (now, user_id, oid),
+                )
+                sent.append(oid)
                 continue
             sent_order = submit_approved(conn, user_id, oid, now)
             if sent_order.is_terminal:

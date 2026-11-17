@@ -23,6 +23,7 @@ from algo.live import heartbeat, market_calendar
 from algo.paper import book as paper_book
 from algo.paper import orders as paper_orders
 from algo.paper import risk as paper_risk
+from algo.paper.oms import FLATTEN_REASON
 from algo.risk import store as risk_store
 
 PROCESS = "live"
@@ -72,12 +73,22 @@ class LiveProcess:
         self.oms.risk.switch = risk_store.load(self.conn)
         self._saved = len(self.oms.risk.switch.events)
 
+    def _closing_orders(self, strategy: str) -> set[str]:
+        """The FLATTEN's own closing orders: what the switch asked for, so cancelling the strategy's open orders must leave them alone."""
+        rows = self.conn.execute(
+            "SELECT o.order_id FROM paper_order o JOIN paper_account a USING (user_id)"
+            " WHERE a.mode='LIVE' AND a.strategy_id=%s AND o.status='APPROVED' AND o.reason LIKE %s",
+            (strategy, f"{FLATTEN_REASON}%"),
+        ).fetchall()
+        return {client_order_id(strategy, str(oid)) for (oid,) in rows}
+
     def _cancel_open(self) -> None:
         """CANCEL and FLATTEN mean the open orders come off the broker, once each (a failed cancel is asked again next tick)."""
         sw = self.oms.risk.switch
         for strategy in {o.strategy_id for o in self.oms.orders.values() if o.is_open}:
             if sw.mode(strategy).cancels_open:
-                self._cancel_asked.update(self.oms.cancel_open(strategy, keep=self._cancel_asked))
+                keep = self._cancel_asked | self._closing_orders(strategy)
+                self._cancel_asked.update(self.oms.cancel_open(strategy, keep=keep))
 
     def _fail(self, order_id: UUID, why: str) -> None:
         self.conn.execute(

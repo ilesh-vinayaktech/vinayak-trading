@@ -14,6 +14,7 @@ from algo.data.store.migrate import migrate
 from algo.paper import book, orders
 from algo.paper import oms as paper_oms
 from algo.risk import store as kill_switch
+from tests.support.bt import put_bars
 from tests.support.portal import add_user
 
 pytestmark = pytest.mark.integration
@@ -111,17 +112,25 @@ def test_the_paper_oms_does_not_adopt_a_live_order_into_its_log(env):
     assert conn.execute("SELECT count(*) FROM oms_event").fetchone()[0] == 0
 
 
-def test_the_paper_reconciler_and_flatten_ignore_live_accounts(env):
+def test_the_paper_reconciler_ignores_live_accounts_and_flatten_only_queues_their_closing_order(
+    env,
+):
     conn, _, live, iid = env
     conn.execute(
         "INSERT INTO paper_event (user_id, day, kind, instrument_id, qty, price, commission, ref, created_at) VALUES (%s,%s,'BUY',%s,10,200,0,'x',%s)",
         (live, date(2026, 11, 3), iid, EVENING),
     )  # the live book holds 10 and has no FILLED paper order: a paper reconcile would call that a mismatch
     assert paper_oms.position_mismatches(conn) == []
+    put_bars(
+        conn, iid, {date(2026, 11, 12): D(200)}
+    )  # flatten values the closing order at the last close
     kill_switch.change(
         conn, "flatten", None, by="o", reason="drill", now=OPEN, emergency_override=True
     )
     result = paper_oms.flatten(conn, OPEN)
-    assert result.sent == [] and result.refused == []
-    n = conn.execute("SELECT count(*) FROM paper_order WHERE user_id=%s", (live,)).fetchone()
-    assert n[0] == 0
+    assert result.refused == []
+    row = conn.execute("SELECT status FROM paper_order WHERE user_id=%s", (live,)).fetchone()
+    assert (
+        row[0] == "APPROVED"
+    )  # made and approved by the FLATTEN, left for the live process: the paper job never sends it
+    assert conn.execute("SELECT count(*) FROM oms_event").fetchone()[0] == 0
