@@ -246,3 +246,50 @@ def test_news_gives_recent_headlines_the_mood_by_day_and_the_stocks_named_most(e
         and sum(m["negative"] for m in got["mood"]) == 1
     )  # the unscored one is not counted
     assert got["stocks"][0] == {"symbol": "TCS", "mentions": 2, "avg": pytest.approx(0.05)}
+
+
+def test_score_for_a_stock_gives_today_its_parts_and_the_history(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    iid, sym = conn.execute(
+        "SELECT instrument_id, symbol FROM instrument WHERE asset_class='equity' ORDER BY instrument_id LIMIT 1"
+    ).fetchone()
+    assert (
+        c.get("/api/market/score", params={"symbol": sym}).json()["scored"] is False
+    )  # not in the snapshot: no score, nothing invented
+    conn.execute(
+        "INSERT INTO screener_snapshot (instrument_id, as_of, row, built_at) VALUES (%s, %s, %s, now())",
+        (
+            iid,
+            TODAY,
+            Jsonb(
+                {
+                    "as_of": "2026-11-11",
+                    "score": 71.4,
+                    "score_trend": 80.0,
+                    "score_participation": 55.5,
+                    "score_quality": 60.0,
+                    "setup": "Accumulation",
+                    "score_why": "Rising over 1 month",
+                }
+            ),
+        ),
+    )
+    for k in range(3):
+        conn.execute(
+            "INSERT INTO stock_score_history (day, instrument_id, score, trend) VALUES (%s,%s,%s,%s)",
+            (TODAY - timedelta(days=7 * (2 - k)), iid, 60 + k, 50.0),
+        )
+    got = c.get("/api/market/score", params={"symbol": sym}).json()
+    assert (
+        got["scored"]
+        and got["score"] == 71.4
+        and got["components"]
+        == {"trend": 80.0, "participation": 55.5, "smart_money": None, "quality": 60.0}
+    )
+    assert (
+        got["setup"] == "Accumulation"
+        and got["why"] == "Rising over 1 month"
+        and [h["score"] for h in got["history"]] == [60, 61, 62]
+    )
+    assert c.get("/api/market/score", params={"symbol": "NOPE"}).status_code == 404

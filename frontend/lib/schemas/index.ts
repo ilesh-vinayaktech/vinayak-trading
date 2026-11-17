@@ -748,6 +748,18 @@ export const forecastSchema = z.object({
   labels: z.record(z.string(), z.string()).optional(),
 });
 export type Forecast = z.infer<typeof forecastSchema>;
+export const stockScoreSchema = z.object({
+  symbol: z.string(),
+  name: z.string().nullable(),
+  as_of: z.string().nullable(),
+  scored: z.boolean(), // false: not liquid enough or too little data: no score rather than a guess
+  score: z.number().nullable(),
+  components: z.object({ trend: z.number().nullable(), participation: z.number().nullable(), smart_money: z.number().nullable(), quality: z.number().nullable() }),
+  setup: z.string().nullable().optional(),
+  why: z.string().nullable().optional(),
+  history: z.array(z.object({ day: z.string(), score: z.number() })), // oldest first
+});
+export type StockScore = z.infer<typeof stockScoreSchema>;
 export const marketNewsSchema = z.object({
   items: z.array(z.object({ title: z.string(), url: z.string(), source: z.string(), published_at: z.string(), sentiment: z.number().nullable(), symbols: z.array(z.string()) })), // newest first
   mood: z.array(z.object({ day: z.string(), avg: z.number(), n: z.number(), positive: z.number(), negative: z.number() })), // oldest first

@@ -247,3 +247,35 @@ def news_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]
         )
     ]  # fmt: skip
     return {"items": items, "mood": mood, "stocks": stocks}
+
+
+@router.get("/score")
+def score_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """One stock's swing score today with its four parts, the setup flags and reasons, and its score history (weekly, then daily from the nightly job)."""
+    sym = symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id, name FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    iid, name = row
+    snap = conn.execute(
+        "SELECT row FROM screener_snapshot WHERE instrument_id=%s", (iid,)
+    ).fetchone()
+    today = snap[0] if snap else {}
+    hist = [
+        {"day": d.isoformat(), "score": float(s)}
+        for d, s in conn.execute(
+            "SELECT day, score FROM (SELECT day, score FROM stock_score_history WHERE instrument_id=%s ORDER BY day DESC LIMIT 160) x ORDER BY day", (iid,)
+        )
+    ]  # fmt: skip
+    comps = {
+        k: _num(today.get(f"score_{k}"))
+        for k in ("trend", "participation", "smart_money", "quality")
+    }
+    return {
+        "symbol": sym, "name": name, "as_of": today.get("as_of"), "score": _num(today.get("score")), "components": comps,
+        "setup": today.get("setup"), "why": today.get("score_why"), "history": hist,
+        "scored": today.get("score") is not None,
+    }  # fmt: skip
