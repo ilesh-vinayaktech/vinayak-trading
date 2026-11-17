@@ -33,9 +33,12 @@ def summarise(
     outer: dict[str, Any] | None,
     paper: str | None,
     running: str | None,
+    ended: str | None = None,
 ) -> dict[str, str]:
     """Where a strategy stands: the stage it is at (`stage`), whether it stopped (`outcome`: ready, stopped, waiting, running) and a one-line reason, from what each stage found."""
     if dev is None:
+        if ended:
+            return {"stage": "development", "outcome": "stopped", "why": ended}
         return {
             "stage": "development",
             "outcome": "running" if running else "waiting",
@@ -74,6 +77,8 @@ def summarise(
             "why": "Outer holdout has checks without evidence.",
         }
     if inner is None:
+        if ended:
+            return {"stage": "inner", "outcome": "stopped", "why": ended}
         return {
             "stage": "inner",
             "outcome": "running" if running else "waiting",
@@ -92,6 +97,14 @@ def summarise(
         "outcome": "waiting",
         "why": "Passed the inner holdout. Waiting to be submitted to the outer holdout.",
     }
+
+
+# one row per strategy: a definition by its id, anything else by its rule and family, so a corrected re-registration replaces the study it supersedes
+NEWEST = (
+    "SELECT DISTINCT ON (key) experiment_id, name, family_id, key FROM (SELECT e.experiment_id, e.name, e.family_id,"
+    " coalesce(e.study->'spec'->'definition'->>'strategy_id', 'rule:' || coalesce(e.family_id::text, '') || ':' || md5(coalesce((e.study->'spec'->'screen')::text, e.name))) AS key"
+    " FROM experiment e WHERE e.study IS NOT NULL) x ORDER BY key, experiment_id DESC"
+)
 
 
 def _dev(conn: Any, exp: int) -> dict[str, Any] | None:
@@ -129,19 +142,27 @@ def overview(who: CurrentUser, conn: WConn) -> dict[str, Any]:
     outer = {r["candidate"]: r for r in holdout_routes._results(conn)} if owner else {}
     paper = {d["strategy_id"]: d["state"] for d in definitions.candidates(conn)}
     rows = []
-    for exp, name, family in conn.execute(
-        "SELECT DISTINCT ON (key) experiment_id, key, family FROM (SELECT e.experiment_id, coalesce(e.study->'spec'->'definition'->>'strategy_id', e.name) AS key, f.name AS family"
-        " FROM experiment e LEFT JOIN research_family f USING (family_id) WHERE e.study IS NOT NULL) x ORDER BY key, experiment_id DESC"
+    for exp, key, name, family in conn.execute(
+        f"SELECT n.experiment_id, n.key, n.name, f.name FROM ({NEWEST}) n LEFT JOIN research_family f USING (family_id)"  # noqa: S608
     ).fetchall():
         run = conn.execute(
-            "SELECT kind, status FROM study_run WHERE experiment_id=%s ORDER BY run_id DESC LIMIT 1",
+            "SELECT kind, status, error FROM study_run WHERE experiment_id=%s ORDER BY run_id DESC LIMIT 1",
             (exp,),
         ).fetchone()
         running = f"{run[0]} {run[1].lower()}" if run and run[1] in ("QUEUED", "RUNNING") else None
+        ended = (
+            None
+            if not run or run[1] not in ("CANCELLED", "FAILED")
+            else f"The {run[0]} run was cancelled."
+            if run[1] == "CANCELLED"
+            else f"The {run[0]} run failed: {(run[2] or 'no reason given')[:140]}"
+        )
+        if key.startswith("rule:") is False:
+            name = key  # a definition shows under its own id
         dev, inner, out = _dev(conn, exp), _inner(conn, exp), outer.get(f"study-{exp}")
         rows.append({
             "experiment_id": exp, "name": name, "family": family, "development": dev, "inner": inner, "outer": out, "paper": paper.get(name),
-            **summarise(dev, inner, out, paper.get(name), running),
+            **summarise(dev, inner, out, paper.get(name), running, ended),
         })  # fmt: skip
     return {"rows": rows, "outer_visible": owner, "code_dirty": git_state()[1]}
 
@@ -151,8 +172,8 @@ def unrun(who: CurrentUser, conn: WConn) -> dict[str, Any]:
     """Registered studies that have never been run, grouped by research family: what the Run popup offers."""
     fams: dict[int, dict[str, Any]] = {}
     for exp, name, strategy, fid, fname in conn.execute(
-        "SELECT e.experiment_id, e.name, e.strategy_id, f.family_id, f.name FROM experiment e JOIN research_family f USING (family_id)"
-        " WHERE e.study IS NOT NULL AND NOT EXISTS (SELECT 1 FROM study_run r WHERE r.experiment_id = e.experiment_id) ORDER BY f.family_id, e.experiment_id"
+        f"SELECT n.experiment_id, n.name, e.strategy_id, f.family_id, f.name FROM ({NEWEST}) n JOIN experiment e USING (experiment_id) JOIN research_family f ON f.family_id = n.family_id"  # noqa: S608
+        " WHERE NOT EXISTS (SELECT 1 FROM study_run r WHERE r.experiment_id = n.experiment_id) ORDER BY f.family_id, n.experiment_id"
     ).fetchall():
         fams.setdefault(fid, {"family_id": fid, "name": fname, "studies": []})["studies"].append(
             {"experiment_id": exp, "name": name, "strategy_id": strategy}

@@ -30,6 +30,9 @@ function parseScreen(raw: string | null): Screen | null {
 }
 
 /** Every choice of an official backtest. Nothing here is fixed in code; all of it is locked once the study is registered. */
+/** The windows and settings every strategy is judged on, the same as the first round, so results are comparable and the study can go on to the outer holdout. */
+const STANDARD = { start: "2016-01-01", end: "2024-12-31", holdout: "2023-01-01", capital: "100000", stop: "0.02" };
+
 export function StudyForm({ options }: { options: StudyOptions }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -43,8 +46,8 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const label = (k: string) => meta.data?.fields.find((f) => f.key === k)?.label ?? k;
   const usable = (k: string) => ["technical", "fundamental"].includes(kind(k) ?? "");
   const backtestable = (meta.data?.presets ?? []).filter((p) => p.conditions.every((c) => usable(c.field)) && usable(p.sort));
-  const end0 = options.frozen_through ?? "";
-  const start0 = options.survivorship_safe_from;
+  const end0 = STANDARD.end;
+  const start0 = STANDARD.start;
   const [name, setName] = useState("");
   const [hypothesis, setHypothesis] = useState("");
   const [family, setFamily] = useState(""); // a family id, "new", or nothing chosen yet
@@ -65,8 +68,9 @@ export function StudyForm({ options }: { options: StudyOptions }) {
   const [filingLag, setFilingLag] = useState("0");
   const [start, setStart] = useState(start0);
   const [end, setEnd] = useState(end0);
-  const [holdout, setHoldout] = useState(end0 ? holdoutFor(start0, end0, 25) : "");
-  const [capital, setCapital] = useState("1000000");
+  const [holdout, setHoldout] = useState(STANDARD.holdout);
+  const [capital, setCapital] = useState(STANDARD.capital);
+  const [stop, setStop] = useState(STANDARD.stop);
   const [capacity, setCapacity] = useState("3");
   const [broker, setBroker] = useState(options.brokers[0] ? `${options.brokers[0].broker}|${options.brokers[0].product}` : "");
   const [slip, setSlip] = useState({ base_bps: "5", participation_bps_per_pct: "5", volatility_fraction: "0" });
@@ -105,7 +109,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
     name: name.trim(), hypothesis: hypothesis.trim(), strategy_id: strategy?.id ?? "", grid, screen: source === "screen" ? screen : undefined,
     universe: { segments, before_segment_lists: beforeLists, min_history_sessions: Number(minHistory) || 0 },
     timeframe: "1D", start, end, holdout_start: holdout, capital, capacity_multiple: capacity, broker: b ?? "", product: product ?? "DELIVERY",
-    slippage: slip, benchmark, min_order_value: minOrder.trim() || "0", max_order_value: maxOrder.trim() || null, thresholds, accept_survivorship_bias: acceptBias,
+    slippage: slip, trade_stop: stop.trim() || null, benchmark, min_order_value: minOrder.trim() || "0", max_order_value: maxOrder.trim() || null, thresholds, accept_survivorship_bias: acceptBias,
     filing_lag_days: source === "screen" ? Math.min(365, Math.max(0, Math.floor(Number(filingLag) || 0))) : 0,
   };
   const register = useMutation({
@@ -252,7 +256,10 @@ export function StudyForm({ options }: { options: StudyOptions }) {
         </SettingsSection>
 
         <SettingsSection title="Period and holdout" description="The holdout is the most recent part of the period. It stays untouched and is opened once, at the very end.">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <Alert tone="info" title="Use the standard windows">
+            Every strategy is judged the same way: development from {STANDARD.start} (survivorship bias accepted), inner holdout from {STANDARD.holdout}, up to {STANDARD.end}. The outer holdout (2025-01-01 to 2026-11-13) is set once for everything and opened by the owner. Capital ₹1,00,000 and a 2% per-trade stop. The form starts with these: change them only on purpose, because a study with different dates cannot be compared with the others.
+          </Alert>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field id="study-timeframe" label="Time frame" hint="Daily until the engine runs intraday strategies.">
               <select id="study-timeframe" value="1D" disabled className={inputFull}>{options.timeframes.map((t) => <option key={t}>{t}</option>)}</select>
             </Field>
@@ -280,6 +287,7 @@ export function StudyForm({ options }: { options: StudyOptions }) {
 
         <SettingsSection title="Money and costs">
           <div className="grid gap-4 sm:grid-cols-3">
+            <Field id="study-stop" label="Per-trade stop (fraction)" hint="0.02 sells a position that falls 2% from its cost. Leave empty for no stop."><input id="study-stop" inputMode="decimal" value={stop} onChange={(e) => setStop(e.target.value)} className={inputFull} /></Field>
             <Field id="study-capital" label="Capital (₹)"><input id="study-capital" inputMode="decimal" value={capital} onChange={(e) => setCapital(e.target.value)} className={inputFull} /></Field>
             <Field id="study-capacity" label="Capacity test (times capital)"><input id="study-capacity" inputMode="decimal" value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inputFull} /></Field>
             <Field id="study-broker" label="Charges">

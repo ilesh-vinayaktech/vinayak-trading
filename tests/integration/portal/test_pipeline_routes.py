@@ -16,8 +16,8 @@ DEV_OK = {"passed": True, "failed": []}
 INNER_OK = {"passed": True, "failed": []}
 
 
-def stage(dev=None, inner=None, outer=None, paper=None, running=None):
-    s = p.summarise(dev, inner, outer, paper, running)
+def stage(dev=None, inner=None, outer=None, paper=None, running=None, ended=None):
+    s = p.summarise(dev, inner, outer, paper, running, ended)
     return s["stage"], s["outcome"], s["why"]
 
 
@@ -146,3 +146,68 @@ def test_unrun_studies_are_listed_by_family_until_they_have_a_run(env):
     assert [
         s["experiment_id"] for s in c.get("/api/pipeline/unrun").json()["families"][0]["studies"]
     ] == [b]
+
+
+def test_a_stopped_run_reads_as_stopped_not_waiting():
+    assert stage(ended="The trials run was cancelled.") == (
+        "development",
+        "stopped",
+        "The trials run was cancelled.",
+    )
+    assert stage(DEV_OK, ended="The holdout run failed: x")[:2] == ("inner", "stopped")
+    assert stage(DEV_OK, INNER_OK, ended="ignored once the inner holdout has its result")[:2] == (
+        "inner",
+        "waiting",
+    )
+
+
+@pytest.mark.integration
+def test_a_corrected_re_registration_replaces_the_study_it_supersedes_on_the_page_and_in_the_popup(
+    env,
+):
+    conn, app, clock = env
+    uid = add_user(conn, clock, "TRADER", "t@example.com")
+    c = sign_in(app, "t@example.com")
+    fid = registry.create_family(
+        conn,
+        name="Tech",
+        hypothesis="technical rules that work",
+        justification="a different idea from the others",
+        created_by=uid,
+        now=START,
+    )
+
+    def mk(name, rule):
+        return registry.register(
+            conn, name=name, strategy_id="screener", hypothesis="h", style="long_only", param_ranges={},
+            holdout=(START.date(), START.date()), now=START, study={"spec": {"screen": rule}}, family_id=fid,
+        )  # fmt: skip
+
+    old, other = mk("Golden cross", {"sort": "a"}), mk("Breakout", {"sort": "b"})
+    new = mk(
+        "Golden cross 2016-2022", {"sort": "a"}
+    )  # the same rule, registered again with corrected settings
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, requested_by, created_at, error) VALUES (%s,'trials','CANCELLED',%s,%s,'x')",
+        (old, uid, START),
+    )
+    names = {r["name"]: r for r in c.get("/api/pipeline").json()["rows"]}
+    assert set(names) == {
+        "Golden cross 2016-2022",
+        "Breakout",
+    }  # the older Golden cross is gone from the page
+    assert (
+        names["Golden cross 2016-2022"]["experiment_id"] == new
+        and names["Golden cross 2016-2022"]["outcome"] == "waiting"
+    )
+    assert [s["name"] for s in c.get("/api/pipeline/unrun").json()["families"][0]["studies"]] == [
+        "Breakout",
+        "Golden cross 2016-2022",
+    ]
+    assert other < new
+    conn.execute(
+        "INSERT INTO study_run (experiment_id, kind, status, requested_by, created_at, error) VALUES (%s,'trials','FAILED',%s,%s,'boom')",
+        (new, uid, START),
+    )
+    row = next(r for r in c.get("/api/pipeline").json()["rows"] if r["experiment_id"] == new)
+    assert (row["outcome"], row["why"]) == ("stopped", "The trials run failed: boom")

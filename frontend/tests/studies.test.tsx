@@ -129,15 +129,20 @@ describe("a new study", () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "  My study  " } });
     fireEvent.change(screen.getByLabelText("Hypothesis"), { target: { value: "Dips inside an uptrend recover within days." } });
     fireEvent.change(screen.getByLabelText("Research family"), { target: { value: "1" } });
+    const bias = screen.queryByLabelText("I accept this bias for this study"); // the standard window starts before the safe date
+    if (bias) fireEvent.click(bias);
   };
   const register = () => screen.getByRole("button", { name: "Register study" });
 
-  it("starts from each setting's default, the last frozen day, the safe start and a 25% holdout", async () => {
+  it("starts from each setting's default and the standard windows: 2016-01-01 to 2024-12-31, inner holdout from 2023-01-01, 1 lakh, a 2% stop", async () => {
     await open();
     expect(screen.getByText(/1 trial \(at most 64\)/)).toBeInTheDocument();
-    expect(screen.getByLabelText("From")).toHaveValue("2019-10-01");
-    expect(screen.getByLabelText("To")).toHaveValue("2026-11-11");
-    expect(screen.getByText(/keeps the last 25% untouched/)).toBeInTheDocument();
+    expect(screen.getByLabelText("From")).toHaveValue("2016-01-01");
+    expect(screen.getByLabelText("To")).toHaveValue("2024-12-31");
+    expect(screen.getByLabelText("Holdout starts")).toHaveValue("2023-01-01");
+    expect(screen.getByLabelText("Capital (₹)")).toHaveValue("100000");
+    expect(screen.getByLabelText("Per-trade stop (fraction)")).toHaveValue("0.02");
+    expect(screen.getByText("Use the standard windows")).toBeInTheDocument();
     expect(screen.getByLabelText("entry_rsi 25")).toBeChecked();
     expect(screen.getByLabelText("Worst drawdown you accept (0.25 = 25%)")).toHaveValue("0.25");
   });
@@ -283,34 +288,34 @@ describe("a new study", () => {
     await waitFor(() => expect(posted()).toHaveLength(1));
     const b = posted()[0]?.body as Record<string, unknown>;
     expect(b).toMatchObject({
-      name: "My study", strategy_id: "trend_pullback", timeframe: "1D", start: "2019-10-01", end: "2026-11-11", capital: "1000000", capacity_multiple: "3",
-      broker: "zerodha", product: "DELIVERY", accept_survivorship_bias: false,
+      name: "My study", strategy_id: "trend_pullback", timeframe: "1D", start: "2016-01-01", end: "2024-12-31", capital: "100000", capacity_multiple: "3", trade_stop: "0.02",
+      broker: "zerodha", product: "DELIVERY", accept_survivorship_bias: true,
       slippage: { base_bps: "8", participation_bps_per_pct: "5", volatility_fraction: "0" },
       min_order_value: "5000", max_order_value: "100000", benchmark: "Nifty 50 Total Return Index (gross)",
       grid: { trend_sma: [100, 200], entry_rsi: [20, 25], exit_rsi: [60], max_positions: [10] },
       universe: { segments: ["large", "mid", "small"], before_segment_lists: "traded_value_rank", min_history_sessions: 252 },
     });
     expect((b.thresholds as Record<string, string>).min_oos_sharpe).toBe("1.0");
-    expect(b.holdout_start).toBe(holdoutFor("2019-10-01", "2026-11-11", 30));
+    expect(b.holdout_start).toBe(holdoutFor("2016-01-01", "2024-12-31", 30));
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/research/studies/7"));
   });
 
   it("shows the order-size advice on the form as soon as the limits do not fit", async () => {
     await open();
+    fireEvent.change(screen.getByLabelText("Capital (₹)"), { target: { value: "1000000" } });
     fireEvent.change(screen.getByLabelText("Largest order (₹)"), { target: { value: "15000" } });
     expect(await screen.findByText("Check the order sizes")).toBeInTheDocument();
     expect(screen.getByText(/takes about \d+ days/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Largest order (₹)"), { target: { value: "" } });
     expect(screen.queryByText("Check the order sizes")).not.toBeInTheDocument();
   });
-  it("an early start needs the survivorship bias accepted, and asks how to size stocks before AMFI's first list", async () => {
+  it("the standard window starts early, so it needs the survivorship bias accepted, and asks how to size stocks before AMFI's first list", async () => {
     await open();
-    fillIdea();
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2016-01-01" } });
+    fillIdea(); // ticks the bias box
     expect(screen.getByText("Survivorship bias")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("I accept this bias for this study")); // untick it
     expect(register()).toBeDisabled();
     fireEvent.click(screen.getByLabelText("I accept this bias for this study"));
-    fireEvent.click(screen.getByRole("button", { name: "Last 25%" }));
     expect(screen.getByLabelText("Before 2018-08-01 (no AMFI list yet)")).toHaveValue("traded_value_rank");
     expect(register()).toBeEnabled();
   });
