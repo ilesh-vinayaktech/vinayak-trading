@@ -81,6 +81,8 @@ ROUTE_PERMISSIONS = {
     ("PUT", "/api/risk/limits"): "strategy:own",
     ("POST", "/api/risk/switch"): "strategy:own",
     ("POST", "/api/risk/switch/global"): "ops:write",
+    ("POST", "/api/regulatory"): "ops:write",
+    ("POST", "/api/regulatory/{topic}/verify"): "ops:write",
     ("GET", "/api/paper/summary"): "strategy:own",
     ("GET", "/api/paper/orders"): "strategy:own",
     ("POST", "/api/paper/orders/{order_id}/approve"): "strategy:own",

@@ -34,6 +34,37 @@ def test_ok_fills_dates_and_db_and_stops_at_first_failing_step(tmp_path):
     assert "{db}" in log and "pg://x" not in log  # the password never reaches the log
 
 
+def windows(tmp_path, last):
+    job = Job("j", "x", (("a.py", "{today}", "{d1}", "{d7}", "{d30}", "{d120}"),), "d")
+    _, _, calls, _ = go(job, [0], tmp_path, last_success=lambda name: last if name == "j" else None)
+    return calls[0][1:]
+
+
+def test_a_window_reaches_back_to_the_last_success_when_runs_were_missed(tmp_path):
+    normal = ["2026-11-13", "2026-11-12", "2026-11-06", "2026-10-14", "2026-07-16"]
+    assert windows(tmp_path, None) == normal  # never succeeded: the plain windows
+    assert windows(tmp_path, datetime(2026, 11, 12, 13, 0, tzinfo=UTC)) == [  # yesterday: only d1 moves, one day back (an overlap)
+        "2026-11-13", "2026-11-11", "2026-11-06", "2026-10-14", "2026-07-16",
+    ]  # fmt: skip
+    assert windows(tmp_path, datetime(2026, 11, 9, 13, 0, tzinfo=UTC)) == [  # 4 days ago: d1 stretches to the day before
+        "2026-11-13", "2026-11-08", "2026-11-06", "2026-10-14", "2026-07-16",
+    ]  # fmt: skip
+    assert windows(tmp_path, datetime(2026, 10, 20, 13, 0, tzinfo=UTC)) == [  # 24 days ago: d1 and d7 stretch, d30 and d120 already cover it
+        "2026-11-13", "2026-10-19", "2026-10-19", "2026-10-14", "2026-07-16",
+    ]  # fmt: skip
+
+
+def test_the_last_success_day_is_the_indian_day_of_its_start(tmp_path):
+    # 20:00 UTC on 8 Nov is 01:30 IST on 9 Nov: the window starts the day before THAT day
+    got = windows(tmp_path, datetime(2026, 11, 8, 20, 0, tzinfo=UTC))
+    assert got[1] == "2026-11-08"
+
+
+def test_a_very_old_success_is_capped_not_unbounded(tmp_path):
+    got = windows(tmp_path, datetime(2024, 1, 1, tzinfo=UTC))
+    assert got[1:] == ["2025-10-09"] * 4  # 400 days before 2026-11-13
+
+
 def test_retries_then_succeeds_without_alert(tmp_path):
     job = Job("j", "x", (("a",), ("check.py",)), "d", retries=2, retry_wait_s=7)
     rc, alerts, calls, sleeps = go(job, [0, 1, 0, 0], tmp_path)

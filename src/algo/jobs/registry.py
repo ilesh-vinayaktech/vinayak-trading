@@ -1,6 +1,9 @@
 # ruff: noqa: E501
 """The scheduled jobs (TODO B) and the systemd user units that run them. Times are Indian time, trading days only
-(weekday timers; holidays are handled by each job's own freshness check, which counts only sessions)."""
+(weekday timers; holidays are handled by each job's own freshness check, which counts only sessions).
+A date window ({d1} {d7} {d30} {d120}) reaches back to the day before the job's last successful run when runs were missed, so the next
+run covers everything since then (see runner._windows). Jobs that read a fixed window inside their own script, or that NSE publishes
+only the latest of (deals, FII/DII), cannot catch up this way."""
 
 from __future__ import annotations
 
@@ -210,12 +213,12 @@ JOBS: tuple[Job, ...] = (
                 "--db",
                 "{db}",
                 "--from",
-                "{today}",
+                "{d1}",
                 "--interval",
                 "0.5",
             ),
         ),  # fmt: skip
-        "Today's Kite daily candle for the mapped instruments (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
+        "The Kite daily candle for the mapped instruments, today and any day missed since the last run (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
         timeout_s=2
         * 3600,  # about 2,400 stocks at 2 requests a second is 20 minutes; the default 2 s spacing would be 80
         needs_kite=True,
@@ -258,7 +261,7 @@ JOBS: tuple[Job, ...] = (
                 "{db}",
                 "--integrated",
                 "--since",
-                "{d30}",
+                "{d120}",  # compared with the QUARTER-END date of a filing, so it must reach back past the last quarter end
             ),
             (*_PY, "scripts/backfill_fundamental_facts.py", "--db", "{db}"),
         ),

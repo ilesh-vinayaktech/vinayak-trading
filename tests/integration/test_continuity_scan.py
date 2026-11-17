@@ -26,7 +26,17 @@ def env(conn):
     repo = InstrumentRepo(conn)
     x = repo.add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
     ids = {}
-    for s in ("FLAT", "JUMP", "SPLIT", "PENDING", "GAPPED", "OLDJUMP"):
+    for s in (
+        "FLAT",
+        "JUMP",
+        "SPLIT",
+        "PENDING",
+        "GAPPED",
+        "OLDJUMP",
+        "SUVID-RE",
+        "ABC-RE1",
+        "PRE",
+    ):
         ids[s] = repo.add_instrument(x, s)
         repo.add_alias(ids[s], "nse", s, date(2000, 1, 1))
     return conn, ids
@@ -151,3 +161,17 @@ def test_a_weekday_nse_did_not_publish_a_file_for_is_a_holiday_not_a_missing_ses
     )
     (f,) = scan(conn, date(2026, 10, 1)).unexplained  # a real jump across a holiday still alerts
     assert (f.symbol, f.day) == ("FLAT", date(2026, 10, 22))
+
+
+def test_rights_entitlements_are_not_tracked_but_a_name_that_merely_contains_re_is(env):
+    conn, ids = env
+    crash = [100, 101, 102, 101, 40, 41, 42]  # -60% with nothing recorded
+    for s in (
+        "SUVID-RE",
+        "ABC-RE1",
+    ):  # NSE's rights-entitlement series: thin, short-lived, not traded by us
+        bars(conn, ids[s], crash)
+    bars(conn, ids["PRE"], crash)  # an ordinary stock whose name ends in RE
+    r = scan(conn, SINCE)
+    assert r.scanned == 1
+    assert [f.symbol for f in r.unexplained] == ["PRE"]

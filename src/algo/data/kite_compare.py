@@ -9,7 +9,8 @@ ratio kite / nse is read:
   DIVERGES    anything else: scattered differences or a step whose size wanders
   NO_OVERLAP  too few common days to judge
 NSE's close is a last-30-minute average and Kite's the last trade, so ordinary days differ a little: the default tolerance is
-1%, far below the smallest adjustment worth finding (a 1:10 bonus moves prices by 10%).
+1%, far below the smallest adjustment worth finding (a 1:10 bonus moves prices by 10%). Kite also rounds to its 0.05 tick, which is
+a large share of a heavily adjusted old price of about half a rupee (0.025 of 0.50 is 5%): each day therefore also allows half a tick.
 Nothing here decides which source is right; it finds where they disagree so a person only reviews those names."""
 
 from __future__ import annotations
@@ -26,6 +27,9 @@ MAX_OUTLIER_SHARE = Decimal(
 )  # up to 2% of days may be stray before the sources count as disagreeing
 STEP_WINDOW = timedelta(days=3)  # an action this close to a step is what explains it
 SPREAD_FACTOR = 5  # inside a step the ratio may wander by up to this many tolerances
+HALF_TICK = Decimal(
+    "0.025"
+)  # Kite quotes in 0.05 steps: a price may be off by half a step from rounding alone
 
 
 @dataclass(frozen=True)
@@ -46,8 +50,8 @@ def _closes(ld: Loaded) -> dict[date, Decimal]:
     return {b.ts.astimezone(IST).date(): b.close for b in bars}
 
 
-def _steady(ratios: list[Decimal], tolerance: Decimal) -> bool:
-    return max(ratios) - min(ratios) <= tolerance * SPREAD_FACTOR
+def _steady(ratios: list[Decimal], tolerance: Decimal, slack: Decimal = Decimal(0)) -> bool:
+    return max(ratios) - min(ratios) <= tolerance * SPREAD_FACTOR + slack
 
 
 def compare(kite: Loaded, nse: Loaded, *, tolerance: Decimal = Decimal("0.01")) -> Comparison:
@@ -57,12 +61,17 @@ def compare(kite: Loaded, nse: Loaded, *, tolerance: Decimal = Decimal("0.01")) 
         return Comparison("NO_OVERLAP", len(common), 0, Decimal(0))
     ratio = [k[d] / n[d] for d in common]
     dev = [abs(r - 1) for r in ratio]
-    bad = [i for i, d in enumerate(dev) if d > tolerance]
+    rounding = [
+        HALF_TICK / n[d] for d in common
+    ]  # what Kite's tick alone can move the ratio on that day
+    bad = [i for i, d in enumerate(dev) if d > tolerance + rounding[i]]
     biggest, size = max(dev), len(common)
     if len(bad) <= MAX_OUTLIER_SHARE * size:
         return Comparison("MATCH", size, len(bad), biggest)
     first, last = bad[0], bad[-1]
-    if len(bad) != last - first + 1 or not _steady([ratio[i] for i in bad], tolerance):
+    if len(bad) != last - first + 1 or not _steady(
+        [ratio[i] for i in bad], tolerance, 2 * max(rounding[i] for i in bad)
+    ):
         return Comparison("DIVERGES", size, len(bad), biggest)
     typical = sorted(ratio[i] for i in bad)[
         len(bad) // 2

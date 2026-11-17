@@ -4,6 +4,7 @@ Alerts go to Telegram when ALGO_TELEGRAM_TOKEN and ALGO_TELEGRAM_CHAT are set, e
 
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import psycopg
@@ -41,6 +42,18 @@ def session_ok(now) -> bool:
         return system_feed_credentials(conn, KeyRing.from_env(os.environ), now=now) is not None
 
 
+def last_success(name: str) -> datetime | None:
+    """When this job last succeeded, so a run after missed days covers them; unknown (no database, or it cannot be read) means the plain windows."""
+    url = os.environ.get("ALGO_DB_URL")
+    if not url:
+        return None
+    try:
+        with psycopg.connect(url, connect_timeout=5) as conn:
+            return history.last_success(conn, name)
+    except psycopg.Error:
+        return None
+
+
 sys.exit(
     run_job(
         by_name[sys.argv[1]],
@@ -50,5 +63,6 @@ sys.exit(
         log_dir=Path("data/logs"),
         record=record,
         session_ok=session_ok,
+        last_success=last_success,
     )
 )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import psycopg
@@ -23,6 +24,16 @@ def record(conn: psycopg.Connection, run: JobRun) -> None:
         " (SELECT run_id FROM job_run WHERE job=%s ORDER BY started_at DESC, run_id DESC LIMIT %s)",
         (run.job, run.job, KEEP),
     )
+
+
+def last_success(conn: psycopg.Connection, job: str) -> datetime | None:
+    """When the latest successful run of `job` started (None if it never succeeded).
+
+    What its next run must cover is everything since."""
+    row = conn.execute(
+        "SELECT max(started_at) FROM job_run WHERE job=%s AND status='ok'", (job,)
+    ).fetchone()
+    return None if row is None else row[0]
 
 
 def status(conn: psycopg.Connection) -> list[dict[str, Any]]:

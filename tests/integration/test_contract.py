@@ -882,3 +882,46 @@ def test_the_research_intelligence_responses_match_the_fixtures_the_frontend_is_
         if os.environ.get("UPDATE_CONTRACT") == "1":
             path.write_text(text)
         assert path.read_text() == text, f"{name}: the API response changed; run UPDATE_CONTRACT=1"
+
+
+def test_the_regulatory_response_matches_the_fixture_the_frontend_is_tested_against(
+    conn, pg_url, tmp_path
+):
+    from datetime import date
+
+    from algo.execution.regulatory import Item, record
+    from tests.support.portal import add_user, enrol_second_factor, make_app, settings, sign_in
+
+    migrate(conn)
+    clock = SimClock(datetime(2026, 11, 17, 10, 0, tzinfo=UTC))
+    app = make_app(pg_url, tmp_path, portal=settings(clock))
+    add_user(conn, clock, "OPERATOR", "ops@example.com", name="Olive Ops")
+    c = sign_in(app, "ops@example.com")
+    enrol_second_factor(c, clock)
+    stale = Item(
+        "NSE",
+        "CM",
+        "tagging",
+        "Tag every algo order",
+        date(2025, 4, 1),
+        "circular B",
+        date(2026, 9, 1),
+        "owner",
+    )
+    record(conn, stale)  # last checked over 30 days ago
+    c.post(
+        "/api/regulatory",
+        json={
+            "topic": "ops_limit",
+            "value": {"orders_per_second": 10},
+            "source": "circular A",
+            "effective_from": "2025-10-01",
+        },
+    )
+    resp = c.get("/api/regulatory")
+    assert resp.status_code == 200
+    text = json.dumps(resp.json(), indent=1, sort_keys=True) + "\n"
+    path = OUT / "regulatory.json"
+    if os.environ.get("UPDATE_CONTRACT") == "1":
+        path.write_text(text)
+    assert path.read_text() == text, "regulatory: the API response changed; run UPDATE_CONTRACT=1"

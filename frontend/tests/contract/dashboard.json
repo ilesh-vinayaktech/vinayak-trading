@@ -210,7 +210,7 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 17:00 Asia/Kolkata",
-   "description": "Today's Kite daily candle for the mapped instruments (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
+   "description": "The Kite daily candle for the mapped instruments, today and any day missed since the last run (the -BE series are skipped; the close is provisional until the morning revise; exit 3 = session expired, 1 = some stock failed; alerted)",
    "last_run": null,
    "last_success_at": null,
    "name": "kite-daily-candles"

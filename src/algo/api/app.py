@@ -33,6 +33,7 @@ from algo.api import (
     pipeline_routes,
     platform_health,
     queries,
+    regulatory_routes,
     reviews,
     risk_routes,
     scorecards,
@@ -132,6 +133,7 @@ def create_app(
     app.include_router(pipeline_routes.router)
     app.include_router(paper_routes.router)
     app.include_router(risk_routes.router)
+    app.include_router(regulatory_routes.router)
     app.include_router(strategy_routes.router)
     app.include_router(study_routes.router)
     app.include_router(study_routes.families_router)

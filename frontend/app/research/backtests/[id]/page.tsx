@@ -171,13 +171,14 @@ export default function BacktestReportPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Started with" value={rs(h.initial)} />
         <StatCard label="Ended with" value={rs(h.final)} hint="Cash plus open positions at market" tone={tone(h.change)} />
-        <StatCard label="Total profit / loss" value={rs(h.change)} hint={`${pct(h.return)} on the start amount`} tone={tone(h.change)} />
+        <StatCard label="Total profit / loss" value={rs(h.change)} hint={`${pct(h.return)} on the start amount, after charges`} tone={tone(h.change)} />
+        <StatCard label="Profit before charges" value={h.change === null || h.charges === null ? "-" : rs((Number.parseFloat(h.change) + Number.parseFloat(h.charges)).toFixed(2))} hint="Total profit plus charges paid" />
         <StatCard label="Worst drop" value={pct(h.max_drawdown)} hint="Peak to trough" tone="warn" />
         <StatCard label="Closed trades" value={s.trades} hint={`${s.wins} won · ${s.losses} lost`} />
         <StatCard label="Win rate" value={pct(s.win_rate)} />
         <StatCard label="Profit factor" value={s.profit_factor ?? "-"} hint="Money won per ₹1 lost" />
         <StatCard label="Charges paid" value={rs(h.charges)} tone={Number.parseFloat(s.cost_drag ?? "0") > 0.3 ? "warn" : undefined}
-          hint={s.cost_drag === null ? `Average hold ${s.avg_holding_days ?? "-"} days` : `${pct(s.cost_drag)} of the profit before charges · average hold ${s.avg_holding_days ?? "-"} days`} />
+          hint={s.cost_drag === null ? `Average hold ${s.avg_holding_days ?? "-"} days` : `Already taken out of the profit · ${pct(s.cost_drag)} of the profit before charges · average hold ${s.avg_holding_days ?? "-"} days`} />
       </div>
 
       <Panel title="Account value over time">

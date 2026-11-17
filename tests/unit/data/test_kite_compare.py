@@ -157,3 +157,38 @@ def test_which_comparisons_are_breaches_and_which_are_not():
     ]  # a step we can explain by a recorded action, a match and too little overlap are not breaches
     assert got["E"] == "DIVERGES: scattered differences, largest 0.300"
     assert got["D"].startswith("STEP: no recorded action near")
+
+
+def tiny():
+    """A price cut by big splits and bonuses (RAMASTEEL's old prices): about half a rupee."""
+    return [
+        (d, D(c))
+        for d, c in zip(DAYS, [D("0.52"), D("0.53"), D("0.57"), D("0.58")] * (N // 4), strict=True)
+    ]
+
+
+def to_tick(closes):
+    """Kite quotes prices in 0.05 steps, so a heavily adjusted old price is rounded to the nearest 0.05."""
+    return [(d, (c / D("0.05")).quantize(D(1)) * D("0.05")) for d, c in closes]
+
+
+def test_kites_tick_rounding_on_a_tiny_adjusted_price_is_not_a_disagreement():
+    r = compare(kite_of(to_tick(tiny())), loaded(tiny()))
+    assert (r.status, r.outliers) == ("MATCH", 0)
+    assert r.max_deviation > D(
+        "0.03"
+    )  # still reported: a 4% difference on paper, one rounding step in fact
+
+
+def test_a_whole_tick_of_difference_on_a_tiny_price_is_still_caught():
+    kite = [(d, c + D("0.05")) for d, c in tiny()]  # one full tick away on every day, not rounding
+    assert compare(kite_of(kite), loaded(tiny())).status == "OFFSET"
+
+
+def test_a_real_step_on_a_tiny_price_is_still_a_step():
+    ex = DAYS[60]
+    kite = to_tick(
+        scaled(tiny(), D(2), lambda i, d: d < ex)
+    )  # Kite adjusted something we did not, then rounded to its tick
+    r = compare(kite_of(kite), loaded(tiny()))
+    assert (r.status, r.step_date) == ("STEP", ex)

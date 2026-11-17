@@ -1,0 +1,91 @@
+{
+ "blocks_live": true,
+ "can_edit": true,
+ "exchange": "NSE",
+ "items": [
+  {
+   "days_since": 0,
+   "effective_from": "2025-10-01",
+   "example": {
+    "applies_above": "<fill in>",
+    "notes": "<fill in>",
+    "orders_per_second_limit": "<fill in>"
+   },
+   "expires_on": "2026-12-17",
+   "help": "How many orders per second an algo may send before it needs exchange registration, as the circular states it.",
+   "label": "Order-rate limit",
+   "last_verified": "2026-11-17",
+   "source": "circular A",
+   "status": "ok",
+   "topic": "ops_limit",
+   "value": {
+    "orders_per_second": 10
+   },
+   "verified_by": "ops@example.com"
+  },
+  {
+   "days_since": null,
+   "effective_from": null,
+   "example": {
+    "allowed_order_types": [
+     "<fill in>"
+    ],
+    "market_protection": "<fill in>",
+    "notes": "<fill in>"
+   },
+   "expires_on": null,
+   "help": "Which order types an algo may use, and the market-protection setting the broker requires on market orders.",
+   "label": "Order types and market protection",
+   "last_verified": null,
+   "source": null,
+   "status": "missing",
+   "topic": "order_types",
+   "value": null,
+   "verified_by": null
+  },
+  {
+   "days_since": 77,
+   "effective_from": "2025-04-01",
+   "example": {
+    "how_to_tag": "<fill in>",
+    "notes": "<fill in>",
+    "tag_required": "<fill in>"
+   },
+   "expires_on": "2026-10-01",
+   "help": "How an algo order must be tagged or identified so the exchange can tell it from a manual order.",
+   "label": "Algo tagging",
+   "last_verified": "2026-09-01",
+   "source": "circular B",
+   "status": "stale",
+   "topic": "tagging",
+   "value": "Tag every algo order",
+   "verified_by": "owner"
+  },
+  {
+   "days_since": null,
+   "effective_from": null,
+   "example": {
+    "notes": "<fill in>",
+    "registered_ip": "<fill in>",
+    "required": "<fill in>"
+   },
+   "expires_on": null,
+   "help": "The rule on the fixed IP address algo orders must come from, and which address is registered.",
+   "label": "Static IP",
+   "last_verified": null,
+   "source": null,
+   "status": "missing",
+   "topic": "static_ip",
+   "value": null,
+   "verified_by": null
+  }
+ ],
+ "max_age_days": 30,
+ "problems": [
+  "regulatory: order_types is not recorded for NSE CM",
+  "regulatory: tagging was last verified 2026-09-01 (more than 30 days ago)",
+  "regulatory: static_ip is not recorded for NSE CM"
+ ],
+ "segment": "CM",
+ "today": "2026-11-17"
+}

@@ -1015,6 +1015,33 @@ export const riskStateSchema = z.object({
 export type RiskState = z.infer<typeof riskStateSchema>;
 export type SwitchAction = "pause" | "cancel" | "resume" | "flatten";
 
+const regulatoryItem = z.object({
+  topic: z.string(),
+  label: z.string(),
+  help: z.string(),
+  example: z.record(z.unknown()),
+  status: z.enum(["ok", "stale", "missing"]),
+  value: z.unknown().nullable(),
+  source: z.string().nullable(),
+  effective_from: z.string().nullable(),
+  last_verified: z.string().nullable(),
+  verified_by: z.string().nullable(),
+  expires_on: z.string().nullable(),
+  days_since: z.number().nullable(),
+});
+export const regulatorySchema = z.object({
+  today: z.string(),
+  exchange: z.string(),
+  segment: z.string(),
+  max_age_days: z.number(),
+  blocks_live: z.boolean(),
+  problems: z.array(z.string()),
+  items: z.array(regulatoryItem),
+  can_edit: z.boolean(),
+});
+export type Regulatory = z.infer<typeof regulatorySchema>;
+export type RegulatoryItem = z.infer<typeof regulatoryItem>;
+
 // The signed-in person's own Kite account, read only. `platform_qty` is what the platform bought itself (its own filled orders);
 // `outside_qty` is the rest, which the platform never sells.
 export const brokerAccountSchema = z.object({

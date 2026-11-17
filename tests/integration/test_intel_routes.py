@@ -539,7 +539,9 @@ def test_a_saved_screeners_study_counts_as_a_strategy_in_the_funnel_once_per_rul
     assert (
         after["entered"] == before["entered"] + 1
     )  # one rule, however many times it was registered
-    assert after["passed"] == before["passed"]  # the newest study of the rule has not been run: the older one is superseded
+    assert (
+        after["passed"] == before["passed"]
+    )  # the newest study of the rule has not been run: the older one is superseded
 
 
 def test_a_study_of_a_generated_definition_shows_in_the_trial_and_validation_stages(client):

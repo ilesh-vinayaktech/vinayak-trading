@@ -12,6 +12,7 @@ legitimately reappear far away)."""
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -24,6 +25,9 @@ from algo.data.corporate_actions import records_for
 from algo.data.quality.continuity import Issue, continuity_issues
 
 MAX_GAP_DAYS = 5
+RIGHTS_ENTITLEMENT = re.compile(
+    r"-RE\d*$"
+)  # NSE's rights-entitlement series (SUVID-RE, X-RE1): not tracked
 LOOKBACK = timedelta(
     days=10
 )  # closes before `since`, so the first bar of the window has a previous one
@@ -112,6 +116,7 @@ def scan(
         ).fetchall()
     )
     series: dict[int, list[tuple[date, Decimal]]] = defaultdict(list)
+    skip = {i for i, n in names.items() if RIGHTS_ENTITLEMENT.search(n)}
     for iid, day, close in conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id,"
         " (ts AT TIME ZONE 'Asia/Kolkata')::date, close FROM bar_1d"
@@ -119,7 +124,8 @@ def scan(
         " ORDER BY instrument_id, ts, dataset_version DESC",
         (since, LOOKBACK.days),
     ):
-        series[iid].append((day, Decimal(close)))
+        if iid not in skip:
+            series[iid].append((day, Decimal(close)))
     touched: dict[int, list[date]] = defaultdict(list)  # any action, any status, any kind
     for iid, ex in conn.execute(
         "SELECT instrument_id, ex_date FROM corporate_action WHERE ex_date >= %s::date - %s",

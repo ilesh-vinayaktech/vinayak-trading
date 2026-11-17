@@ -16,7 +16,7 @@ import time
 import urllib.request
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -47,12 +47,34 @@ Record = Callable[[JobRun], None]
 class Job:
     name: str
     calendar: str  # systemd OnCalendar, Indian time
-    steps: tuple[tuple[str, ...], ...]  # {today} {d7} {d30} (IST dates) and {db} are filled in
+    steps: tuple[
+        tuple[str, ...], ...
+    ]  # {today} {d1} {d7} {d30} {d120} (IST dates; see MAX_LOOKBACK_DAYS) and {db} are filled in
     description: str
     timeout_s: int = 3600  # per step
     retries: int = 0
     retry_wait_s: int = 600
     needs_kite: bool = False
+
+
+MAX_LOOKBACK_DAYS = (
+    400  # a catch-up window never reaches back further than this, whatever the history says
+)
+WINDOWS = (1, 7, 30, 120)
+
+
+def _windows(today: date, last_success: datetime | None) -> dict[str, str]:
+    """The start date of each {dN} window. Normally N days back; after missed runs it reaches back to the day before the last
+    successful run, so the next run covers everything since then (a loader skips what is already stored). Never shorter than N."""
+    floor = (
+        None if last_success is None else last_success.astimezone(IST).date() - timedelta(days=1)
+    )
+    oldest = today - timedelta(days=MAX_LOOKBACK_DAYS)
+    out = {}
+    for n in WINDOWS:
+        start = today - timedelta(days=n)
+        out[f"d{n}"] = max(min(start, floor) if floor else start, oldest).isoformat()
+    return out
 
 
 def _feed_ok(session_ok: Callable[[datetime], bool] | None, now: datetime) -> bool:
@@ -100,6 +122,7 @@ def run_job(
     sleep: Callable[[float], None] = time.sleep,
     record: Record = lambda _run: None,
     session_ok: Callable[[datetime], bool] | None = None,
+    last_success: Callable[[str], datetime | None] = lambda _name: None,
 ) -> int:
     """0 = ok, 1 = failed, EX_SKIP = skipped, 0 with no work = another run holds the lock."""
     env = os.environ if env is None else env
@@ -114,8 +137,7 @@ def run_job(
     today = now.astimezone(IST).date()
     fill = {
         "today": today.isoformat(),
-        "d7": (today - timedelta(days=7)).isoformat(),
-        "d30": (today - timedelta(days=30)).isoformat(),
+        **_windows(today, last_success(job.name)),
         "db": env.get("ALGO_DB_URL", ""),
     }
     lock_dir.mkdir(parents=True, exist_ok=True)

@@ -54,3 +54,16 @@ def test_old_runs_are_trimmed_so_the_table_stays_small(conn):
     assert n == history.KEEP
     row = next(r for r in history.status(conn) if r["name"] == name)
     assert row["last_run"]["started_at"] == (T0 + timedelta(minutes=history.KEEP + 4)).isoformat()
+
+
+def test_the_last_success_is_when_the_latest_ok_run_started_and_failures_do_not_count(conn):
+    migrate(conn)
+    name = JOBS[1].name
+    assert history.last_success(conn, name) is None
+    history.record(conn, run(name, "failed", 0, "x"))
+    assert history.last_success(conn, name) is None  # only failures: never succeeded
+    history.record(conn, run(name, "ok", 10))
+    history.record(conn, run(name, "skipped", 20, "no session"))
+    history.record(conn, run(name, "failed", 30, "x"))
+    assert history.last_success(conn, name) == T0 + timedelta(minutes=10)
+    assert history.last_success(conn, JOBS[2].name) is None  # another job's runs do not count
