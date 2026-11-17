@@ -77,7 +77,7 @@ export default function HoldoutPage() {
             ))}
             {d.results.some((r) => r.checks.some((c) => c.later)) ? (
               <Alert tone="info">
-                &quot;Completed later&quot; checks had no evidence at evaluation (the index lacked a day) and were completed afterwards with the same code and seeds. They are information only: the promotion path still reads the original verdicts.
+                &quot;Completed later&quot; checks had no evidence at evaluation (the index lacked a day) and were completed afterwards with the same code and seeds. The promotion path counts them by their later verdict.
               </Alert>
             ) : null}
           </div>

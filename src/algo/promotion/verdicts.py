@@ -19,13 +19,15 @@ def read_verdicts(conn: psycopg.Connection) -> list[tuple[str, str, str]]:
 
 
 def promotable(conn: psycopg.Connection, candidate_id: str) -> bool:
-    """Every verdict PASS or NOT_APPLICABLE and at least one PASS. Insufficient evidence is never a weak pass."""
-    got = {v for c, _, v in read_verdicts(conn) if c == candidate_id}
+    """Every verdict PASS or NOT_APPLICABLE and at least one PASS. Insufficient evidence is never a weak pass. A check that had no evidence counts by the verdict
+    a later supplement gave it (same evaluator, manifest and seeds, completed once the missing data existed); without one it still blocks."""
+    done = {(c, g): v for c, g, v in read_supplements(conn)}
+    got = {done.get((c, g), v) for c, g, v in read_verdicts(conn) if c == candidate_id}
     return bool(got) and got <= {"PASS", "NOT_APPLICABLE"} and "PASS" in got
 
 
 def read_supplements(conn: psycopg.Connection) -> list[tuple[str, str, str]]:
-    """(candidate, gate, verdict) of checks that had no evidence and were completed later. Information for the owner: nothing here makes a strategy promotable."""
+    """(candidate, gate, verdict) of checks that had no evidence and were completed later. `promotable` counts them in place of the original no-evidence verdict."""
     return [
         (r[0], r[1], r[2])
         for r in conn.execute(

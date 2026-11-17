@@ -1,5 +1,5 @@
 -- A consumed batch's checks that had NO EVIDENCE (e.g. the index lacked a day) can be completed once, later, from the same code and seeds. The original verdicts are never changed;
--- this table is information for the owner and is read by nothing that promotes.
+-- this table is read by the promotion path, which counts a completed check by its later verdict.
 CREATE TABLE holdout_supplement (
   batch_id     BIGINT NOT NULL REFERENCES holdout_batch(batch_id),
   candidate_id TEXT NOT NULL CHECK (candidate_id <> ''),

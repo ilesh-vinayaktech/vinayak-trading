@@ -38,7 +38,7 @@ class Submit(BaseModel):
 
 def _results(conn: Any) -> list[dict[str, Any]]:
     """Each evaluated strategy's checks. A check that had no evidence and was completed later (holdout_supplement) shows the later verdict, marked `later`;
-    the promotion path still reads the original."""
+    the promotion path counts a completed check by its later verdict."""
     try:
         original = pv.read_verdicts(conn)
     except holdout_batch.BatchError:  # no consumed batch yet

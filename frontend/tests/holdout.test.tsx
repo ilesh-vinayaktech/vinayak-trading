@@ -61,7 +61,7 @@ describe("Holdout ledger", () => {
     const box = await screen.findByTestId("results");
     expect(box).toHaveTextContent("M12PASSSharpe: PASSDrawdown vs index: PASS (completed later)");
     expect(box).toHaveTextContent("LVNOT COMPLETEBeats the index: no evidence");
-    expect(box).toHaveTextContent("information only");
+    expect(box).toHaveTextContent("counts them by their later verdict");
   });
 
   it("lists what can be submitted with its inner holdout outcome, and submits only after a confirmation", async () => {
