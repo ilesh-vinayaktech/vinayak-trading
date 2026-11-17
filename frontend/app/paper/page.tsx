@@ -47,9 +47,15 @@ export default function PaperPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Paper trading" subtitle="Practise the strategy with pretend money. You approve every order, and nothing here places a real one." />
-      <Alert tone="warn" title="Unvalidated research">
-        This strategy has not passed validation. Paper results show whether the plumbing works, not that the strategy makes money.
-      </Alert>
+      {d?.account?.definition ? (
+        <Alert tone="info" title="Passed the holdout">
+          {d.account.definition} passed development and the 2025-2026 holdout. That is a screen, not proof: paper results from here on are the real test, and they show whether the plumbing works, not yet that it makes money.
+        </Alert>
+      ) : (
+        <Alert tone="warn" title="Unvalidated research">
+          This strategy has not passed validation. Paper results show whether the plumbing works, not that the strategy makes money.
+        </Alert>
+      )}
       {q.isError ? <Alert tone="error" title="Could not load your paper account">Try again in a moment.</Alert> : null}
       {q.isLoading ? <div role="status" aria-label="Loading your paper account"><Skeleton className="h-40 w-full" /></div> : null}
       {d && d.account === null ? (

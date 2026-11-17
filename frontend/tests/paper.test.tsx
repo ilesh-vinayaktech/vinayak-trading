@@ -350,6 +350,20 @@ describe("strategies from research", () => {
   });
 });
 
+describe("the validation banner", () => {
+  it("says the strategy passed the holdout when the account follows one that did, and warns otherwise", async () => {
+    backend(ready({ definition: "MOMENTUM_12M_M v1 test" }));
+    const { unmount } = mount();
+    expect(await screen.findByText("Passed the holdout")).toBeInTheDocument();
+    expect(screen.getByText(/MOMENTUM_12M_M v1 test passed development and the 2025-2026 holdout/)).toBeInTheDocument();
+    expect(screen.queryByText("Unvalidated research")).not.toBeInTheDocument();
+    unmount();
+    backend(ready({ definition: null }));
+    mount();
+    expect(await screen.findByText("Unvalidated research")).toBeInTheDocument();
+  });
+});
+
 describe("starting a paper account", () => {
   it("explains it is unvalidated and, with no saved strategy, starts with the standard settings", async () => {
     backend(ready(null, { "POST /api/paper/account": { ok: true } }));
