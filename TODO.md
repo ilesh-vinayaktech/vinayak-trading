@@ -397,6 +397,22 @@ Historical data → validation → Timescale → strategy (sandboxed) → backte
 
 ---
 
+### 5.8 Before real money: what is left of live trading (2026-11-17)
+
+Built and committed 2026-11-17 (see 5.3, 5.5 and the 3a/3b/3c lines there): the live process, one pipeline for paper and live (the account `mode` decides), both accounts per person, live approval and fills, FLATTEN for live, the API (`mode`, `live-status`), the Paper/Live switch on the Trading page, the systemd unit. Open, most important first:
+
+- [ ] **First run against a real Kite session** (needs the owner's Zerodha login; nothing live has touched real Kite). Place one small real order from a LIVE account and check: the order carries the platform tag, `reconcile_live` reads holdings and positions, and whether a same-day delivery buy and sell show in holdings, positions or both (see `execution/live_reconcile.py`; today only holdings are compared). Never touch the owner's own holdings: the book holds only the platform's fills.
+- [ ] **Zerodha's written answer on `market_protection=1`** (1% band on MARKET orders, line 126). MARKET sends it today; a LIMIT order does not need it.
+- [ ] **Install and enable `algo-live.timer` on the prod box**; set in `.env`: `ALGO_LIVE=1` (the explicit switch, only the owner sets it), `ALGO_LIVE_USER_ID`, and `ALGO_EXPECT_PROCESSES=feed,live` so a silent live process alerts. Never enable the timer on a dev machine.
+- [ ] **Corporate actions on a LIVE book**: splits, bonuses and dividends are applied to a paper book by `book.apply_actions`; nothing applies them to a LIVE one, so a split makes the book's quantity wrong and the reconciler halts. Apply them the same way and flag the unmodelled ones (pauses the account).
+- [ ] **Charges on live fills are the cost model's estimate**, not the contract note: reconcile against real contract notes and Zerodha's calculator (line 476; needs sample notes from the owner). A SELL filled in pieces may be charged the DP fee twice (`orders._dp_charged` looks at `paper_order`, not at the pieces).
+- [ ] **Reconcile compares holdings, not cash.** Cash moves with the owner's own trades, so compare only what the platform's own orders account for.
+- [ ] **The gate is not shown at approval**: an order approved while the live process is not running waits and fails at its expiry (never sent late). The page shows the gate and the process on the Live tab; consider refusing the approval when the gate is closed.
+- [ ] **Per-account gaps**: `strategy_config.in_use` is per strategy, not per account; the Strategies page "Use in my trading account" and the Risk page act on the paper account (Risk falls back to the live one); the kill switch is keyed by strategy id, so one pause covers a person's paper and live accounts on the same strategy (the safe direction).
+- [ ] **Limit sells** (owner decided 2026-11-17 to keep as is): a SELL is MARKET unless a LIMIT is chosen per order at approval; FLATTEN closing orders are always MARKET, valued at the last daily close. Revisit if a market sell ever fills badly.
+- [ ] **The 8-week paper period** (5.7) has not started: weekly tracking error report, zero unreconciled diffs at close, a monthly kill-switch drill (run one on the real process, with FLATTEN).
+- [ ] **Tidy stale lines** found when counting open items: 355 ("NOT the OMS" describes the old paper flow; the OMS is built), and check 278, 280, 281 against the code (the engine, risk and persistence are further along than their lines say).
+
 ## Outline only (not scheduled; each needs its own detailed TODO after Gate 5)
 
 - **Stage 6 Live execution:** `KiteBroker` (contract tests from S3 fixtures), static-IP Elastic IP + Terraform, token login job, market-protection/limit-order policy, **regulatory sign-off before first live order** (primary SEBI circular + Zerodha terms + written order-type clarification), live-small (10% cap, 4 weeks), manual approval for live-full, mode-safety triple check.
