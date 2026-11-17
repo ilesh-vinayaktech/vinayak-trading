@@ -1,12 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { RunPipelineDialog } from "@/components/research/RunPipelineDialog";
 import { ErrorBox, Loading } from "@/components/status/LoadState";
 import { DataTable, EmptyState, type Column } from "@/components/ui/DataTable";
 import { Panel, StatusPill } from "@/components/ui/Layout";
+import { buttonClass } from "@/components/ui/styles";
 import { api } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth";
 import type { Pipeline } from "@/lib/schemas";
 
 type Row = Pipeline["rows"][number];
@@ -39,7 +43,9 @@ function Outer({ r }: { r: Row }) {
 
 /** Every strategy at a glance: how far it got through development, the inner holdout, the outer holdout and paper, where it stopped and why, and what it returned. */
 export default function PipelinePage() {
-  const q = useQuery({ queryKey: ["pipeline"], queryFn: api.pipeline });
+  const { can } = useAuth();
+  const [running, setRunning] = useState(false);
+  const q = useQuery({ queryKey: ["pipeline"], queryFn: api.pipeline, refetchInterval: 15000 });
   if (q.isLoading) return <Loading what="the strategy pipeline" />;
   if (q.isError || !q.data) return <ErrorBox error={q.error} what="the strategy pipeline" />;
   const { rows, outer_visible } = q.data;
@@ -69,7 +75,12 @@ export default function PipelinePage() {
   ];
   return (
     <div className="space-y-6">
-      <PageHeader title="Strategy pipeline" subtitle="Every strategy, how far it got, where it stopped and why, and what it returned. Development, then the inner holdout, then the outer holdout, then paper trading." />
+      <PageHeader
+        title="Strategy pipeline"
+        subtitle="Every strategy, how far it got, where it stopped and why, and what it returned. Development, then the inner holdout, then the outer holdout, then paper trading."
+        actions={can("strategy:own") ? <button type="button" className={buttonClass("primary")} onClick={() => setRunning(true)}>Run strategies</button> : undefined}
+      />
+      <RunPipelineDialog open={running} onClose={() => setRunning(false)} codeDirty={q.data.code_dirty} />
       <Panel title="How many made it">
         <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5" data-testid="funnel">
           {funnel.map(([label, n]) => (

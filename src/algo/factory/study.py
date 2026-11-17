@@ -135,8 +135,9 @@ def start(
     *,
     family_id: int = 1,
     chain: bool = False,
+    fixed: bool = True,
 ) -> tuple[int, int]:
-    """Make the definition's standard study (registered once: asking again finds it) and queue its trials. Returns (experiment id, run id); a run already queued or running is an error from the queue."""
+    """Make the definition's study (fixed-setting by default, the way the first round ran; registered once: asking again finds it) and queue its trials. Returns (experiment id, run id); a run already queued or running is an error from the queue."""
     spec = spec_for(
         conn,
         strategy_id,
@@ -145,6 +146,7 @@ def start(
         start=WINDOW[0],
         end=WINDOW[1],
         holdout_start=WINDOW[2],
+        fixed=fixed,
     )
     row = conn.execute(
         "SELECT experiment_id FROM experiment WHERE name = %s AND strategy_id = 'dsl'", (spec.name,)

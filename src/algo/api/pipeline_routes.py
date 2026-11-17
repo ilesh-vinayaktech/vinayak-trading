@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from algo.api import holdout_routes
 from algo.api.security import CurrentUser, WConn
 from algo.paper import definitions
+from algo.research.code_identity import git_state
 
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 INNER_DAYS = 252  # trading days a year, to turn the inner holdout's total return into a yearly one
@@ -142,4 +143,4 @@ def overview(who: CurrentUser, conn: WConn) -> dict[str, Any]:
             "experiment_id": exp, "name": name, "development": dev, "inner": inner, "outer": out, "paper": paper.get(name),
             **summarise(dev, inner, out, paper.get(name), running),
         })  # fmt: skip
-    return {"rows": rows, "outer_visible": owner}
+    return {"rows": rows, "outer_visible": owner, "code_dirty": git_state()[1]}

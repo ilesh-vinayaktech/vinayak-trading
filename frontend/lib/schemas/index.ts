@@ -1221,6 +1221,7 @@ const stageFigures = z.object({
 });
 export const pipelineSchema = z.object({
   outer_visible: z.boolean(),
+  code_dirty: z.boolean(),
   rows: z.array(
     z.object({
       experiment_id: z.number(),

@@ -238,21 +238,18 @@ describe("the stage of a strategy", () => {
 describe("generated strategy definitions", () => {
   const D = { strategy_id: "ALPHA_RET_20D_H20", version: 1, description: "d", rebalance: "MONTHLY", max_positions: 20, plain: { when: "Once a month", summary: "Once a month: buy the 20% of stocks with the highest price change over the last month; sell when one falls into the 50% with the lowest.", buy: "Buy a stock when it is among the 20% of stocks with the highest price change over the last month.", sell: "Sell it when it falls into the 50% with the lowest.", size: "Hold at most 20 stocks, each the same size (never more than 10% of the money in one)." }, entry: "ret_20d TOP_PERCENT 20", exit: "ret_20d BOTTOM_PERCENT 50", created_by: "agent", created_at: "2026-11-16T10:00:00+00:00", experiment_id: null, study_name: null, study: "none", trials_done: 0, verdict: null, earlier_verdict: null };
 
-  it("lists each definition and runs the whole pipeline in the chosen family with one click", async () => {
-    const options = { strategies: [], segments: [], timeframes: [], brokers: [], benchmarks: [], frozen_through: null, survivorship_safe_from: "2016-01-01", segment_lists_from: "2016-01-01", max_trials: 300, holdout_share: [0.2], thresholds: {}, families: [{ family_id: 1, name: "First family", hypothesis: "h", studies: 19, trials: 200 }, { family_id: 5, name: "Momentum ideas", hypothesis: "h", studies: 0, trials: 0 }] };
-    backend(ready([], { "GET /api/intel/definitions": { definitions: [D] }, "GET /api/studies/options": options, "POST /api/strategies/definitions/ALPHA_RET_20D_H20/1/study": { experiment_id: 13, run_id: 40 } }));
+  it("lists each definition and points at the pipeline page to run it: there is no run button here", async () => {
+    backend(ready([], { "GET /api/intel/definitions": { definitions: [D] } }));
     mount();
     expect(await screen.findByText(/Once a month: buy the 20% of stocks with the highest price change/)).toBeTruthy();
-    fireEvent.change(await screen.findByLabelText("Research family"), { target: { value: "5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Run the pipeline" }));
-    await waitFor(() => expect(posted().find((c) => c.path === "/api/strategies/definitions/ALPHA_RET_20D_H20/1/study")?.body).toEqual({ family_id: 5, chain: true }));
+    expect(screen.queryByRole("button", { name: /Run/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/run them from the Strategy pipeline page/)).toBeInTheDocument();
   });
 
-  it("links an existing study and offers to run again, but not while one is running", async () => {
+  it("links an existing study", async () => {
     backend(ready([], { "GET /api/intel/definitions": { definitions: [{ ...D, experiment_id: 13, study_name: "ALPHA_RET_20D_H20 v1 2016-2022", study: "judged", trials_done: 9, verdict: false, earlier_verdict: null }, { ...D, strategy_id: "ALPHA_VOL_20D_H5", experiment_id: 14, study: "running" }] } }));
     mount();
     const links = await screen.findAllByRole("link", { name: "Open study" });
     expect(links.map((l) => l.getAttribute("href"))).toEqual(["/research/studies/13", "/research/studies/14"]);
-    expect(screen.getAllByRole("button", { name: "Run again" })).toHaveLength(1);
   });
 });

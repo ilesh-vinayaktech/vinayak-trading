@@ -100,7 +100,12 @@ def test_the_pipeline_is_open_to_researchers_and_shows_the_outer_window_to_the_o
         conn, clock, "VIEWER", "viewer@example.com"
     )  # research:read is enough to see the pipeline
     r = sign_in(app, "viewer@example.com").get("/api/pipeline")
-    assert r.status_code == 200 and r.json() == {"rows": [], "outer_visible": False}
+    assert isinstance(r.json()["code_dirty"], bool)
+    assert r.status_code == 200 and r.json() == {
+        "rows": [],
+        "outer_visible": False,
+        "code_dirty": r.json()["code_dirty"],
+    }
     add_user(conn, clock, "ADMIN", "boss@example.com")
     boss = sign_in(app, "boss@example.com")
     enrol_second_factor(boss, clock)
