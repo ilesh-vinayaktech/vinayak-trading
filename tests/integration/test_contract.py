@@ -5,7 +5,7 @@ Both sides are therefore tested against what the API actually returns, not hand-
 
 import json
 import os
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 
 import pytest
@@ -504,7 +504,6 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     monkeypatch.delenv(
         "ALGO_LIVE", raising=False
     )  # the gate answer must not depend on the machine running the test
-    from datetime import timedelta
     from decimal import Decimal as D
 
     from psycopg.types.json import Jsonb
@@ -724,6 +723,20 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             ),
         )
     shots["market_zone"] = c.get("/api/market/zone")
+    for symbol, drift in (("NIFTY 500", 0.0005), ("NIFTY BANK", 0.0015), ("NIFTY IT", -0.0005)):
+        level = 1000.0
+        for i in range(300):
+            level *= 1 + drift
+            conn.execute(
+                "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE',%s,%s,1,1,1,%s,1,%s)",
+                (
+                    symbol,
+                    datetime(2026, 11, 12, tzinfo=UTC).date() - timedelta(days=299 - i),
+                    round(level, 4),
+                    datetime(2026, 11, 12, 4, tzinfo=UTC),
+                ),
+            )
+    shots["market_sectors"] = c.get("/api/market/sectors")
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})
     c.post("/api/risk/switch", json={"action": "pause", "reason": "looking at the data"})

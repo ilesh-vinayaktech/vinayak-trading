@@ -703,6 +703,28 @@ export const marketZoneSchema = z.object({
   history: z.array(z.object({ day: z.string(), fear_greed: z.number().nullable(), trend: z.string().nullable() })), // oldest first
 });
 export type MarketZone = z.infer<typeof marketZoneSchema>;
+export const sectorRotationSchema = z.object({
+  as_of: z.string().nullable(),
+  benchmark: z.string(),
+  sectors: z.array(
+    z.object({
+      name: z.string(),
+      score: z.number(), // 0 to 100, ranked across the sectors
+      close: z.number(),
+      ret_1d: z.number().nullable(),
+      ret_5d: z.number().nullable(),
+      ret_21d: z.number().nullable(),
+      ret_63d: z.number().nullable(),
+      ret_252d: z.number().nullable(),
+      above_50: z.boolean(),
+      above_200: z.boolean(),
+      rs_ratio: z.number(), // against its own 50-day norm: 100 is steady
+      rs_momentum: z.number(),
+      quadrant: z.string(), // Leading | Improving | Weakening | Lagging
+    }),
+  ),
+});
+export type SectorRotation = z.infer<typeof sectorRotationSchema>;
 export const liveStatusSchema = z.object({
   account: z.boolean(),
   open: z.boolean(), // the gate is open: live can run

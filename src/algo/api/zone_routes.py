@@ -10,6 +10,7 @@ from fastapi import APIRouter, Request
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.live.market_calendar import IST
+from algo.market import sectors
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 HISTORY_DAYS = 260
@@ -93,3 +94,22 @@ def zone(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
             for d, f, t in reversed(history)
         ],
     }
+
+
+@router.get("/sectors")
+def sector_rotation(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Where money is flowing: each sector index's returns, strength against the Nifty 500 and rotation quadrant, strongest first."""
+    dates, bench, series = sectors.load(conn)
+    rows = sorted(sectors.rotation(series, bench), key=lambda r: -r.score)
+    return {
+        "as_of": dates[-1].isoformat() if dates and rows else None,
+        "benchmark": sectors.BENCHMARK,
+        "sectors": [
+            {
+                "name": r.name, "score": round(r.score, 1), "close": round(r.close, 2), "ret_1d": r.ret_1d, "ret_5d": r.ret_5d,
+                "ret_21d": r.ret_21d, "ret_63d": r.ret_63d, "ret_252d": r.ret_252d, "above_50": r.above_50, "above_200": r.above_200,
+                "rs_ratio": round(r.rs_ratio, 2), "rs_momentum": round(r.rs_momentum, 2), "quadrant": r.quadrant,
+            }
+            for r in rows
+        ],
+    }  # fmt: skip

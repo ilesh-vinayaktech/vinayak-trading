@@ -75,3 +75,45 @@ def test_only_signed_in_people_can_read_it(env):  # noqa: F811
     add_user(conn, clock, "VIEWER", "viewer@example.com")
     assert sign_in(app, "viewer@example.com").get("/api/market/zone").status_code == 200
     assert TestClient(app).get("/api/market/zone").status_code == 401
+
+
+def put_index(conn, symbol, drift, n=300):
+    x = 1000.0
+    for i in range(n):
+        x *= 1 + drift
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE',%s,%s,1,1,1,%s,1,%s)",
+            (symbol, TODAY - timedelta(days=n - 1 - i), round(x, 4), NOW),
+        )
+
+
+def test_sectors_come_back_strongest_first_with_their_quadrant_and_nothing_built_is_empty(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/sectors").json() == {
+        "as_of": None,
+        "benchmark": "NIFTY 500",
+        "sectors": [],
+    }
+    put_index(conn, "NIFTY 500", 0.0005)
+    put_index(conn, "NIFTY BANK", 0.0015)  # keeps beating the benchmark
+    put_index(conn, "NIFTY IT", -0.0005)  # keeps losing to it
+    got = c.get("/api/market/sectors").json()
+    assert got["as_of"] == "2026-11-11" and got["benchmark"] == "NIFTY 500"
+    assert [s["name"] for s in got["sectors"]] == ["Bank", "IT"]
+    bank, it = got["sectors"]
+    assert (
+        bank["quadrant"] == "Leading"
+        and it["quadrant"] == "Lagging"
+        and bank["score"] > it["score"]
+    )
+    assert bank["above_200"] is True and it["above_200"] is False
+    assert set(bank) >= {
+        "ret_1d",
+        "ret_21d",
+        "ret_63d",
+        "ret_252d",
+        "rs_ratio",
+        "rs_momentum",
+        "close",
+    }
