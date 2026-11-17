@@ -245,7 +245,7 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 21:45 Asia/Kolkata",
-   "description": "Market breadth, the fear/greed score and the bull/bear regime for the day (after the bars and the screener refresh)",
+   "description": "Market breadth, the fear/greed score and the bull/bear regime for the day, the day's point-in-time swing scores, then tonight's market and sector forecasts and the resolution of earlier ones (after the bars and the screener refresh)",
    "last_run": null,
    "last_success_at": null,
    "name": "market-zone"

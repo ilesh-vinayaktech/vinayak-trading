@@ -281,8 +281,9 @@ JOBS: tuple[Job, ...] = (
         (
             (*_PY, "scripts/build_market_zone.py", "--db", "{db}"),
             (*_PY, "scripts/build_score_history.py", "--db", "{db}"),
+            (*_PY, "scripts/build_predictions.py", "--db", "{db}"),
         ),
-        "Market breadth, the fear/greed score and the bull/bear regime for the day, then the day's point-in-time swing scores (after the bars and the screener refresh)",
+        "Market breadth, the fear/greed score and the bull/bear regime for the day, the day's point-in-time swing scores, then tonight's market and sector forecasts and the resolution of earlier ones (after the bars and the screener refresh)",
         timeout_s=1800,
     ),
     Job(

@@ -725,6 +725,29 @@ export const sectorRotationSchema = z.object({
   ),
 });
 export type SectorRotation = z.infer<typeof sectorRotationSchema>;
+const evidenceSchema = z.object({ feature: z.string(), value: z.number(), effect: z.number() }); // effect in log-odds: above 0 pushed towards UP
+export const forecastSchema = z.object({
+  as_of: z.string().nullable(),
+  market: z.array(z.object({ horizon_days: z.number(), p_up: z.number(), evidence: z.array(evidenceSchema) })),
+  sectors: z.array(z.object({ name: z.string(), p_1d: z.number().nullable(), p_5d: z.number().nullable(), evidence: z.array(evidenceSchema) })), // most bullish first
+  record: z.array(
+    z.object({
+      subject: z.string(),
+      horizon_days: z.number(),
+      live: z.boolean(), // false = walk-forward history
+      n: z.number(),
+      hit_rate: z.number(),
+      base_rate: z.number(),
+      base_hit: z.number(),
+      brier_skill: z.number(),
+      beats_guessing: z.boolean(),
+      calibration: z.array(z.object({ predicted: z.number(), actual: z.number(), n: z.number() })),
+    }),
+  ),
+  misses: z.array(z.object({ as_of: z.string(), p_up: z.number(), realized: z.number(), went_up: z.boolean(), evidence: z.array(evidenceSchema) })),
+  labels: z.record(z.string(), z.string()).optional(),
+});
+export type Forecast = z.infer<typeof forecastSchema>;
 export const liveStatusSchema = z.object({
   account: z.boolean(),
   open: z.boolean(), // the gate is open: live can run

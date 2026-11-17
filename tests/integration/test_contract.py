@@ -737,6 +737,37 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
                 ),
             )
     shots["market_sectors"] = c.get("/api/market/sectors")
+    forecast_day = datetime(2026, 11, 11, tzinfo=UTC).date()
+    for subject, h, p, live, up, r, ev in (
+        (
+            "MARKET",
+            1,
+            0.58,
+            True,
+            None,
+            None,
+            '[{"feature": "momentum", "value": 70.0, "effect": 0.21}]',
+        ),
+        ("MARKET", 5, 0.61, True, None, None, "[]"),
+        ("IT", 1, 0.44, True, None, None, "[]"),
+        ("IT", 5, 0.47, True, None, None, "[]"),
+        ("MARKET", 1, 0.9, False, False, -0.02, "[]"),
+        ("MARKET", 1, 0.55, False, True, 0.004, "[]"),
+    ):
+        conn.execute(
+            "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, evidence, outcome_up, realized) VALUES (%s,%s,%s,'logit-v1',%s,%s,%s,%s,%s)",
+            (
+                forecast_day if live else forecast_day - timedelta(days=30 + int(p * 10)),
+                subject,
+                h,
+                live,
+                p,
+                ev,
+                up,
+                r,
+            ),
+        )
+    shots["market_forecast"] = c.get("/api/market/forecast")
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})
     c.post("/api/risk/switch", json={"action": "pause", "reason": "looking at the data"})

@@ -117,3 +117,71 @@ def test_sectors_come_back_strongest_first_with_their_quadrant_and_nothing_built
         "rs_momentum",
         "close",
     }
+
+
+def log(conn, day, subject, h, p, live, up=None, realized=None, ev=None):
+    conn.execute(
+        "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, evidence, outcome_up, realized) VALUES (%s,%s,%s,'logit-v1',%s,%s,%s,%s,%s)",
+        (day, subject, h, live, p, Jsonb(ev or []), up, realized),
+    )
+
+
+def test_forecast_with_nothing_logged_is_empty(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/forecast").json() == {
+        "as_of": None,
+        "market": [],
+        "sectors": [],
+        "record": [],
+        "misses": [],
+    }
+
+
+def test_forecast_gives_tonights_probabilities_the_track_record_and_the_biggest_misses(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    ev = [{"feature": "momentum", "value": 70.0, "effect": 0.2}]
+    log(conn, TODAY, "MARKET", 1, 0.58, True, ev=ev)
+    log(conn, TODAY, "MARKET", 5, 0.61, True)
+    log(conn, TODAY, "IT", 1, 0.40, True)
+    log(conn, TODAY, "IT", 5, 0.45, True)
+    log(conn, TODAY, "Bank", 1, 0.55, True)
+    for k in range(30):  # a walk-forward history that is no better than guessing
+        d = TODAY - timedelta(days=40 + k)
+        log(
+            conn,
+            d,
+            "MARKET",
+            1,
+            0.9 if k == 0 else 0.55,
+            False,
+            up=k % 2 == 0 and k != 0,
+            realized=-0.02 if k == 0 else 0.001,
+        )
+    got = c.get("/api/market/forecast").json()
+    assert got["as_of"] == "2026-11-11"
+    assert [(m["horizon_days"], m["p_up"]) for m in got["market"]] == [
+        (1, pytest.approx(0.58)),
+        (5, pytest.approx(0.61)),
+    ] and got["market"][0]["evidence"] == ev
+    assert [s["name"] for s in got["sectors"]] == ["Bank", "IT"] and got["sectors"][1][
+        "p_5d"
+    ] == pytest.approx(0.45)  # most bullish first
+    rec = got["record"]
+    assert (
+        len(rec) == 1
+        and rec[0]["live"] is False
+        and rec[0]["horizon_days"] == 1
+        and rec[0]["n"] == 30
+        and rec[0]["beats_guessing"] is False
+    )
+    assert (
+        got["misses"][0]["p_up"] == pytest.approx(0.9) and got["misses"][0]["went_up"] is False
+    )  # the most confident wrong call first
+    assert "momentum" in got["labels"]
+
+
+def test_forecast_needs_a_signed_in_user(env):  # noqa: F811
+    _, app, _, _ = env
+    assert TestClient(app).get("/api/market/forecast").status_code in (401, 403)

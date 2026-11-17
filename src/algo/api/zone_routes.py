@@ -10,7 +10,7 @@ from fastapi import APIRouter, Request
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.live.market_calendar import IST
-from algo.market import sectors
+from algo.market import forecast, predict, sectors
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 HISTORY_DAYS = 260
@@ -113,3 +113,62 @@ def sector_rotation(who: CurrentUser, conn: WConn) -> dict[str, Any]:
             for r in rows
         ],
     }  # fmt: skip
+
+
+def _skill(s: Any) -> dict[str, Any] | None:
+    if s is None:
+        return None
+    return {
+        "n": s.n, "hit_rate": s.hit_rate, "base_rate": s.base_rate, "base_hit": s.base_hit, "brier_skill": s.brier_skill,
+        "beats_guessing": s.brier_skill > 0.005 and s.hit_rate > s.base_hit,
+        "calibration": [{"predicted": a, "actual": b, "n": n} for a, b, n in s.calibration],
+    }  # fmt: skip
+
+
+@router.get("/forecast")
+def forecast_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Tomorrow and next week for the market and each sector: the probability of UP with the evidence behind it, how this model has done against plain guessing
+    (walk-forward history, and live once it has outcomes) and its biggest recent misses. Built nightly by scripts/build_predictions.py."""
+    latest = conn.execute("SELECT max(as_of) FROM prediction_log WHERE live").fetchone()
+    day = latest[0] if latest else None
+    if day is None:
+        return {"as_of": None, "market": [], "sectors": [], "record": [], "misses": []}
+    rows = conn.execute(
+        "SELECT subject, horizon_days, p_up, evidence FROM prediction_log WHERE live AND as_of=%s ORDER BY subject, horizon_days",
+        (day,),
+    ).fetchall()
+    by: dict[str, dict[int, tuple[float, list[Any]]]] = {}
+    for subject, h, p, ev in rows:
+        by.setdefault(subject, {})[h] = (float(p), ev)
+    market = [
+        {"horizon_days": h, "p_up": p, "evidence": ev}
+        for h, (p, ev) in sorted(by.get("MARKET", {}).items())
+    ]
+    sect = sorted(
+        (
+            {"name": s, "p_1d": v.get(1, (None, []))[0], "p_5d": v.get(5, (None, []))[0], "evidence": v.get(1, (None, []))[1][:2]}
+            for s, v in by.items() if s != "MARKET"
+        ),
+        key=lambda r: -(r["p_1d"] if isinstance(r["p_1d"], float) else 0.0),
+    )  # fmt: skip
+    record = []
+    for h in forecast.HORIZONS:
+        for live in (False, True):
+            s = _skill(forecast.track_record(conn, "MARKET", h, live))
+            if s:
+                record.append({"subject": "Market", "horizon_days": h, "live": live, **s})
+    misses = [
+        {"as_of": d.isoformat(), "p_up": float(p), "realized": float(r), "went_up": bool(u), "evidence": ev}
+        for d, p, r, u, ev in conn.execute(
+            "SELECT as_of, p_up, realized, outcome_up, evidence FROM prediction_log WHERE subject='MARKET' AND horizon_days=1 AND outcome_up IS NOT NULL"
+            " AND ((p_up > 0.5 AND NOT outcome_up) OR (p_up < 0.5 AND outcome_up)) ORDER BY abs(p_up - 0.5) DESC, as_of DESC LIMIT 8"
+        )
+    ]  # fmt: skip
+    return {
+        "as_of": day.isoformat(),
+        "market": market,
+        "sectors": sect,
+        "record": record,
+        "misses": misses,
+        "labels": predict.LABELS,
+    }
