@@ -39,6 +39,8 @@ Checked on 2026-11-14 against the dev database and `pyproject.toml`.
 
 ## 3. The holdout
 
+> **Superseded in part by [`docs/holdout-policy-v3.md`](holdout-policy-v3.md) (signed 2026-11-16):** rule (6), the "at most one global batch, ever" invariant and the "consumed from the moment `EVALUATING` is recorded" point (now: the durable first-read marker) are replaced there. The rest of this section stands.
+
 | Dataset | Dates | Purpose |
 |---|---|---|
 | Research / development | 2016-01-04 to 2024-12-31 | features, discovery, experiments, walk-forward |

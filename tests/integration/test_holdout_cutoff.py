@@ -28,7 +28,9 @@ def add_definition(conn, sid, **kw):
         conn.execute("SET session_replication_role = DEFAULT")
 
 
-def _add_definition(conn, sid, *, passed=True, verdict_status="DONE", with_study=True, ver=1):
+def _add_definition(
+    conn, sid, *, passed=True, verdict_status="DONE", with_study=True, ver=1, dirty=False
+):
     conn.execute(
         "INSERT INTO strategy_definition (strategy_id, version, reason, definition, definition_sha256, created_by, created_at)"
         " VALUES (%s,%s,'t','{}',%s,'t',%s)",
@@ -47,7 +49,7 @@ def _add_definition(conn, sid, *, passed=True, verdict_status="DONE", with_study
         (
             f"{sid} fixed",
             NOW,
-            Jsonb({"spec": spec, "code": {"commit": "abc", "dirty": False}}),
+            Jsonb({"spec": spec, "code": {"commit": "abc", "dirty": dirty}}),
             f"sha-{sid}",
         ),
     ).fetchone()[0]
@@ -221,3 +223,42 @@ def test_a_calendar_cutoff_fires_on_its_date_not_before_and_only_once(env):
     assert co.fire_quarter(env, date(2027, 3, 31), datetime(2027, 3, 30, tzinfo=UTC)) is None
     assert co.fire_quarter(env, date(2027, 3, 31), datetime(2027, 3, 31, 12, tzinfo=UTC))
     assert co.fire_quarter(env, date(2027, 3, 31), datetime(2027, 4, 2, tzinfo=UTC)) is None
+
+
+def test_quarterly_cutoffs_fire_on_the_last_trading_day_of_each_quarter_after_batch_1_and_never_early(
+    env,
+):
+    from algo.research import holdout_cutoff as c2
+
+    population(env, ("A",))
+    assert (
+        c2.fire_due_quarters(env, datetime(2027, 4, 5, tzinfo=UTC)) == []
+    )  # no Batch 1 cutoff yet
+    assert c2.fire_batch1(env, NOW)  # 2026-11-17
+    assert c2.last_trading_day(env, date(2026, 12, 31)) == date(2026, 12, 31)  # a Thursday
+    assert c2.last_trading_day(env, date(2027, 3, 31)) == date(2027, 3, 31)
+    assert c2.last_trading_day(env, date(2027, 6, 30)) == date(2027, 6, 30)
+    assert c2.last_trading_day(env, date(2026, 9, 30)) == date(2026, 9, 30)
+    assert c2.quarter_dates(date(2026, 11, 17), date(2027, 3, 31)) == [
+        date(2026, 12, 31),
+        date(2027, 3, 31),
+    ]
+    assert (
+        c2.fire_due_quarters(env, datetime(2026, 12, 30, 12, tzinfo=UTC)) == []
+    )  # the day has not come
+    first = c2.fire_due_quarters(env, datetime(2026, 12, 31, 12, tzinfo=UTC))
+    assert (
+        len(first) == 1 and c2.fire_due_quarters(env, datetime(2027, 1, 5, tzinfo=UTC)) == []
+    )  # once
+    assert (
+        len(c2.fire_due_quarters(env, datetime(2027, 4, 2, tzinfo=UTC))) == 1
+    )  # only March: June is not due
+    assert (
+        env.execute("SELECT count(*) FROM holdout_cutoff WHERE kind='QUARTER'").fetchone()[0] == 2
+    )
+
+
+def test_a_quarter_end_on_a_weekend_uses_the_last_trading_day_before_it(env):
+    from algo.research import holdout_cutoff as c2
+
+    assert c2.last_trading_day(env, date(2027, 1, 31)) == date(2027, 1, 29)  # a Sunday

@@ -440,3 +440,34 @@ def test_the_evaluator_gets_a_guarded_handle_only_after_the_marker_and_never_a_c
         cap = hb.Capability(hb._TOKEN, object(), object())
         cap._revoke()
         cap.connection  # noqa: B018  ...and unusable once revoked
+
+
+def test_two_connections_taking_the_last_slot_at_once_get_exactly_one(env, pg_url):
+    bid = hb.register(env, by="owner", now=NOW)
+    for i in range(29):
+        env.execute(
+            "INSERT INTO holdout_candidate (batch_id, candidate_id, state, seed, reserved_at) VALUES (%s,%s,'RESERVED',%s,%s)",
+            (bid, f"x{i}", f"{i:032x}", NOW),
+        )
+    barrier = threading.Barrier(2)
+    results = []
+
+    def go(name):
+        with psycopg.connect(pg_url, autocommit=False) as c:
+            try:
+                barrier.wait()
+                c.execute(
+                    "INSERT INTO holdout_candidate (batch_id, candidate_id, state, seed, reserved_at) VALUES (%s,%s,'RESERVED',%s,%s)",
+                    (bid, name, f"{ord(name[0]):032x}", NOW),
+                )
+                c.commit()
+                results.append("ok")
+            except psycopg.errors.RaiseException:
+                c.rollback()
+                results.append("full")
+
+    threads = [threading.Thread(target=go, args=(n,)) for n in ("last-a", "last-b")]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert sorted(results) == ["full", "ok"]
+    assert hb.slots(env) == (0, 30, 0)

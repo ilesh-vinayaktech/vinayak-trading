@@ -7,7 +7,7 @@ are processed at once. Only the running exceedance count is kept. NumPy is pinne
 
 import math
 import secrets
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -52,6 +52,34 @@ def block_draws(
     u = rng.random(size=(d, n - 1))
     jumps = rng.integers(0, n, size=(d, n - 1), dtype=np.int32)
     return starts, u, jumps
+
+
+def block_slices(
+    seed: int,
+    block: int,
+    n: int,
+    rows: int = ROWS,
+    d: int = BLOCK_DRAWS,
+    prefix: tuple[int, ...] = (),
+) -> Iterator[tuple[NDArray[Any], NDArray[Any], NDArray[Any]]]:
+    """The same draws as `block_draws`, produced a slice of rows at a time so they stay in the CPU cache (the whole block is 55 MB and many processes at once exhaust the memory bus).
+    Identical values by construction: `starts` first; then `u` continues from there, and a copy of the generator advanced past all of `u` (one 64-bit word per double) supplies `jumps`,
+    carrying the generator's own buffered half-word exactly as the single big call would. Pinned against `block_draws` by tests."""
+    rng = np.random.Generator(
+        np.random.PCG64(np.random.SeedSequence(entropy=seed, spawn_key=(*prefix, block)))
+    )
+    starts = rng.integers(0, n, size=d, dtype=np.int32)
+    ahead = np.random.PCG64()
+    ahead.state = rng.bit_generator.state
+    ahead.advance(d * (n - 1))
+    jump_rng = np.random.Generator(ahead)
+    for lo in range(0, d, rows):
+        m = min(rows, d - lo)
+        yield (
+            starts[lo : lo + m],
+            rng.random(size=(m, n - 1)),
+            jump_rng.integers(0, n, size=(m, n - 1), dtype=np.int32),
+        )
 
 
 def block_indices(
@@ -111,10 +139,6 @@ def test(
     y = r - r.mean()
     k = 0
     for b in range(draws // BLOCK_DRAWS):
-        starts, u, jumps = block_draws(seed, b, n, prefix=prefix)
-        for lo in range(
-            0, BLOCK_DRAWS, rows
-        ):  # slices that fit the cache: the same indices and statistics, far less memory traffic
-            idx = indices(starts[lo : lo + rows], u[lo : lo + rows], jumps[lo : lo + rows], n)
-            k += int((sharpe_rows(y[idx]) >= observed).sum())
+        for starts, u, jumps in block_slices(seed, b, n, rows, prefix=prefix):
+            k += int((sharpe_rows(y[indices(starts, u, jumps, n)]) >= observed).sum())
     return Result(observed, k, draws)

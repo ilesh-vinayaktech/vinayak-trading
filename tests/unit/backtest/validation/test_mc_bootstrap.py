@@ -136,3 +136,18 @@ def test_a_series_too_long_for_the_packed_form_is_refused():
         mc.indices(
             np.zeros(1, dtype=np.int32), np.zeros((1, 1)), np.zeros((1, 1), dtype=np.int32), 1 << 15
         )
+
+
+def test_the_sliced_draws_are_bit_identical_to_the_single_big_draw():
+    for seed, block, n, prefix in (
+        (123, 0, 460, ()),
+        (2026, 3, 460, (1, 2, 1, 7)),
+        (5, 1, 97, ()),
+        ((1 << 127) + 3, 0, 460, (6, 9, 1, 999)),
+    ):
+        starts, u, jumps = mc.block_draws(seed, block, n, prefix=prefix)
+        for rows in (1, 257, 10_000):
+            got = list(mc.block_slices(seed, block, n, rows, prefix=prefix))
+            assert np.array_equal(np.concatenate([g[0] for g in got]), starts)
+            assert np.array_equal(np.concatenate([g[1] for g in got]), u)
+            assert np.array_equal(np.concatenate([g[2] for g in got]), jumps)

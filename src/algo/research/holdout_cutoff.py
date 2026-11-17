@@ -12,12 +12,13 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
 
+from algo.live.market_calendar import windows_for
 from algo.research import holdout_batch, holdout_evaluator
 
 MIN_BATCH = 3
@@ -143,6 +144,38 @@ def fire_quarter(conn: psycopg.Connection, due_on: date, now: datetime) -> int |
     ).fetchone()
     assert row is not None
     return int(row[0])
+
+
+def last_trading_day(conn: psycopg.Connection, month_end: date) -> date:
+    """The last trading day on or before a quarter's last calendar day, from the platform's market calendar."""
+    day = month_end
+    while not windows_for(conn, day):
+        day -= timedelta(days=1)
+    return day
+
+
+def quarter_dates(first_after: date, until: date) -> list[date]:
+    """Quarter-end calendar days after `first_after` and up to `until` (the cutoffs are fixed calendar dates, never chosen)."""
+    out = []
+    for year in range(first_after.year, until.year + 1):
+        for m, d in ((3, 31), (6, 30), (9, 30), (12, 31)):
+            q = date(year, m, d)
+            if first_after < q <= until + timedelta(days=7):
+                out.append(q)
+    return out
+
+
+def fire_due_quarters(conn: psycopg.Connection, now: datetime) -> list[int]:
+    """Fire every quarterly cutoff whose last trading day has come, once the Batch 1 cutoff exists. Nobody can delay one or trigger it early."""
+    first = conn.execute("SELECT fired_at FROM holdout_cutoff WHERE kind='BATCH1'").fetchone()
+    if first is None:
+        return []
+    fired = []
+    for q in quarter_dates(first[0].date(), now.date()):
+        cid = fire_quarter(conn, last_trading_day(conn, q), now)
+        if cid is not None:
+            fired.append(cid)
+    return fired
 
 
 def record_provenance(
