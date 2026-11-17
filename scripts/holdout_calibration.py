@@ -16,6 +16,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("cmd", choices=("run", "report", "power"))
 ap.add_argument("--out", required=True, type=Path)
 ap.add_argument("--datasets", type=int, default=310_000)
+ap.add_argument("--draws", type=int, default=cal.DRAWS, help="bootstrap draws per dataset (a multiple of 10,000)")
 ap.add_argument("--workers", type=int, default=12)
 ap.add_argument(
     "--series",
@@ -26,7 +27,7 @@ ap.add_argument("--sharpe", type=float, default=0.0)
 ap.add_argument(
     "--power-datasets",
     type=int,
-    default=10_000,
+    default=2_000,
     help="datasets per series and Sharpe for the power runs",
 )
 a = ap.parse_args()
@@ -47,6 +48,7 @@ if a.cmd == "power":
             list(range(7)),
             -(-a.power_datasets // cal.CHUNK),
             sr,
+            draws=a.draws,
             workers=a.workers,
             progress=lambda i, n, sr=sr: print(f"power SR {sr}: {i}/{n}", flush=True),
         )
@@ -57,6 +59,7 @@ cal.run(
     series,
     -(-a.datasets // cal.CHUNK),
     a.sharpe,
+    draws=a.draws,
     workers=a.workers,
     progress=lambda i, n: print(f"{i}/{n} chunks", flush=True),
 )
