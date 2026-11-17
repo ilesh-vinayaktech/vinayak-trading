@@ -12,6 +12,8 @@ from uuid import UUID
 import psycopg
 from psycopg.types.json import Jsonb
 
+from algo.research.pipeline import next_step
+
 RUN_COLUMNS = [
     "run_id",
     "experiment_id",
@@ -53,7 +55,12 @@ def _run(row: tuple[Any, ...] | None) -> dict[str, Any] | None:
 
 
 def enqueue(
-    conn: psycopg.Connection, experiment_id: int, user: UUID, now: datetime, kind: str = "trials"
+    conn: psycopg.Connection,
+    experiment_id: int,
+    user: UUID,
+    now: datetime,
+    kind: str = "trials",
+    chain: bool = False,
 ) -> int:
     if (
         conn.execute(
@@ -66,8 +73,8 @@ def enqueue(
     try:
         with conn.transaction():
             row = conn.execute(
-                "INSERT INTO study_run (experiment_id, kind, status, requested_by, created_at) VALUES (%s,%s,'QUEUED',%s,%s) RETURNING run_id",
-                (experiment_id, kind, user, now),
+                "INSERT INTO study_run (experiment_id, kind, status, requested_by, created_at, chain) VALUES (%s,%s,'QUEUED',%s,%s,%s) RETURNING run_id",
+                (experiment_id, kind, user, now, chain),
             ).fetchone()
     except psycopg.errors.UniqueViolation as e:
         raise JobError("this study already has a run queued or running") from e
@@ -120,6 +127,34 @@ def requeue_orphans(conn: psycopg.Connection) -> int:
             finally:
                 release(conn, run_id)
     return put_back
+
+
+def chain_next(conn: psycopg.Connection, run_id: int, now: datetime) -> str | None:
+    """If this finished run was asked to carry on (chain), queue the study's next stage and return its kind: the verdict after the trials, the inner holdout after a passed verdict.
+    A run that did not end DONE, or a study with nothing left to do, queues nothing."""
+    row = conn.execute(
+        "SELECT experiment_id, requested_by, chain, status FROM study_run WHERE run_id=%s",
+        (run_id,),
+    ).fetchone()
+    if row is None or not row[2] or row[3] != "DONE" or row[1] is None:
+        return None
+    exp = int(row[0])
+    runs: dict[str, str] = {
+        k: v
+        for k, v in conn.execute(
+            "SELECT kind, status FROM (SELECT DISTINCT ON (kind) kind, status FROM study_run WHERE experiment_id=%s ORDER BY kind, run_id DESC) x",
+            (exp,),
+        ).fetchall()
+    }
+    report = latest_report(conn, exp)
+    kind, _ = next_step(runs, None if report is None else bool(report["passed"]))
+    if kind is None:
+        return None
+    try:
+        enqueue(conn, exp, row[1], now, kind, chain=True)
+    except JobError:  # someone queued it already
+        return None
+    return kind
 
 
 def get_run(conn: psycopg.Connection, run_id: int) -> dict[str, Any] | None:

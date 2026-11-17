@@ -395,6 +395,12 @@ describe("running a study", () => {
     await waitFor(() => expect(posted()[0]?.path).toBe("/api/studies/7/runs"));
     expect(await screen.findByText("Run queued.")).toBeInTheDocument();
   });
+  it("asks the run to carry on by itself unless the box is cleared", async () => {
+    open(NO_RUN, undefined, { "POST /api/studies/7/runs": { run_id: 3 } });
+    expect(await screen.findByLabelText(/judge it and run the inner holdout/)).toBeChecked();
+    fireEvent.click(await screen.findByRole("button", { name: "Run the trials" }));
+    await waitFor(() => expect(posted()[0]?.body).toEqual({ chain: true }));
+  });
   it("does not offer a run to someone who cannot run strategies", async () => {
     open(NO_RUN, ["research:read"]);
     expect(await screen.findByText("No trials run yet")).toBeInTheDocument();

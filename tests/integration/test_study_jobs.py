@@ -123,3 +123,69 @@ def test_a_finished_run_is_released_so_nothing_holds_it(env, pg_url):
         study_jobs.claim(worker, NOW)
         study_jobs.release(worker, run)
         assert study_jobs.requeue_orphans(conn) == 1  # still marked RUNNING, but nobody holds it
+
+
+# --- a run asked to carry on queues the next stage by itself ---
+def _report(conn, exp, passed):
+    run_id = conn.execute(
+        "INSERT INTO backtest_run (strategy_id,strategy_version,params,params_hash,code_version,reader_mode,config,"
+        "cost_model,adjustment_versions,provisional_events,unapplied_events,blocked_instruments,unmodelled_events,"
+        "accounting_complete,dividends_received,metrics,result_hash,created_at,ledger_reconciled,reconciliation,pnl)"
+        " VALUES ('s','1','{}','ph','c','research','{}','{}','{}','[]','[]','[]','[]',true,0,'{}','rh',%s,true,'{}','{}')"
+        " RETURNING run_id", (NOW,)).fetchone()[0]  # fmt: skip
+    conn.execute(
+        "INSERT INTO validation_report (experiment_id, run_id, passed, thresholds_status, n_trials, evidence, gates, created_at)"
+        " VALUES (%s,%s,%s,'confirmed',1,'{}','[]',%s)",
+        (exp, run_id, passed, NOW),
+    )
+
+
+def _queued(conn, exp):
+    return conn.execute(
+        "SELECT kind, chain, requested_by FROM study_run WHERE experiment_id=%s AND status='QUEUED'",
+        (exp,),
+    ).fetchone()
+
+
+def test_a_chained_run_queues_the_verdict_and_then_the_inner_holdout_only_if_it_passed(env):
+    conn, owner, exp = env
+    plain = study_jobs.enqueue(conn, exp, owner, NOW)
+    study_jobs.finish(conn, plain, "DONE", NOW)
+    assert (
+        study_jobs.chain_next(conn, plain, NOW) is None and _queued(conn, exp) is None
+    )  # not asked to carry on
+    trials = study_jobs.enqueue(
+        conn, exp, owner, NOW, chain=True
+    )  # (an older DONE trials run is superseded by the newer one)
+    study_jobs.finish(conn, trials, "DONE", NOW)
+    assert study_jobs.chain_next(conn, trials, NOW) == "verdict"
+    assert _queued(conn, exp) == (
+        "verdict",
+        True,
+        owner,
+    )  # asked by the same person, and still carrying on
+    assert study_jobs.chain_next(conn, trials, NOW) is None  # already queued: nothing twice
+    verdict = study_jobs.latest_run(conn, exp, "verdict")["run_id"]
+    _report(conn, exp, True)
+    study_jobs.finish(conn, verdict, "DONE", NOW)
+    assert (
+        study_jobs.chain_next(conn, verdict, NOW) == "holdout"
+        and _queued(conn, exp)[0] == "holdout"
+    )
+    holdout = study_jobs.latest_run(conn, exp, "holdout")["run_id"]
+    study_jobs.finish(conn, holdout, "DONE", NOW)
+    assert study_jobs.chain_next(conn, holdout, NOW) is None  # the end of the pipeline
+
+
+def test_a_chain_stops_at_a_failed_verdict_a_failed_run_or_a_missing_run(env):
+    conn, owner, exp = env
+    trials = study_jobs.enqueue(conn, exp, owner, NOW, chain=True)
+    study_jobs.finish(conn, trials, "FAILED", NOW)
+    assert study_jobs.chain_next(conn, trials, NOW) is None  # it did not end DONE
+    verdict = study_jobs.enqueue(conn, exp, owner, NOW, kind="verdict", chain=True)
+    _report(conn, exp, False)
+    study_jobs.finish(conn, verdict, "DONE", NOW)
+    assert (
+        study_jobs.chain_next(conn, verdict, NOW) is None and _queued(conn, exp) is None
+    )  # failed development: no holdout
+    assert study_jobs.chain_next(conn, 99999, NOW) is None  # no such run

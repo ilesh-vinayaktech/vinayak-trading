@@ -134,6 +134,7 @@ def start(
     now: datetime,
     *,
     family_id: int = 1,
+    chain: bool = False,
 ) -> tuple[int, int]:
     """Make the definition's standard study (registered once: asking again finds it) and queue its trials. Returns (experiment id, run id); a run already queued or running is an error from the queue."""
     spec = spec_for(
@@ -149,4 +150,4 @@ def start(
         "SELECT experiment_id FROM experiment WHERE name = %s AND strategy_id = 'dsl'", (spec.name,)
     ).fetchone()
     eid = int(row[0]) if row else register(conn, owner, spec, now)
-    return eid, study_jobs.enqueue(conn, eid, owner, now)
+    return eid, study_jobs.enqueue(conn, eid, owner, now, chain=chain)

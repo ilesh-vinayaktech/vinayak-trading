@@ -142,15 +142,33 @@ def create(body: StrategyBody, request: Request, who: CurrentUser, conn: WConn) 
     return {"config_id": str(config_id)}
 
 
+class DefinitionRun(BaseModel):
+    family_id: int = 1  # the research family its tries count in
+    chain: bool = True  # carry on by itself: judge the trials, then run the inner holdout if the verdict passed
+
+
 @router.post("/definitions/{strategy_id}/{version}/study")
 def run_definition_study(
-    strategy_id: str, version: int, request: Request, who: CurrentUser, conn: WConn
+    strategy_id: str,
+    version: int,
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    body: DefinitionRun | None = None,
 ) -> dict[str, int]:
     """Backtest a generated strategy definition: its standard study (2016 to 2022 research window, a counted grid of its own numbers) is registered once and its trials queued. The result
     page then shows every trial with its equity curve, trades and the validation verdict."""
     now = _st(request).clock.now()
     try:
-        eid, run = fstudy.start(conn, who.session.user_id, strategy_id, version, now)
+        eid, run = fstudy.start(
+            conn,
+            who.session.user_id,
+            strategy_id,
+            version,
+            now,
+            family_id=(body or DefinitionRun()).family_id,
+            chain=(body or DefinitionRun()).chain,
+        )
     except registry.RegistryError as e:
         raise HTTPException(404, str(e)) from e
     except (StudyError, study_jobs.JobError) as e:

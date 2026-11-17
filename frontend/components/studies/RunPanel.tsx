@@ -58,7 +58,8 @@ export function RunPanel({ id }: { id: number }) {
     refetchInterval: (query) => (["QUEUED", "RUNNING"].includes(query.state.data?.run?.status ?? "") ? 3000 : false),
   });
   const refresh = () => void qc.invalidateQueries({ queryKey: ["study-results", id] });
-  const start = useMutation({ mutationFn: () => api.requestStudyRun(id), onSuccess: () => { toast.success("Run queued."); refresh(); } });
+  const [carryOn, setCarryOn] = useState(true);
+  const start = useMutation({ mutationFn: () => api.requestStudyRun(id, carryOn), onSuccess: () => { toast.success("Run queued."); refresh(); } });
   const cancel = useMutation({ mutationFn: (runId: number) => api.cancelStudyRun(runId), onSuccess: () => { toast.success("Run cancelled."); refresh(); } });
   const [sort, setSort] = useState<SortKey>("settings");
   const run = q.data?.run ?? null;
@@ -71,6 +72,12 @@ export function RunPanel({ id }: { id: number }) {
     >
       <div className="space-y-4 px-5 py-4">
         <p className="text-sm text-ink-soft">Each combination of settings is run over the research window only. The holdout is never read here. A worker process does the running, so it can take hours.</p>
+        {can("strategy:own") && !active ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={carryOn} onChange={(e) => setCarryOn(e.target.checked)} />
+            Then judge it and run the inner holdout (2023-2024) by itself if it passes
+          </label>
+        ) : null}
         {err ? <Alert tone="error">{message(err)}</Alert> : null}
         {q.isError ? <Alert tone="error">Could not load the results.</Alert> : null}
         {run ? (

@@ -109,6 +109,12 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                 execute(conn, run_id, datetime.now(UTC))
         finally:
             study_jobs.release(conn, run_id)
+        queued = study_jobs.chain_next(conn, run_id, datetime.now(UTC))
+        if queued:
+            print(
+                f"{datetime.now(UTC):%H:%M:%S} run {run_id}: queued the {queued} run that follows",
+                flush=True,
+            )
         run = study_jobs.get_run(conn, run_id)
         print(
             f"{datetime.now(UTC):%H:%M:%S} run {run_id}: {run['status'] if run else '?'} {(run or {}).get('error') or ''}",

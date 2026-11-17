@@ -152,18 +152,24 @@ def results(experiment_id: int, request: Request, conn: WConn) -> dict[str, Any]
     }
 
 
+class RunBody(BaseModel):
+    chain: bool = False  # carry on by itself: judge the trials, then run the inner holdout if the verdict passed
+
+
 @router.post("/{experiment_id}/runs")
 def request_run(
-    experiment_id: int, request: Request, who: CurrentUser, conn: WConn
+    experiment_id: int, request: Request, who: CurrentUser, conn: WConn, body: RunBody | None = None
 ) -> dict[str, int]:
     now = _st(request).clock.now()
     try:
-        run_id = study_jobs.enqueue(conn, experiment_id, who.session.user_id, now)
+        run_id = study_jobs.enqueue(
+            conn, experiment_id, who.session.user_id, now, chain=body is not None and body.chain
+        )
     except study_jobs.JobError as e:
         raise HTTPException(404 if "no such" in str(e) else 400, str(e)) from e
     audit.record(
         conn, now=now, action="study.run_requested", actor_user_id=who.session.user_id, target_type="experiment",
-        target_id=str(experiment_id), detail={"run_id": run_id},
+        target_id=str(experiment_id), detail={"run_id": run_id, "chain": body is not None and body.chain},
     )  # fmt: skip
     return {"run_id": run_id}
 

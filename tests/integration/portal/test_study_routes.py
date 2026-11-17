@@ -114,6 +114,9 @@ def test_a_run_is_requested_watched_and_its_trials_read_back_without_the_daily_s
     assert empty == {"run": None, "trials": [], "universe_coverage": []}
     rid = c.post(f"/api/studies/{sid}/runs").json()["run_id"]
     assert c.post(f"/api/studies/{sid}/runs").status_code == 400  # one active run per study
+    assert (
+        conn.execute("SELECT chain FROM study_run WHERE run_id=%s", (rid,)).fetchone()[0] is False
+    )  # no body: it does not carry on
     queued = c.get(f"/api/studies/{sid}/results").json()["run"]
     assert (queued["run_id"], queued["status"], queued["done"], queued["total"]) == (
         rid,
@@ -369,3 +372,11 @@ def test_a_trader_backtests_a_generated_definition_in_one_click_and_a_viewer_can
     assert c.post(url).status_code == 400  # a run is already waiting
     assert c.post("/api/strategies/definitions/ALPHA_NOPE_H1/1/study").status_code == 404
     assert "study.registered" in audit_actions(conn)
+
+
+def test_a_run_can_be_asked_to_carry_on_by_itself(env):
+    conn, app = env
+    c = sign_in(app, "jane@example.com")
+    sid = c.post("/api/studies", json=body()).json()["experiment_id"]
+    rid = c.post(f"/api/studies/{sid}/runs", json={"chain": True}).json()["run_id"]
+    assert conn.execute("SELECT chain FROM study_run WHERE run_id=%s", (rid,)).fetchone()[0] is True
