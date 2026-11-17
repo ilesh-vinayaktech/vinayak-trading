@@ -9,6 +9,7 @@ usage: research_holdout.py migrate                       apply database migratio
        research_holdout.py locks [--write]               strategy_locked_at and forward start per candidate (prints; --write records them)
        research_holdout.py freeze --cutoff N             freeze the batch of that cutoff (needs the audit; reserves slots, commits seeds)
        research_holdout.py evaluate --batch N --yes      the ONE evaluation of that batch: spends its slots, cannot be repeated
+       research_holdout.py supplement --batch N          later, complete the checks that had NO EVIDENCE (e.g. the index lacked a day); changes no verdict, spends no slot
        research_holdout.py verdicts                      the owner's read of the verdicts"""
 
 import argparse
@@ -53,6 +54,8 @@ f.add_argument("--cutoff", type=int, required=True)
 e = sub.add_parser("evaluate")
 e.add_argument("--batch", type=int, required=True)
 e.add_argument("--yes", action="store_true", help="confirm that the batch's slots will be spent")
+sp = sub.add_parser("supplement")
+sp.add_argument("--batch", type=int, required=True)
 a = ap.parse_args()
 if not a.db:
     raise SystemExit("error: pass --db or set ALGO_DB_URL")
@@ -129,6 +132,12 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             with slot.hold(conn, "holdout evaluation", nice=10):
                 ev.run_batch(conn, a.batch, now)
             print("evaluated: the batch's slots are consumed; read the verdicts with `verdicts`")
+        elif a.cmd == "supplement":
+            with slot.hold(conn, "holdout supplement", nice=10):
+                n = ev.run_supplement(conn, a.batch, now)
+            print(f"completed {n} check(s) that had no evidence; no verdict changed, no slot spent")
+            for row in verdicts.read_supplements(conn):
+                print(*row)
         else:
             for row in verdicts.read_verdicts(conn):
                 print(*row)

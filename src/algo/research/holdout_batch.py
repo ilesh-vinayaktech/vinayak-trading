@@ -357,6 +357,54 @@ def evaluate(
         conn.execute("SELECT pg_advisory_unlock(%s)", (_ADVISORY_KEY,))
 
 
+def supplement(
+    conn: psycopg.Connection,
+    batch_id: int,
+    run: Callable[[Capability, Manifest], Results],
+    reader_factory: Callable[[Any], Any],
+    now: datetime,
+) -> int:
+    """Complete, once more, the checks of a CONSUMED batch that had no evidence (the index lacked a day): the same evaluator, manifest and committed seeds.
+    Only a PASS or FAIL for a check that was INSUFFICIENT_EVIDENCE is recorded, in its own table; no verdict is changed and no slot is spent. Returns how many were recorded."""
+    state, _, version, manifest_json, sha = _row(conn, batch_id)
+    holdout_lock.require(conn)
+    if state != "CONSUMED":
+        raise BatchError(f"the batch is {state}: only a consumed batch has checks to complete")
+    manifest = Manifest.from_json(manifest_json)
+    if version != EVALUATOR_VERSION or manifest.sha256 != sha:
+        raise BatchError("the evaluator or the stored manifest changed: the supplement is refused")
+    got = conn.execute("SELECT pg_try_advisory_lock(%s)", (_ADVISORY_KEY,)).fetchone()
+    if not got or not got[0]:
+        raise BatchError("the holdout is already being evaluated")
+    try:
+        guarded = holdout_guard.guard(conn)
+        cap = Capability(_TOKEN, reader_factory(guarded), guarded)
+        try:
+            results = run(cap, manifest)
+        finally:
+            cap._revoke()
+        check_results(manifest, results)
+        open_ = {
+            (r[0], r[1])
+            for r in conn.execute(
+                "SELECT candidate_id, gate FROM holdout_verdict WHERE batch_id=%s AND verdict='INSUFFICIENT_EVIDENCE'",
+                (batch_id,),
+            ).fetchall()
+        }
+        done = 0
+        with conn.transaction():
+            for (candidate, gate), verdict in sorted(results.verdicts.items()):
+                if (candidate, gate) in open_ and verdict in ("PASS", "FAIL"):
+                    done += conn.execute(
+                        "INSERT INTO holdout_supplement (batch_id, candidate_id, gate, verdict, recorded_at) VALUES (%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                        (batch_id, candidate, gate, verdict, now),
+                    ).rowcount
+        _commit(conn)
+        return done
+    finally:
+        conn.execute("SELECT pg_advisory_unlock(%s)", (_ADVISORY_KEY,))
+
+
 def mark_first_read(conn: psycopg.Connection, batch_id: int, now: datetime) -> None:
     """Commit the first-read marker (once; a resume finds it already there). It consumes every reserved slot of the batch."""
     with conn.transaction():

@@ -60,6 +60,7 @@ ROUTE_PERMISSIONS = {
     ("POST", "/api/costs/schedules/{schedule_id}/{version}/remove"): "system:settings",
     ("GET", "/api/holdout"): "holdout:read",
     ("POST", "/api/holdout/cutoffs/{cutoff_id}/freeze"): "holdout:read",
+    ("POST", "/api/holdout/submit"): "holdout:read",
     ("GET", "/api/paper/account"): "strategy:own",
     ("POST", "/api/paper/account"): "strategy:own",
     ("POST", "/api/paper/account/settings"): "strategy:own",

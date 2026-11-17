@@ -22,3 +22,13 @@ def promotable(conn: psycopg.Connection, candidate_id: str) -> bool:
     """Every verdict PASS or NOT_APPLICABLE and at least one PASS. Insufficient evidence is never a weak pass."""
     got = {v for c, _, v in read_verdicts(conn) if c == candidate_id}
     return bool(got) and got <= {"PASS", "NOT_APPLICABLE"} and "PASS" in got
+
+
+def read_supplements(conn: psycopg.Connection) -> list[tuple[str, str, str]]:
+    """(candidate, gate, verdict) of checks that had no evidence and were completed later. Information for the owner: nothing here makes a strategy promotable."""
+    return [
+        (r[0], r[1], r[2])
+        for r in conn.execute(
+            "SELECT candidate_id, gate, verdict FROM holdout_supplement ORDER BY 1, 2"
+        ).fetchall()
+    ]

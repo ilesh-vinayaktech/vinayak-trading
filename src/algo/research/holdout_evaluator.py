@@ -187,12 +187,18 @@ def evaluate(cap: Capability, m: Manifest) -> Results:
     )  # fmt: skip
 
 
+def _reader_factory(guarded: Any) -> Readers:
+    return lambda known_at: BarReader(
+        guarded, source="kite", publish_lag=timedelta(0), known_at=known_at
+    )
+
+
 def run_batch(conn: psycopg.Connection, batch_id: int, now: datetime) -> None:
     """Evaluate the frozen batch once (or resume an interrupted evaluation): the single path that ever reads the holdout."""
 
-    def factory(guarded: Any) -> Readers:
-        return lambda known_at: BarReader(
-            guarded, source="kite", publish_lag=timedelta(0), known_at=known_at
-        )
+    holdout_batch.evaluate(conn, batch_id, evaluate, _reader_factory, now)
 
-    holdout_batch.evaluate(conn, batch_id, evaluate, factory, now)
+
+def run_supplement(conn: psycopg.Connection, batch_id: int, now: datetime) -> int:
+    """Complete the no-evidence checks of a consumed batch (see holdout_batch.supplement)."""
+    return holdout_batch.supplement(conn, batch_id, evaluate, _reader_factory, now)

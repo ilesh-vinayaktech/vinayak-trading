@@ -41,3 +41,10 @@ def test_only_all_pass_with_at_least_one_pass_is_promotable():
     assert verdicts.promotable(c, "c3") is False
     assert verdicts.promotable(c, "c4") is False  # nothing passed
     assert verdicts.promotable(c, "nobody") is False
+
+
+def test_supplements_come_back_as_candidate_gate_verdict_and_make_nothing_promotable():
+    c = Conn([("c1", "g", "PASS")])
+    assert verdicts.read_supplements(c) == [("c1", "g", "PASS")]
+    with pytest.raises(BatchError):  # the promotion path still reads the original verdicts only
+        verdicts.promotable(Conn([]), "c1")

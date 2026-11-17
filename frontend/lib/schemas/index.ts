@@ -1172,7 +1172,9 @@ export const holdoutSchema = z.object({
   previously_tested: z.number(),
   audit_signed: z.boolean(),
   warnings: z.array(z.string()),
-  batches: z.array(z.object({ batch_id: z.number(), state: z.string(), candidates: z.number(), frozen_at: z.string().nullable(), first_read: z.boolean() })),
+  batches: z.array(z.object({ batch_id: z.number(), state: z.string(), candidates: z.number(), frozen_at: z.string().nullable(), first_read: z.boolean(), members: z.array(z.string()) })),
+  results: z.array(z.object({ name: z.string(), overall: z.enum(["PASS", "FAIL", "INCOMPLETE"]), checks: z.array(z.object({ gate: z.string(), verdict: z.string(), later: z.boolean() })) })),
+  eligible: z.array(z.object({ candidate_id: z.string(), inner: z.object({ passed: z.boolean(), sharpe: z.number().nullable(), index_sharpe: z.number().nullable() }).nullable() })),
   cutoff: z
     .object({
       cutoff_id: z.number(),

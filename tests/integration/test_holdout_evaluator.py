@@ -169,3 +169,39 @@ def test_an_equity_curve_that_misses_a_session_of_the_window_is_insufficient_evi
     ) is False
     report = conn.execute("SELECT report FROM holdout_report").fetchone()[0]
     assert "misses 1 session" in next(iter(report["candidates"].values()))["error"]
+
+
+def test_a_consumed_batch_can_complete_its_no_evidence_checks_once_and_nothing_else(
+    world, monkeypatch
+):
+    conn, _, sid = world
+    bid, _ = frozen(conn, sid)
+    with pytest.raises(hb.BatchError, match="FROZEN"):
+        ev.run_supplement(conn, bid, NOW)  # nothing to complete before the one evaluation
+    ev.run_batch(conn, bid, NOW)
+    before = pv.read_verdicts(conn)
+    spent = hb.slots(conn)
+    monkeypatch.setattr(ev, "_benchmark", lambda *_: (None, "still no index"))
+    assert ev.run_supplement(conn, bid, NOW) == 0  # still no evidence: nothing recorded
+    gap = [g for _, g, v in before if v == "INSUFFICIENT_EVIDENCE"]
+    assert gap, "the synthetic benchmark is missing, so these checks must have had no evidence"
+    monkeypatch.setattr(ev, "_benchmark", lambda conn_, spec, days: ([0.001] * len(days), None))
+    monkeypatch.setattr(  # the index now covers the window; the synthetic strategy trades too little for a real judgement, so the gates are stubbed
+        ev.verdict,
+        "holdout_gates_v3",
+        lambda *a, **k: ([{"name": g, "status": "FAIL"} for g in ev.HOLDOUT_GATES], {}),
+    )
+    done = ev.run_supplement(conn, bid, NOW)
+    got = [r[1] for r in pv.read_supplements(conn)]
+    assert done == len(got) >= 1 and set(got) <= set(gap)  # only checks that had no evidence
+    assert (
+        pv.read_verdicts(conn) == before and hb.slots(conn) == spent
+    )  # no verdict changed, no slot spent
+    assert ev.run_supplement(conn, bid, NOW) == 0  # once: already complete
+    with pytest.raises(Exception, match="append-only"):
+        conn.execute("DELETE FROM holdout_supplement")
+    with pytest.raises(Exception, match="only a check that had no evidence"):
+        conn.execute(
+            "INSERT INTO holdout_supplement VALUES (%s, 'x', 'holdout_sharpe', 'PASS', %s)",
+            (bid, NOW),
+        )

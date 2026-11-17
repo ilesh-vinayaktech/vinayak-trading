@@ -219,6 +219,7 @@ export const api = {
   paperRuns: () => get("/api/paper/runs", paperRunsSchema),
   strategies: () => get("/api/strategies", strategiesSchema),
   createStrategy: (b: StrategyBody) => send("POST", "/api/strategies", b, strategyCreatedSchema),
+  submitHoldout: (candidates: string[], declaration: string) => send("POST", "/api/holdout/submit", { candidates, declaration, confirm: true }, holdoutFreezeSchema),
   changeStrategy: (id: string, b: StrategyBody) => send("POST", `/api/strategies/${encodeURIComponent(id)}`, b, okSchema),
   strategyStage: (id: string) => get(`/api/strategies/${encodeURIComponent(id)}/stage`, stageHistorySchema),
   moveStrategyStage: (id: string, body: { to_stage: string; reason: string; run_id: number | null }) =>
