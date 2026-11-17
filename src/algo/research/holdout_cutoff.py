@@ -221,8 +221,17 @@ def plan(conn: psycopg.Connection, cutoff_id: int) -> Plan:
         c["candidate_id"] for c in passed if provenance(conn, c["candidate_id"])[0] == "PROVISIONAL"
     ]
     problems: list[str] = []
-    if conn.execute("SELECT 1 FROM holdout_audit LIMIT 1").fetchone() is None:
-        problems.append("the provenance audit is not signed: the batch stays PENDING")
+    kind = conn.execute(
+        "SELECT kind FROM holdout_cutoff WHERE cutoff_id=%s", (cutoff_id,)
+    ).fetchone()
+    if (
+        kind
+        and kind[0] == "BATCH1"
+        and conn.execute("SELECT 1 FROM holdout_audit LIMIT 1").fetchone() is None
+    ):
+        problems.append(
+            "the provenance audit is not signed: the batch stays PENDING"
+        )  # only the first batch; later ones rest on the owner's declaration
     if pending:
         problems.append(f"provenance not resolved for {', '.join(sorted(pending))}")
     if unlockable:

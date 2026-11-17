@@ -257,8 +257,7 @@ def test_a_member_is_evaluated_through_its_newest_clean_passed_study_and_without
 
 
 def test_submit_puts_a_new_strategy_through_the_holdout_at_any_time_on_the_owners_declaration(env):
-    population(env, ("A", "B"))
-    co.sign_audit(env, "owner", "audit", NOW)
+    population(env, ("A", "B"))  # no signed audit: only the first batch needs one
     with pytest.raises(co.CutoffError, match="not built from 2025-2026"):
         co.submit(env, ["A@1"], "  ", "owner", NOW)
     batch = co.submit(

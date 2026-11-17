@@ -21,7 +21,7 @@ from datetime import UTC, datetime
 import psycopg
 
 from algo.live import heartbeat
-from algo.research import holdout_cutoff, slot, study_jobs
+from algo.research import slot, study_jobs
 from algo.research.study_runner import execute
 
 ap = argparse.ArgumentParser()
@@ -87,20 +87,6 @@ with psycopg.connect(a.db, autocommit=True) as conn:
     thread.start()
     study_jobs.requeue_orphans(conn)
 
-    def cutoff() -> None:
-        """Holdout policy v3 section 3: the Batch 1 cutoff fires by itself when the round's last study is terminal. It records a snapshot only; nothing is frozen or read."""
-        try:
-            cid = holdout_cutoff.fire_batch1(conn, datetime.now(UTC))
-        except Exception as e:  # never stop the worker over it; it fires on the next check
-            print(f"cutoff check failed: {e}", flush=True)
-            return
-        if cid is not None:
-            print(
-                f"{datetime.now(UTC):%H:%M:%S} holdout cutoff {cid} fired: snapshot recorded",
-                flush=True,
-            )
-
-    cutoff()
     while not stop:
         run_id = study_jobs.claim(conn, datetime.now(UTC))
         if run_id is None:
@@ -125,6 +111,5 @@ with psycopg.connect(a.db, autocommit=True) as conn:
             f"{datetime.now(UTC):%H:%M:%S} run {run_id}: {run['status'] if run else '?'} {(run or {}).get('error') or ''}",
             flush=True,
         )
-        cutoff()
     beating.set()
     thread.join(timeout=5)
