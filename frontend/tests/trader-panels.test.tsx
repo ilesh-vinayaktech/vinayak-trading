@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { AlertsPanel } from "@/components/market/AlertsPanel";
 import { PositionsPanel } from "@/components/market/PositionsPanel";
 import { SetupsPanel } from "@/components/market/SetupsPanel";
 
@@ -55,5 +56,21 @@ describe("PositionsPanel", () => {
     routes({ "/api/paper/summary": { ...SUMMARY, positions: [] } });
     const { container } = mount(<PositionsPanel />);
     await vi.waitFor(() => expect(container.textContent).toBe(""));
+  });
+});
+
+describe("AlertsPanel", () => {
+  const ZONE = (a: string, b: string) => ({ latest: null, drivers: [], history: [{ day: "2026-11-16", fear_greed: 50, trend: a }, { day: "2026-11-17", fear_greed: 48, trend: b }] });
+  it("flags a holding that broke support and a change of market trend", async () => {
+    routes({ "/api/paper/summary": SUMMARY, "/api/market/levels": { ...LEVELS, status: { ...LEVELS.status, state: "Breakdown" } }, "/api/market/zone": ZONE("BULL", "SIDEWAYS") });
+    mount(<AlertsPanel />);
+    expect(await screen.findByText("TANLA: breakdown")).toBeInTheDocument();
+    expect(await screen.findByText("Market trend changed to SIDEWAYS")).toBeInTheDocument();
+  });
+  it("shows nothing when nothing changed", async () => {
+    routes({ "/api/paper/summary": SUMMARY, "/api/market/levels": LEVELS, "/api/market/zone": ZONE("BULL", "BULL") });
+    const { container } = mount(<AlertsPanel />);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(container.textContent).toBe("");
   });
 });
