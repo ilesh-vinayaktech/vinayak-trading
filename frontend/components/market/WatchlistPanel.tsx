@@ -2,7 +2,8 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Badge } from "@/components/status/Badge";
 import { Panel, StatusPill } from "@/components/ui/Layout";
 import { ApiError, api } from "@/lib/api/client";
 
@@ -12,22 +13,50 @@ const STATE_TONE: Record<string, "good" | "bad" | "warn" | "neutral" | "info"> =
 export function WatchlistPanel() {
   const qc = useQueryClient();
   const [symbol, setSymbol] = useState("");
-  const matches = useQuery({ queryKey: ["search", symbol.trim()], queryFn: () => api.searchInstruments(symbol.trim()), enabled: symbol.trim().length >= 1, staleTime: 60_000 });
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLFormElement>(null);
+  const q = symbol.trim();
+  const matches = useQuery({ queryKey: ["search", q], queryFn: () => api.searchInstruments(q), enabled: open && q.length >= 1, staleTime: 60_000 });
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => { if (root.current && !root.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
   const list = useQuery({ queryKey: ["watchlist"], queryFn: api.watchlist });
   const items = list.data?.items ?? [];
   const score = useQueries({ queries: items.map((w) => ({ queryKey: ["market", "score", w.symbol], queryFn: () => api.marketScore(w.symbol), retry: false, staleTime: 10 * 60_000 })) });
   const lv = useQueries({ queries: items.map((w) => ({ queryKey: ["market", "levels", w.symbol], queryFn: () => api.marketLevels(w.symbol), retry: false, staleTime: 10 * 60_000 })) });
-  const add = useMutation({ mutationFn: (s: string) => api.watchAdd(s), onSuccess: () => { setSymbol(""); void qc.invalidateQueries({ queryKey: ["watchlist"] }); } });
+  const add = useMutation({ mutationFn: (s: string) => api.watchAdd(s), onSuccess: () => { setSymbol(""); setOpen(false); void qc.invalidateQueries({ queryKey: ["watchlist"] }); } });
   const remove = useMutation({ mutationFn: (id: number) => api.watchRemove(id), onSuccess: () => void qc.invalidateQueries({ queryKey: ["watchlist"] }) });
   if (list.isError) return null;
   return (
     <Panel title="Watchlist">
-      <form className="flex gap-2 px-3 py-2" onSubmit={(e) => { e.preventDefault(); if (symbol.trim()) add.mutate(symbol.trim()); }}>
-        <label className="sr-only" htmlFor="watch-symbol">Stock symbol</label>
-        <input id="watch-symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="Add a stock, e.g. TANLA" list="watch-matches" autoComplete="off" className="w-56 rounded border border-line px-2 py-1 text-sm" />
-        <datalist id="watch-matches">{(matches.data ?? []).filter((i) => i.status === "active").map((i) => <option key={i.id} value={i.symbol}>{i.name}</option>)}</datalist>
-        <button type="submit" className="rounded border border-line px-3 py-1 text-sm font-medium hover:bg-slate-50" disabled={add.isPending}>Add</button>
-        {add.isError ? <span role="alert" className="self-center text-sm text-red-700">{add.error instanceof ApiError && add.error.status === 404 ? "No such listed stock." : "Could not add it."}</span> : null}
+      <form className="px-3 py-2" ref={root} onSubmit={(e) => { e.preventDefault(); if (symbol.trim()) add.mutate(symbol.trim()); }}>
+        <div className="flex gap-2">
+          <label className="sr-only" htmlFor="watch-symbol">Stock symbol</label>
+          <input id="watch-symbol" value={symbol} onChange={(e) => { setSymbol(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={(e) => e.key === "Escape" && setOpen(false)} placeholder="Symbol, ISIN or name (TANLA, INE483C01032)" autoComplete="off" role="combobox" aria-expanded={open && q.length > 0} aria-controls="watch-matches" className="w-80 max-w-full rounded border border-line px-2 py-1 text-sm outline-none focus:border-blue-500" />
+          <button type="submit" className="rounded border border-line px-3 py-1 text-sm font-medium hover:bg-slate-50" disabled={add.isPending}>Add</button>
+          {add.isError ? <span role="alert" className="self-center text-sm text-red-700">{add.error instanceof ApiError && add.error.status === 404 ? "No such listed stock." : "Could not add it."}</span> : null}
+        </div>
+        {open && q ? (
+          <div className="mt-2 w-[26rem] max-w-full rounded-lg border border-line bg-white p-1">
+            {matches.isLoading ? <p className="px-2 py-2 text-xs text-slate-500">Searching…</p> : null}
+            {matches.error ? <p className="px-2 py-2 text-xs text-red-700">The search failed.</p> : null}
+            {matches.data ? (
+              <ul id="watch-matches" className="max-h-72 overflow-y-auto" aria-label="Matches">
+                {matches.data.length === 0 ? <li className="px-2 py-2 text-sm text-slate-500">No stock matches.</li> : null}
+                {matches.data.map((i) => (
+                  <li key={i.id}>
+                    <button type="button" onClick={() => add.mutate(i.symbol)} className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-slate-100">
+                      <span className="min-w-0"><span className="font-semibold">{i.symbol}</span> <span className="truncate text-slate-500">{i.name}</span></span>
+                      <span className="flex shrink-0 items-center gap-2 text-[11px] text-slate-500">{i.isin}<Badge tone={i.status === "active" ? "good" : "neutral"}>{i.status}</Badge></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </form>
       {items.length === 0 ? <p className="px-3 pb-3 text-sm text-ink-soft">Nothing watched yet.</p> : (
         <div className="overflow-x-auto">

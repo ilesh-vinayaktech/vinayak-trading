@@ -41,8 +41,8 @@ describe("WatchlistPanel", () => {
     mount(<WatchlistPanel />);
     expect(await screen.findByText("Nothing watched yet.")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Stock symbol"), { target: { value: "gail" } });
-    await waitFor(() => expect(document.querySelector('#watch-matches option[value="GAIL"]')).not.toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    const pick = await screen.findByRole("button", { name: /GAIL.*GAIL \(India\).*INE129A01019/ });
+    fireEvent.click(pick);
     await waitFor(() => expect(calls.some((c) => c.startsWith("POST ") && c.endsWith("/api/market/watchlist"))).toBe(true));
   });
 });
