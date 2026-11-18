@@ -1,5 +1,9 @@
 # Forecast evaluation: market, 1-day, walk-forward
 
+> **Disclosure (added in review).** This report covers 2020-02-11 to 2026-11-16 and therefore **includes the accessed 2025-2026 period** (the global holdout). Every figure here, including the
+> intervals, the calibration table and the by-year table, mixes development and accessed days. It is a description of the system as built, not confirmation of anything; see
+> `diagnosis_2026-11-18.md` and `calibration_abstain_2026-11-18.md` for development-only figures.
+
 Made 2026-11-18. 1678 days, 2020-02-11 to 2026-11-16; every model is scored on exactly these days. 948 rose, 730 did not.
 
 Intervals are 95%, from a moving-block bootstrap (blocks of 20 days), because neighbouring days are not independent.

@@ -58,6 +58,13 @@ function Today({ d }: { d: Forecast }) {
             <div className="text-xs text-ink-soft">What we expected {forToday ? "for today" : "for the next session"}</div>
             <div className="text-lg font-semibold" aria-label={`${pct(m1.p_up)} chance up`}>{CALL_TEXT[expected]} <span className="text-sm font-normal text-ink-soft">({pct(m1.p_up)} chance of a rise)</span></div>
             {m1.evidence.length > 0 && <p className="mt-1 text-xs text-ink-soft">{why(m1.evidence, d.labels ?? {})}</p>}
+            {d.overnight?.sp !== null && d.overnight?.sp !== undefined && (
+              <p className="mt-1 text-xs text-ink-soft">
+                {Math.abs(d.overnight.sp) < 0.5
+                  ? `The US S&P 500 moved only ${move(d.overnight.sp)} overnight. On days like that the model has shown no skill over the market's usual tendency, so read this call as little more than that.`
+                  : `The US S&P 500 moved ${move(d.overnight.sp)} overnight. That is the kind of day this model has had some skill on in past data, but it is still a mild lean.`}
+              </p>
+            )}
             {usual && <p className="mt-1 text-xs text-ink-faint">For reference, the market has closed higher on {pct(usual.base_rate)} of days.{!usual.beats_guessing ? " The call has not yet beaten that." : ""}</p>}
           </div>
           <div>

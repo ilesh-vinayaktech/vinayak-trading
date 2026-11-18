@@ -61,6 +61,16 @@ describe("ForecastPanel", () => {
     expect(screen.queryByRole("rowheader", { name: "Down up to 0.3%" })).not.toBeInTheDocument(); // no mornings, no row
   });
 
+  it("says when the US moved little overnight that the call is little more than the usual tendency", async () => {
+    backend({ ...FORECAST, overnight: { ...FORECAST.overnight, sp: 0.2 } });
+    mount();
+    expect(await screen.findByText(/moved only \+0\.20% overnight.*no skill over the market's usual tendency/)).toBeInTheDocument();
+    vi.unstubAllGlobals();
+    backend(FORECAST); // the S&P moved +0.8%
+    mount();
+    expect(await screen.findByText(/moved \+0\.80% overnight.*some skill/)).toBeInTheDocument();
+  });
+
   it("says it has no live prices when the feed is off, and does not judge the call", async () => {
     backend({ ...FORECAST, today: { market_change_pct: null, as_of: null, sectors: {} } });
     mount();
