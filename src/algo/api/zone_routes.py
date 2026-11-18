@@ -6,14 +6,17 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
+from algo.data import index_members as index_members_data
 from algo.data import sectors as sectors_data
+from algo.live.index_store import read_quotes
 from algo.live.market_calendar import IST
 from algo.market import forecast, levels, live_zone, predict, sectors
 
@@ -137,16 +140,33 @@ def zone(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
 
 
 @router.get("/sectors")
-def sector_rotation(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+def sector_rotation(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
     """Where money is flowing: each sector index's returns, strength against the Nifty 500 and rotation quadrant, strongest first."""
     dates, bench, series = sectors.load(conn)
     rows = sorted(sectors.rotation(series, bench), key=lambda r: -r.score)
+    symbol_of = {name: sym for sym, name in sectors.SECTORS.items()}
+    today = datetime.combine(_st(request).clock.now().astimezone(IST).date(), time(0), IST)
+    quotes = read_quotes(
+        conn, list(sectors.SECTORS), today
+    )  # the sector index's live level and change from yesterday's close, while the feed runs
+
+    def now_of(name: str) -> dict[str, Any] | None:
+        q = quotes.get(symbol_of.get(name, ""))
+        if q is None or not q[1]:
+            return None
+        return {
+            "ltp": round(q[0], 2),
+            "prev_close": round(q[1], 2),
+            "change_pct": 100.0 * (q[0] - q[1]) / q[1],
+            "as_of": q[2].isoformat(),
+        }
+
     return {
         "as_of": dates[-1].isoformat() if dates and rows else None,
         "benchmark": sectors.BENCHMARK,
         "sectors": [
             {
-                "name": r.name, "score": round(r.score, 1), "close": round(r.close, 2), "ret_1d": r.ret_1d, "ret_5d": r.ret_5d,
+                "name": r.name, "symbol": symbol_of.get(r.name), "now": now_of(r.name), "score": round(r.score, 1), "close": round(r.close, 2), "ret_1d": r.ret_1d, "ret_5d": r.ret_5d,
                 "ret_21d": r.ret_21d, "ret_63d": r.ret_63d, "ret_252d": r.ret_252d, "above_50": r.above_50, "above_200": r.above_200,
                 "rs_ratio": round(r.rs_ratio, 2), "rs_momentum": round(r.rs_momentum, 2), "quadrant": r.quadrant,
             }
@@ -331,9 +351,19 @@ def industries_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str
     for iid, r in rows:
         sec = sector_of.get(int(iid))
         if sec is not None:
-            groups.setdefault(sec, []).append(r)
+            groups.setdefault(sec, []).append(
+                {**r, "_id": int(iid)}
+            )  # the id travels with the row: the stored JSON need not carry it
+    today = datetime.combine(_st(request).clock.now().astimezone(IST).date(), time(0), IST)
+    live: dict[int, float] = {  # each stock's change today against yesterday's close, from the live quotes
+        int(i): float((ltp - prev) / prev * 100)
+        for i, ltp, prev in conn.execute(
+            "SELECT instrument_id, ltp, prev_close FROM live_quote WHERE updated_at >= %s AND prev_close > 0 AND ltp > 0", (today,)
+        )
+    }  # fmt: skip
     out = []
     for name, rs in groups.items():
+        moves = [live[r["_id"]] for r in rs if r["_id"] in live]
 
         def share(key: str, test: Any, rs: list[dict[str, Any]] = rs) -> float | None:
             have = [_num(r.get(key)) for r in rs if r.get(key) is not None]
@@ -350,9 +380,71 @@ def industries_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str
             "up_today": share("chg_1d", lambda v: v > 0), "median_1m": m1[len(m1) // 2] if m1 else None,
             "avg_score": sum(s for s, _ in scored) / len(scored) if scored else None, "scored": len(scored),
             "top": [sym for _, sym in sorted(scored, reverse=True)[:3]],
+            "live_change": sum(moves) / len(moves) if moves else None, "live_up": sum(1 for m in moves if m > 0), "live_down": sum(1 for m in moves if m < 0),
         })  # fmt: skip
     out.sort(key=lambda g: -float(g["avg_score"]) if isinstance(g["avg_score"], float) else 1.0)
     return {"as_of": max((r["as_of"] for _, r in rows), default=None), "industries": out}
+
+
+@router.get("/index-members")
+def index_members(
+    request: Request,
+    who: CurrentUser,
+    conn: WConn,
+    symbol: str | None = None,
+    industry: str | None = None,
+) -> dict[str, Any]:
+    """The stocks inside an index (`symbol`, from NSE's official list) or inside one of our industry groups (`industry`), matched to our instruments. Their prices come from
+    the live quotes route; an index with no stored list (Sensex, India VIX, ...) is a 404 that says so."""
+    if (symbol is None) == (industry is None):
+        raise HTTPException(400, "give either symbol or industry")
+    found: list[tuple[int, str, str | None]]
+    if industry is not None:
+        sector_of = sectors_data.sectors_on(conn, _st(request).clock.now().astimezone(IST).date())
+        ids = [i for i, sec in sector_of.items() if sec == industry]
+        if not ids:
+            raise HTTPException(404, f"no industry {industry}")
+        found = conn.execute(
+            "SELECT instrument_id, symbol, name FROM instrument WHERE instrument_id = ANY(%s) ORDER BY symbol",
+            (ids,),
+        ).fetchall()
+        return {"kind": "industry", "symbol": None, "name": industry, "as_of": None, "unmatched": 0,
+                "members": [{"instrument_id": i, "symbol": s, "name": n, "industry": industry} for i, s, n in found]}  # fmt: skip
+    assert symbol is not None
+    lake = getattr(request.app.state, "lake", Path("data/lake"))
+    listed = index_members_data.members(lake, symbol)
+    if listed is None:
+        raise HTTPException(404, f"no constituent list stored for {symbol}")
+    as_of, rows = listed
+    by_isin = {
+        isin: (i, s, n)
+        for i, isin, s, n in conn.execute(
+            "SELECT instrument_id, isin, symbol, name FROM instrument WHERE asset_class='equity' AND isin = ANY(%s)",
+            ([m.isin for m in rows],),
+        )
+    }
+    out, unmatched = [], 0
+    for m in rows:
+        hit = by_isin.get(m.isin)
+        if hit is None:
+            unmatched += 1
+            continue
+        out.append(
+            {
+                "instrument_id": hit[0],
+                "symbol": hit[1],
+                "name": hit[2] or m.name,
+                "industry": m.industry,
+            }
+        )
+    return {
+        "kind": "index",
+        "symbol": symbol,
+        "name": sectors.SECTORS.get(symbol, symbol.title()),
+        "as_of": as_of.isoformat(),
+        "unmatched": unmatched,
+        "members": out,
+    }
 
 
 MAX_WATCHED = 50

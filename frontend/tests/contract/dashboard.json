@@ -266,7 +266,7 @@
   },
   {
    "calendar": "Sat *-*-* 10:00 Asia/Kolkata",
-   "description": "Store today's official index constituent lists in the lake",
+   "description": "Store today's official index constituent lists in the lake (the Nifty 50 to 500 lists, then every sector and broad index the portal shows)",
    "last_run": null,
    "last_success_at": null,
    "name": "constituents-weekly"

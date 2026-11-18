@@ -831,6 +831,24 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     shots["market_industries"] = c.get("/api/market/industries")
     c.post("/api/market/watchlist", json={"symbol": stock[1]})
     shots["market_watchlist"] = c.get("/api/market/watchlist")
+    lake = (
+        tmp_path / "lake"
+    )  # a one-line list in a temporary lake: the test never reads the real one
+    (lake / "raw/niftyindices/niftyit_list/dt=2026-11-17").mkdir(parents=True)
+    isin = (
+        conn.execute("SELECT isin FROM instrument WHERE instrument_id=%s", (stock[0],)).fetchone()[
+            0
+        ]
+        or "INE000A01010"
+    )
+    conn.execute("UPDATE instrument SET isin=%s WHERE instrument_id=%s", (isin, stock[0]))
+    (lake / "raw/niftyindices/niftyit_list/dt=2026-11-17/v0001.bin").write_bytes(
+        f"Company Name,Industry,Symbol,Series,ISIN Code\nOne Ltd.,Information Technology,{stock[1]},EQ,{isin}\nGone Ltd.,Information Technology,GONE,EQ,INE999Z01019\n".encode()
+    )
+    app.state.lake = lake
+    shots["market_index_members"] = c.get(
+        "/api/market/index-members", params={"symbol": "NIFTY IT"}
+    )
     shots["live_quotes"] = c.get("/api/live/quotes", params={"ids": str(stock[0])})
     shots["live_indices"] = c.get("/api/live/indices")
     shots["market_levels"] = c.get("/api/market/levels", params={"symbol": stock[1]})

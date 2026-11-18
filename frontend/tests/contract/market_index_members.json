@@ -1,0 +1,15 @@
+{
+ "as_of": "2026-11-17",
+ "kind": "index",
+ "members": [
+  {
+   "industry": "Information Technology",
+   "instrument_id": 2,
+   "name": "One Ltd.",
+   "symbol": "TCS"
+  }
+ ],
+ "name": "IT",
+ "symbol": "NIFTY IT",
+ "unmatched": 1
+}

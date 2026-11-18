@@ -1,4 +1,4 @@
-# ruff: noqa: E501
+# ruff: noqa: E501, F811
 """The live market zone: today's breadth from live prices must equal what the finished-day query says for the same prices, and the zone must fall back to nothing
 (so the snapshot stays) whenever a piece is missing."""
 

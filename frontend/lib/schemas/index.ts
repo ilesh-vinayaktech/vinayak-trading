@@ -712,6 +712,8 @@ export const sectorRotationSchema = z.object({
   sectors: z.array(
     z.object({
       name: z.string(),
+      symbol: z.string().nullable(), // the index symbol, for the members page
+      now: z.object({ ltp: z.number(), prev_close: z.number(), change_pct: z.number(), as_of: z.string() }).nullable(), // live level and change today; none while the feed is off
       score: z.number(), // 0 to 100, ranked across the sectors
       close: z.number(),
       ret_1d: z.number().nullable(),
@@ -763,6 +765,9 @@ export const industriesSchema = z.object({
     avg_score: z.number().nullable(),
     scored: z.number(),
     top: z.array(z.string()), // best-scored names
+    live_change: z.number().nullable(), // average change today of the group's stocks that have a live price
+    live_up: z.number(),
+    live_down: z.number(),
   })), // best average score first
 });
 export type Industries = z.infer<typeof industriesSchema>;
@@ -1408,3 +1413,13 @@ export const liveIndicesSchema = z.object({
   indices: z.array(z.object({ exchange: z.string(), symbol: z.string(), source: z.enum(["live", "daily"]), ltp: z.string(), prev_close: z.string().nullable(), change: z.string().nullable(), change_pct: z.number().nullable(), day_high: z.string().nullable(), day_low: z.string().nullable(), as_of: z.string(), spark: z.array(z.number()) })),
 });
 export type LiveIndices = z.infer<typeof liveIndicesSchema>;
+
+export const indexMembersSchema = z.object({
+  kind: z.enum(["index", "industry"]),
+  symbol: z.string().nullable(),
+  name: z.string(),
+  as_of: z.string().nullable(), // the day NSE's list was stored; none for an industry group
+  unmatched: z.number(), // listed stocks we have no instrument for
+  members: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable(), industry: z.string() })),
+});
+export type IndexMembers = z.infer<typeof indexMembersSchema>;

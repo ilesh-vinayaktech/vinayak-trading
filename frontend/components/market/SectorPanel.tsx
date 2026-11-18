@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { Pct, money } from "@/components/market/LivePrice";
 import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/DataTable";
 import { Panel, StatusPill } from "@/components/ui/Layout";
@@ -40,11 +42,12 @@ export function SectorPanel() {
     <Panel title="Sector rotation">
       <p className="px-3 pt-2 text-xs text-ink-soft">Against the {d.benchmark}, as of {d.as_of}.</p>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[760px] text-left text-sm">
           <caption className="sr-only">Sector rotation, strongest first</caption>
           <thead className="border-b border-line text-xs text-ink-soft">
             <tr>
               <th scope="col" className="px-3 py-2">Sector</th>
+              <th scope="col" className="px-2 text-right" title="The sector index now and its change since yesterday's close; shown while the live feed runs">Now</th>
               <th scope="col" className="px-2 text-right">Score</th>
               <th scope="col" className="px-2 text-right">1 day</th>
               <th scope="col" className="px-2 text-right">1 month</th>
@@ -58,7 +61,8 @@ export function SectorPanel() {
           <tbody>
             {d.sectors.map((s) => (
               <tr key={s.name} className="border-b border-line last:border-0">
-                <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium">{s.name}</th>
+                <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium">{s.symbol ? <Link href={`/market/index?symbol=${encodeURIComponent(s.symbol)}`} className="text-brand hover:underline" title="Its stocks">{s.name}</Link> : s.name}</th>
+                <td className="whitespace-nowrap px-2 text-right tabular-nums">{s.now ? <>{money(s.now.ltp)}<span className="ml-1.5 text-xs"><Pct v={s.now.change_pct} /></span></> : <span className="text-ink-faint">–</span>}</td>
                 <td className="px-2 text-right tabular-nums">
                   <span className="inline-flex items-center justify-end gap-2"><span className="h-1.5 w-12 rounded-full bg-slate-100"><span className={`block h-1.5 rounded-full ${s.score >= 60 ? "bg-emerald-500" : s.score >= 40 ? "bg-slate-400" : "bg-red-500"}`} style={{ width: `${s.score}%` }} /></span>{Math.round(s.score)}</span>
                 </td>

@@ -7,8 +7,8 @@ import { industriesSchema } from "@/lib/schemas";
 const DATA = {
   as_of: "2026-11-17",
   industries: [
-    { name: "Information Technology", stocks: 25, above_50: 80, above_200: 64, up_today: 52, median_1m: 3.4, avg_score: 58.2, scored: 20, top: ["TANLA", "COFORGE"] },
-    { name: "Realty", stocks: 11, above_50: 18.2, above_200: 45, up_today: null, median_1m: -4.1, avg_score: null, scored: 0, top: [] },
+    { name: "Information Technology", stocks: 25, above_50: 80, above_200: 64, up_today: 52, median_1m: 3.4, avg_score: 58.2, scored: 20, top: ["TANLA", "COFORGE"], live_change: 0.84, live_up: 17, live_down: 6 },
+    { name: "Realty", stocks: 11, above_50: 18.2, above_200: 45, up_today: null, median_1m: -4.1, avg_score: null, scored: 0, top: [], live_change: null, live_up: 0, live_down: 0 },
   ],
 };
 function backend(body: unknown, status = 200) {
@@ -24,6 +24,8 @@ describe("IndustriesPanel", () => {
     backend(DATA);
     mount();
     expect(await screen.findByRole("rowheader", { name: "Information Technology" })).toBeInTheDocument();
+    expect(screen.getByText("+0.84%")).toBeInTheDocument(); // the group's average move today, from live prices
+    expect(screen.getByRole("link", { name: "Information Technology" })).toHaveAttribute("href", "/market/index?industry=Information%20Technology");
     expect(screen.getByText("80%")).toBeInTheDocument();
     expect(screen.getByText("+3.4%")).toBeInTheDocument();
     expect(screen.getByText("58")).toBeInTheDocument();

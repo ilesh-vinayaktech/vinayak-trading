@@ -7,6 +7,7 @@
    "above_50": true,
    "close": 1567.78,
    "name": "Bank",
+   "now": null,
    "quadrant": "Leading",
    "ret_1d": 0.0015000300555378931,
    "ret_21d": 0.031977011117467535,
@@ -15,13 +16,15 @@
    "ret_63d": 0.09903135188517975,
    "rs_momentum": 100.0,
    "rs_ratio": 102.47,
-   "score": 75.0
+   "score": 75.0,
+   "symbol": "NIFTY BANK"
   },
   {
    "above_200": false,
    "above_50": false,
    "close": 860.68,
    "name": "IT",
+   "now": null,
    "quadrant": "Lagging",
    "ret_1d": -0.0004999383351320663,
    "ret_21d": -0.01044767728025131,
@@ -30,7 +33,8 @@
    "ret_63d": -0.03101667313086598,
    "rs_momentum": 100.0,
    "rs_ratio": 97.57,
-   "score": 25.0
+   "score": 25.0,
+   "symbol": "NIFTY IT"
   }
  ]
 }

@@ -1,4 +1,4 @@
-# ruff: noqa: E501
+# ruff: noqa: E501, F811
 """The market zone route: the latest day with its breadth, the signals ranked greediest first, a year of history oldest first; nothing yet is an empty answer, and
 only signed-in people can read it."""
 
@@ -108,6 +108,17 @@ def test_sectors_come_back_strongest_first_with_their_quadrant_and_nothing_built
         and bank["score"] > it["score"]
     )
     assert bank["above_200"] is True and it["above_200"] is False
+    assert (bank["symbol"], bank["now"]) == ("NIFTY BANK", None)  # the feed has not quoted it
+    conn.execute(
+        "INSERT INTO index_live_quote (token, exchange, symbol, ltp, prev_close, updated_at) VALUES (1,'NSE','NIFTY BANK',62000,62500,%s)",
+        (clock.now(),),
+    )
+    now = {s["name"]: s["now"] for s in c.get("/api/market/sectors").json()["sectors"]}
+    assert (now["Bank"]["ltp"], now["Bank"]["prev_close"], round(now["Bank"]["change_pct"], 2)) == (
+        62000,
+        62500,
+        -0.8,
+    ) and now["IT"] is None
     assert set(bank) >= {
         "ret_1d",
         "ret_21d",
@@ -359,6 +370,23 @@ def test_industries_count_breadth_inside_each_group_and_skip_stocks_with_no_sect
             "INSERT INTO screener_snapshot (instrument_id, as_of, row, built_at) VALUES (%s,%s,%s,now())",
             (iid, TODAY, Jsonb(r)),
         )
+    assert (
+        c.get("/api/market/industries").json()["industries"][0]["live_change"] is None
+    )  # no live quotes yet
+    for iid, ltp, prev in (
+        (ids[0], 102, 100),
+        (ids[1], 97, 100),
+        (ids[2], 500, 400),
+    ):  # +2% and -3% in the group; the stock with no sector is not counted
+        conn.execute(
+            "INSERT INTO live_quote (instrument_id, ltp, prev_close, updated_at) VALUES (%s,%s,%s,%s)",
+            (iid, ltp, prev, clock.now()),
+        )
+    live_it = c.get("/api/market/industries").json()["industries"][0]
+    assert round(live_it["live_change"], 2) == -0.5 and (
+        live_it["live_up"],
+        live_it["live_down"],
+    ) == (1, 1)
     got = c.get("/api/market/industries").json()
     (it,) = got["industries"]
     assert got["as_of"] == "2026-11-11" and it["name"] == "IT" and it["stocks"] == 2
@@ -477,3 +505,64 @@ def test_the_zone_uses_the_live_reading_when_there_is_one_caches_it_and_falls_ba
     assert (
         got["latest"]["live"] is False and got["latest"]["fear_greed"] == 50.0
     )  # the snapshot stays when the live reading fails
+
+
+def test_index_members_match_the_official_list_to_our_stocks_by_isin_and_say_when_there_is_none(
+    env, tmp_path
+):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    from algo.data.store.instruments import InstrumentRepo
+
+    repo, ex = (
+        InstrumentRepo(conn),
+        conn.execute("SELECT min(exchange_id) FROM exchange").fetchone()[0],
+    )
+    first, second = (
+        (repo.add_instrument(ex, sym, isin=isin), sym, isin)
+        for sym, isin in (("INFYX", "INE009A01021"), ("TCSX", "INE467B01029"))
+    )
+    folder = tmp_path / "raw/niftyindices/niftyit_list/dt=2026-11-17"
+    folder.mkdir(parents=True)
+    (folder / "v0001.bin").write_bytes(
+        (
+            "Company Name,Industry,Symbol,Series,ISIN Code\n"
+            f"One,Information Technology,{first[1]},EQ,{first[2]}\n"
+            f"Two,Information Technology,{second[1]},EQ,{second[2]}\n"
+            "Gone Ltd.,Information Technology,GONE,EQ,INE000000000\n"
+        ).encode()
+    )
+    app.state.lake = tmp_path
+    got = c.get("/api/market/index-members", params={"symbol": "NIFTY IT"}).json()
+    assert (got["kind"], got["symbol"], got["name"], got["as_of"], got["unmatched"]) == (
+        "index",
+        "NIFTY IT",
+        "IT",
+        "2026-11-17",
+        1,
+    )
+    assert [m["instrument_id"] for m in got["members"]] == [first[0], second[0]] and got["members"][
+        0
+    ]["industry"] == "Information Technology"
+    assert c.get("/api/market/index-members", params={"symbol": "SENSEX"}).status_code == 404
+    assert c.get("/api/market/index-members").status_code == 400
+    assert (
+        c.get(
+            "/api/market/index-members", params={"symbol": "NIFTY IT", "industry": "IT"}
+        ).status_code
+        == 400
+    )
+    assert (
+        c.get("/api/market/index-members", params={"industry": "No such industry"}).status_code
+        == 404
+    )
+    conn.execute(
+        "INSERT INTO instrument_sector (instrument_id, sector, effective_from, source_sha256, ingested_at) VALUES (%s,'IT',%s,'x',now())",
+        (first[0], date(2026, 1, 1)),
+    )
+    ind = c.get("/api/market/index-members", params={"industry": "IT"}).json()
+    assert (ind["kind"], ind["name"], [m["instrument_id"] for m in ind["members"]]) == (
+        "industry",
+        "IT",
+        [first[0]],
+    )

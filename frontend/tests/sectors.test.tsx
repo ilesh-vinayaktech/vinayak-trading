@@ -6,12 +6,12 @@ import { sectorRotationSchema } from "@/lib/schemas";
 
 const row = (name: string, over: Record<string, unknown> = {}) => ({
   name, score: 70, close: 1234.5, ret_1d: 0.012, ret_5d: 0.02, ret_21d: 0.08, ret_63d: -0.03, ret_252d: null,
-  above_50: true, above_200: false, rs_ratio: 104.2, rs_momentum: 101.3, quadrant: "Leading", ...over,
+  above_50: true, above_200: false, rs_ratio: 104.2, rs_momentum: 101.3, quadrant: "Leading", symbol: "NIFTY PSU BANK", now: { ltp: 7250.5, prev_close: 7200, change_pct: 0.7, as_of: "2026-11-18T05:00:00+00:00" }, ...over,
 });
 const DATA = {
   as_of: "2026-11-17",
   benchmark: "NIFTY 500",
-  sectors: [row("PSU bank", { score: 94 }), row("IT", { score: 20, quadrant: "Lagging", rs_ratio: 96.1, ret_1d: -0.009, above_50: false, above_200: false })],
+  sectors: [row("PSU bank", { score: 94 }), row("IT", { symbol: "NIFTY IT", now: null, score: 20, quadrant: "Lagging", rs_ratio: 96.1, ret_1d: -0.009, above_50: false, above_200: false })],
 };
 function backend(body: unknown, status = 200) {
   vi.stubGlobal("fetch", async () => new Response(JSON.stringify(body), { status }));
@@ -20,6 +20,14 @@ const mount = () => render(<QueryClientProvider client={new QueryClient({ defaul
 afterEach(() => vi.unstubAllGlobals());
 
 describe("sector rotation panel", () => {
+  it("shows each sector's live level and change and links to its stocks", async () => {
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify(DATA), { status: 200 }));
+    mount();
+    expect(await screen.findByText("7,250.50")).toBeInTheDocument();
+    expect(screen.getByText("+0.70%")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "PSU bank" })).toHaveAttribute("href", "/market/index?symbol=NIFTY%20PSU%20BANK");
+  });
+
   it("lists the sectors strongest first with returns, strength and the rotation quadrant", async () => {
     backend(DATA);
     mount();

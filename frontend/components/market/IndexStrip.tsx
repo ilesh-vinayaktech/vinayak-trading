@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { money } from "@/components/market/LivePrice";
 import { api } from "@/lib/api/client";
 import type { LiveIndices } from "@/lib/schemas";
@@ -26,14 +27,14 @@ function IndexCard({ c }: { c: Card }) {
   const up = (pct ?? 0) >= 0;
   const good = vix ? !up : up;
   return (
-    <div className="min-w-[10.5rem] flex-1 rounded-xl border border-line bg-panel p-3 shadow-card" title={c.source === "live" ? `Live, as of ${c.as_of}` : `Last close, ${c.as_of}`}>
+    <Link href={`/market/index?symbol=${encodeURIComponent(c.symbol)}`} className="block min-w-[10.5rem] flex-1 rounded-xl border border-line bg-panel p-3 shadow-card hover:border-brand" title={`${c.source === "live" ? `Live, as of ${c.as_of}` : `Last close, ${c.as_of}`}. Click for its stocks.`}>
       <div className="text-xs font-medium text-ink-soft">{NAMES[c.symbol] ?? c.symbol}{c.source === "daily" ? <span className="ml-1 text-[10px] text-ink-faint">close</span> : null}</div>
       <div className="mt-0.5 text-lg font-semibold tabular-nums">{money(Number(c.ltp))}</div>
       <div className="text-xs tabular-nums">
         {c.change !== null ? <span className={good ? "text-emerald-700" : "text-red-700"}>{Number(c.change) > 0 ? "+" : ""}{money(Number(c.change))} ({pct === null ? "–" : `${pct > 0 ? "+" : ""}${pct.toFixed(2)}%`})</span> : <span className="text-ink-faint">–</span>}
       </div>
       <Spark points={c.spark} up={good} />
-    </div>
+    </Link>
   );
 }
 

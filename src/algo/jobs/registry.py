@@ -306,8 +306,11 @@ JOBS: tuple[Job, ...] = (
     Job(
         "constituents-weekly",
         "Sat *-*-* 10:00 Asia/Kolkata",
-        ((*_PY, "scripts/capture_current_lists.py", "--lake", "data/lake"),),
-        "Store today's official index constituent lists in the lake",
+        (
+            (*_PY, "scripts/capture_current_lists.py", "--lake", "data/lake"),
+            (*_PY, "scripts/capture_index_lists.py", "--lake", "data/lake"),
+        ),
+        "Store today's official index constituent lists in the lake (the Nifty 50 to 500 lists, then every sector and broad index the portal shows)",
     ),
     Job(
         "amfi-caps-monthly",
