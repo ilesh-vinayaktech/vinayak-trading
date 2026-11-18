@@ -232,7 +232,11 @@ function Trust({ d }: { d: Forecast }) {
       ) : w1 ? (
         <p className="text-sm">On {w1.n.toLocaleString("en-IN")} past days it called the direction right {pct(w1.hit_rate)} of the time, against {pct(w1.base_hit)} for always saying the same direction.</p>
       ) : null}
-      {live.length > 0 && <p className="mt-1 text-xs text-ink-soft">Live since it started: {live.map((r) => `${WHEN[r.horizon_days] ?? `${r.horizon_days} days`} right ${pct(r.hit_rate)} of ${r.n} days`).join("; ")}.</p>}
+      {live.length > 0 && (
+        <p className="mt-1 text-xs text-ink-soft">
+          Live since it started: {Math.max(...live.map((r) => r.n)) < 20 ? `only ${Math.max(...live.map((r) => r.n))} resolved so far, too few to say anything yet.` : `${live.map((r) => `${WHEN[r.horizon_days] ?? `${r.horizon_days} days`} right ${pct(r.hit_rate)} of ${r.n} days`).join("; ")}.`}
+        </p>
+      )}
     </div>
   );
 }

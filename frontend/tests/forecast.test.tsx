@@ -82,6 +82,16 @@ describe("ForecastPanel", () => {
     expect(screen.getByText(/not which way the market moves, and it is not a trading signal. 12 of 500 forecasts/)).toBeInTheDocument();
   });
 
+  it("does not quote a live hit rate from a handful of days", async () => {
+    backend({ ...FORECAST, record: [record(), record({ live: true, n: 1, hit_rate: 0 })] });
+    mount();
+    expect(await screen.findByText(/Live since it started: only 1 resolved so far, too few to say anything yet/)).toBeInTheDocument();
+    vi.unstubAllGlobals();
+    backend({ ...FORECAST, record: [record(), record({ live: true, n: 40, hit_rate: 0.6 })] });
+    mount();
+    expect(await screen.findByText(/Live since it started: Tomorrow right 60% of 40 days/)).toBeInTheDocument();
+  });
+
   it("says plainly when no range forecast has been made yet", async () => {
     const none = { latest: null, five_session_avg: null, yesterday_range: null, record: [], resolved: 0, needed: 500 };
     vi.stubGlobal("fetch", async (url: string) => new Response(JSON.stringify(String(url).includes("range-forecast") ? none : FORECAST), { status: 200 }));
