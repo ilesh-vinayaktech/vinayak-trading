@@ -146,3 +146,98 @@ def test_stale_constituent_lists_are_reported_after_two_weeks(db, tmp_path):
     assert texts(db, lake=tmp_path) == []
     (folder / "dt=2026-11-10").rename(folder / "dt=2026-10-01")
     assert any("constituent lists are 48 days old" in t for t in texts(db, lake=tmp_path))
+
+
+def overnight(conn, *, us_day=date(2026, 11, 17), vix_day=date(2026, 11, 17), gift=True):
+    """The overnight inputs as the morning jobs leave them: US closes, GIFT Nifty's 08:45 reading."""
+    for sym, day in (("SP500", us_day), ("VIXUS", vix_day)):
+        conn.execute(
+            "INSERT INTO global_daily (symbol, day, close, source, ingested_at) VALUES (%s,%s,100,'t',%s)",
+            (sym, day, NOW),
+        )
+    if gift:
+        conn.execute(
+            "INSERT INTO global_daily (symbol, day, close, source, ingested_at) VALUES ('GIFT0845',%s,25000,'kite',%s)",
+            (date(2026, 11, 18), NOW),
+        )
+
+
+def forecasts(conn, made=NOW, direction=("morning", "morning7"), range_made=True):
+    for product in direction:
+        conn.execute(
+            "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, made_at) VALUES (%s,'MARKET',1,%s,true,0.55,%s)",
+            (date(2026, 11, 17), f"logit-v2-{product}", made),
+        )
+    if range_made:
+        conn.execute(
+            "INSERT INTO range_forecast_log (as_of, model_version, made_at, forecast_range, features, train_through, n_train) VALUES (%s,'range-ridge-v1',%s,1.1,'{}',%s,600)",
+            (date(2026, 11, 17), made, date(2026, 11, 17)),
+        )
+
+
+def said(conn, now):
+    return [p.text for p in problems(conn, now, NO_LAKE)]
+
+
+def test_the_overnight_rules_stay_quiet_until_the_overnight_data_has_ever_been_loaded(db):
+    assert (
+        said(db, NOW) == []
+    )  # a database that never ran the morning jobs: nothing to say (a job that never ran is the job check's business)
+
+
+def test_a_trading_morning_with_the_inputs_in_but_no_forecast_made_names_each_missing_forecast(db):
+    overnight(db)
+    got = said(db, NOW)
+    assert len(got) == 3
+    assert (
+        any("morning direction forecast" in t for t in got)
+        and any("morning7 direction forecast" in t for t in got)
+        and any("expected-range forecast" in t for t in got)
+    )
+    forecasts(db)
+    assert said(db, NOW) == []  # everything in and made: silent
+
+
+def test_a_missing_us_close_or_gift_reading_is_named_with_the_session_it_should_have_been_for(db):
+    overnight(db, vix_day=date(2026, 11, 16), gift=False)
+    forecasts(db)
+    got = said(db, NOW)
+    assert len(got) == 2
+    assert any("US VIX close for the US session of 2026-11-17" in t for t in got) and any(
+        "GIFT Nifty's 08:45 reading for 2026-11-18" in t for t in got
+    )
+
+
+def test_each_rule_waits_for_the_time_its_job_should_have_run(db):
+    overnight(db, gift=False)
+    early = datetime(2026, 11, 18, 3, 10, tzinfo=UTC)  # 08:40 IST: before the morning jobs
+    assert said(db, early) == []
+    after_loads = datetime(
+        2026, 11, 18, 3, 25, tzinfo=UTC
+    )  # 08:55 IST: the loads are due, the forecasts are not yet
+    got = said(db, after_loads)
+    assert len(got) == 1 and "GIFT Nifty" in got[0]
+
+
+def test_nothing_is_reported_on_a_day_the_market_is_closed(db):
+    overnight(db, us_day=date(2026, 11, 10), vix_day=date(2026, 11, 10), gift=False)
+    saturday = datetime(2026, 11, 21, 4, 0, tzinfo=UTC)
+    assert said(db, saturday) == []
+
+
+def test_fii_open_interest_a_day_behind_is_reported_only_after_the_evening_poll_window(db):
+    overnight(db)
+    forecasts(db)
+    db.execute(
+        "INSERT INTO fii_index_futures_oi (day, long_oi, short_oi, ingested_at) VALUES (%s,100,80,%s)",
+        (date(2026, 11, 17), NOW),
+    )
+    assert said(db, NOW) == []  # 11:30 IST: today's file is not expected yet
+    evening = datetime(2026, 11, 18, 16, 30, tzinfo=UTC)  # 22:00 IST
+    got = said(db, evening)
+    assert len(got) == 1 and "FII index-futures open interest for 2026-11-18 is not in" in got[0]
+    db.execute(
+        "INSERT INTO fii_index_futures_oi (day, long_oi, short_oi, ingested_at) VALUES (%s,100,80,%s)",
+        (date(2026, 11, 18), NOW),
+    )
+    assert said(db, evening) == []

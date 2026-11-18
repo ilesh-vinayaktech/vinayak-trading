@@ -15,8 +15,8 @@ import psycopg
 
 from algo.live.bar_store import read_status
 from algo.live.index_store import TRACKED
-from algo.live.market_calendar import IST
-from algo.market import live_zone
+from algo.live.market_calendar import IST, windows_for
+from algo.market import forecast, live_zone, range_forecast
 
 INDEX_QUOTE_MAX_AGE = timedelta(minutes=2)
 INDEX_BAR_MAX_AGE = timedelta(
@@ -33,6 +33,13 @@ LAYA_WAIT = timedelta(
 )  # a headline may wait this long for the model before it is a problem
 LISTS_MAX_AGE_DAYS = 14  # the constituent lists are captured weekly
 BASELINE_FROM = time(8, 30)  # on a trading day, the live zone's baseline should exist from here
+US_BY = time(
+    8, 52
+)  # the US closes and GIFT Nifty's 08:45 reading are loaded by the morning jobs just before this
+FORECASTS_BY = time(
+    9, 5
+)  # the morning direction forecasts (08:50) and the range forecast (08:55) should exist from here
+FII_BY = time(21, 30)  # NSE's participant open-interest file is polled until 21:20 IST
 
 
 @dataclass(frozen=True)
@@ -121,12 +128,84 @@ def problems(
                     f"The live market zone has no baseline for the last trading day ({last}): it will show the nightly snapshot until the market-zone job (or refresh_baseline) runs.",
                 )
             )
+    if (
+        windows_for(conn, today) and conn.execute("SELECT 1 FROM global_daily LIMIT 1").fetchone()
+    ):  # the overnight forecasts are in use
+        out += _overnight_problems(conn, local)
     newest_list = _newest_list_day(lake)
     if newest_list is not None and (today - newest_list).days > LISTS_MAX_AGE_DAYS:
         out.append(
             Problem(
                 "attention",
                 f"The index constituent lists are {(today - newest_list).days} days old (captured weekly by constituents-weekly): the stocks shown inside an index may be out of date.",
+            )
+        )
+    return out
+
+
+def _overnight_problems(conn: psycopg.Connection, local: datetime) -> list[Problem]:
+    """On a trading day: are the US closes and GIFT Nifty in before the open, and were the morning forecasts (direction, candidate, expected range) made? Each rule waits until the time its job should have run."""
+    out: list[Problem] = []
+    today, now_t = local.date(), local.time()
+    expected_us = today - timedelta(days=1)
+    while expected_us.weekday() >= 5:
+        expected_us -= timedelta(days=1)
+    if now_t >= US_BY:
+        for symbol, name in (("SP500", "S&P 500"), ("VIXUS", "US VIX")):
+            row = conn.execute(
+                "SELECT max(day) FROM global_daily WHERE symbol=%s AND day < %s", (symbol, today)
+            ).fetchone()
+            if row is None or row[0] != expected_us:
+                out.append(
+                    Problem(
+                        "attention",
+                        f"The {name} close for the US session of {expected_us} is not in (newest {row[0] if row else 'none'}): the morning forecasts cannot use it (ingest_global.py yahoo; a US holiday also shows here).",
+                    )
+                )
+        if (
+            conn.execute(
+                "SELECT 1 FROM global_daily WHERE symbol='GIFT0845' AND day=%s", (today,)
+            ).fetchone()
+            is None
+        ):
+            out.append(
+                Problem(
+                    "attention",
+                    f"GIFT Nifty's 08:45 reading for {today} is not in: the Outlook shows no indication (ingest_global.py gift needs a valid Kite session).",
+                )
+            )
+    if now_t >= FORECASTS_BY:
+        for product in ("morning", "morning7"):
+            made = conn.execute(
+                "SELECT 1 FROM prediction_log WHERE live AND model_version=%s AND subject='MARKET' AND (made_at AT TIME ZONE 'Asia/Kolkata')::date=%s LIMIT 1",
+                (forecast.version(product), today),
+            ).fetchone()
+            if made is None:
+                out.append(
+                    Problem(
+                        "attention",
+                        f"The {product} direction forecast ({forecast.version(product)}) was not made this morning: run build_predictions.py --product {product} before the open (the morning7 candidate only counts pairs when both are made).",
+                    )
+                )
+        if (
+            conn.execute(
+                "SELECT 1 FROM range_forecast_log WHERE model_version=%s AND (made_at AT TIME ZONE 'Asia/Kolkata')::date=%s LIMIT 1",
+                (range_forecast.VERSION, today),
+            ).fetchone()
+            is None
+        ):
+            out.append(
+                Problem(
+                    "attention",
+                    f"The expected-range forecast ({range_forecast.VERSION}) was not made this morning: run build_range_forecast.py before the open, after the previous evening's index candles are loaded (it makes none once the market has opened).",
+                )
+            )
+    fii = conn.execute("SELECT max(day) FROM fii_index_futures_oi").fetchone()
+    if now_t >= FII_BY and fii is not None and fii[0] is not None and fii[0] < today:
+        out.append(
+            Problem(
+                "attention",
+                f"FII index-futures open interest for {today} is not in (newest {fii[0]}): the FII positioning signal is a day behind (the nse-deals-fiidii job).",
             )
         )
     return out

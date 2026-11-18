@@ -380,7 +380,7 @@ JOBS: tuple[Job, ...] = (
         "live-data-check",
         "Mon..Fri *-*-* 09..15:03/5:00 Asia/Kolkata; Mon..Fri *-*-* 00..08,16..23:43 Asia/Kolkata; Sat,Sun *-*-* *:43 Asia/Kolkata",
         ((*_PY, "scripts/check_live_data.py", "--db", "{db}", "--lake", "data/lake"),),
-        "Alert when the live and news data has stopped arriving: index quotes and minute bars while the feed runs, no new headline for hours, headlines waiting for the Laya model, the live market zone with no baseline, index constituent lists gone stale (every 5 minutes in market hours, hourly otherwise)",
+        "Alert when the live and news data has stopped arriving: index quotes and minute bars while the feed runs, no new headline for hours, headlines waiting for the Laya model, the live market zone with no baseline, index constituent lists gone stale, and (once the overnight forecasts are in use) the US closes, GIFT Nifty's 08:45 reading, the morning direction and expected-range forecasts not made before the open, and FII open interest a day behind (every 5 minutes in market hours, hourly otherwise)",
     ),
     Job(
         "disk-check",
