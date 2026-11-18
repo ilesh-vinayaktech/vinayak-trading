@@ -1393,3 +1393,6 @@ export const pipelineSchema = z.object({
 });
 export type Pipeline = z.infer<typeof pipelineSchema>;
 export const pipelineUnrunSchema = z.object({ families: z.array(z.object({ family_id: z.number(), name: z.string(), studies: z.array(z.object({ experiment_id: z.number(), name: z.string(), strategy_id: z.string() })) })) });
+
+export const watchlistSchema = z.object({ items: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable() })) });
+export type Watchlist = z.infer<typeof watchlistSchema>;

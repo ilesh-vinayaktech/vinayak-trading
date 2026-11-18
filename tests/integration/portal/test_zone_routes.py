@@ -370,3 +370,40 @@ def test_industries_count_breadth_inside_each_group_and_skip_stocks_with_no_sect
         and it["top"] == ["A", "B"]
         and it["scored"] == 2
     )
+
+
+def test_watchlist_adds_lists_removes_and_stays_personal(env):  # noqa: F811
+    conn, app, clock, _ = env
+    iid, sym, name = conn.execute(
+        "SELECT instrument_id, symbol, name FROM instrument WHERE asset_class='equity' AND delisted_on IS NULL ORDER BY instrument_id LIMIT 1"
+    ).fetchone()
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/watchlist").json() == {"items": []}
+    assert c.post("/api/market/watchlist", json={"symbol": f" {sym.lower()} "}).json() == {
+        "ok": True
+    }
+    assert c.post("/api/market/watchlist", json={"symbol": sym}).json() == {
+        "ok": True
+    }  # twice is still once
+    assert c.get("/api/market/watchlist").json() == {
+        "items": [{"instrument_id": iid, "symbol": sym, "name": name}]
+    }
+    assert c.post("/api/market/watchlist", json={"symbol": "NOPE"}).status_code == 404
+    _, other = trader(conn, app, clock, email="other@example.com")
+    assert other.get("/api/market/watchlist").json() == {"items": []}
+    assert c.delete(f"/api/market/watchlist/{iid}").json() == {"ok": True}
+    assert c.get("/api/market/watchlist").json() == {"items": []}
+
+
+def test_watchlist_is_capped(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    for i in range(51):
+        conn.execute(
+            "INSERT INTO instrument (symbol, name, asset_class, exchange_id, quote_currency) SELECT %s,'x','equity',exchange_id,quote_currency FROM instrument WHERE asset_class='equity' LIMIT 1",
+            (f"ZZ{i}",),
+        )
+    codes = [
+        c.post("/api/market/watchlist", json={"symbol": f"ZZ{i}"}).status_code for i in range(51)
+    ]
+    assert codes[:50] == [200] * 50 and codes[50] == 400

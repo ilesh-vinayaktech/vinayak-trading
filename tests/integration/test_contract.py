@@ -829,6 +829,8 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         ),
     )
     shots["market_industries"] = c.get("/api/market/industries")
+    c.post("/api/market/watchlist", json={"symbol": stock[1]})
+    shots["market_watchlist"] = c.get("/api/market/watchlist")
     shots["market_levels"] = c.get("/api/market/levels", params={"symbol": stock[1]})
     shots["risk_state"] = c.get("/api/risk")
     c.put("/api/risk/limits", json={"limits": {"max_order_value": "50000", "max_open_orders": 5}})

@@ -9,6 +9,7 @@ import { NewsPanel } from "@/components/market/NewsPanel";
 import { PositionsPanel } from "@/components/market/PositionsPanel";
 import { SetupsPanel } from "@/components/market/SetupsPanel";
 import { AlertsPanel } from "@/components/market/AlertsPanel";
+import { WatchlistPanel } from "@/components/market/WatchlistPanel";
 import { SectorPanel } from "@/components/market/SectorPanel";
 import { ZonePanel } from "@/components/market/ZonePanel";
 import { Alert } from "@/components/ui/Alert";
@@ -64,6 +65,7 @@ export default function OverviewPage() {
           <ForecastPanel />
           <SetupsPanel />
           <PositionsPanel />
+          <WatchlistPanel />
           <SectorPanel />
           <IndustriesPanel />
           <NewsPanel />

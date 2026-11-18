@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data import sectors as sectors_data
@@ -314,3 +315,52 @@ def industries_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str
         })  # fmt: skip
     out.sort(key=lambda g: -float(g["avg_score"]) if isinstance(g["avg_score"], float) else 1.0)
     return {"as_of": max((r["as_of"] for _, r in rows), default=None), "industries": out}
+
+
+MAX_WATCHED = 50
+
+
+class WatchBody(BaseModel):
+    symbol: str = Field(min_length=1, max_length=30)
+
+
+@router.get("/watchlist")
+def watchlist_view(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """The caller's watched stocks, newest first. Their score and levels come from the per-stock routes."""
+    rows = conn.execute(
+        "SELECT i.instrument_id, i.symbol, i.name FROM watchlist w JOIN instrument i USING (instrument_id) WHERE w.user_id=%s ORDER BY w.added_at DESC, i.symbol",
+        (who.session.user_id,),
+    ).fetchall()
+    return {"items": [{"instrument_id": a, "symbol": s, "name": n} for a, s, n in rows]}
+
+
+@router.post("/watchlist")
+def watchlist_add(
+    body: WatchBody, request: Request, who: CurrentUser, conn: WConn
+) -> dict[str, bool]:
+    sym = body.symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    held = conn.execute(
+        "SELECT count(*) FROM watchlist WHERE user_id=%s", (who.session.user_id,)
+    ).fetchone()
+    if held and held[0] >= MAX_WATCHED:
+        raise HTTPException(400, f"the watchlist holds at most {MAX_WATCHED} stocks")
+    conn.execute(
+        "INSERT INTO watchlist (user_id, instrument_id, added_at) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
+        (who.session.user_id, row[0], _st(request).clock.now()),
+    )
+    return {"ok": True}
+
+
+@router.delete("/watchlist/{instrument_id}")
+def watchlist_remove(instrument_id: int, who: CurrentUser, conn: WConn) -> dict[str, bool]:
+    conn.execute(
+        "DELETE FROM watchlist WHERE user_id=%s AND instrument_id=%s",
+        (who.session.user_id, instrument_id),
+    )
+    return {"ok": True}
