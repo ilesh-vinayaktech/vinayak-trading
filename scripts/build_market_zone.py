@@ -13,6 +13,7 @@ import psycopg
 
 from algo.data.store.migrate import migrate
 from algo.market.build import refresh, refresh_breadth, score
+from algo.market.live_zone import refresh_baseline
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -35,6 +36,11 @@ with psycopg.connect(a.db) as conn:
     else:
         stored, scored = refresh(conn, since, now)
     conn.commit()
+    if last_day := conn.execute("SELECT max(day) FROM market_regime_daily").fetchone():
+        if last_day[0]:  # the next session's live zone starts from every close up to this day
+            stocks = refresh_baseline(conn, last_day[0] + timedelta(days=1), now)
+            conn.commit()
+            print(f"  live baseline for the day after {last_day[0]}: {stocks} stocks")
     last = conn.execute(
         "SELECT day, fear_greed, label, trend, volatility, advancers, decliners FROM market_regime_daily ORDER BY day DESC LIMIT 1"
     ).fetchone()

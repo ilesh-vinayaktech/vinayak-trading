@@ -8,7 +8,8 @@ import { SetupsPanel } from "@/components/market/SetupsPanel";
 const lv = (price: number, d: number) => ({ price, touches: 3, bars_since: 4, distance_pct: d });
 const LEVELS = { symbol: "TANLA", name: "Tanla", as_of: "2026-11-17", enough_history: true, supports: [lv(688, -3.2)], resistances: [lv(726, 2.1)], status: { state: "Testing resistance", level: 726, volume_ratio: 1.1, delivery_vs_avg: null }, series: [] };
 const SUMMARY = { equity: "100000", cash: "50000", invested: "50000", pnl: { realized: "0", unrealized: "1200", fees: "10", net: "1190" }, positions: [{ instrument_id: 7, symbol: "TANLA", qty: "50", avg_cost: "690", last_price: "714", value: "35700", unrealized: "1200", upcoming: [] }], equity_curve: [], pending_orders: 0 };
-const RUN = (names: string[]) => ({ total: names.length, sort: "score", as_of: "2026-11-17", rows: names.map((s, i) => ({ instrument_id: i + 1, symbol: s, score: 80 - i, chg_1m: i === 0 ? 12.3 : -4, setup: i === 0 ? "Breakout setup" : null, score_why: i === 0 ? "Rising over 1 month" : null })) });
+const RUN = (names: string[]) => ({ total: names.length, sort: "score", as_of: "2026-11-17", rows: names.map((s, i) => ({ instrument_id: i + 1, symbol: s, score: `${80 - i}.2000`, chg_1m: i === 0 ? "12.3456" : "-4.0000", // the API sends numbers as text
+ setup: i === 0 ? "Breakout setup" : null, score_why: i === 0 ? "Rising over 1 month" : null })) });
 
 function routes(map: Record<string, unknown>) {
   vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {

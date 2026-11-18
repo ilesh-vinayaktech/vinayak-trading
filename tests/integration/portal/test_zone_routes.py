@@ -39,7 +39,7 @@ def test_the_latest_day_its_breadth_and_the_signals_ranked_greediest_first(env):
     put(conn, TODAY, 63.5, "Greed", "BULL", comps)
     got = c.get("/api/market/zone").json()
     assert got["latest"] == {
-        "day": "2026-11-11", "age_days": 0, "fear_greed": 63.5, "label": "Greed", "trend": "BULL", "volatility": "NORMAL",
+        "day": "2026-11-11", "age_days": 0, "live": False, "as_of": None, "fear_greed": 63.5, "label": "Greed", "trend": "BULL", "volatility": "NORMAL",
         "universe": 1600, "advancers": 900, "decliners": 600, "unchanged": 100, "pct_above_50": 40.0, "pct_above_200": 57.1,
         "highs": 45, "lows": 12,
     }  # fmt: skip
@@ -417,3 +417,63 @@ def test_watchlist_is_capped(env):  # noqa: F811
         c.post("/api/market/watchlist", json={"symbol": f"ZZ{i}"}).status_code for i in range(51)
     ]
     assert codes[:50] == [200] * 50 and codes[50] == 400
+
+
+def test_the_zone_uses_the_live_reading_when_there_is_one_caches_it_and_falls_back_when_it_fails(
+    env, monkeypatch
+):  # noqa: F811
+    from algo.api import zone_routes
+    from algo.market.breadth import Breadth
+    from algo.market.live_zone import LiveZone
+
+    conn, app, clock, _ = env
+    put(conn, TODAY - timedelta(days=1), 50.0, "Neutral", "SIDEWAYS", {"breadth": 40.0})
+    _, c = trader(conn, app, clock)
+    calls = []
+    b = Breadth(TODAY, 1500, 300, 1190, 10, 1400, 600, 1300, 650, 20, 30)
+
+    def fake(_conn, today, history_days):
+        calls.append(today)
+        return LiveZone(
+            today,
+            b,
+            31.5,
+            "Fear",
+            "BEAR",
+            "STRESSED",
+            {"breadth": 20.0, "momentum": 70.0},
+            [(TODAY - timedelta(days=1), 50.0, "SIDEWAYS"), (TODAY, 31.5, "BEAR")],
+        )
+
+    monkeypatch.setattr(zone_routes.live_zone, "live_zone", fake)
+    got = c.get("/api/market/zone").json()
+    assert (
+        got["latest"]["live"] is True
+        and got["latest"]["label"] == "Fear"
+        and got["latest"]["day"] == TODAY.isoformat()
+    )
+    assert (
+        got["latest"]["advancers"] == 300
+        and got["latest"]["as_of"] is not None
+        and got["latest"]["pct_above_50"] == round(100 * 600 / 1400, 1)
+    )
+    assert [d["key"] for d in got["drivers"]] == ["momentum", "breadth"] and got["history"][-1] == {
+        "day": TODAY.isoformat(),
+        "fear_greed": 31.5,
+        "trend": "BEAR",
+    }
+    c.get("/api/market/zone")
+    assert len(calls) == 1  # cached inside the interval
+    clock.advance(timedelta(seconds=45))
+    c.get("/api/market/zone")
+    assert len(calls) == 2  # and worked out again after it
+
+    def broken(*_a):
+        raise RuntimeError("feed down")
+
+    clock.advance(timedelta(seconds=45))
+    monkeypatch.setattr(zone_routes.live_zone, "live_zone", broken)
+    got = c.get("/api/market/zone").json()
+    assert (
+        got["latest"]["live"] is False and got["latest"]["fear_greed"] == 50.0
+    )  # the snapshot stays when the live reading fails

@@ -7,6 +7,8 @@ import { marketZoneSchema } from "@/lib/schemas";
 const LATEST = {
   day: "2026-11-17",
   age_days: 0,
+  live: false,
+  as_of: null,
   fear_greed: 63.4,
   label: "Greed",
   trend: "BULL",
@@ -57,6 +59,13 @@ describe("market zone panel", () => {
     expect(screen.getByText("44 / 21")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Fear and greed over the last 3 trading days" })).toBeInTheDocument();
   });
+  it("says when the reading is live and when it was worked out", async () => {
+    backend({ ...ZONE, latest: { ...LATEST, live: true, as_of: "2026-11-18T05:05:00+00:00" } });
+    mount();
+    expect(await screen.findByText(/worked out at 10:35/)).toBeInTheDocument();
+    expect(screen.queryByText(/As of the close/)).toBeNull();
+  });
+
   it("lists what is moving it, greediest first", async () => {
     backend(ZONE);
     mount();

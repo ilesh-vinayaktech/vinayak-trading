@@ -15,8 +15,10 @@ const LISTS = [
   { key: "early-accumulation", label: "Smart money first" },
 ] as const;
 type Key = (typeof LISTS)[number]["key"];
-const num = (v: unknown, d = 1) => (typeof v === "number" ? v.toFixed(d) : "–");
-const tone = (v: unknown) => (typeof v !== "number" ? "" : v > 0 ? "text-emerald-700" : v < 0 ? "text-red-700" : "");
+/** The screener sends numbers as text ("78.2000") so none is rounded on the way; read either form, and nothing for a missing or non-numeric value. */
+const toNum = (v: unknown): number | null => (typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
+const num = (v: unknown, d = 1) => toNum(v)?.toFixed(d) ?? "–";
+const tone = (v: unknown) => { const n = toNum(v); return n === null ? "" : n > 0 ? "text-emerald-700" : n < 0 ? "text-red-700" : ""; };
 
 /** The best-scoring liquid stocks today, three ways to cut them, each with the reasons behind its score. */
 export function SetupsPanel() {
@@ -40,7 +42,7 @@ export function SetupsPanel() {
                   <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium"><Link href={`/data/instruments?id=${r.instrument_id}`} className="text-brand hover:underline">{String(r.symbol)}</Link></th>
                   <PriceCell quote={quotes[String(r.instrument_id)]} />
                   <td className="px-2 text-right font-semibold tabular-nums">{num(r.score, 0)}</td>
-                  <td className={`px-2 text-right tabular-nums ${tone(r.chg_1m)}`}>{typeof r.chg_1m === "number" ? `${r.chg_1m > 0 ? "+" : ""}${r.chg_1m.toFixed(1)}%` : "–"}</td>
+                  <td className={`px-2 text-right tabular-nums ${tone(r.chg_1m)}`}>{toNum(r.chg_1m) === null ? "–" : `${(toNum(r.chg_1m) ?? 0) > 0 ? "+" : ""}${num(r.chg_1m)}%`}</td>
                   <td className="px-2 text-xs">{typeof r.setup === "string" ? r.setup : ""}</td>
                   <td className="px-2 text-xs text-ink-soft">{typeof r.score_why === "string" ? r.score_why : ""}</td>
                 </tr>

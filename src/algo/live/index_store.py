@@ -12,9 +12,10 @@ import psycopg
 from algo.data.providers.kite import Candle
 from algo.live.bars import MINUTE, LiveBar
 from algo.live.ticks import Tick
+from algo.market import build, sectors
 
-# The indices the feed follows, by the name Kite and `index_bar_1d` use; shown in this order. Their tokens come from index_bar_1d.
-TRACKED = (
+# The cards at the top of the Overview, by the name Kite and `index_bar_1d` use, in the order shown.
+CARDS = (
     ("NSE", "NIFTY 50"),
     ("BSE", "SENSEX"),
     ("NSE", "INDIA VIX"),
@@ -24,6 +25,16 @@ TRACKED = (
     ("NSE", "NIFTY MIDCAP 100"),
     ("NSE", "NIFTY SMLCAP 100"),
     ("NSE", "NIFTY 500"),
+)
+# Everything the feed follows: the cards, the indices the market zone is scored from (so it can be worked out live), and the sector indices.
+TRACKED = tuple(
+    dict.fromkeys(
+        [
+            *CARDS,
+            *(("NSE", sym) for sym in build.SYMBOLS.values()),
+            *(("NSE", sym) for sym in sectors.SECTORS),
+        ]
+    )
 )
 
 
@@ -102,7 +113,7 @@ def read_cards(
     ):  # fmt: skip
         spark.setdefault((e, s), []).append(c)
     out = []
-    for key in TRACKED:
+    for key in CARDS:
         q = quotes.get(key)
         if q is None:
             continue
@@ -137,3 +148,15 @@ def load_kite_minutes(
         ]  # a minute still building is not final
         new += save_index_bars(conn, bars, names, now, source="kite")
     return new
+
+
+def read_quotes(
+    conn: psycopg.Connection, symbols: Sequence[str], since: datetime
+) -> dict[str, tuple[float, float | None, datetime]]:
+    """symbol -> (last price, previous close, when quoted) of the followed indices quoted at or after `since` (today's session); others are absent."""
+    return {
+        sym: (float(ltp), None if prev is None else float(prev), upd)
+        for sym, ltp, prev, upd in conn.execute(
+            "SELECT symbol, ltp, prev_close, updated_at FROM index_live_quote WHERE symbol = ANY(%s) AND updated_at >= %s", (list(symbols), since)
+        )
+    }  # fmt: skip

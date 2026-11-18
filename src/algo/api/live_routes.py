@@ -16,7 +16,7 @@ from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data.bars import Bar
 from algo.live.bar_store import read_quote, read_status
 from algo.live.candle import intraday_candle, period_candle, today_bar
-from algo.live.index_store import TRACKED, read_cards
+from algo.live.index_store import CARDS, read_cards
 from algo.live.market_calendar import IST
 
 router = APIRouter(prefix="/api/live", tags=["live"])
@@ -121,7 +121,7 @@ def indices(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
         (c["exchange"], c["symbol"]): c for c in read_cards(conn, start, start + timedelta(days=1))
     }
     out = []
-    for ex, sym in TRACKED:
+    for ex, sym in CARDS:
         c = cards.get((ex, sym))
         if c is not None:
             change, pct = _change(c["ltp"], c["prev_close"])

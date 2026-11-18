@@ -4,6 +4,9 @@ Read-only, from `market_regime_daily` (built nightly by scripts/build_market_zon
 
 from __future__ import annotations
 
+import logging
+import threading
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -12,7 +15,7 @@ from pydantic import BaseModel, Field
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data import sectors as sectors_data
 from algo.live.market_calendar import IST
-from algo.market import forecast, levels, predict, sectors
+from algo.market import forecast, levels, live_zone, predict, sectors
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 HISTORY_DAYS = 260
@@ -37,64 +40,99 @@ def _num(v: Any) -> float | None:
     return None if v is None else float(v)
 
 
+LIVE_TTL = timedelta(
+    seconds=30
+)  # the live reading is worked out at most this often, however many people have the page open
+_live_lock = threading.Lock()
+
+
+def _live(
+    request: Request, conn: Any, now: datetime, today: date
+) -> tuple[live_zone.LiveZone | None, datetime | None]:
+    """Today's zone from live prices and when it was worked out, or (None, None) (the snapshot stays). Cached on the app for LIVE_TTL; a failure never breaks the page."""
+    with _live_lock:
+        cache: dict[str, Any] = request.app.state.__dict__.setdefault(
+            "live_zone_cache", {"at": None, "day": None, "value": None}
+        )
+        at = cache["at"]
+        if at is not None and cache["day"] == today and now - at < LIVE_TTL:
+            return cache["value"], at
+        try:
+            value = live_zone.live_zone(conn, today, HISTORY_DAYS)
+        except Exception:  # a broken live reading must not take the zone page down; the nightly snapshot is still right
+            logging.getLogger(__name__).exception("live market zone failed")
+            value = None
+        cache.update(at=now, day=today, value=value)
+        return value, now
+
+
 @router.get("/zone")
 def zone(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
     cols = "day, universe, advancers, decliners, unchanged, n50, above50, n200, above200, highs, lows, fear_greed, label, trend, volatility, components"
     row = conn.execute(
         f"SELECT {cols} FROM market_regime_daily ORDER BY day DESC LIMIT 1"
     ).fetchone()
-    if row is None:
+    now = _st(request).clock.now()
+    today = now.astimezone(IST).date()
+    live, worked_out = _live(request, conn, now, today)
+    if row is None and live is None:
         return {"latest": None, "history": [], "drivers": []}
-    (
-        day,
-        universe,
-        adv,
-        dec,
-        unch,
-        n50,
-        a50,
-        n200,
-        a200,
-        highs,
-        lows,
-        fg,
-        label,
-        trend,
-        vol,
-        comps,
-    ) = row
-    today = _st(request).clock.now().astimezone(IST).date()
+    if live is not None:  # today's reading from live prices, scored against the same history
+        b = live.breadth
+        comps = live.components
+        latest: dict[str, Any] = {
+            "day": today.isoformat(), "age_days": 0, "live": True, "as_of": None if worked_out is None else worked_out.isoformat(),
+            "fear_greed": None if live.fear_greed is None else round(live.fear_greed, 2), "label": live.label, "trend": live.trend, "volatility": live.volatility,
+            "universe": b.universe, "advancers": b.advancers, "decliners": b.decliners, "unchanged": b.unchanged,
+            "pct_above_50": None if b.pct_above_50 is None else round(b.pct_above_50, 1),
+            "pct_above_200": None if b.pct_above_200 is None else round(b.pct_above_200, 1),
+            "highs": b.highs, "lows": b.lows,
+        }  # fmt: skip
+        history = [{"day": d.isoformat(), "fear_greed": f, "trend": t} for d, f, t in live.history]
+    else:
+        assert row is not None
+        (
+            day,
+            universe,
+            adv,
+            dec,
+            unch,
+            n50,
+            a50,
+            n200,
+            a200,
+            highs,
+            lows,
+            fg,
+            label,
+            trend,
+            vol,
+            comps,
+        ) = row
+        latest = {
+            "day": day.isoformat(), "age_days": (today - day).days, "live": False, "as_of": None,
+            "fear_greed": _num(fg), "label": label, "trend": trend, "volatility": vol, "universe": universe,
+            "advancers": adv, "decliners": dec, "unchanged": unch,
+            "pct_above_50": None if not n50 else round(100.0 * a50 / n50, 1),
+            "pct_above_200": None if not n200 else round(100.0 * a200 / n200, 1),
+            "highs": highs, "lows": lows,
+        }  # fmt: skip
+        stored = conn.execute(
+            "SELECT day, fear_greed, trend FROM market_regime_daily WHERE fear_greed IS NOT NULL ORDER BY day DESC LIMIT %s", (HISTORY_DAYS,)
+        ).fetchall()  # fmt: skip
+        history = [
+            {"day": d.isoformat(), "fear_greed": _num(f), "trend": t}
+            for d, f, t in reversed(stored)
+        ]
     ranked = sorted(
         ((k, float(v)) for k, v in (comps or {}).items() if v is not None), key=lambda kv: kv[1]
     )
-    history = conn.execute(
-        "SELECT day, fear_greed, trend FROM market_regime_daily WHERE fear_greed IS NOT NULL ORDER BY day DESC LIMIT %s",
-        (HISTORY_DAYS,),
-    ).fetchall()
     return {
-        "latest": {
-            "day": day.isoformat(),
-            "age_days": (today - day).days,
-            "fear_greed": _num(fg),
-            "label": label,
-            "trend": trend,
-            "volatility": vol,
-            "universe": universe,
-            "advancers": adv,
-            "decliners": dec,
-            "unchanged": unch,
-            "pct_above_50": None if not n50 else round(100.0 * a50 / n50, 1),
-            "pct_above_200": None if not n200 else round(100.0 * a200 / n200, 1),
-            "highs": highs,
-            "lows": lows,
-        },
+        "latest": latest,
         "drivers": [
             {"key": k, "name": NAMES[k], "score": round(v, 1)} for k, v in reversed(ranked)
         ],
-        "history": [
-            {"day": d.isoformat(), "fear_greed": _num(f), "trend": t}
-            for d, f, t in reversed(history)
-        ],
+        "history": history,
     }
 
 

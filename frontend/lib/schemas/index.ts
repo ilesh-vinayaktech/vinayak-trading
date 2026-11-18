@@ -686,6 +686,8 @@ export const marketZoneSchema = z.object({
     .object({
       day: z.string(),
       age_days: z.number(),
+      live: z.boolean(), // true: worked out from live prices a moment ago; false: the nightly snapshot of the last close
+      as_of: z.string().nullable(),
       fear_greed: z.number().nullable(),
       label: z.string().nullable(),
       trend: z.string().nullable(), // BULL | BEAR | SIDEWAYS | UNKNOWN

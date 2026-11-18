@@ -36,11 +36,13 @@
  "latest": {
   "advancers": 900,
   "age_days": 0,
+  "as_of": null,
   "day": "2026-11-11",
   "decliners": 600,
   "fear_greed": 63.5,
   "highs": 45,
   "label": "Greed",
+  "live": false,
   "lows": 12,
   "pct_above_200": 57.1,
   "pct_above_50": 40.0,

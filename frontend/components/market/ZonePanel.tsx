@@ -58,7 +58,7 @@ const barColour = (n: number) => (n >= 55 ? "bg-emerald-500" : n >= 40 ? "bg-sla
 
 /** How fearful or greedy the whole market is, what kind of market it is, the breadth behind it, and which signals pull it. */
 export function ZonePanel() {
-  const q = useQuery({ queryKey: ["market", "zone"], queryFn: api.marketZone, refetchInterval: 5 * 60_000 });
+  const q = useQuery({ queryKey: ["market", "zone"], queryFn: api.marketZone, refetchInterval: 60_000 });
   if (q.isError) return <Alert tone="error" title="Could not load the market zone">Try again in a moment.</Alert>;
   if (q.isLoading || !q.data) return <div role="status" aria-label="Loading the market zone"><Skeleton className="h-48 w-full" /></div>;
   const { latest: l, drivers, history } = q.data;
@@ -79,7 +79,7 @@ export function ZonePanel() {
             </div>
           </div>
           {l.fear_greed !== null ? <ZoneBar score={l.fear_greed} /> : null}
-          {l.age_days > 3 ? <Alert tone="warn" title="The zone is out of date">Last built for {l.day}, {l.age_days} days ago.</Alert> : <p className="text-xs text-ink-faint">As of the close on {l.day}. {l.universe.toLocaleString("en-IN")} liquid stocks.</p>}
+          {l.age_days > 3 ? <Alert tone="warn" title="The zone is out of date">Last built for {l.day}, {l.age_days} days ago.</Alert> : l.live ? <p className="text-xs text-ink-faint"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" aria-hidden="true" />Live{l.as_of ? `, worked out at ${new Date(l.as_of).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} IST` : ""} from today&apos;s prices. {l.universe.toLocaleString("en-IN")} liquid stocks.</p> : <p className="text-xs text-ink-faint">As of the close on {l.day}. {l.universe.toLocaleString("en-IN")} liquid stocks.</p>}
           <History points={history} />
           <p className="text-xs text-ink-faint">The last year of the score. Each signal is read against the market&apos;s own three-year history, so this says how unusual today is, not whether to buy.</p>
         </div>
