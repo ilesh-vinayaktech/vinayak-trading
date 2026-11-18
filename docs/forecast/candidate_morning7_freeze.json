@@ -1,0 +1,18 @@
+{
+  "frozen_at": "2026-11-18T11:58:53.155302+00:00",
+  "candidate": "logit-v2-morning7",
+  "production": "logit-v2-morning",
+  "first_counted_session": "2026-11-19",
+  "git_head_at_freeze": "51bc3a9d73458fa379565897487af24f520e68fe",
+  "note": "files below were uncommitted at the freeze if git status shows them modified; the SHA-256 values are what is frozen",
+  "sha256": {
+    "docs/forecast/candidate_morning7_spec.md": "e8ca4573515df94389776c534b94a02258db1f65cfc0e876c64ae0ea0866ce98",
+    "src/algo/market/forecast.py": "f09bc9e91894a159d56d2af901ce5d87badc4ff907e6ed42b23354d8e6b8cd90",
+    "src/algo/market/predict.py": "ffc0d8e9bf79e8e1bd0dbfd2957e259496236b3e2d4d51f6eedf63e8b5d638a7",
+    "src/algo/market/evaluate.py": "1001ee07c0ca3bee645d42fceffe27d1b782e79541d9ca0c3e328b935954925f",
+    "src/algo/data/global_markets.py": "bfa6ccfaf1a668f229e4ede252c2965bdace852bece85d3759c591962f7a03a5",
+    "scripts/build_predictions.py": "e5f230bd34c1acaa6bd725b3bcb0ec89754aaf9792c6cad143bdeb2274844a6c",
+    "scripts/evaluate_candidate.py": "c1a2e80afb6ca5ffed96ab534276a054fcbcdb384366afd304e3e9fef9040e0d",
+    "src/algo/data/store/migrations/109_prediction_evidence.sql": "bbb948c6667e256ce72602057251272ec536c22d562dd86402cb57c98724f81e"
+  }
+}

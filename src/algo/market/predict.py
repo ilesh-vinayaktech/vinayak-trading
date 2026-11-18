@@ -18,17 +18,18 @@ from numpy.typing import NDArray
 from sklearn.linear_model import LogisticRegression  # type: ignore[import-untyped]
 
 Arr = NDArray[np.float64]
-MODEL_VERSION = "logit-v1"
+MODEL_VERSION = "logit-v2"  # v2: a missing figure stays missing (v1 turned it into 0 or 50); one model per forecast product, see forecast.version
 MIN_TRAIN = 500  # rows before the first walk-forward prediction
 REFIT = 21  # trading days between refits
 C = 0.05  # strong regularisation: a day's direction is mostly noise, so the model must not chase it
 LABELS = {
     "momentum": "Index momentum", "breadth": "Stocks above their averages", "highs_lows": "New highs against new lows",
     "volatility": "Volatility", "advance_decline": "Advancing against declining stocks", "stocks_vs_bonds": "Stocks against bonds",
-    "risk_appetite": "Appetite for high-beta stocks", "size_appetite": "Appetite for small caps", "fear_greed": "Fear/greed score",
+    "risk_appetite": "Appetite for high-beta stocks", "size_appetite": "Appetite for small caps", "gold_demand": "Gold against stocks", "fii_positioning": "Foreign investors' futures positions", "fear_greed": "Fear/greed score",
     "ret_1d": "Last day's move", "ret_5d": "5-day move", "ret_21d": "21-day move", "adv_share": "Share of stocks that rose",
     "rs_ratio": "Strength against the market", "rs_momentum": "Strength improving", "rotation": "Sector rotation score",
     "above_50": "Above its 50-day average", "above_200": "Above its 200-day average", "mkt_fear_greed": "Market fear/greed", "mkt_ret_1d": "Market's last move",
+    "us_sp": "US S&P 500 overnight", "us_nq": "US Nasdaq overnight", "us_vix": "US volatility (VIX) overnight",
 }  # fmt: skip
 
 
@@ -40,13 +41,17 @@ class Model:
     coef: Arr
     intercept: float
 
+    def _std(self, x: Arr) -> Arr:
+        """Standardised features; a missing value (NaN) becomes the training average, i.e. 0, so it neither pushes the probability up nor down."""
+        return np.nan_to_num((np.asarray(x, dtype=float) - self.mean) / self.scale, nan=0.0)
+
     def p_up(self, x: Arr) -> Arr:
-        z = ((np.atleast_2d(x) - self.mean) / self.scale) @ self.coef + self.intercept
+        z = self._std(np.atleast_2d(x)) @ self.coef + self.intercept
         return np.asarray(1.0 / (1.0 + np.exp(-z)))
 
     def evidence(self, x: Arr, top: int = 3) -> list[dict[str, object]]:
         """The features that pushed this row's probability furthest from the model's average, as [{feature, value, effect}] (effect in log-odds)."""
-        push = ((np.asarray(x) - self.mean) / self.scale) * self.coef
+        push = self._std(x) * self.coef
         order = np.argsort(-np.abs(push))[:top]
         return [
             {
@@ -55,7 +60,7 @@ class Model:
                 "effect": round(float(push[i]), 3),
             }
             for i in order
-            if abs(push[i]) > 1e-9
+            if abs(push[i]) > 1e-9 and not np.isnan(x[i])
         ]
 
 
@@ -63,16 +68,29 @@ def fit(x: Arr, y: Arr, names: Sequence[str]) -> Model | None:
     """None when the outcomes are all one value (nothing to learn)."""
     if len(x) == 0 or len(set(y.tolist())) < 2:
         return None
-    mean, scale = x.mean(axis=0), x.std(axis=0)
-    scale = np.where(scale < 1e-12, 1.0, scale)
-    lr = LogisticRegression(C=C, max_iter=500).fit((x - mean) / scale, y)
+    mean, scale = (
+        np.nanmean(x, axis=0),
+        np.nanstd(x, axis=0),
+    )  # from the training rows only; a column with no value at all is treated as constant
+    mean = np.nan_to_num(mean, nan=0.0)
+    scale = np.where(np.nan_to_num(scale, nan=0.0) < 1e-12, 1.0, scale)
+    lr = LogisticRegression(C=C, max_iter=500).fit(np.nan_to_num((x - mean) / scale, nan=0.0), y)
     return Model(tuple(names), mean, scale, lr.coef_[0], float(lr.intercept_[0]))
 
 
 def walk_forward(x: Arr, y: Arr, day: Arr, horizon: int, names: Sequence[str]) -> tuple[Arr, Arr]:
     """Out-of-sample probabilities for every row from the MIN_TRAIN-th day on. Rows are sorted by `day` (an int position, repeats allowed for pooled
     subjects); `y` is NaN where the outcome is not known yet. Returns (p, mask) with mask True where p was made."""
+    p, mask, _ = walk_forward_detail(x, y, day, horizon, names)
+    return p, mask
+
+
+def walk_forward_detail(
+    x: Arr, y: Arr, day: Arr, horizon: int, names: Sequence[str]
+) -> tuple[Arr, Arr, Arr]:
+    """`walk_forward` plus, for every row, the day position its model was fitted at (outcomes known by then were all it saw; -1 where no p was made)."""
     p = np.full(len(x), np.nan)
+    fit_at = np.full(len(x), -1)
     days = np.unique(day)
     for start in range(MIN_TRAIN, len(days), REFIT):
         t = days[start]
@@ -83,7 +101,8 @@ def walk_forward(x: Arr, y: Arr, day: Arr, horizon: int, names: Sequence[str]) -
         end = days[min(start + REFIT, len(days)) - 1]
         rows = (day >= t) & (day <= end)
         p[rows] = model.p_up(x[rows])
-    return p, ~np.isnan(p)
+        fit_at[rows] = t
+    return p, ~np.isnan(p), fit_at
 
 
 @dataclass(frozen=True)
