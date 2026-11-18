@@ -7,13 +7,14 @@ import { Panel, StatusPill } from "@/components/ui/Layout";
 import { api } from "@/lib/api/client";
 
 const mood = (v: number) => (v >= 0.15 ? "Positive" : v <= -0.15 ? "Negative" : "Mixed");
+const READING = { positive: { label: "Positive", tone: "good" }, negative: { label: "Negative", tone: "bad" }, mixed: { label: "Mixed", tone: "neutral" } } as const;
 const tone = (v: number | null) => (v === null ? "neutral" : v >= 0.15 ? "good" : v <= -0.15 ? "bad" : "neutral");
 const ago = (iso: string) => {
   const h = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 3_600_000));
   return h < 1 ? "just now" : h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 };
 
-/** What the market headlines say: the mood by day, the stocks named most, and the latest headlines. A word-list reading, not a forecast. */
+/** What the market headlines say: the mood by day, the stocks named most, and the latest headlines. Each headline is read by the Laya model (a keyword list until it is scored); a gauge, not a forecast. */
 export function NewsPanel() {
   const q = useQuery({ queryKey: ["market", "news"], queryFn: api.marketNews, refetchInterval: 15 * 60_000 });
   if (q.isError) return <Alert tone="error" title="Could not load the news">Try again in a moment.</Alert>;
@@ -43,11 +44,11 @@ export function NewsPanel() {
         {d.items.slice(0, 10).map((i) => (
           <li key={i.url} className="flex items-start justify-between gap-3 py-1.5">
             <span><a href={i.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{i.title}</a><span className="block text-xs text-ink-faint">{i.source}, {ago(i.published_at)}{i.symbols.length > 0 ? `, ${i.symbols.join(" ")}` : ""}</span></span>
-            {i.sentiment !== null && <StatusPill tone={tone(i.sentiment)}>{mood(i.sentiment)}</StatusPill>}
+            {i.reading !== null && <span title={i.reading_model === "laya" ? `Read by the Laya model${i.laya_confidence !== null ? `, ${Math.round(i.laya_confidence * 100)}% sure` : ""}` : "Read by the keyword list (not yet scored by the model)"}><StatusPill tone={READING[i.reading].tone}>{READING[i.reading].label}</StatusPill></span>}
           </li>
         ))}
       </ul>
-      <p className="border-t border-line px-3 py-2 text-xs text-ink-faint">Headlines from public RSS feeds. The reading is a word list (surge, plunge, inflows, concerns, with negation), not a model: it misses context and has not been checked against what markets did next, so use it as a mood gauge.</p>
+      <p className="border-t border-line px-3 py-2 text-xs text-ink-faint">Headlines from public RSS feeds, read by the Laya model running on this machine (a keyword list for any it has not scored yet). On 38 headlines labelled by hand it agreed with the label 82% of the time, against 74% for the keyword list: better, not proven. It has not been tested against what prices did next.</p>
     </Panel>
   );
 }

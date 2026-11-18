@@ -11,12 +11,12 @@ from typing import Any
 import psycopg
 
 from algo.data.corporate_actions import upcoming_within
+from algo.data.news_laya import reading
 from algo.live.market_calendar import IST
 from algo.market import notes as chart
 from algo.market.notes import RANK_CONTEXT, LiveDay, Note
 
 NEWS_DAYS, ACTION_DAYS, DEAL_DAYS, INSIDER_DAYS = 3, 14, 5, 14
-NEWS_TONE = 0.2  # an average headline reading beyond this either way is called positive or negative
 MAX_IDS = 60
 
 
@@ -68,23 +68,38 @@ def notes_for(conn: psycopg.Connection, ids: list[int], now: datetime) -> dict[i
             )
         )
     names = {s: i for i, s in symbol.items()}
-    for sym, n, avg, title in conn.execute(
-        "SELECT s, count(*), avg(sentiment), (array_agg(title ORDER BY published_at DESC))[1] FROM news_item, unnest(symbols) s"
-        " WHERE s = ANY(%s) AND published_at >= %s GROUP BY s", (list(names), now - timedelta(days=NEWS_DAYS))
-    ):  # fmt: skip
-        tone = "info" if avg is None or abs(avg) < NEWS_TONE else ("good" if avg > 0 else "bad")
-        mood = (
-            ""
-            if avg is None or tone == "info"
-            else (", mostly positive" if avg > 0 else ", mostly negative")
+    heard: dict[str, list[tuple[str | None, str]]] = defaultdict(
+        list
+    )  # symbol -> (reading label, title), newest first
+    for sym, title, words, laya in conn.execute(
+        "SELECT s, title, sentiment, laya_sentiment FROM news_item, unnest(symbols) s WHERE s = ANY(%s) AND published_at >= %s ORDER BY published_at DESC",
+        (list(names), now - timedelta(days=NEWS_DAYS)),
+    ):
+        heard[sym].append(
+            (
+                reading(
+                    None if words is None else float(words), None if laya is None else float(laya)
+                )[0],
+                title,
+            )
         )
+    for sym, hits in heard.items():
+        pos, neg = (
+            sum(1 for lab, _ in hits if lab == "positive"),
+            sum(1 for lab, _ in hits if lab == "negative"),
+        )
+        tone = "good" if pos > neg else "bad" if neg > pos else "info"
+        mood = (
+            ", mostly positive" if tone == "good" else ", mostly negative" if tone == "bad" else ""
+        )
+        n = len(hits)
         out[names[sym]].append(
             Note(
                 "news",
                 tone,
                 f"{n} headline{'s' if n != 1 else ''}{mood}",
                 RANK_CONTEXT,
-                f"Latest: {title}",
+                f"Latest: {hits[0][1]}",
             )
         )
     for iid, items in upcoming_within(conn, ids, today, ACTION_DAYS).items():

@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data import index_members as index_members_data
+from algo.data import news_laya
 from algo.data import sectors as sectors_data
 from algo.live.index_store import read_quotes
 from algo.live.market_calendar import IST
@@ -283,45 +284,72 @@ def levels_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) ->
     }  # fmt: skip
 
 
+def _news_item(
+    t: str, u: str, s: str, p: datetime, v: Any, sy: list[str], lv: Any, lc: Any
+) -> dict[str, Any]:
+    label, value, model = news_laya.reading(
+        None if v is None else float(v), None if lv is None else float(lv)
+    )
+    return {
+        "title": t, "url": u, "source": s, "published_at": p.isoformat(), "symbols": sy,
+        "sentiment": None if v is None else float(v),  # the keyword reading, kept for comparison
+        "laya": None if lv is None else float(lv), "laya_confidence": None if lc is None else float(lc),
+        "reading": label, "reading_value": value, "reading_model": model,  # the one to show: Laya's where it has one
+    }  # fmt: skip
+
+
+NEWS_COLUMNS = (
+    "title, url, source, published_at, sentiment, symbols, laya_sentiment, laya_confidence"
+)
+
+
 @router.get("/news")
 def news_view(
     request: Request, who: CurrentUser, conn: WConn, symbol: str | None = None
 ) -> dict[str, Any]:
-    """Recent market headlines with their sentiment, the mood by day over the last week and the stocks named most in the last three days. With `symbol`, only the headlines
-    that name that stock (the last 30 days, newest first) and no mood or ranking. The sentiment is a crude word list that has not been checked against what markets did next: a gauge
-    to look at, not a signal."""
+    """Recent market headlines, each with one reading (Laya's where it has scored the headline, else the keyword list's, and which), the mood by day over the last week and the stocks
+    named most in the last three days. With `symbol`, only the headlines that name that stock (the last 30 days, newest first) and no mood or ranking. Neither reading has been shown to
+    predict returns: a gauge to look at, not a signal."""
     now = _st(request).clock.now()
     if symbol is not None:
         sym = symbol.strip().upper()
+        rows = conn.execute(
+            f"SELECT {NEWS_COLUMNS} FROM news_item WHERE %s = ANY(symbols) AND published_at > %s::timestamptz - interval '30 days' ORDER BY published_at DESC LIMIT 30", (sym, now)
+        ).fetchall()  # fmt: skip
         return {
-            "items": [
-                {"title": t, "url": u, "source": s, "published_at": p.isoformat(), "sentiment": None if v is None else float(v), "symbols": sy}
-                for t, u, s, p, v, sy in conn.execute(
-                    "SELECT title, url, source, published_at, sentiment, symbols FROM news_item WHERE %s = ANY(symbols) AND published_at > %s::timestamptz - interval '30 days'"
-                    " ORDER BY published_at DESC LIMIT 30", (sym, now)
-                )
-            ],
-            "mood": [], "stocks": [],
-        }  # fmt: skip
+            "items": [_news_item(t, u, s, p, v, sy, lv, lc) for t, u, s, p, v, sy, lv, lc in rows],
+            "mood": [],
+            "stocks": [],
+        }
+    rows = conn.execute(
+        f"SELECT {NEWS_COLUMNS} FROM news_item WHERE published_at > %s::timestamptz - interval '8 days' ORDER BY published_at DESC",
+        (now,),
+    ).fetchall()
     items = [
-        {"title": t, "url": u, "source": s, "published_at": p.isoformat(), "sentiment": None if v is None else float(v), "symbols": sy}
-        for t, u, s, p, v, sy in conn.execute(
-            "SELECT title, url, source, published_at, sentiment, symbols FROM news_item ORDER BY published_at DESC LIMIT 30"
+        _news_item(t, u, s, p, v, sy, lv, lc)
+        for t, u, s, p, v, sy, lv, lc in conn.execute(
+            f"SELECT {NEWS_COLUMNS} FROM news_item ORDER BY published_at DESC LIMIT 30"
         )
-    ]  # fmt: skip
+    ]
+    days: dict[date, list[tuple[str, float]]] = {}
+    named: dict[str, list[float]] = {}
+    for row in rows:
+        p, v, sy, lv = row[3], row[4], row[5], row[6]
+        label, value, _ = news_laya.reading(
+            None if v is None else float(v), None if lv is None else float(lv)
+        )
+        if label is None or value is None:
+            continue
+        days.setdefault(p.astimezone(IST).date(), []).append((label, value))
+        if p > now - timedelta(days=3):
+            for sym_ in sy:
+                named.setdefault(sym_, []).append(value)
     mood = [
-        {"day": d.isoformat(), "avg": float(a), "n": n, "positive": pos, "negative": neg}
-        for d, a, n, pos, neg in conn.execute(
-            "SELECT (published_at AT TIME ZONE 'Asia/Kolkata')::date d, avg(sentiment), count(sentiment), count(*) FILTER (WHERE sentiment > 0.15), count(*) FILTER (WHERE sentiment < -0.15)"
-            " FROM news_item WHERE sentiment IS NOT NULL AND published_at > %s::timestamptz - interval '8 days' GROUP BY 1 ORDER BY 1", (now,)
-        )
+        {"day": d.isoformat(), "avg": sum(v for _, v in xs) / len(xs), "n": len(xs), "positive": sum(1 for lab, _ in xs if lab == "positive"), "negative": sum(1 for lab, _ in xs if lab == "negative")}
+        for d, xs in sorted(days.items())
     ]  # fmt: skip
-    stocks = [
-        {"symbol": sym, "mentions": n, "avg": float(a)}
-        for sym, n, a in conn.execute(
-            "SELECT sym, count(*), coalesce(avg(sentiment), 0) FROM news_item, unnest(symbols) sym WHERE published_at > %s::timestamptz - interval '3 days' GROUP BY sym ORDER BY count(*) DESC, sym LIMIT 12", (now,)
-        )
-    ]  # fmt: skip
+    ranked = sorted(named.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:8]
+    stocks = [{"symbol": k, "mentions": len(v), "avg": sum(v) / len(v)} for k, v in ranked]
     return {"items": items, "mood": mood, "stocks": stocks}
 
 

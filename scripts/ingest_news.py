@@ -11,7 +11,7 @@ from pathlib import Path
 
 import psycopg
 
-from algo.data import news
+from algo.data import news, news_laya
 from algo.data.lake import LocalLake
 from algo.data.store.migrate import migrate
 
@@ -43,5 +43,12 @@ with psycopg.connect(a.db) as conn:
             conn.rollback()
             failed.append(source)
             print(f"  {source}: FAILED {type(e).__name__}: {e}", file=sys.stderr)
+    try:  # the second reading: a local model. Failing to run it never fails the job: the keyword reading stands and the next run tries again.
+        scored = news_laya.score_pending(conn, news_laya.node_runner(Path("tools/laya")), now)
+        conn.commit()
+        print(f"  laya: {scored} headline(s) scored")
+    except news_laya.LayaError as e:
+        conn.rollback()
+        print(f"  laya: not scored ({e})", file=sys.stderr)
 print(f"news: {added} new headlines, {len(failed)} feed(s) failed")
 sys.exit(1 if len(failed) == len(news.FEEDS) else 0)

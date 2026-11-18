@@ -1,7 +1,12 @@
 {
  "items": [
   {
+   "laya": null,
+   "laya_confidence": null,
    "published_at": "2026-11-11T08:00:00+00:00",
+   "reading": "positive",
+   "reading_model": "words",
+   "reading_value": 0.6,
    "sentiment": 0.6,
    "source": "economictimes",
    "symbols": [
@@ -11,7 +16,12 @@
    "url": "https://example.com/0"
   },
   {
+   "laya": null,
+   "laya_confidence": null,
    "published_at": "2026-11-11T07:00:00+00:00",
+   "reading": "negative",
+   "reading_model": "words",
+   "reading_value": -0.5,
    "sentiment": -0.5,
    "source": "economictimes",
    "symbols": [
@@ -22,7 +32,12 @@
    "url": "https://example.com/1"
   },
   {
+   "laya": null,
+   "laya_confidence": null,
    "published_at": "2026-11-11T06:00:00+00:00",
+   "reading": null,
+   "reading_model": null,
+   "reading_value": null,
    "sentiment": null,
    "source": "economictimes",
    "symbols": [],
@@ -32,7 +47,7 @@
  ],
  "mood": [
   {
-   "avg": 0.050000011920928955,
+   "avg": 0.04999999999999999,
    "day": "2026-11-11",
    "n": 2,
    "negative": 1,
@@ -41,7 +56,7 @@
  ],
  "stocks": [
   {
-   "avg": 0.050000011920928955,
+   "avg": 0.04999999999999999,
    "mentions": 2,
    "symbol": "TCS"
   },

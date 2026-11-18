@@ -611,3 +611,47 @@ def test_notes_are_served_per_stock_cached_for_a_minute_and_need_good_ids(env, m
     assert len(calls) == 2
     assert c.get("/api/market/notes", params={"ids": "x"}).status_code == 400
     assert TestClient(app).get("/api/market/notes", params={"ids": "1"}).status_code == 401
+
+
+def test_each_headline_carries_one_reading_laya_where_it_has_scored_it_and_the_mood_uses_it(env):
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    now = clock.now()
+    for k, (title, words, laya, lc) in enumerate(
+        [
+            ("Both agree", 0.6, 0.8, 0.9),
+            ("Laya differs", 0.6, -0.7, 0.8),
+            ("Words only", -0.5, None, None),
+            ("Unread", None, None, None),
+        ]
+    ):
+        conn.execute(
+            "INSERT INTO news_item (item_id, source, title, summary, url, published_at, first_seen_at, sentiment, laya_sentiment, laya_confidence, hits, symbols) VALUES (%s,'feed',%s,'',%s,%s,%s,%s,%s,%s,1,%s)",
+            (
+                f"r{k}",
+                title,
+                f"https://ex.com/r{k}",
+                now - timedelta(hours=k),
+                now,
+                words,
+                laya,
+                lc,
+                ["TCS"],
+            ),
+        )
+    got = c.get("/api/market/news").json()
+    by = {i["title"]: i for i in got["items"]}
+    assert (by["Both agree"]["reading"], by["Both agree"]["reading_model"]) == ("positive", "laya")
+    assert (
+        by["Laya differs"]["reading"],
+        by["Laya differs"]["sentiment"],
+        by["Laya differs"]["laya"],
+    ) == ("negative", 0.6, -0.7)  # the keyword value is kept, but not shown
+    assert (by["Words only"]["reading"], by["Words only"]["reading_model"]) == ("negative", "words")
+    assert (by["Unread"]["reading"], by["Unread"]["reading_model"]) == (None, None)
+    assert (
+        sum(m["n"] for m in got["mood"]) == 3
+        and sum(m["positive"] for m in got["mood"]) == 1
+        and sum(m["negative"] for m in got["mood"]) == 2
+    )  # the unread one is not counted
+    assert got["stocks"][0]["symbol"] == "TCS" and got["stocks"][0]["mentions"] == 3

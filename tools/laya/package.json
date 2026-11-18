@@ -1,0 +1,7 @@
+{
+  "name": "laya-sentiment",
+  "private": true,
+  "type": "module",
+  "description": "Scores market headlines with the Laya decision model (local ONNX, no API key). Called by scripts/ingest_news.py.",
+  "dependencies": { "@receptron/laya": "latest" }
+}

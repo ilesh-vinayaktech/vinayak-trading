@@ -784,7 +784,7 @@ export const stockScoreSchema = z.object({
 });
 export type StockScore = z.infer<typeof stockScoreSchema>;
 export const marketNewsSchema = z.object({
-  items: z.array(z.object({ title: z.string(), url: z.string(), source: z.string(), published_at: z.string(), sentiment: z.number().nullable(), symbols: z.array(z.string()) })), // newest first
+  items: z.array(z.object({ title: z.string(), url: z.string(), source: z.string(), published_at: z.string(), sentiment: z.number().nullable(), laya: z.number().nullable(), laya_confidence: z.number().nullable(), reading: z.enum(["positive", "negative", "mixed"]).nullable(), reading_value: z.number().nullable(), reading_model: z.enum(["laya", "words"]).nullable(), symbols: z.array(z.string()) })), // newest first; `reading` is the one to show: Laya's where it has scored the headline, else the word list's
   mood: z.array(z.object({ day: z.string(), avg: z.number(), n: z.number(), positive: z.number(), negative: z.number() })), // oldest first
   stocks: z.array(z.object({ symbol: z.string(), mentions: z.number(), avg: z.number() })),
 });

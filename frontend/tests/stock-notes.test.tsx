@@ -6,7 +6,7 @@ import { StockNotesPanel } from "@/components/market/StockNotesPanel";
 
 const note = (kind: string, text: string, tone: "good" | "bad" | "warn" | "info" = "info", rank = 2, detail: string | null = null) => ({ kind, tone, text, rank, detail });
 const NOTES = { as_of: "2026-11-18T05:00:00+00:00", notes: { "7": [note("breakout", "Breakout", "good", 1, "Closed above resistance at 726.00"), note("delivery_surge", "Delivery 1.7x norm", "good", 4, "62% taken for delivery"), note("inside_bar", "Inside bar", "info", 4, null), note("rsi", "Overbought (RSI 74)", "warn", 5, "RSI above 70")] } };
-const NEWS = { items: [{ title: "Tanla wins a big order", url: "https://ex.com/1", source: "ET", published_at: "2026-11-18T01:00:00+00:00", sentiment: 0.7, symbols: ["TANLA"] }], mood: [], stocks: [] };
+const NEWS = { items: [{ title: "Tanla wins a big order", url: "https://ex.com/1", source: "ET", published_at: "2026-11-18T01:00:00+00:00", sentiment: 0.7, laya: 0.8, laya_confidence: 0.9, reading: "positive", reading_value: 0.8, reading_model: "laya", symbols: ["TANLA"] }], mood: [], stocks: [] };
 function backend(news: unknown = NEWS, notes: unknown = NOTES) {
   vi.stubGlobal("fetch", async (url: string) => (url.includes("/api/market/notes") ? new Response(JSON.stringify(notes), { status: 200 }) : new Response(JSON.stringify(news), { status: 200 })));
 }
@@ -35,7 +35,7 @@ describe("StockNotesPanel", () => {
     expect(await screen.findByText("Closed above resistance at 726.00")).toBeInTheDocument();
     expect(screen.getByText("Overbought (RSI 74)")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "Tanla wins a big order" })).toHaveAttribute("href", "https://ex.com/1");
-    expect(screen.getByText("Positive")).toBeInTheDocument();
+    expect(screen.getByText("Positive").parentElement).toHaveAttribute("title", "Read by the Laya model, 90% sure");
   });
   it("says so when nothing stands out and no headline names the stock", async () => {
     backend({ ...NEWS, items: [] }, { as_of: "x", notes: {} });
