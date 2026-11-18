@@ -702,10 +702,21 @@ export const marketZoneSchema = z.object({
       lows: z.number(),
     })
     .nullable(),
-  drivers: z.array(z.object({ key: z.string(), name: z.string(), score: z.number() })), // greediest first
+  drivers: z.array(z.object({ key: z.string(), name: z.string(), score: z.number(), reading: z.string().nullable().optional() })), // greediest first; reading is the figure behind the score, live only
   history: z.array(z.object({ day: z.string(), fear_greed: z.number().nullable(), trend: z.string().nullable() })), // oldest first
 });
 export type MarketZone = z.infer<typeof marketZoneSchema>;
+export const zonePerformanceSchema = z.object({
+  nifty: z.array(z.object({ day: z.string(), close: z.number() })), // Nifty 50 close for each day of the zone history, oldest first
+  zones: z.array(
+    z.object({
+      zone: z.string(), // the four zones, then "All days"
+      days: z.number(),
+      forward: z.array(z.object({ horizon: z.number(), avg_pct: z.number().nullable(), up_pct: z.number().nullable() })),
+    }),
+  ),
+});
+export type ZonePerformance = z.infer<typeof zonePerformanceSchema>;
 export const sectorRotationSchema = z.object({
   as_of: z.string().nullable(),
   benchmark: z.string(),
@@ -733,11 +744,14 @@ export type SectorRotation = z.infer<typeof sectorRotationSchema>;
 const evidenceSchema = z.object({ feature: z.string(), value: z.number(), effect: z.number() }); // effect in log-odds: above 0 pushed towards UP
 export const forecastSchema = z.object({
   as_of: z.string().nullable(),
+  product: z.string().optional(), // night | morning: which forecast this is
+  cutoff: z.string().optional(), // when it was made and what it could see
   market: z.array(z.object({ horizon_days: z.number(), p_up: z.number(), evidence: z.array(evidenceSchema) })),
   sectors: z.array(z.object({ name: z.string(), p_1d: z.number().nullable(), p_5d: z.number().nullable(), evidence: z.array(evidenceSchema) })), // most bullish first
   record: z.array(
     z.object({
       subject: z.string(),
+      product: z.string().optional(), // the record belongs to one product; night and morning are never mixed
       horizon_days: z.number(),
       live: z.boolean(), // false = walk-forward history
       n: z.number(),
@@ -751,6 +765,21 @@ export const forecastSchema = z.object({
   ),
   misses: z.array(z.object({ as_of: z.string(), p_up: z.number(), realized: z.number(), went_up: z.boolean(), evidence: z.array(evidenceSchema) })),
   labels: z.record(z.string(), z.string()).optional(),
+  overnight: z
+    .object({
+      for_day: z.string(), // the session the forecast is for
+      sp: z.number().nullable(), // % the US S&P 500, Nasdaq and the US VIX moved in the last session before it
+      nq: z.number().nullable(),
+      vix: z.number().nullable(),
+      gift_gap_pct: z.number().nullable(), // what GIFT Nifty indicated at 08:45 IST against the last Nifty 50 close
+      gift_history: z.array(z.object({ label: z.string(), days: z.number(), up_pct: z.number().nullable(), avg_pct: z.number().nullable() })),
+    })
+    .nullable()
+    .optional(),
+  today: z
+    .object({ market_change_pct: z.number().nullable(), as_of: z.string().nullable(), sectors: z.record(z.string(), z.number()) }) // live change from yesterday's close; empty while the feed is off
+    .nullable()
+    .optional(),
 });
 export type Forecast = z.infer<typeof forecastSchema>;
 export const industriesSchema = z.object({

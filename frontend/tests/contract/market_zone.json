@@ -3,16 +3,19 @@
   {
    "key": "momentum",
    "name": "Index trend against its 125-day average",
+   "reading": null,
    "score": 80.5
   },
   {
    "key": "volatility",
    "name": "India VIX (calm is greed)",
+   "reading": null,
    "score": 55.0
   },
   {
    "key": "breadth",
    "name": "Stocks above their 50-day average",
+   "reading": null,
    "score": 20.0
   }
  ],

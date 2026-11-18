@@ -84,6 +84,13 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 08:50 Asia/Kolkata",
+   "description": "Before the open: the US closes (S&P 500, Nasdaq, US VIX) and GIFT Nifty as at 08:45, then the day's market and sector forecast is made again with the overnight moves (the night's run could not see them), and the frozen research candidate morning7 is logged beside it from the same data (never shown); needs a Kite session for GIFT Nifty",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "forecast-morning"
+  },
+  {
+   "calendar": "Mon..Fri *-*-* 08:50 Asia/Kolkata",
    "description": "Before the market opens: INITIALIZING -> DATA_VALIDATION -> READY -> PAPER, each step recorded, only if the daily data is current, a Kite session exists and the order log, orders and positions all agree; alerts when the platform does not reach PAPER (a strategy then cannot propose while ALGO_REQUIRE_PLATFORM_READY=1)",
    "last_run": null,
    "last_success_at": null,
@@ -182,7 +189,7 @@
   },
   {
    "calendar": "Mon..Fri *-*-* 18,19,20,21:20 Asia/Kolkata",
-   "description": "Bulk and block deals and FII/DII cash flows: NSE publishes only the latest session, in the evening, at no fixed minute, so it is polled four times; a re-poll of what is stored changes nothing",
+   "description": "Bulk and block deals, FII/DII cash flows and FII index-futures open interest (the market zone's positioning signal; the last 10 days are re-checked, a missed day is filled): NSE publishes only the latest session, in the evening, at no fixed minute, so it is polled four times; a re-poll of what is stored changes nothing",
    "last_run": null,
    "last_success_at": null,
    "name": "nse-deals-fiidii"
@@ -251,8 +258,8 @@
    "name": "market-zone"
   },
   {
-   "calendar": "*-*-* 07,10,13,16,19,22:20 Asia/Kolkata",
-   "description": "Market news headlines from four public RSS feeds, with a word-list sentiment reading and the stocks each names (a feed that fails is reported, the others still load)",
+   "calendar": "Mon..Fri *-*-* 09..15:00/5:00 Asia/Kolkata; Mon..Fri *-*-* 00..08,16..23:20 Asia/Kolkata; Sat,Sun *-*-* *:20 Asia/Kolkata",
+   "description": "Market news headlines from four public RSS feeds (every 5 minutes in market hours, hourly otherwise), each read by the Laya model (a keyword list where it cannot run) and matched to the stocks it names; a feed that fails is reported, the others still load",
    "last_run": null,
    "last_success_at": null,
    "name": "news-feed"
@@ -307,6 +314,13 @@
    "name": "data-freshness"
   },
   {
+   "calendar": "Mon..Fri *-*-* 09..15:03/5:00 Asia/Kolkata; Mon..Fri *-*-* 00..08,16..23:43 Asia/Kolkata; Sat,Sun *-*-* *:43 Asia/Kolkata",
+   "description": "Alert when the live and news data has stopped arriving: index quotes and minute bars while the feed runs, no new headline for hours, headlines waiting for the Laya model, the live market zone with no baseline, index constituent lists gone stale (every 5 minutes in market hours, hourly otherwise)",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "live-data-check"
+  },
+  {
    "calendar": "*-*-* 06:00 Asia/Kolkata",
    "description": "Alert when the disk holding the data is 90% full",
    "last_run": null,
@@ -326,7 +340,7 @@
    },
    {
     "level": "attention",
-    "text": "37 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 34 more."
+    "text": "39 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 36 more."
    }
   ],
   "status": "DOWN"
@@ -348,7 +362,7 @@
   "operational_reliability": {
    "items": [
     {
-     "detail": "none of the 37 jobs has run yet",
+     "detail": "none of the 39 jobs has run yet",
      "name": "scheduled jobs",
      "status": "UNKNOWN"
     },
