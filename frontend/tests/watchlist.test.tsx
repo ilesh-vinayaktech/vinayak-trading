@@ -13,6 +13,7 @@ function backend(items: { instrument_id: number; symbol: string; name: string }[
   vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
     calls.push(`${init?.method ?? "GET"} ${url}`);
     const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status });
+    if (url.includes("/api/instruments")) return json([{ id: 9, symbol: "GAIL", name: "GAIL (India)", isin: "INE129A01019", status: "active", listed_on: null, delisted_on: null }]);
     if (url.includes("/api/market/watchlist")) return init?.method === "POST" || init?.method === "DELETE" ? json({ ok: true }) : json({ items });
     if (url.includes("/api/market/score")) return json(SCORE);
     if (url.includes("/api/market/levels")) return json(LEVELS(state));
@@ -40,6 +41,7 @@ describe("WatchlistPanel", () => {
     mount(<WatchlistPanel />);
     expect(await screen.findByText("Nothing watched yet.")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Stock symbol"), { target: { value: "gail" } });
+    await waitFor(() => expect(document.querySelector('#watch-matches option[value="GAIL"]')).not.toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() => expect(calls.some((c) => c.startsWith("POST ") && c.endsWith("/api/market/watchlist"))).toBe(true));
   });

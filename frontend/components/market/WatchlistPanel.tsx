@@ -12,6 +12,7 @@ const STATE_TONE: Record<string, "good" | "bad" | "warn" | "neutral" | "info"> =
 export function WatchlistPanel() {
   const qc = useQueryClient();
   const [symbol, setSymbol] = useState("");
+  const matches = useQuery({ queryKey: ["search", symbol.trim()], queryFn: () => api.searchInstruments(symbol.trim()), enabled: symbol.trim().length >= 1, staleTime: 60_000 });
   const list = useQuery({ queryKey: ["watchlist"], queryFn: api.watchlist });
   const items = list.data?.items ?? [];
   const score = useQueries({ queries: items.map((w) => ({ queryKey: ["market", "score", w.symbol], queryFn: () => api.marketScore(w.symbol), retry: false, staleTime: 10 * 60_000 })) });
@@ -23,7 +24,8 @@ export function WatchlistPanel() {
     <Panel title="Watchlist">
       <form className="flex gap-2 px-3 py-2" onSubmit={(e) => { e.preventDefault(); if (symbol.trim()) add.mutate(symbol.trim()); }}>
         <label className="sr-only" htmlFor="watch-symbol">Stock symbol</label>
-        <input id="watch-symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="Add a stock, e.g. TANLA" className="w-56 rounded border border-line px-2 py-1 text-sm" />
+        <input id="watch-symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="Add a stock, e.g. TANLA" list="watch-matches" autoComplete="off" className="w-56 rounded border border-line px-2 py-1 text-sm" />
+        <datalist id="watch-matches">{(matches.data ?? []).filter((i) => i.status === "active").map((i) => <option key={i.id} value={i.symbol}>{i.name}</option>)}</datalist>
         <button type="submit" className="rounded border border-line px-3 py-1 text-sm font-medium hover:bg-slate-50" disabled={add.isPending}>Add</button>
         {add.isError ? <span role="alert" className="self-center text-sm text-red-700">{add.error instanceof ApiError && add.error.status === 404 ? "No such listed stock." : "Could not add it."}</span> : null}
       </form>
