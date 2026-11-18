@@ -14,6 +14,7 @@ function backend(items: { instrument_id: number; symbol: string; name: string }[
     calls.push(`${init?.method ?? "GET"} ${url}`);
     const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status });
     if (url.includes("/api/instruments")) return json([{ id: 9, symbol: "GAIL", name: "GAIL (India)", isin: "INE129A01019", status: "active", listed_on: null, delisted_on: null }]);
+    if (url.includes("/api/live/quotes")) return json({ quotes: { "7": { ltp: "714", prev_close: "707", change: "7", change_pct: 0.99, source: "live", as_of: "2026-11-18T05:00:00+00:00" } } });
     if (url.includes("/api/market/watchlist")) return init?.method === "POST" || init?.method === "DELETE" ? json({ ok: true }) : json({ items });
     if (url.includes("/api/market/score")) return json(SCORE);
     if (url.includes("/api/market/levels")) return json(LEVELS(state));
@@ -23,7 +24,7 @@ function backend(items: { instrument_id: number; symbol: string; name: string }[
 }
 const mount = (ui: React.ReactElement) => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>);
 afterEach(() => vi.unstubAllGlobals());
-const ITEM = { instrument_id: 7, symbol: "TANLA", name: "Tanla" };
+const ITEM = { instrument_id: 7, symbol: "TANLA", name: "Tanla", added_at: "2026-11-10T04:00:00+00:00", added_price: "700" };
 
 describe("WatchlistPanel", () => {
   it("shows each watched stock with its score and status, and removes one", async () => {
@@ -31,6 +32,9 @@ describe("WatchlistPanel", () => {
     mount(<WatchlistPanel />);
     expect(await screen.findByRole("rowheader", { name: "TANLA" })).toBeInTheDocument();
     expect(await screen.findByText("82")).toBeInTheDocument();
+    expect(screen.getByText("2026-11-10 · 700.00")).toBeInTheDocument();
+    expect(await screen.findByText("714.00")).toBeInTheDocument();
+    expect(await screen.findByText("+2.00%")).toBeInTheDocument(); // 714 against the 700 paid when added
     expect(await screen.findByText("Testing resistance")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Remove TANLA" }));
     await waitFor(() => expect(calls.some((c) => c.startsWith("DELETE ") && c.endsWith("/api/market/watchlist/7"))).toBe(true));

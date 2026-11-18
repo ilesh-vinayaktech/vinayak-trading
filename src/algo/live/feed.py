@@ -24,6 +24,7 @@ from algo.core.clock import Clock
 from algo.data.providers.kite import KiteTokenExpired
 from algo.live.bar_store import save_bars, save_quotes, save_status
 from algo.live.bars import BarBuilder, LiveBar
+from algo.live.index_store import save_index_bars, save_index_quotes
 from algo.live.ticks import Tick, TickFormatError, parse
 
 BACKOFF_CAP = 60
@@ -56,6 +57,8 @@ class Feed:
         quote_every: float = 2.0,
         until: datetime | None = None,
         frame_sink: Callable[[bytes, datetime], None] | None = None,
+        indices: Mapping[int, tuple[str, str]] | None = None,
+        index_builder: BarBuilder | None = None,
     ) -> None:
         self._connect, self._conn, self.ids, self.clock, self._sleep = (
             connect,
@@ -71,6 +74,11 @@ class Feed:
                 f"{len(ids)} instruments: one Kite connection carries at most {MAX_PER_CONNECTION}"
             )
         self.builder = builder or BarBuilder()
+        self.indices = dict(
+            indices or {}
+        )  # Kite token -> (exchange, symbol) of the indices followed on the same connection
+        self.index_builder = index_builder or BarBuilder()
+        self._index_quotes: dict[int, Tick] = {}
         self.batch, self.mode, self.recv_timeout, self.dead_after = (
             batch,
             mode,
@@ -112,7 +120,9 @@ class Feed:
                         self.builder.reset_baselines()
                     first = False
                     await self._subscribe(sock)
-                    self._save("CONNECTED", f"{len(self.ids)} instruments")
+                    self._save(
+                        "CONNECTED", f"{len(self.ids)} instruments, {len(self.indices)} indices"
+                    )
                     await self._read(sock)
             except KiteTokenExpired:
                 self._save(
@@ -134,7 +144,7 @@ class Feed:
         return "STOPPED"
 
     async def _subscribe(self, sock: Socket) -> None:
-        tokens = list(self.ids)
+        tokens = [*self.ids, *self.indices]
         for i in range(0, len(tokens), self.batch):
             chunk = tokens[i : i + self.batch]
             await sock.send(json.dumps({"a": "subscribe", "v": chunk}))
@@ -168,6 +178,11 @@ class Feed:
             self.bad_frames += 1
             return
         for t in found:
+            if t.token in self.indices:
+                self.last_tick_at = now
+                self._index_quotes[t.token] = t
+                self._emit_index(self.index_builder.on_tick(t, now))
+                continue
             if t.token not in self.ids:
                 self.unknown += 1
                 continue
@@ -192,13 +207,19 @@ class Feed:
         self.bars += n
         self.last_bar_at = now
 
+    def _emit_index(self, bars: list[LiveBar]) -> None:
+        if bars:
+            save_index_bars(self._conn, bars, self.indices, self.clock.now())
+
     def _housekeeping(self, now: datetime) -> None:
         if self.until is not None and now >= self.until:
             self._emit(self.builder.flush(now))
+            self._emit_index(self.index_builder.flush(now))
             self.stop("reached the end time")
             return
         if now - self._last_flush >= timedelta(seconds=self.flush_every):
             self._emit(self.builder.flush(now))
+            self._emit_index(self.index_builder.flush(now))
             self._last_flush = now
         if now - self._last_quote >= timedelta(seconds=self.quote_every):
             self._publish_quotes(now)
@@ -208,6 +229,9 @@ class Feed:
     def _publish_quotes(self, now: datetime) -> None:
         """Write the latest tick of each stock seen since the last publish, for the charts."""
         self._last_quote = now
+        if self._index_quotes:
+            save_index_quotes(self._conn, self._index_quotes, self.indices, now)
+            self._index_quotes = {}
         if self._quotes:
             save_quotes(self._conn, self._quotes, self.ids, now, self.builder.in_progress())
             self._quotes = {}

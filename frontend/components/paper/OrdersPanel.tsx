@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ApiError, api } from "@/lib/api/client";
 import { fmtMoney } from "@/lib/formatting";
 import type { PaperOrder } from "@/lib/schemas";
+import { PriceText, useLiveQuotes } from "@/components/market/LivePrice";
 import { useVenue } from "@/lib/venue";
 
 const message = (e: unknown) => (e instanceof ApiError ? e.message : "Could not save. Try again.");
@@ -34,6 +35,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   const all = q.data?.orders ?? [];
   const pending = all.filter((o) => o.status === "PENDING");
   const history = all.filter((o) => o.status !== "PENDING");
+  const quotes = useLiveQuotes(pending.map((o) => o.instrument_id));
   const [how, setHow] = useState<Record<string, { type: "MARKET" | "LIMIT"; price: string }>>({}); // the owner's choice per order, made when approving
   const busy = approve.isPending || reject.isPending;
   const error = approve.error ?? reject.error;
@@ -43,6 +45,7 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
     { key: "side", header: "Action", hideBelow: "sm", cell: (o) => <SidePill side={o.side} /> },
     { key: "qty", header: "Shares", className: "text-right", cell: (o) => fmtMoney(o.qty, 0) },
     { key: "value", header: "About", className: "text-right", hideBelow: "sm", cell: (o) => `₹${fmtMoney(o.ref_price)} each` },
+    { key: "live", header: "Live price", className: "text-right", cell: (o) => <PriceText quote={quotes[String(o.instrument_id)]} /> },
     { key: "reason", header: "Why", hideBelow: "md", cell: (o) => <span className="text-ink-soft">{o.reason}</span> },
     { key: "expires", header: "Answer by", hideBelow: "sm", cell: (o) => <span className="text-ink-soft"><RelativeTime iso={o.expires_at} /></span> },
     {

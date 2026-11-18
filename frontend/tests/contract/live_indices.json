@@ -1,0 +1,44 @@
+{
+ "indices": [
+  {
+   "as_of": "2026-11-12",
+   "change": "2.3482",
+   "change_pct": 0.1500030055537907,
+   "day_high": null,
+   "day_low": null,
+   "exchange": "NSE",
+   "ltp": "1567.7835",
+   "prev_close": "1565.4353",
+   "source": "daily",
+   "spark": [],
+   "symbol": "NIFTY BANK"
+  },
+  {
+   "as_of": "2026-11-12",
+   "change": "-0.4305",
+   "change_pct": -0.04999383351321823,
+   "day_high": null,
+   "day_low": null,
+   "exchange": "NSE",
+   "ltp": "860.6757",
+   "prev_close": "861.1062",
+   "source": "daily",
+   "spark": [],
+   "symbol": "NIFTY IT"
+  },
+  {
+   "as_of": "2026-11-12",
+   "change": "0.5806",
+   "change_pct": 0.049999565108846365,
+   "day_high": null,
+   "day_low": null,
+   "exchange": "NSE",
+   "ltp": "1161.7907",
+   "prev_close": "1161.2101",
+   "source": "daily",
+   "spark": [],
+   "symbol": "NIFTY 500"
+  }
+ ],
+ "live": true
+}

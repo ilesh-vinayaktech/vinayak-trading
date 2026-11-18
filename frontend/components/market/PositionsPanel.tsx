@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { PriceCell, useLiveQuotes } from "@/components/market/LivePrice";
 import { Panel, StatusPill } from "@/components/ui/Layout";
 import { ApiError, api } from "@/lib/api/client";
 
@@ -35,13 +36,14 @@ function Score({ symbol }: { symbol: string }) {
 export function PositionsPanel() {
   const q = useQuery({ queryKey: ["paper", "summary", "paper"], queryFn: () => api.paperSummary("paper"), retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1 });
   const rows = q.data?.positions ?? [];
+  const quotes = useLiveQuotes(rows.map((p) => p.instrument_id));
   if (q.isError || !q.data || rows.length === 0) return null;
   return (
     <Panel title="Your positions and their levels" actions={<Link href="/paper" className="text-sm font-medium text-brand hover:underline">Paper trading</Link>}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px] text-left text-sm">
+        <table className="w-full min-w-[760px] text-left text-sm">
           <caption className="sr-only">Positions with the nearest support and resistance</caption>
-          <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Qty</th><th scope="col" className="px-2 text-right">Unrealised</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">Support</th><th scope="col" className="px-2 text-right">Resistance</th><th scope="col" className="px-2">Status</th></tr></thead>
+          <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Qty</th><th scope="col" className="px-2 text-right">Live price</th><th scope="col" className="px-2 text-right">Unrealised</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">Support</th><th scope="col" className="px-2 text-right">Resistance</th><th scope="col" className="px-2">Status</th></tr></thead>
           <tbody>
             {rows.map((p) => {
               const u = Number(p.unrealized);
@@ -49,6 +51,7 @@ export function PositionsPanel() {
                 <tr key={p.instrument_id} className="border-b border-line last:border-0">
                   <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium"><Link href={`/data/instruments?id=${p.instrument_id}`} className="text-brand hover:underline">{p.symbol}</Link></th>
                   <td className="px-2 text-right tabular-nums">{p.qty}</td>
+                  <PriceCell quote={quotes[String(p.instrument_id)]} />
                   <td className={`px-2 text-right tabular-nums ${u > 0 ? "text-emerald-700" : u < 0 ? "text-red-700" : ""}`}>{u > 0 ? "+" : ""}{money(u)}</td>
                   <Score symbol={p.symbol} />
                   <Levels symbol={p.symbol} />

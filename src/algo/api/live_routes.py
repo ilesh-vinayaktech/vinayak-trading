@@ -12,10 +12,11 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Request
 
 from algo.api import queries
-from algo.api.security import PortalSettings, WConn
+from algo.api.security import CurrentUser, PortalSettings, WConn
 from algo.data.bars import Bar
 from algo.live.bar_store import read_quote, read_status
 from algo.live.candle import intraday_candle, period_candle, today_bar
+from algo.live.index_store import TRACKED, read_cards
 from algo.live.market_calendar import IST
 
 router = APIRouter(prefix="/api/live", tags=["live"])
@@ -101,6 +102,78 @@ def _shown(c: Bar, when: int | str) -> dict[str, Any]:
         "close": _s(c.close),
         "volume": _s(c.volume),
     }
+
+
+def _change(ltp: Decimal | None, prev: Decimal | None) -> tuple[str | None, float | None]:
+    if ltp is None or prev is None or prev == 0:
+        return None, None
+    return _s(ltp - prev), float((ltp - prev) / prev * 100)
+
+
+@router.get("/indices")
+def indices(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """The cards at the top of the Overview: Nifty 50, Sensex, India VIX and the other tracked indices with today's change and a minute-by-minute line.
+    An index the feed has not quoted shows its last two daily closes instead (`source` says which)."""
+    now = request.app.state.portal.clock.now()
+    day = now.astimezone(IST).date()
+    start = datetime.combine(day, time(0), IST)
+    cards = {
+        (c["exchange"], c["symbol"]): c for c in read_cards(conn, start, start + timedelta(days=1))
+    }
+    out = []
+    for ex, sym in TRACKED:
+        c = cards.get((ex, sym))
+        if c is not None:
+            change, pct = _change(c["ltp"], c["prev_close"])
+            out.append({"exchange": ex, "symbol": sym, "source": "live", "ltp": _s(c["ltp"]), "prev_close": _s(c["prev_close"]), "change": change, "change_pct": pct, "day_high": _s(c["day_high"]), "day_low": _s(c["day_low"]), "as_of": c["updated_at"].isoformat(), "spark": c["spark"]})  # fmt: skip
+            continue
+        rows = conn.execute(
+            "SELECT trade_date, close FROM index_bar_1d WHERE exchange=%s AND symbol=%s ORDER BY trade_date DESC LIMIT 2", (ex, sym)
+        ).fetchall()  # fmt: skip
+        if rows:
+            change, pct = _change(rows[0][1], rows[1][1] if len(rows) > 1 else None)
+            out.append({"exchange": ex, "symbol": sym, "source": "daily", "ltp": _s(rows[0][1]), "prev_close": _s(rows[1][1]) if len(rows) > 1 else None, "change": change, "change_pct": pct, "day_high": None, "day_low": None, "as_of": rows[0][0].isoformat(), "spark": []})  # fmt: skip
+    feed = read_status(conn)
+    last_tick = feed["last_tick_at"] if feed else None
+    live = bool(
+        feed
+        and feed["state"] == "CONNECTED"
+        and last_tick is not None
+        and now - last_tick <= SILENT_AFTER
+    )
+    return {"live": live, "indices": out}
+
+
+MAX_QUOTES = 500
+
+
+@router.get("/quotes")
+def quotes(ids: str, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """The latest price of up to 500 stocks, for the lists everywhere in the portal (`ids` is comma separated instrument ids). A stock the feed has not quoted
+    shows its last daily close (`source` 'close'); one with neither is left out."""
+    try:
+        want = sorted({int(x) for x in ids.split(",") if x.strip()})[:MAX_QUOTES]
+    except ValueError:
+        raise HTTPException(400, "ids must be integers separated by commas") from None
+    out: dict[str, Any] = {}
+    for iid, ltp, prev, upd in conn.execute(
+        "SELECT instrument_id, ltp, prev_close, updated_at FROM live_quote WHERE instrument_id = ANY(%s)", (want,)
+    ):  # fmt: skip
+        change, pct = _change(ltp, prev)
+        out[str(iid)] = {"ltp": _s(ltp), "prev_close": _s(prev), "change": change, "change_pct": pct, "source": "live", "as_of": upd.isoformat()}  # fmt: skip
+    rest = [i for i in want if str(i) not in out]
+    if rest:
+        last: dict[int, list[tuple[Any, Decimal]]] = {}
+        for iid, ts, close in conn.execute(
+            "SELECT instrument_id, ts, close FROM (SELECT DISTINCT ON (instrument_id, ts) instrument_id, ts, close, row_number() OVER (PARTITION BY instrument_id ORDER BY ts DESC) rn"
+            " FROM bar_1d WHERE instrument_id = ANY(%s) AND source='nse' AND ts >= now() - interval '15 days' ORDER BY instrument_id, ts DESC, dataset_version DESC) x WHERE rn <= 2", (rest,)
+        ):  # fmt: skip
+            last.setdefault(iid, []).append((ts, close))
+        for iid, rows in last.items():
+            rows.sort(reverse=True)
+            change, pct = _change(rows[0][1], rows[1][1] if len(rows) > 1 else None)
+            out[str(iid)] = {"ltp": _s(rows[0][1]), "prev_close": _s(rows[1][1]) if len(rows) > 1 else None, "change": change, "change_pct": pct, "source": "close", "as_of": rows[0][0].isoformat()}  # fmt: skip
+    return {"quotes": out}
 
 
 @router.get("/{instrument_id}")

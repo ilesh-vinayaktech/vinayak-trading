@@ -8,6 +8,7 @@ import { IndustriesPanel } from "@/components/market/IndustriesPanel";
 import { NewsPanel } from "@/components/market/NewsPanel";
 import { PositionsPanel } from "@/components/market/PositionsPanel";
 import { SetupsPanel } from "@/components/market/SetupsPanel";
+import { IndexStrip } from "@/components/market/IndexStrip";
 import { AlertsPanel } from "@/components/market/AlertsPanel";
 import { WatchlistPanel } from "@/components/market/WatchlistPanel";
 import { SectorPanel } from "@/components/market/SectorPanel";
@@ -60,6 +61,7 @@ export default function OverviewPage() {
       <PageHeader title={first ? `Welcome back, ${first}` : "Overview"} subtitle="Your connection, requests and account at a glance." actions={can("research:read") ? <Link href="/data/instruments" className={buttonClass("secondary")}>Open data explorer</Link> : null} />
       {can("research:read") ? (
         <>
+          <IndexStrip />
           <AlertsPanel />
           <ZonePanel />
           <ForecastPanel />

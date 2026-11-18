@@ -48,10 +48,16 @@ def _packet(p: bytes) -> Tick:
     ltp = Decimal(raw) / DIVISORS.get(token & 0xFF, DEFAULT_DIVISOR)
     if len(p) == 8:
         return Tick(token, ltp, None, None)
-    if len(p) in (28, 32):  # index: no volume; the 32-byte form ends with the exchange time
-        return Tick(
-            token, ltp, None, _time(struct.unpack_from(">i", p, 28)[0]) if len(p) == 32 else None
+    if (
+        len(p) in (28, 32)
+    ):  # index: no volume; the 32-byte form ends with the exchange time; then high, low, open, previous close
+        high, low, open_, prev = (
+            Decimal(x) / DEFAULT_DIVISOR for x in struct.unpack_from(">4i", p, 8)
         )
+        return Tick(
+            token, ltp, None, _time(struct.unpack_from(">i", p, 28)[0]) if len(p) == 32 else None,
+            open_, high, low, prev,
+        )  # fmt: skip
     volume = struct.unpack_from(">i", p, 16)[0]
     div = DIVISORS.get(token & 0xFF, DEFAULT_DIVISOR)
     day = [

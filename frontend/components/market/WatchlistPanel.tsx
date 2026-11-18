@@ -3,11 +3,15 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Pct, PriceCell, money, useLiveQuotes } from "@/components/market/LivePrice";
 import { Badge } from "@/components/status/Badge";
 import { Panel, StatusPill } from "@/components/ui/Layout";
 import { ApiError, api } from "@/lib/api/client";
 
 const STATE_TONE: Record<string, "good" | "bad" | "warn" | "neutral" | "info"> = { Breakout: "good", Breakdown: "bad", "Breakout, weak volume": "warn", "Breakdown, weak volume": "warn", "Testing resistance": "info", "Testing support": "info" };
+
+/** Percent move of the live price against the price when added; nothing when either is missing. */
+const since = (added: string | null, ltp: string | undefined) => (added && ltp && Number(added) > 0 ? ((Number(ltp) - Number(added)) / Number(added)) * 100 : null);
 
 /** The stocks you keep an eye on, each with its swing score and where it sits against its levels. Yours alone; it never feeds an order. */
 export function WatchlistPanel() {
@@ -24,6 +28,7 @@ export function WatchlistPanel() {
   }, []);
   const list = useQuery({ queryKey: ["watchlist"], queryFn: api.watchlist });
   const items = list.data?.items ?? [];
+  const quotes = useLiveQuotes(items.map((w) => w.instrument_id));
   const score = useQueries({ queries: items.map((w) => ({ queryKey: ["market", "score", w.symbol], queryFn: () => api.marketScore(w.symbol), retry: false, staleTime: 10 * 60_000 })) });
   const lv = useQueries({ queries: items.map((w) => ({ queryKey: ["market", "levels", w.symbol], queryFn: () => api.marketLevels(w.symbol), retry: false, staleTime: 10 * 60_000 })) });
   const add = useMutation({ mutationFn: (s: string) => api.watchAdd(s), onSuccess: () => { setSymbol(""); setOpen(false); void qc.invalidateQueries({ queryKey: ["watchlist"] }); } });
@@ -60,9 +65,9 @@ export function WatchlistPanel() {
       </form>
       {items.length === 0 ? <p className="px-3 pb-3 text-sm text-ink-soft">Nothing watched yet.</p> : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <caption className="sr-only">Watched stocks with their score and breakout state</caption>
-            <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2">Status</th><th scope="col" className="px-2"><span className="sr-only">Remove</span></th></tr></thead>
+            <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Added</th><th scope="col" className="px-2 text-right">Live price</th><th scope="col" className="px-2 text-right" title="Live price against the price when you added it">Since added</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2">Status</th><th scope="col" className="px-2"><span className="sr-only">Remove</span></th></tr></thead>
             <tbody>
               {items.map((w, i) => {
                 const sc = score[i]?.data?.scored ? score[i]?.data?.score : null;
@@ -70,6 +75,9 @@ export function WatchlistPanel() {
                 return (
                   <tr key={w.instrument_id} className="border-b border-line last:border-0">
                     <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium"><Link href={`/data/instruments?id=${w.instrument_id}`} className="text-brand hover:underline">{w.symbol}</Link></th>
+                    <td className="whitespace-nowrap px-2 text-right tabular-nums text-ink-soft" title={`Added ${w.added_at}`}>{w.added_at.slice(0, 10)}{w.added_price ? ` · ${money(Number(w.added_price))}` : ""}</td>
+                    <PriceCell quote={quotes[String(w.instrument_id)]} />
+                    <td className="px-2 text-right tabular-nums"><Pct v={since(w.added_price, quotes[String(w.instrument_id)]?.ltp)} /></td>
                     <td className={`px-2 text-right tabular-nums ${sc == null ? "text-ink-faint" : sc < 40 ? "text-red-700" : sc > 70 ? "text-emerald-700" : ""}`}>{sc == null ? "–" : Math.round(sc)}</td>
                     <td className="px-2">{st ? <StatusPill tone={STATE_TONE[st] ?? "neutral"}>{st}</StatusPill> : <span className="text-ink-faint">–</span>}</td>
                     <td className="px-2 text-right"><button type="button" className="text-xs text-ink-soft hover:underline" aria-label={`Remove ${w.symbol}`} onClick={() => remove.mutate(w.instrument_id)}>Remove</button></td>

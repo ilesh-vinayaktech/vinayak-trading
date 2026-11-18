@@ -306,7 +306,7 @@ def _order(
     ticks: dict[int, Decimal | None],
 ) -> dict[str, Any]:
     return {
-        "order_id": str(o["order_id"]), "symbol": o["symbol"], "side": o["side"], "qty": _s(o["qty"]), "ref_price": _s(o["ref_price"]),
+        "order_id": str(o["order_id"]), "instrument_id": o["instrument_id"], "symbol": o["symbol"], "side": o["side"], "qty": _s(o["qty"]), "ref_price": _s(o["ref_price"]),
         "reason": o["reason"], "status": o["status"], "decision_day": o["decision_day"].isoformat(), "created_at": o["created_at"].isoformat(),
         "expires_at": o["expires_at"].isoformat(), "fill_price": _opt(o["fill_price"]), "fill_commission": _opt(o["fill_commission"]),
         "fill_day": None if o["fill_day"] is None else o["fill_day"].isoformat(), "failure": o["failure"], "order_type": o["order_type"], "limit_price": _opt(o["limit_price"]),

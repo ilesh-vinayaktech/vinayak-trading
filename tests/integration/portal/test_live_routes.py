@@ -221,3 +221,79 @@ def test_a_day_the_stored_minute_history_already_has_ignores_the_live_minutes(en
     assert [b["close"] for b in bars["bars"]] == [
         "500"
     ]  # the vetted history wins for the whole day
+
+
+def test_quotes_give_the_live_price_with_the_change_from_the_previous_close_and_fall_back_to_the_last_close(
+    env,
+):
+    conn, app, _, iid = env
+    repo = InstrumentRepo(conn)
+    other = repo.add_instrument(
+        repo.add_exchange("XBSE", "IN", "Asia/Kolkata", "INR", "BSE"), "TCS", isin="INE467B01029"
+    )
+    lonely = repo.add_instrument(
+        repo.add_exchange("XNSE2", "IN", "Asia/Kolkata", "INR", "NSE2"),
+        "NODATA",
+        isin="INE000000001",
+    )
+    quote(conn, iid, "2900")  # previous close in the helper is 2865
+    put_day(conn, other, date(2026, 11, 10), "3900", "3910")
+    put_day(conn, other, date(2026, 11, 11), "3910", "3939")
+    c = sign_in(app, "viewer@example.com")
+    got = c.get(f"/api/live/quotes?ids={iid},{other},{lonely}").json()["quotes"]
+    assert (
+        got[str(iid)]["source"] == "live"
+        and got[str(iid)]["ltp"] == "2900"
+        and got[str(iid)]["prev_close"] == "2865"
+    )
+    assert round(got[str(iid)]["change_pct"], 3) == round(35 / 2865 * 100, 3)
+    assert (
+        got[str(other)]["source"] == "close"
+        and got[str(other)]["ltp"] == "3939"
+        and got[str(other)]["prev_close"] == "3910"
+    )
+    assert str(lonely) not in got  # neither a quote nor a bar: left out
+    assert c.get("/api/live/quotes?ids=abc").status_code == 400
+    assert TestClient(app).get("/api/live/quotes?ids=1").status_code == 401
+
+
+def test_the_index_cards_show_live_quotes_with_a_minute_line_and_fall_back_to_daily_closes(env):
+    from algo.live.bars import LiveBar
+    from algo.live.index_store import save_index_bars, save_index_quotes
+
+    conn, app, _, _ = env
+    names = {256265: ("NSE", "NIFTY 50")}
+    feed(conn)
+    save_index_quotes(
+        conn,
+        {
+            256265: Tick(
+                256265, D("25100"), None, START, D("25000"), D("25150"), D("24950"), D("25020")
+            )
+        },
+        names,
+        START,
+    )
+    bar = LiveBar(
+        256265, START.replace(minute=29), D("25090"), D("25110"), D("25080"), D("25100"), 0, 5, True
+    )
+    save_index_bars(conn, [bar], names, START)
+    for d, close in ((date(2026, 11, 10), "82000"), (date(2026, 11, 11), "82500")):
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('BSE','SENSEX',%s,%s,%s,%s,%s,265,%s)",
+            (d, close, close, close, close, START),
+        )
+    c = sign_in(app, "viewer@example.com")
+    body = c.get("/api/live/indices").json()
+    cards = {x["symbol"]: x for x in body["indices"]}
+    assert body["live"] is True and list(cards) == ["NIFTY 50", "SENSEX"]
+    n = cards["NIFTY 50"]
+    assert (n["source"], n["ltp"], n["prev_close"], n["change"], n["spark"]) == (
+        "live",
+        "25100",
+        "25020",
+        "80",
+        [25100.0],
+    )
+    s = cards["SENSEX"]
+    assert (s["source"], s["ltp"], s["change"], s["spark"]) == ("daily", "82500", "500", [])

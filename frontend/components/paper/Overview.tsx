@@ -7,7 +7,8 @@ import { DataTable, EmptyState, Skeleton, type Column } from "@/components/ui/Da
 import { Panel, StatCard } from "@/components/ui/Layout";
 import { api } from "@/lib/api/client";
 import { fmtMoney, plotNumber } from "@/lib/formatting";
-import type { PaperSummary } from "@/lib/schemas";
+import type { LiveQuote, PaperSummary } from "@/lib/schemas";
+import { PriceText, useLiveQuotes } from "@/components/market/LivePrice";
 import { useVenue } from "@/lib/venue";
 
 const sign = (s: string) => (s.startsWith("-") ? "bad" : /^0(\.0+)?$/.test(s) ? undefined : "good");
@@ -36,11 +37,11 @@ function Curve({ points }: { points: PaperSummary["equity_curve"] }) {
   );
 }
 
-const columns: Column<PaperSummary["positions"][number]>[] = [
+const columns = (quotes: Record<string, LiveQuote>): Column<PaperSummary["positions"][number]>[] => [
   { key: "symbol", header: "Stock", cell: (p) => <div><span className="font-medium">{p.symbol}</span><UpcomingNote items={p.upcoming} /></div> },
   { key: "qty", header: "Shares", className: "text-right", cell: (p) => fmtMoney(p.qty, 0) },
   { key: "avg", header: "Average cost", className: "text-right", hideBelow: "sm", cell: (p) => rupees(p.avg_cost) },
-  { key: "last", header: "Last price", className: "text-right", hideBelow: "sm", cell: (p) => rupees(p.last_price) },
+  { key: "last", header: "Live price", className: "text-right", cell: (p) => <PriceText quote={quotes[String(p.instrument_id)]} /> },
   { key: "value", header: "Value", className: "text-right", cell: (p) => rupees(p.value) },
   { key: "pnl", header: "Profit / loss", className: "text-right", cell: (p) => <span className={sign(p.unrealized) === "bad" ? "text-red-700" : sign(p.unrealized) === "good" ? "text-emerald-700" : ""}>{rupees(p.unrealized)}</span> },
 ];
@@ -49,6 +50,7 @@ export function Overview({ showPositions = true }: { showPositions?: boolean }) 
   const mode = useVenue();
   const q = useQuery({ queryKey: ["paper", mode, "summary"], queryFn: () => api.paperSummary(mode), refetchInterval: 60_000 });
   const d = q.data;
+  const quotes = useLiveQuotes((d?.positions ?? []).map((p) => p.instrument_id));
   return (
     <div className="space-y-6">
       {q.isError ? <Alert tone="error" title="Could not load the account">Try again in a moment.</Alert> : null}
@@ -66,7 +68,7 @@ export function Overview({ showPositions = true }: { showPositions?: boolean }) 
           </Panel>
           {showPositions ? (
             <Panel title="Positions">
-              <DataTable caption="Positions" columns={columns} rows={d.positions} rowKey={(p) => String(p.instrument_id)} empty={<EmptyState icon="chart" title="No positions yet">Positions appear once an approved order fills.</EmptyState>} />
+              <DataTable caption="Positions" columns={columns(quotes)} rows={d.positions} rowKey={(p) => String(p.instrument_id)} empty={<EmptyState icon="chart" title="No positions yet">Positions appear once an approved order fills.</EmptyState>} />
             </Panel>
           ) : null}
         </>

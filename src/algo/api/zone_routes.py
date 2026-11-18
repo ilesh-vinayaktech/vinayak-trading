@@ -328,10 +328,15 @@ class WatchBody(BaseModel):
 def watchlist_view(who: CurrentUser, conn: WConn) -> dict[str, Any]:
     """The caller's watched stocks, newest first. Their score and levels come from the per-stock routes."""
     rows = conn.execute(
-        "SELECT i.instrument_id, i.symbol, i.name FROM watchlist w JOIN instrument i USING (instrument_id) WHERE w.user_id=%s ORDER BY w.added_at DESC, i.symbol",
+        "SELECT i.instrument_id, i.symbol, i.name, w.added_at, w.added_price FROM watchlist w JOIN instrument i USING (instrument_id) WHERE w.user_id=%s ORDER BY w.added_at DESC, i.symbol",
         (who.session.user_id,),
     ).fetchall()
-    return {"items": [{"instrument_id": a, "symbol": s, "name": n} for a, s, n in rows]}
+    return {
+        "items": [
+            {"instrument_id": a, "symbol": s, "name": n, "added_at": at.isoformat(), "added_price": None if p is None else format(p.normalize(), "f")}
+            for a, s, n, at, p in rows
+        ]
+    }  # fmt: skip
 
 
 @router.post("/watchlist")
@@ -350,9 +355,14 @@ def watchlist_add(
     ).fetchone()
     if held and held[0] >= MAX_WATCHED:
         raise HTTPException(400, f"the watchlist holds at most {MAX_WATCHED} stocks")
+    price = conn.execute(  # the live price if the feed has quoted it, else the last daily close
+        "SELECT coalesce((SELECT ltp FROM live_quote WHERE instrument_id=%s),"
+        " (SELECT close FROM bar_1d WHERE instrument_id=%s AND source='nse' ORDER BY ts DESC, dataset_version DESC LIMIT 1))",
+        (row[0], row[0]),
+    ).fetchone()
     conn.execute(
-        "INSERT INTO watchlist (user_id, instrument_id, added_at) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
-        (who.session.user_id, row[0], _st(request).clock.now()),
+        "INSERT INTO watchlist (user_id, instrument_id, added_at, added_price) VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+        (who.session.user_id, row[0], _st(request).clock.now(), price[0] if price else None),
     )
     return {"ok": True}
 

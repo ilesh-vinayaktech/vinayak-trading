@@ -662,6 +662,7 @@ export const paperSummarySchema = z.object({
 export const PAPER_STATUSES = ["PENDING", "APPROVED", "REJECTED", "EXPIRED", "FILLED", "FAILED"] as const;
 export const paperOrderSchema = z.object({
   order_id: z.string(),
+  instrument_id: z.number(),
   symbol: z.string(),
   side: z.enum(["BUY", "SELL"]),
   qty: decimal,
@@ -1394,5 +1395,14 @@ export const pipelineSchema = z.object({
 export type Pipeline = z.infer<typeof pipelineSchema>;
 export const pipelineUnrunSchema = z.object({ families: z.array(z.object({ family_id: z.number(), name: z.string(), studies: z.array(z.object({ experiment_id: z.number(), name: z.string(), strategy_id: z.string() })) })) });
 
-export const watchlistSchema = z.object({ items: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable() })) });
+export const watchlistSchema = z.object({ items: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable(), added_at: z.string(), added_price: z.string().nullable() })) });
 export type Watchlist = z.infer<typeof watchlistSchema>;
+
+const quoteSchema = z.object({ ltp: z.string(), prev_close: z.string().nullable(), change: z.string().nullable(), change_pct: z.number().nullable(), source: z.enum(["live", "close"]), as_of: z.string() });
+export const liveQuotesSchema = z.object({ quotes: z.record(z.string(), quoteSchema) });
+export type LiveQuote = z.infer<typeof quoteSchema>;
+export const liveIndicesSchema = z.object({
+  live: z.boolean(),
+  indices: z.array(z.object({ exchange: z.string(), symbol: z.string(), source: z.enum(["live", "daily"]), ltp: z.string(), prev_close: z.string().nullable(), change: z.string().nullable(), change_pct: z.number().nullable(), day_high: z.string().nullable(), day_low: z.string().nullable(), as_of: z.string(), spark: z.array(z.number()) })),
+});
+export type LiveIndices = z.infer<typeof liveIndicesSchema>;

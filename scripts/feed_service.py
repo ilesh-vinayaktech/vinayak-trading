@@ -31,6 +31,7 @@ from algo.data.providers.kite_session import urllib_http
 from algo.live.bar_store import save_status, token_map
 from algo.live.bars import BarBuilder
 from algo.live.feed import Feed
+from algo.live.index_store import index_tokens
 from algo.live.instrument_refresh import RefreshError, last_refresh, refresh
 from algo.live.kite_socket import connect
 from algo.live.market_calendar import windows_for
@@ -153,6 +154,7 @@ async def main(conn: psycopg.Connection) -> str:
             sys.exit(
                 "no instruments mapped to Kite tokens: run scripts/kite_load_minutes.py once to map them"
             )
+        indices = index_tokens(conn)
         feed = Feed(
             functools.partial(connect, *creds),
             conn,
@@ -161,10 +163,15 @@ async def main(conn: psycopg.Connection) -> str:
             mode=a.mode,
             until=until,
             builder=BarBuilder(windows=windows),
+            indices=indices,
+            index_builder=BarBuilder(windows=windows),
             frame_sink=sink if a.record else None,
         )
         current[:] = [feed]
-        print(f"feeding {len(ids)} instruments until {until.astimezone(IST):%H:%M} IST", flush=True)
+        print(
+            f"feeding {len(ids)} instruments and {len(indices)} indices until {until.astimezone(IST):%H:%M} IST",
+            flush=True,
+        )
         state = await feed.run()
         print(
             f"{state}: {feed.ticks} ticks, {feed.bars} bars, {feed.bad_frames} bad frames",

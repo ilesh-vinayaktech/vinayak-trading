@@ -86,6 +86,7 @@ const SUMMARY = {
 };
 const order = (over: Record<string, unknown>) => ({
   order_id: "o1",
+  instrument_id: 11,
   symbol: "TCS",
   side: "BUY",
   qty: "10",

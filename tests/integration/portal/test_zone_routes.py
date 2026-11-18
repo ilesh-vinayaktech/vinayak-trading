@@ -385,9 +385,19 @@ def test_watchlist_adds_lists_removes_and_stays_personal(env):  # noqa: F811
     assert c.post("/api/market/watchlist", json={"symbol": sym}).json() == {
         "ok": True
     }  # twice is still once
-    assert c.get("/api/market/watchlist").json() == {
-        "items": [{"instrument_id": iid, "symbol": sym, "name": name}]
-    }
+    item = c.get("/api/market/watchlist").json()["items"][0]
+    assert (item["instrument_id"], item["symbol"], item["name"]) == (iid, sym, name)
+    assert (
+        item["added_at"].startswith("2026-") and item["added_price"] == "210"
+    )  # no quote or bar existed when it was added
+    conn.execute(
+        "INSERT INTO live_quote (instrument_id, ltp, updated_at) VALUES (%s, 123.45, now())", (iid,)
+    )
+    c.delete(f"/api/market/watchlist/{iid}")
+    assert c.post("/api/market/watchlist", json={"symbol": sym}).json() == {"ok": True}
+    assert (
+        c.get("/api/market/watchlist").json()["items"][0]["added_price"] == "123.45"
+    )  # the live price at the moment of adding
     assert c.post("/api/market/watchlist", json={"symbol": "NOPE"}).status_code == 404
     _, other = trader(conn, app, clock, email="other@example.com")
     assert other.get("/api/market/watchlist").json() == {"items": []}

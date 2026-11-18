@@ -328,7 +328,7 @@ def test_orders_are_listed_filtered_and_answered_by_their_owner_only(env):
     assert {r["order_id"] for r in rows} == {str(keep), str(drop), str(stale)}
     first = next(r for r in rows if r["order_id"] == str(keep))
     assert first == {
-        "order_id": str(keep), "symbol": "AAA", "side": "BUY", "qty": "10", "ref_price": "200",
+        "order_id": str(keep), "instrument_id": ids["AAA"], "symbol": "AAA", "side": "BUY", "qty": "10", "ref_price": "200",
         "reason": "entry: oversold in an uptrend", "status": "PENDING", "decision_day": "2026-11-11",
         "created_at": START.isoformat(), "expires_at": (START + timedelta(hours=20)).isoformat(),
         "fill_price": None, "fill_commission": None, "fill_day": None, "failure": None, "order_type": "MARKET", "limit_price": None, "tick_size": "0.05",

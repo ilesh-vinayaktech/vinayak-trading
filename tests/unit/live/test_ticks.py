@@ -116,3 +116,14 @@ def test_several_packets_in_one_frame_come_out_in_order_and_a_heartbeat_gives_no
 def test_a_malformed_frame_is_refused_not_guessed_at(bad):
     with pytest.raises(TickFormatError):
         parse(bad)
+
+
+def test_an_index_packet_carries_the_days_high_low_open_and_previous_close():
+    idx = struct.pack(">7i", 256265, 2_450_000, 2_460_000, 2_440_000, 2_445_000, 2_448_000, 2000)
+    (a,) = parse(frame(idx))
+    assert (a.day_high, a.day_low, a.day_open, a.prev_close) == (
+        Decimal("24600.00"),
+        Decimal("24400.00"),
+        Decimal("24450.00"),
+        Decimal("24480.00"),
+    )

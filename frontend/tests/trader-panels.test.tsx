@@ -33,6 +33,13 @@ describe("SetupsPanel", () => {
     expect(screen.getByText(/not a signal to trade on/)).toBeInTheDocument();
   });
 
+  it("shows the live price and the day's change beside each stock", async () => {
+    routes({ "/api/screener/run": RUN(["GAIL"]), "/api/live/quotes": { quotes: { "1": { ltp: "184.30", prev_close: "180.00", change: "4.30", change_pct: 2.39, source: "live", as_of: "2026-11-18T05:00:00+00:00" } } } });
+    mount(<SetupsPanel />);
+    expect(await screen.findByText("184.30")).toBeInTheDocument();
+    expect(screen.getByText("+2.39%")).toBeInTheDocument();
+  });
+
   it("says when nothing matches", async () => {
     routes({ "/api/screener/run": RUN([]) });
     mount(<SetupsPanel />);

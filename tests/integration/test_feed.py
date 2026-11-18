@@ -1,5 +1,6 @@
 import asyncio
 import json
+import struct
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -287,3 +288,39 @@ def test_the_published_quote_includes_the_minute_still_being_built(rig):
 def test_more_instruments_than_one_kite_connection_carries_are_refused_up_front(rig):
     with pytest.raises(ValueError, match="3000"):
         Feed(lambda: None, rig.conn, {i: 1 for i in range(3001)}, rig.clock)
+
+
+NIFTY = 256265
+
+
+def index_tick(minute, second, price, token=NIFTY):
+    """A 32-byte index packet: token, last, high, low, open, previous close, change, exchange time."""
+    epoch = int(at(minute, second).timestamp())
+    p = int(price * 100)
+    return frame(struct.pack(">8i", token, p, p + 500, p - 500, p - 100, p - 300, 300, epoch))
+
+
+def test_followed_indices_get_a_live_quote_and_one_minute_bars_and_do_not_count_as_unknown(rig):
+    sock = rig.script(
+        Advance(at(0, 5)), index_tick(0, 5, 25000),
+        Advance(at(0, 30)), index_tick(0, 30, 25010),
+        Advance(at(1, 5)), index_tick(1, 5, 25005),
+        Advance(at(2, 5)), Silence(0),
+        Do(lambda: feed.stop()),
+    )  # fmt: skip
+    feed = rig.feed(sock, dead_after=600, indices={NIFTY: ("NSE", "NIFTY 50")})
+    asyncio.run(feed.run())
+    assert {"a": "subscribe", "v": [RELIANCE, TCS, NIFTY]} in sock.sent
+    bars = rig.conn.execute(
+        "SELECT symbol, ts, open, high, low, close, source FROM index_bar_1m ORDER BY ts"
+    ).fetchall()
+    assert bars == [
+        ("NIFTY 50", at(0), D(25000), D(25010), D(25000), D(25010), "live"),
+        ("NIFTY 50", at(1), D(25005), D(25005), D(25005), D(25005), "live"),
+    ]
+    q = rig.conn.execute(
+        "SELECT ltp, day_open, day_high, day_low, prev_close FROM index_live_quote WHERE token=%s",
+        (NIFTY,),
+    ).fetchone()
+    assert q == (D("25005"), D("25004"), D("25010"), D("25000"), D("25002"))
+    assert feed.unknown == 0 and rig.conn.execute("SELECT count(*) FROM live_bar_1m").fetchone()[0] == 0  # fmt: skip

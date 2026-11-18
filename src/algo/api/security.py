@@ -51,6 +51,11 @@ ROUTE_PERMISSIONS = {
     ("GET", "/api/dashboard/me"): SELF,
     ("GET", "/api/market/calendar"): "ops:read",
     ("POST", "/api/screener/run"): "research:read",
+    (
+        "POST",
+        "/api/market/watchlist",
+    ): "research:read",  # a personal list: anyone who can read research may keep one
+    ("DELETE", "/api/market/watchlist/{instrument_id}"): "research:read",
     ("GET", "/api/costs/schedules"): "research:read",
     ("GET", "/api/costs/preview"): "research:read",
     ("POST", "/api/costs/providers"): "system:settings",
