@@ -88,3 +88,41 @@ def test_error_measures_and_change_direction():
         np.isnan(vol.trailing_mean(np.arange(10.0), 3)[:3]).all()
         and vol.trailing_mean(np.arange(10.0), 3)[3] == 1.0
     )
+
+
+def test_a_live_forecast_is_exactly_what_the_walk_forward_gives_that_row():
+    s = sessions(900)
+    v = {x.day: 12 + 8 * (i // 100 % 2) for i, x in enumerate(s)}
+    night = {x.day: (0.3 + (i % 7) * 0.1, 1.0 - (i % 5)) for i, x in enumerate(s)}
+    days, x, yr, _ = vol.build(s, v, night)
+    wf = vol.walk_forward(x, yr)
+    for p in (vol.MIN_TRAIN, vol.MIN_TRAIN + 7, vol.MIN_TRAIN + vol.REFIT, len(yr) - 1):
+        got = vol.forecast_next(x[:p], yr[:p], x[p])
+        assert got is not None and got[0] == pytest.approx(wf[p])
+        assert (
+            got[1] == vol.block_start(p) and got[1] <= p
+        )  # it learned only from rows before the block
+    assert vol.forecast_next(x[:100], yr[:100], x[100]) is None  # too few rows: no forecast
+
+
+def test_the_next_sessions_inputs_are_those_a_built_row_would_have():
+    s = sessions(60)
+    v = {x.day: 15.0 + i % 3 for i, x in enumerate(s)}
+    night = (1.2, -3.0)
+    days, x, *_ = vol.build(s, v, {**{q.day: night for q in s}})
+    row = vol.next_row(
+        s[:-1], v, night
+    )  # the inputs for the session s[-1], from the sessions before it
+    assert days[-1] == s[-1].day and np.allclose(row, x[-1])
+    assert (
+        vol.next_row(s[:10], v, night) is None
+        and vol.next_row(s[:-1], v, None) is None
+        and vol.next_row(s[:-1], {}, night) is None
+    )
+
+
+def test_the_block_rule_refits_every_21_rows_after_the_first_500():
+    assert (
+        vol.block_start(499) is None and vol.block_start(500) == 500 and vol.block_start(520) == 500
+    )
+    assert vol.block_start(521) == 521 and vol.block_start(1000) == 500 + 21 * ((1000 - 500) // 21)

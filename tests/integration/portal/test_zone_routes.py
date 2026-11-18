@@ -746,3 +746,56 @@ def test_forecast_carries_the_overnight_us_moves_and_gift_nifty_with_how_such_mo
     assert (
         up["days"] == 2 and up["up_pct"] == 100.0
     )  # both mornings GIFT indicated over +0.3% and the Nifty 500 closed higher
+
+
+def test_range_forecast_with_nothing_made_is_an_empty_answer(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/range-forecast").json() == {
+        "latest": None,
+        "five_session_avg": None,
+        "yesterday_range": None,
+        "record": [],
+        "resolved": 0,
+        "needed": 500,
+    }
+
+
+def test_range_forecast_gives_the_latest_forecast_beside_the_baselines_and_the_resolved_record(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    days = [
+        TODAY - timedelta(days=k) for k in (6, 5, 4, 3, 2, 1)
+    ]  # Tue 3 Nov .. Mon 9 Nov... six sessions before TODAY
+    for i, d in enumerate(days):
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE','NIFTY 500',%s,1000,%s,%s,1000,1,%s)",
+            (d, 1000 + 5 * (i + 1), 1000 - 5 * (i + 1), NOW),
+        )  # ranges 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 percent of the open
+    conn.execute(
+        "INSERT INTO range_forecast_log (as_of, model_version, made_at, forecast_range, features, train_through, n_train, target_day, actual_range, resolved_on) VALUES (%s,'range-ridge-v1',%s,1.2,'{}',%s,600,%s,1.4,%s)",
+        (days[0], NOW, days[0], days[1], days[1]),
+    )
+    conn.execute(
+        "INSERT INTO range_forecast_log (as_of, model_version, made_at, forecast_range, features, train_through, n_train) VALUES (%s,'range-ridge-v1',%s,3.5,'{}',%s,600)",
+        (days[-1], NOW, days[-1]),
+    )
+    got = c.get("/api/market/range-forecast").json()
+    assert (
+        got["latest"]["as_of"] == days[-1].isoformat()
+        and got["latest"]["forecast_range"] == 3.5
+        and got["latest"]["actual_range"] is None
+        and got["latest"]["version"] == "range-ridge-v1"
+    )
+    assert got["latest"]["for_day"] == TODAY.isoformat()  # the next weekday after the last session
+    assert got["five_session_avg"] == pytest.approx(4.0) and got[
+        "yesterday_range"
+    ] == pytest.approx(6.0)  # sessions 2..6: 2,3,4,5,6 average 4
+    assert got["record"] == [
+        {
+            "target_day": days[1].isoformat(),
+            "forecast": pytest.approx(1.2),
+            "actual": pytest.approx(1.4),
+        }
+    ]
+    assert got["resolved"] == 1 and got["needed"] == 500

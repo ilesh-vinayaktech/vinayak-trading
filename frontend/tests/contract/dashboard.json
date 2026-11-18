@@ -90,6 +90,13 @@
    "name": "forecast-morning"
   },
   {
+   "calendar": "Mon..Fri *-*-* 08:55 Asia/Kolkata",
+   "description": "Before the open: the expected Nifty 500 high-low range for the day (research forecast range-ridge-v1, forward validation in progress), made from the last session, India VIX and the US overnight and stored once; it loads the US closes itself and is independent of the direction forecasts (a failure in one never stops the other); it is not made when the previous evening's index candles or the US session are missing, and resolves earlier forecasts with the actual range",
+   "last_run": null,
+   "last_success_at": null,
+   "name": "range-forecast-morning"
+  },
+  {
    "calendar": "Mon..Fri *-*-* 08:50 Asia/Kolkata",
    "description": "Before the market opens: INITIALIZING -> DATA_VALIDATION -> READY -> PAPER, each step recorded, only if the daily data is current, a Kite session exists and the order log, orders and positions all agree; alerts when the platform does not reach PAPER (a strategy then cannot propose while ALGO_REQUIRE_PLATFORM_READY=1)",
    "last_run": null,
@@ -340,7 +347,7 @@
    },
    {
     "level": "attention",
-    "text": "39 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 36 more."
+    "text": "40 scheduled jobs have never run: kite-login-reminder, bhavcopy-daily, data-completeness and 37 more."
    }
   ],
   "status": "DOWN"
@@ -362,7 +369,7 @@
   "operational_reliability": {
    "items": [
     {
-     "detail": "none of the 39 jobs has run yet",
+     "detail": "none of the 40 jobs has run yet",
      "name": "scheduled jobs",
      "status": "UNKNOWN"
     },

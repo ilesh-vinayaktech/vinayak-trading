@@ -1,9 +1,131 @@
 {
- "as_of": null,
- "market": [],
- "misses": [],
- "overnight": null,
- "record": [],
- "sectors": [],
- "today": null
+ "as_of": "2026-11-11",
+ "cutoff": "21:45 IST, after the Indian close",
+ "labels": {
+  "above_200": "Above its 200-day average",
+  "above_50": "Above its 50-day average",
+  "adv_share": "Share of stocks that rose",
+  "advance_decline": "Advancing against declining stocks",
+  "breadth": "Stocks above their averages",
+  "fear_greed": "Fear/greed score",
+  "fii_positioning": "Foreign investors' futures positions",
+  "gold_demand": "Gold against stocks",
+  "highs_lows": "New highs against new lows",
+  "mkt_fear_greed": "Market fear/greed",
+  "mkt_ret_1d": "Market's last move",
+  "momentum": "Index momentum",
+  "ret_1d": "Last day's move",
+  "ret_21d": "21-day move",
+  "ret_5d": "5-day move",
+  "risk_appetite": "Appetite for high-beta stocks",
+  "rotation": "Sector rotation score",
+  "rs_momentum": "Strength improving",
+  "rs_ratio": "Strength against the market",
+  "size_appetite": "Appetite for small caps",
+  "stocks_vs_bonds": "Stocks against bonds",
+  "us_nq": "US Nasdaq overnight",
+  "us_sp": "US S&P 500 overnight",
+  "us_vix": "US volatility (VIX) overnight",
+  "volatility": "Volatility"
+ },
+ "market": [
+  {
+   "evidence": [
+    {
+     "effect": 0.21,
+     "feature": "momentum",
+     "value": 70.0
+    }
+   ],
+   "horizon_days": 1,
+   "p_up": 0.58
+  },
+  {
+   "evidence": [],
+   "horizon_days": 5,
+   "p_up": 0.61
+  }
+ ],
+ "misses": [
+  {
+   "as_of": "2026-10-03",
+   "evidence": [],
+   "p_up": 0.9,
+   "realized": -0.02,
+   "went_up": false
+  }
+ ],
+ "overnight": {
+  "for_day": "2026-11-12",
+  "gift_gap_pct": null,
+  "gift_history": [
+   {
+    "avg_pct": null,
+    "days": 0,
+    "label": "Down more than 0.3%",
+    "up_pct": null
+   },
+   {
+    "avg_pct": null,
+    "days": 0,
+    "label": "Down up to 0.3%",
+    "up_pct": null
+   },
+   {
+    "avg_pct": null,
+    "days": 0,
+    "label": "Up up to 0.3%",
+    "up_pct": null
+   },
+   {
+    "avg_pct": null,
+    "days": 0,
+    "label": "Up more than 0.3%",
+    "up_pct": null
+   }
+  ],
+  "nq": null,
+  "sp": null,
+  "vix": null
+ },
+ "product": "night",
+ "record": [
+  {
+   "base_hit": 0.5,
+   "base_rate": 0.5,
+   "beats_guessing": false,
+   "brier_skill": -1.025,
+   "calibration": [
+    {
+     "actual": 1.0,
+     "n": 1,
+     "predicted": 0.55
+    },
+    {
+     "actual": 0.0,
+     "n": 1,
+     "predicted": 0.9
+    }
+   ],
+   "hit_rate": 0.5,
+   "horizon_days": 1,
+   "live": false,
+   "n": 2,
+   "product": "night",
+   "subject": "Market"
+  }
+ ],
+ "sectors": [
+  {
+   "evidence": [],
+   "name": "IT",
+   "p_1d": 0.44,
+   "p_5d": 0.47
+  }
+ ],
+ "today": {
+  "as_of": null,
+  "market_change_pct": null,
+  "sectors": {}
+ }
 }

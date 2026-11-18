@@ -19,7 +19,17 @@ from algo.data import index_members as index_members_data
 from algo.data import sectors as sectors_data
 from algo.live.index_store import read_quotes
 from algo.live.market_calendar import IST
-from algo.market import forecast, levels, live_zone, performance, predict, sectors, stock_notes
+from algo.market import (
+    forecast,
+    levels,
+    live_zone,
+    performance,
+    predict,
+    range_forecast,
+    sectors,
+    stock_notes,
+    volatility,
+)
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 HISTORY_DAYS = 10_000  # every stored day; the page picks 1 year, 3 years or all
@@ -271,6 +281,54 @@ def _overnight(conn: Any, as_of: date) -> dict[str, Any]:
         "gift_gap_pct": gap,
         "gift_history": performance.gift_buckets(pairs),
     }
+
+
+@router.get("/range-forecast")
+def range_forecast_view(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """The expected Nifty 500 high-low range for the day (research forecast range-ridge-v1, forward validation in progress, docs/forecast/volatility_v1_spec.md): the latest forecast,
+    the 5-session average and yesterday's range beside it, the last resolved forecasts against what happened, and how many have resolved of the 500 the one-time evaluation needs."""
+    latest = conn.execute(
+        "SELECT as_of, made_at, forecast_range, target_day, actual_range FROM range_forecast_log WHERE model_version=%s ORDER BY as_of DESC LIMIT 1",
+        (range_forecast.VERSION,),
+    ).fetchone()
+    resolved = conn.execute(
+        "SELECT count(*) FROM range_forecast_log WHERE model_version=%s AND actual_range IS NOT NULL",
+        (range_forecast.VERSION,),
+    ).fetchone()
+    record = [
+        {"target_day": d.isoformat(), "forecast": float(f), "actual": float(a)}
+        for d, f, a in conn.execute(
+            "SELECT target_day, forecast_range, actual_range FROM range_forecast_log WHERE model_version=%s AND actual_range IS NOT NULL ORDER BY as_of DESC LIMIT 8",
+            (range_forecast.VERSION,),
+        )
+    ]
+    out: dict[str, Any] = {
+        "latest": None,
+        "five_session_avg": None,
+        "yesterday_range": None,
+        "record": record,
+        "resolved": int(resolved[0]) if resolved else 0,
+        "needed": 500,
+    }
+    if latest is None:
+        return out
+    as_of, made_at, fr, target, actual = latest
+    sess = range_forecast._sessions(conn, as_of)[-5:]
+    nxt = target or as_of + timedelta(days=1)
+    while target is None and nxt.weekday() >= 5:
+        nxt += timedelta(days=1)
+    out["latest"] = {
+        "as_of": as_of.isoformat(),
+        "for_day": nxt.isoformat(),
+        "made_at": made_at.isoformat(),
+        "forecast_range": float(fr),
+        "actual_range": None if actual is None else float(actual),
+        "version": range_forecast.VERSION,
+    }
+    if len(sess) == 5:
+        ranges = [volatility.range_pct(s) for s in sess]
+        out["five_session_avg"], out["yesterday_range"] = sum(ranges) / 5, ranges[-1]
+    return out
 
 
 @router.get("/forecast")

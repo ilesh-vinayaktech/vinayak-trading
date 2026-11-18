@@ -56,6 +56,17 @@ JOBS: tuple[Job, ...] = (
         retry_wait_s=300,
     ),
     Job(
+        "range-forecast-morning",
+        f"{WEEKDAYS} *-*-* 08:55 Asia/Kolkata",
+        (
+            (*_PY, "scripts/ingest_global.py", "yahoo", "--db", "{db}", "--from", "{d7}"),
+            (*_PY, "scripts/build_range_forecast.py", "--db", "{db}"),
+        ),
+        "Before the open: the expected Nifty 500 high-low range for the day (research forecast range-ridge-v1, forward validation in progress), made from the last session, India VIX and the US overnight and stored once; it loads the US closes itself and is independent of the direction forecasts (a failure in one never stops the other); it is not made when the previous evening's index candles or the US session are missing, and resolves earlier forecasts with the actual range",
+        retries=2,
+        retry_wait_s=300,
+    ),
+    Job(
         "platform-boot",
         f"{WEEKDAYS} *-*-* 08:50 Asia/Kolkata",
         ((*_PY, "scripts/platform_boot.py", "--db", "{db}"),),

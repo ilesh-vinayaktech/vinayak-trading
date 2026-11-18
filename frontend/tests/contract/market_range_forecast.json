@@ -1,0 +1,21 @@
+{
+ "five_session_avg": 0.0,
+ "latest": {
+  "actual_range": null,
+  "as_of": "2026-11-11",
+  "for_day": "2026-11-12",
+  "forecast_range": 1.15,
+  "made_at": "2026-11-12T03:25:00+00:00",
+  "version": "range-ridge-v1"
+ },
+ "needed": 500,
+ "record": [
+  {
+   "actual": 1.4,
+   "forecast": 1.2,
+   "target_day": "2026-11-09"
+  }
+ ],
+ "resolved": 1,
+ "yesterday_range": 0.0
+}

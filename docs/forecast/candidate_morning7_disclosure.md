@@ -27,3 +27,9 @@ sits just above zero, but no single period's interval excludes zero.
 - Nothing in the frozen specification changes. The 2025-onward period was never confirmation data for this candidate and still is not.
 - This reinforces the rule that only forward predictions made after the freeze can confirm it. The candidate is a research candidate whose choice was informed by accessed data, tested on genuinely new observations.
 - Any future candidate must say in its specification which data its design was chosen on, and use development-only runs (cutoff `algo.factory.study.WINDOW[1]`) for choosing.
+
+## Known limitation found while building the volatility forecast (2026-11-18, not fixed: the frozen code is unchanged)
+`global_markets.last_session_return` returns the move of the last US session **stored** before the forecast session. If a US close is missing from `global_daily` (not loaded yet, or a failed ingest), the frozen direction forecasts
+(`morning` and `morning7`) silently use the previous stored session's move as "the overnight move" instead of making no forecast. A US holiday is a legitimate case of the same fallback. The new volatility forecast does not have this
+weakness (it requires the US session that has just closed and makes no forecast otherwise). Effect on the direction experiment: both models share the behaviour, so the paired comparison is not biased by it, but an
+affected day carries a stale input. The morning job loads the US closes first, so it should be rare; the evaluation report cannot currently show how many days it happened. Not changed here because the implementation is frozen.

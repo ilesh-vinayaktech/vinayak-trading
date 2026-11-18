@@ -782,6 +782,24 @@ export const forecastSchema = z.object({
     .optional(),
 });
 export type Forecast = z.infer<typeof forecastSchema>;
+export const rangeForecastSchema = z.object({
+  latest: z
+    .object({
+      as_of: z.string(), // the session it was made after
+      for_day: z.string(), // the session it forecasts
+      made_at: z.string(),
+      forecast_range: z.number(), // the expected high-low range of that session, % of its open
+      actual_range: z.number().nullable(), // once it has traded
+      version: z.string(),
+    })
+    .nullable(),
+  five_session_avg: z.number().nullable(), // the simple baseline beside it, same unit
+  yesterday_range: z.number().nullable(),
+  record: z.array(z.object({ target_day: z.string(), forecast: z.number(), actual: z.number() })), // the latest resolved forecasts, newest first
+  resolved: z.number(), // forecasts resolved so far
+  needed: z.number(), // the resolved forecasts the one-time forward evaluation needs
+});
+export type RangeForecast = z.infer<typeof rangeForecastSchema>;
 export const industriesSchema = z.object({
   as_of: z.string().nullable(),
   industries: z.array(z.object({

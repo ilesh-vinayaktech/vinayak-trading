@@ -71,6 +71,24 @@ describe("ForecastPanel", () => {
     expect(await screen.findByText(/moved \+0\.80% overnight.*some skill/)).toBeInTheDocument();
   });
 
+  it("shows the expected range as a research forecast beside the 5-session average, and says it is not a trading signal", async () => {
+    const range = { latest: { as_of: "2026-11-17", for_day: "2026-11-18", made_at: "2026-11-18T03:25:00+00:00", forecast_range: 1.15, actual_range: null, version: "range-ridge-v1" }, five_session_avg: 0.92, yesterday_range: 1.31, record: [{ target_day: "2026-11-17", forecast: 1.1, actual: 1.4 }], resolved: 12, needed: 500 };
+    vi.stubGlobal("fetch", async (url: string) => new Response(JSON.stringify(String(url).includes("range-forecast") ? range : FORECAST), { status: 200 }));
+    mount();
+    expect(await screen.findByLabelText("Expected range 1.15%")).toBeInTheDocument();
+    expect(screen.getByText("Research forecast, forward validation in progress")).toBeInTheDocument();
+    expect(screen.getByText(/average of the last five sessions is 0\.92% and yesterday's range was 1\.31%/)).toBeInTheDocument();
+    expect(screen.getByText(/Forecast generated 08:55 am IST/i)).toBeInTheDocument();
+    expect(screen.getByText(/not which way the market moves, and it is not a trading signal. 12 of 500 forecasts/)).toBeInTheDocument();
+  });
+
+  it("says plainly when no range forecast has been made yet", async () => {
+    const none = { latest: null, five_session_avg: null, yesterday_range: null, record: [], resolved: 0, needed: 500 };
+    vi.stubGlobal("fetch", async (url: string) => new Response(JSON.stringify(String(url).includes("range-forecast") ? none : FORECAST), { status: 200 }));
+    mount();
+    expect(await screen.findByText(/No range forecast yet. It is made at 08:55 IST/)).toBeInTheDocument();
+  });
+
   it("says it has no live prices when the feed is off, and does not judge the call", async () => {
     backend({ ...FORECAST, today: { market_change_pct: null, as_of: null, sectors: {} } });
     mount();

@@ -755,7 +755,7 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         ("MARKET", 1, 0.55, False, True, 0.004, "[]"),
     ):
         conn.execute(
-            "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, evidence, outcome_up, realized) VALUES (%s,%s,%s,'logit-v1',%s,%s,%s,%s,%s)",
+            "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, evidence, outcome_up, realized) VALUES (%s,%s,%s,'logit-v2-night',%s,%s,%s,%s,%s)",
             (
                 forecast_day if live else forecast_day - timedelta(days=30 + int(p * 10)),
                 subject,
@@ -768,6 +768,21 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             ),
         )
     shots["market_forecast"] = c.get("/api/market/forecast")
+    conn.execute(
+        "INSERT INTO range_forecast_log (as_of, model_version, made_at, forecast_range, features, train_through, n_train, target_day, actual_range, resolved_on) VALUES (%s,'range-ridge-v1',%s,1.2,'{}',%s,600,%s,1.4,%s)",
+        (
+            forecast_day - timedelta(days=3),
+            datetime(2026, 11, 9, 3, 25, tzinfo=UTC),
+            forecast_day - timedelta(days=3),
+            forecast_day - timedelta(days=2),
+            forecast_day - timedelta(days=2),
+        ),
+    )
+    conn.execute(
+        "INSERT INTO range_forecast_log (as_of, model_version, made_at, forecast_range, features, train_through, n_train) VALUES (%s,'range-ridge-v1',%s,1.15,'{}',%s,600)",
+        (forecast_day, datetime(2026, 11, 12, 3, 25, tzinfo=UTC), forecast_day),
+    )
+    shots["market_range_forecast"] = c.get("/api/market/range-forecast")
     for k, (title, sent, syms) in enumerate(
         [
             ("Sensex surges as FII inflows return", 0.6, ["TCS"]),

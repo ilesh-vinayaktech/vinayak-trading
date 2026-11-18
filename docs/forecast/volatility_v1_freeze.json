@@ -1,0 +1,19 @@
+{
+  "frozen_at": "2026-11-18T12:53:52.023856+00:00",
+  "model": "range-ridge-v1",
+  "target": "next-session Nifty 500 high-low range, % of open",
+  "first_counted_session": "2026-11-19",
+  "spec_registered_in_commit": "906b566",
+  "git_head_at_freeze": "906b566a79252b025d5e21ac1921347f1ea239b3",
+  "note": "the SHA-256 values are what is frozen; the spec was committed before any of this code existed",
+  "sha256": {
+    "docs/forecast/volatility_v1_spec.md": "6888c0df25a7d2c56242f73463ca841fc45c7aef052a3bf2aeeaefde94fa5eee",
+    "src/algo/market/volatility.py": "b3c1dc9f6baf81650755df1e745a94922a38372f2ad1d8796cbc3c3dab0a374c",
+    "src/algo/market/range_forecast.py": "5ebfb8b2d7a70e75fb32c2248c48df6d601f3c3946822da6fd0b1265f4f093b8",
+    "src/algo/market/range_evaluate.py": "a12102238e12e18a7aca616852b685c0122e49efed02e9fe947f1ec51ff2d153",
+    "src/algo/data/global_markets.py": "bfa6ccfaf1a668f229e4ede252c2965bdace852bece85d3759c591962f7a03a5",
+    "scripts/build_range_forecast.py": "5594ef9f1580524058a014d158ea50539b779f416e2140b4f09758cbc1d3f341",
+    "scripts/evaluate_range_forecast.py": "02a9390752f3c8c571d93adbf5c6c48836c7c3df327f7afcc02f63f73ed4397d",
+    "src/algo/data/store/migrations/110_range_forecast_log.sql": "6d6beff701f60f7c8a4a216e54984f57248d52e2970f795bb8a7b1f3dd7b8202"
+  }
+}

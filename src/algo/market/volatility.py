@@ -49,25 +49,61 @@ def move_pct(prev_close: float, s: Session) -> float:
     return abs(100.0 * (s.close / prev_close - 1))
 
 
+def _inputs(rng: Arr, mov: Arr, i: int, vix_prev: float, night: tuple[float, float]) -> list[float]:
+    """The seven inputs for the session at position i, from sessions before it, the previous close of India VIX and the US overnight (S&P % move, US VIX % change)."""
+    us_sp, us_vix = night
+    return [
+        float(np.log(rng[i - 1])), float(np.mean(np.log(rng[i - 5 : i]))), float(np.mean(np.log(rng[i - 22 : i]))), float(np.log(np.mean(mov[i - 5 : i]) + FLOOR)),
+        float(np.log(vix_prev)), float(np.log(abs(us_sp) + FLOOR)), float(us_vix),
+    ]  # fmt: skip
+
+
+def _series(sessions: Sequence[Session]) -> tuple[Arr, Arr]:
+    rng = np.array([range_pct(s) for s in sessions])
+    mov = np.array(
+        [np.nan] + [move_pct(a.close, b) for a, b in zip(sessions, sessions[1:], strict=False)]
+    )
+    return rng, mov
+
+
+def next_row(
+    sessions: Sequence[Session], vix: dict[date, float], night: tuple[float, float] | None
+) -> Arr | None:
+    """The inputs for the session AFTER the last one given (the forecast session), or None without 23 sessions, the last session's India VIX close, or the US overnight figures."""
+    if len(sessions) < 23 or sessions[-1].day not in vix or night is None:
+        return None
+    rng, mov = _series(sessions)
+    return np.array(_inputs(rng, mov, len(sessions), vix[sessions[-1].day], night))
+
+
+def block_start(position: int) -> int | None:
+    """Where the training rows end for the forecast at row `position`: the walk-forward refit rule (a fit every REFIT rows after the first MIN_TRAIN), so every forecast inside a block
+    shares one fit. None while there are fewer than MIN_TRAIN rows."""
+    return None if position < MIN_TRAIN else MIN_TRAIN + REFIT * ((position - MIN_TRAIN) // REFIT)
+
+
+def forecast_next(x_hist: Arr, y_hist: Arr, x_next: Arr) -> tuple[float, int] | None:
+    """The expected range for the row that would come after `x_hist`, and how many rows it learned from: exactly what `walk_forward` gives that row, so a live forecast can be rebuilt from the data."""
+    start = block_start(len(y_hist))
+    if start is None:
+        return None
+    return float(
+        predict(fit_ridge(x_hist[:start], y_hist[:start]), x_next.reshape(1, -1))[0]
+    ), start
+
+
 def build(
     sessions: Sequence[Session], vix: dict[date, float], overnight: dict[date, tuple[float, float]]
 ) -> tuple[list[date], Arr, Arr, Arr]:
     """For every session from the 23rd on: (its date, the inputs known before its open, its high-low range, its absolute move). `vix` is India VIX by day (previous close is used);
     `overnight` maps a session date to (the S&P 500's % move, the US VIX's % change) in the last US session before it; a session without either is skipped."""
-    rng = np.array([range_pct(s) for s in sessions])
-    mov = np.array(
-        [np.nan] + [move_pct(a.close, b) for a, b in zip(sessions, sessions[1:], strict=False)]
-    )
+    rng, mov = _series(sessions)
     days, xs, yr, ym = [], [], [], []
     for i in range(23, len(sessions)):
         d, prev = sessions[i].day, sessions[i - 1].day
         if prev not in vix or d not in overnight:
             continue
-        us_sp, us_vix = overnight[d]
-        xs.append([
-            np.log(rng[i - 1]), np.mean(np.log(rng[i - 5 : i])), np.mean(np.log(rng[i - 22 : i])), np.log(np.mean(mov[i - 5 : i]) + FLOOR),
-            np.log(vix[prev]), np.log(abs(us_sp) + FLOOR), us_vix,
-        ])  # fmt: skip
+        xs.append(_inputs(rng, mov, i, vix[prev], overnight[d]))
         days.append(d)
         yr.append(rng[i])
         ym.append(mov[i])

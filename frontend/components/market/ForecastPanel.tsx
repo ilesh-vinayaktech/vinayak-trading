@@ -146,6 +146,49 @@ function Overnight({ d }: { d: Forecast }) {
   );
 }
 
+/** How big a day's range is likely to be: a research forecast under forward validation, shown beside the simple 5-session average, never as a trading signal. */
+function ExpectedRange() {
+  const q = useQuery({ queryKey: ["market", "range-forecast"], queryFn: api.rangeForecast, refetchInterval: 5 * 60_000 });
+  if (q.isError || !q.data) return null;
+  const d = q.data, l = d.latest;
+  const when = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
+  const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const pct = (v: number) => `${v.toFixed(2)}%`;
+  return (
+    <div className="border-t border-line px-3 py-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-ink-soft">Expected Nifty 500 range</h3>
+        <StatusPill tone="warn">Research forecast, forward validation in progress</StatusPill>
+      </div>
+      {l === null ? (
+        <p className="text-sm text-ink-soft">No range forecast yet. It is made at 08:55 IST on trading days, once the previous evening&apos;s index candles and the US close are in.</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+            <div className="text-2xl font-semibold tabular-nums" aria-label={`Expected range ${pct(l.forecast_range)}`}>{pct(l.forecast_range)} <span className="text-sm font-normal text-ink-soft">expected high-low range for {day(l.for_day)}, as a share of the open</span></div>
+            {l.actual_range !== null && <div className="text-sm text-ink-soft">Actual: <b className="tabular-nums text-ink">{pct(l.actual_range)}</b></div>}
+          </div>
+          <p className="mt-1 text-xs text-ink-soft">
+            {d.five_session_avg !== null ? `For comparison, the average of the last five sessions is ${pct(d.five_session_avg)}${d.yesterday_range !== null ? ` and yesterday's range was ${pct(d.yesterday_range)}` : ""}. ` : ""}
+            Forecast generated {when(l.made_at)} IST on {day(l.made_at)}.
+          </p>
+        </>
+      )}
+      <p className="mt-1 text-xs text-ink-faint">This estimates how big the day&apos;s range is likely to be, not which way the market moves, and it is not a trading signal. {d.resolved} of {d.needed} forecasts have resolved towards its one-time forward test.</p>
+      {d.record.length > 0 && (
+        <details className="mt-2 text-xs text-ink-soft">
+          <summary className="cursor-pointer font-medium">Latest resolved forecasts</summary>
+          <table className="mt-1 w-full max-w-md text-left">
+            <caption className="sr-only">Expected range against the actual range, latest sessions</caption>
+            <thead className="border-b border-line text-ink-faint"><tr><th scope="col" className="py-1 font-normal">Session</th><th scope="col" className="text-right font-normal">Expected</th><th scope="col" className="text-right font-normal">Actual</th></tr></thead>
+            <tbody>{d.record.slice(0, 5).map((r) => <tr key={r.target_day} className="border-b border-line last:border-0"><th scope="row" className="py-1 font-normal">{day(r.target_day)}</th><td className="text-right tabular-nums">{pct(r.forecast)}</td><td className="text-right tabular-nums">{pct(r.actual)}</td></tr>)}</tbody>
+          </table>
+        </details>
+      )}
+    </div>
+  );
+}
+
 /** What history says about days like today: how the Nifty 50 did after earlier days in the same market zone. */
 function History() {
   const zone = useQuery({ queryKey: ["market", "zone"], queryFn: api.marketZone, refetchInterval: 60_000 });
@@ -210,6 +253,7 @@ export function ForecastPanel() {
       <p className="px-3 pb-2 pt-1 text-xs text-ink-soft">Made after the close of {d.as_of} from the market zone, the index trend and sector rotation. It says which way the market leans, not how far it will go, and it is shown beside what is actually happening.</p>
       <Overnight d={d} />
       <Today d={d} />
+      <ExpectedRange />
       <History />
       <Trust d={d} />
       <details className="border-t border-line px-3 py-2 text-xs text-ink-soft">
