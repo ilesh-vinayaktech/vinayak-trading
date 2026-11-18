@@ -105,6 +105,7 @@ class LiveZone:
     volatility: str
     components: dict[str, float | None]
     history: list[tuple[date, float | None, str]]  # the stored days with today's live reading last
+    readings: dict[str, str | None]  # the plain-words figure behind each signal today
 
 
 def live_zone(conn: psycopg.Connection, today: date, history_days: int = 260) -> LiveZone | None:
@@ -154,4 +155,5 @@ def live_zone(conn: psycopg.Connection, today: date, history_days: int = 260) ->
         reg.volatility,
         comps,
         hist,
+        zone.readings(s, at=len(days) - 1),
     )

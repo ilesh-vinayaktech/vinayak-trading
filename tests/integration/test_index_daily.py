@@ -19,6 +19,7 @@ DUMP = (
     b"8,8,HANGSENG BEES-NAV,HS,0,,0,0,0,EQ,INDICES,NSE\n"
     b"7,7,GOLD,GOLD,0,,0,0,0,EQ,INDICES,MCX\n"
     b"5,5,RELIANCE,R,0,,0,0.05,1,EQ,NSE,NSE\n"
+    b"4,4,GOLDBEES,Goldman Sachs Gold BeES,0,,0,0.01,1,EQ,NSE,NSE\n"
 )
 
 
@@ -34,13 +35,17 @@ class Fake:
         return [Candle(ts, D(99), D(101), D(98), self.close, D(0), None)]
 
 
-def test_index_rows_keep_only_nse_bse_real_indexes():
-    assert m.index_rows(DUMP) == [(256265, "NSE", "NIFTY 50"), (265, "BSE", "SENSEX")]
+def test_index_rows_keep_only_nse_bse_real_indexes_and_the_gold_etf():
+    assert m.index_rows(DUMP) == [
+        (256265, "NSE", "NIFTY 50"),
+        (265, "BSE", "SENSEX"),
+        (4, "NSE", "GOLDBEES"),
+    ]
 
 
 def test_load_stores_candle_dates_in_ist_and_upserts(conn):
     migrate(conn)
-    rows = m.index_rows(DUMP)
+    rows = m.index_rows(DUMP)[:2]  # the two indexes (the gold ETF row loads the same way)
     f = Fake()
     r = m.load_index_days(conn, f, rows, date(1995, 1, 1), date(2026, 11, 17), NOW)
     assert (r.rows, r.empty) == (1, 1)

@@ -79,3 +79,18 @@ def test_skill_calibration_bins_cover_every_prediction():
     s = predict.skill(p, up)
     assert sum(n for _, _, n in s.calibration) == 200 and s.calibration[0][0] < s.calibration[-1][0]
     assert s.brier_skill > 0 and s.base_hit >= 0.5 and pytest.approx(s.base_rate) == up.mean()
+
+
+def test_a_missing_figure_is_filled_from_the_training_period_and_pushes_nothing():
+    rng = np.random.default_rng(3)
+    x = rng.normal(size=(400, 2))
+    y = (x[:, 0] + rng.normal(0, 0.5, 400) > 0).astype(float)
+    x_missing = x.copy()
+    x_missing[::5, 1] = np.nan  # a fifth of one column is missing in training
+    model = predict.fit(x_missing, y, ("a", "b"))
+    row = np.array([1.0, np.nan])
+    assert not np.isnan(model.p_up(row)).any()
+    assert model.p_up(row)[0] == pytest.approx(
+        model.p_up(np.array([1.0, model.mean[1]]))[0]
+    )  # missing counts as the training average
+    assert [e["feature"] for e in model.evidence(row)] == ["a"]  # and is never named as a reason

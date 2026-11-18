@@ -66,3 +66,25 @@ def test_running_again_changes_nothing_and_a_later_start_leaves_earlier_days_alo
 def test_with_no_breadth_stored_nothing_is_scored(env):  # noqa: F811
     conn, _ = env
     assert score(conn, DAYS[0], NOW) == 0
+
+
+def test_fii_net_is_long_less_short_carried_forward_and_back(env):  # noqa: F811
+    from datetime import date
+
+    from algo.market.build import _fii_net
+
+    conn, _ = env
+    assert _fii_net(conn, [date(2026, 11, 2)]) == []
+    for d, lo, sh in ((date(2026, 11, 3), 100, 40), (date(2026, 11, 5), 10, 70)):
+        conn.execute(
+            "INSERT INTO fii_index_futures_oi (day, long_oi, short_oi, ingested_at) VALUES (%s,%s,%s,now())",
+            (d, lo, sh),
+        )
+    days = [date(2026, 11, d) for d in (2, 3, 4, 5, 6)]
+    assert _fii_net(conn, days) == [
+        60.0,
+        60.0,
+        60.0,
+        -60.0,
+        -60.0,
+    ]  # the first file carried back; a day with no file keeps the last

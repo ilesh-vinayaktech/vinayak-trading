@@ -14,15 +14,15 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from algo.api.security import CurrentUser, PortalSettings, WConn
+from algo.data import global_markets, news_laya
 from algo.data import index_members as index_members_data
-from algo.data import news_laya
 from algo.data import sectors as sectors_data
 from algo.live.index_store import read_quotes
 from algo.live.market_calendar import IST
-from algo.market import forecast, levels, live_zone, predict, sectors, stock_notes
+from algo.market import forecast, levels, live_zone, performance, predict, sectors, stock_notes
 
 router = APIRouter(prefix="/api/market", tags=["market"])
-HISTORY_DAYS = 260
+HISTORY_DAYS = 10_000  # every stored day; the page picks 1 year, 3 years or all
 NAMES = {
     "momentum": "Index trend against its 125-day average",
     "breadth": "Stocks above their 50-day average",
@@ -32,6 +32,8 @@ NAMES = {
     "stocks_vs_bonds": "Stocks against government bonds",
     "risk_appetite": "High-beta against low-volatility stocks",
     "size_appetite": "Small caps against large caps",
+    "gold_demand": "Gold against stocks (gold winning is fear)",
+    "fii_positioning": "FII net position in index futures",
 }
 
 
@@ -129,15 +131,39 @@ def zone(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
             {"day": d.isoformat(), "fear_greed": _num(f), "trend": t}
             for d, f, t in reversed(stored)
         ]
+    reading = {} if live is None else live.readings
     ranked = sorted(
         ((k, float(v)) for k, v in (comps or {}).items() if v is not None), key=lambda kv: kv[1]
     )
     return {
         "latest": latest,
         "drivers": [
-            {"key": k, "name": NAMES[k], "score": round(v, 1)} for k, v in reversed(ranked)
+            {"key": k, "name": NAMES[k], "score": round(v, 1), "reading": reading.get(k)}
+            for k, v in reversed(ranked)
         ],
         "history": history,
+    }
+
+
+@router.get("/zone/performance")
+def zone_performance(who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Nifty 50 against the zone history: its close for each day of the history window, and its average return after each zone over all stored days."""
+    scored = [
+        (d, float(f))
+        for d, f in conn.execute(
+            "SELECT day, fear_greed FROM market_regime_daily WHERE fear_greed IS NOT NULL ORDER BY day"
+        ).fetchall()
+    ]
+    closes = [
+        (d, float(c))
+        for d, c in conn.execute(
+            "SELECT trade_date, close FROM index_bar_1d WHERE exchange='NSE' AND symbol='NIFTY 50' ORDER BY trade_date"
+        ).fetchall()
+    ]
+    window = {d for d, _ in scored[-HISTORY_DAYS:]}
+    return {
+        "nifty": [{"day": d.isoformat(), "close": c} for d, c in closes if d in window],
+        "zones": performance.by_zone(scored, closes),
     }
 
 
@@ -187,20 +213,97 @@ def _skill(s: Any) -> dict[str, Any] | None:
     }  # fmt: skip
 
 
+def _live_moves(request: Request, conn: Any) -> dict[str, Any]:
+    """What the market and each sector are doing today, from the live index quotes (empty while the feed is off): the change from yesterday's close, in %."""
+    today = datetime.combine(_st(request).clock.now().astimezone(IST).date(), time(0), IST)
+    quotes = read_quotes(conn, ["NIFTY 500", *sectors.SECTORS], today)
+
+    def change(symbol: str) -> float | None:
+        q = quotes.get(symbol)
+        return None if q is None or not q[1] else 100.0 * (q[0] - q[1]) / q[1]
+
+    as_of = quotes.get("NIFTY 500")
+    return {
+        "market_change_pct": change("NIFTY 500"),
+        "as_of": None if as_of is None else as_of[2].isoformat(),
+        "sectors": {
+            name: c for sym, name in sectors.SECTORS.items() if (c := change(sym)) is not None
+        },
+    }
+
+
+def _overnight(conn: Any, as_of: date) -> dict[str, Any]:
+    """What the world did overnight before the session the forecast is for (the next weekday after `as_of`): the US sessions, and what GIFT Nifty indicated at 08:45."""
+    target = as_of + timedelta(days=1)
+    while target.weekday() >= 5:
+        target += timedelta(days=1)
+    us = {
+        k: global_markets.last_session_return(global_markets.series(conn, s), target)
+        for k, s in (("sp", "SP500"), ("nq", "NASDAQ"), ("vix", "VIXUS"))
+    }
+    gift = dict(global_markets.series(conn, global_markets.GIFT))
+    close = conn.execute(
+        "SELECT close FROM index_bar_1d WHERE exchange='NSE' AND symbol='NIFTY 50' AND trade_date=%s",
+        (as_of,),
+    ).fetchone()
+    gap = 100.0 * (gift[target] / float(close[0]) - 1) if target in gift and close else None
+    closes = {
+        d: float(c)
+        for d, c in conn.execute(
+            "SELECT trade_date, close FROM index_bar_1d WHERE exchange='NSE' AND symbol='NIFTY 500' ORDER BY trade_date"
+        )
+    }
+    n50 = {
+        d: float(c)
+        for d, c in conn.execute(
+            "SELECT trade_date, close FROM index_bar_1d WHERE exchange='NSE' AND symbol='NIFTY 50' ORDER BY trade_date"
+        )
+    }
+    days = sorted(closes)
+    pairs = [
+        (100.0 * (g / n50[prev] - 1), 100.0 * (closes[d] / closes[prev] - 1))
+        for prev, d in zip(days, days[1:], strict=False)
+        if (g := gift.get(d)) is not None and prev in n50
+    ]
+    return {
+        "for_day": target.isoformat(),
+        **us,
+        "gift_gap_pct": gap,
+        "gift_history": performance.gift_buckets(pairs),
+    }
+
+
 @router.get("/forecast")
 def forecast_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
     """Tomorrow and next week for the market and each sector: the probability of UP with the evidence behind it, how this model has done against plain guessing
     (walk-forward history, and live once it has outcomes) and its biggest recent misses. Built nightly by scripts/build_predictions.py."""
-    latest = conn.execute("SELECT max(as_of) FROM prediction_log WHERE live").fetchone()
+    versions = [forecast.version(q) for q in forecast.PRODUCTS]
+    latest = conn.execute(
+        "SELECT max(as_of) FROM prediction_log WHERE live AND model_version = ANY(%s)", (versions,)
+    ).fetchone()
     day = latest[0] if latest else None
     if day is None:
-        return {"as_of": None, "market": [], "sectors": [], "record": [], "misses": []}
+        return {
+            "as_of": None,
+            "market": [],
+            "sectors": [],
+            "record": [],
+            "misses": [],
+            "today": None,
+            "overnight": None,
+        }
     rows = conn.execute(
-        "SELECT subject, horizon_days, p_up, evidence FROM prediction_log WHERE live AND as_of=%s ORDER BY subject, horizon_days",
-        (day,),
+        "SELECT subject, horizon_days, p_up, evidence, model_version FROM prediction_log WHERE live AND as_of=%s AND model_version = ANY(%s) ORDER BY subject, horizon_days",
+        (day, versions),
     ).fetchall()
+    morning = forecast.version("morning")
+    product = (
+        "morning" if any(r[4] == morning for r in rows if r[0] == "MARKET") else "night"
+    )  # the morning forecast replaces the night's on the page once it exists
     by: dict[str, dict[int, tuple[float, list[Any]]]] = {}
-    for subject, h, p, ev in rows:
+    for subject, h, p, ev, _v in sorted(
+        rows, key=lambda r: r[4] == morning
+    ):  # the morning rows come last and win
         by.setdefault(subject, {})[h] = (float(p), ev)
     market = [
         {"horizon_days": h, "p_up": p, "evidence": ev}
@@ -214,25 +317,35 @@ def forecast_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, 
         key=lambda r: -(r["p_1d"] if isinstance(r["p_1d"], float) else 0.0),
     )  # fmt: skip
     record = []
-    for h in forecast.HORIZONS:
-        for live in (False, True):
-            s = _skill(forecast.track_record(conn, "MARKET", h, live))
-            if s:
-                record.append({"subject": "Market", "horizon_days": h, "live": live, **s})
+    for q in forecast.PRODUCTS:
+        for h in forecast.HORIZONS:
+            for live in (False, True):
+                s = _skill(forecast.track_record(conn, "MARKET", h, live, product=q))
+                if s:
+                    record.append(
+                        {"subject": "Market", "product": q, "horizon_days": h, "live": live, **s}
+                    )
     misses = [
         {"as_of": d.isoformat(), "p_up": float(p), "realized": float(r), "went_up": bool(u), "evidence": ev}
         for d, p, r, u, ev in conn.execute(
             "SELECT as_of, p_up, realized, outcome_up, evidence FROM prediction_log WHERE subject='MARKET' AND horizon_days=1 AND outcome_up IS NOT NULL"
-            " AND ((p_up > 0.5 AND NOT outcome_up) OR (p_up < 0.5 AND outcome_up)) ORDER BY abs(p_up - 0.5) DESC, as_of DESC LIMIT 8"
+            " AND model_version=%s AND ((p_up > 0.5 AND NOT outcome_up) OR (p_up < 0.5 AND outcome_up)) ORDER BY abs(p_up - 0.5) DESC, as_of DESC LIMIT 8",
+            (forecast.version(product),),
         )
     ]  # fmt: skip
     return {
         "as_of": day.isoformat(),
+        "product": product,  # night | morning: which forecast the page is showing
+        "cutoff": forecast.CUTOFFS[product],
         "market": market,
         "sectors": sect,
         "record": record,
         "misses": misses,
         "labels": predict.LABELS,
+        "overnight": _overnight(conn, day),
+        "today": _live_moves(
+            request, conn
+        ),  # the forecast was made after the close of `as_of`: the next session is the one now being traded
     }
 
 

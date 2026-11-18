@@ -11,8 +11,10 @@ from algo.market.zone import (
     components,
     fear_greed,
     pct_rank,
+    readings,
     regime,
     score_all,
+    z_score,
     zone_label,
 )
 
@@ -60,6 +62,12 @@ def market(up=True, n=N, seed=1):
         lows=[int(max(0, h)) for h in ramp(n, 20, 80, -sign, seed + 8)],
         advancers=[int(a) for a in ramp(n, 1000, 1500, sign, seed + 9)],
         decliners=[int(a) for a in ramp(n, 1000, 1500, -sign, seed + 10)],
+        gold=rising(
+            n, drift=-sign * 0.002, seed=seed + 11
+        ),  # gold lags in a rally and wins in a sell-off
+        fii_net=[
+            v * 1000 for v in ramp(n, 0, 100, sign, seed + 12)
+        ],  # FIIs go net long in a rally, net short in a sell-off
     )
 
 
@@ -80,7 +88,13 @@ def test_pct_rank_is_a_percentile_of_the_history_and_ties_take_the_middle():
 
 
 def test_a_rising_market_reads_greedy_and_a_falling_one_fearful():
-    up, down = fear_greed(components(market(True))), fear_greed(components(market(False)))
+    at = (
+        N - MOVE + 20
+    )  # 45-day scoring reads a fresh move; a trend that has run longer fades back toward the middle (see below)
+    up, down = (
+        fear_greed(components(market(True), at=at)),
+        fear_greed(components(market(False), at=at)),
+    )
     assert up is not None and down is not None
     assert up > 65 and down < 35 and up - down > 30
     assert zone_label(up) in ("Greed", "Extreme greed")
@@ -121,19 +135,25 @@ def test_a_missing_signal_is_none_and_the_score_uses_the_rest_but_needs_enough_o
     ("score", "label"),
     [
         (0, "Extreme fear"),
-        (24.9, "Extreme fear"),
-        (25, "Fear"),
-        (44.9, "Fear"),
-        (45, "Neutral"),
-        (55, "Neutral"),
-        (55.1, "Greed"),
-        (75, "Greed"),
-        (75.1, "Extreme greed"),
+        (29.9, "Extreme fear"),
+        (30, "Fear"),
+        (49.9, "Fear"),
+        (50, "Greed"),
+        (70, "Greed"),
+        (70.1, "Extreme greed"),
         (100, "Extreme greed"),
     ],
 )
 def test_the_zone_label_boundaries(score, label):
     assert zone_label(score) == label
+
+
+def test_z_score_is_fifty_at_the_mean_and_runs_straight_to_the_cap_at_three_sd():
+    hist = [1.0, 2.0, 3.0, 4.0, 5.0]  # mean 3, sd sqrt(2)
+    assert z_score(hist, 3.0) == 50.0
+    assert round(z_score(hist, 3.0 + 1.5 * 2**0.5), 6) == 75.0  # 1.5 sd up is halfway to 100
+    assert z_score(hist, 30.0) == 100.0 and z_score(hist, -30.0) == 0.0
+    assert z_score([2.0, 2.0], 9.0) == 50.0
 
 
 def test_the_regime_says_bull_bear_or_sideways_and_how_calm():
@@ -151,3 +171,35 @@ def test_scoring_every_day_at_once_gives_the_same_answers_as_one_day_at_a_time()
     assert len(everyday) == N
     for k in (0, 59, 130, 200, 300, N - 1):
         assert everyday[k] == components(s, at=k), k
+
+
+def test_gold_and_fii_positioning_read_greedy_in_a_rally_and_fearful_in_a_sell_off():
+    at = N - MOVE + 20
+    up, down = components(market(True), at=at), components(market(False), at=at)
+    for name in ("gold_demand", "fii_positioning"):
+        assert up[name] is not None and down[name] is not None
+        assert up[name] > 65 and down[name] < 40, name
+
+
+def test_without_gold_or_fii_data_those_signals_are_left_out_and_the_rest_still_score():
+    s = market(True)
+    bare = Series(**{**fields(s), "gold": [], "fii_net": []})
+    comps = components(bare, at=N - 1)
+    assert comps["gold_demand"] is None and comps["fii_positioning"] is None
+    assert fear_greed(comps) is not None
+
+
+def test_each_signal_has_a_plain_words_figure_and_one_without_data_has_none():
+    s = market(True)
+    r = readings(s, at=N - 1)
+    assert r["breadth"].endswith("of stocks above their 50-day average")
+    assert r["volatility"].startswith("India VIX ") and "50-day average" in r["volatility"]
+    assert "ahead of bonds" in r["stocks_vs_bonds"]
+    assert r["fii_positioning"].startswith("FIIs net long ")
+    bare = Series(**{**fields(s), "gold": [], "fii_net": []})
+    r2 = readings(bare, at=N - 1)
+    assert r2["gold_demand"] is None and r2["fii_positioning"] is None
+    down = readings(market(False), at=N - 1)
+    assert "behind bonds" in down["stocks_vs_bonds"] and down["fii_positioning"].startswith(
+        "FIIs net short "
+    )

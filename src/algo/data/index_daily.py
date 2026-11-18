@@ -15,6 +15,9 @@ from algo.data.providers.kite import Candle, windows
 
 IST = ZoneInfo("Asia/Kolkata")
 NOT_INDEXES = ("BHARATBOND", "-NAV")  # bond ETF / NAV rows Kite files under INDICES
+ALSO = (
+    "GOLDBEES",
+)  # an NSE-listed gold ETF kept beside the indexes: the market zone's gold signal (the same daily candles, no volume used)
 
 
 class Historical(Protocol):
@@ -35,9 +38,12 @@ def index_rows(raw: bytes) -> list[tuple[int, str, str]]:
     return [
         (int(r["instrument_token"]), r["exchange"], r["tradingsymbol"])
         for r in csv.DictReader(io.StringIO(raw.decode("utf-8")))
-        if r["segment"] == "INDICES"
-        and r["exchange"] in ("NSE", "BSE")
-        and not any(x in r["tradingsymbol"] for x in NOT_INDEXES)
+        if (
+            r["segment"] == "INDICES"
+            and r["exchange"] in ("NSE", "BSE")
+            and not any(x in r["tradingsymbol"] for x in NOT_INDEXES)
+        )
+        or (r["segment"] == "NSE" and r["exchange"] == "NSE" and r["tradingsymbol"] in ALSO)
     ]
 
 

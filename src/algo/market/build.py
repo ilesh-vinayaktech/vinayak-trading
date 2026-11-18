@@ -25,6 +25,7 @@ SYMBOLS = {
     "low_vol": "NIFTY LOW VOL 50",
     "small": "NIFTY SMLCAP 100",
     "large": "NIFTY 100",
+    "gold": "GOLDBEES",  # a gold ETF, loaded with the indexes (empty until it is)
 }
 
 
@@ -75,6 +76,25 @@ def _aligned(conn: psycopg.Connection, days: list[date]) -> dict[str, list[float
                 k += 1
             series.append(last)
         out[key] = series
+    out["fii_net"] = _fii_net(conn, days)
+    return out
+
+
+def _fii_net(conn: psycopg.Connection, days: list[date]) -> list[float]:
+    """FII index-futures open interest, long less short, one value per day in `days`: carried forward over a day with no file (and so today's, until it is published),
+    and the first value carried back over the days before the first file. Empty when nothing is stored."""
+    rows = conn.execute(
+        "SELECT day, long_oi - short_oi FROM fii_index_futures_oi WHERE day <= %s ORDER BY day",
+        (days[-1],),
+    ).fetchall()
+    if not rows:
+        return []
+    out, k, last = [], 0, float(rows[0][1])
+    for d in days:
+        while k < len(rows) and rows[k][0] <= d:
+            last = float(rows[k][1])
+            k += 1
+        out.append(last)
     return out
 
 

@@ -42,6 +42,20 @@ JOBS: tuple[Job, ...] = (
         "Alert when a regulatory rule live trading needs (order-rate limit, order types, tagging, static IP) is not recorded or was last verified over 30 days ago: live stays blocked until it is checked and recorded again",
     ),
     Job(
+        "forecast-morning",
+        f"{WEEKDAYS} *-*-* 08:50 Asia/Kolkata",
+        (
+            (*_PY, "scripts/ingest_global.py", "yahoo", "--db", "{db}", "--from", "{d7}"),
+            (*_PY, "scripts/ingest_global.py", "gift", "--db", "{db}", "--from", "{d7}"),
+            (*_PY, "scripts/build_predictions.py", "--db", "{db}", "--product", "morning"),
+            (*_PY, "scripts/build_predictions.py", "--db", "{db}", "--product", "morning7"),
+        ),
+        "Before the open: the US closes (S&P 500, Nasdaq, US VIX) and GIFT Nifty as at 08:45, then the day's market and sector forecast is made again with the overnight moves (the night's run could not see them), and the frozen research candidate morning7 is logged beside it from the same data (never shown); needs a Kite session for GIFT Nifty",
+        needs_kite=True,
+        retries=2,
+        retry_wait_s=300,
+    ),
+    Job(
         "platform-boot",
         f"{WEEKDAYS} *-*-* 08:50 Asia/Kolkata",
         ((*_PY, "scripts/platform_boot.py", "--db", "{db}"),),
@@ -173,8 +187,9 @@ JOBS: tuple[Job, ...] = (
         (
             (*_PY, "scripts/ingest_nse_intel.py", "deals", "--db", "{db}"),
             (*_PY, "scripts/ingest_nse_intel.py", "fiidii", "--db", "{db}"),
+            (*_PY, "scripts/ingest_participant_oi.py", "--db", "{db}"),
         ),
-        "Bulk and block deals and FII/DII cash flows: NSE publishes only the latest session, in the evening, at no fixed minute, so it is polled four times; a re-poll of what is stored changes nothing",
+        "Bulk and block deals, FII/DII cash flows and FII index-futures open interest (the market zone's positioning signal; the last 10 days are re-checked, a missed day is filled): NSE publishes only the latest session, in the evening, at no fixed minute, so it is polled four times; a re-poll of what is stored changes nothing",
         retries=2,
         retry_wait_s=300,
     ),

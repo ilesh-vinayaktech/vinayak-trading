@@ -52,6 +52,7 @@ def test_the_latest_day_its_breadth_and_the_signals_ranked_greediest_first(env):
         "key": "momentum",
         "name": "Index trend against its 125-day average",
         "score": 80.5,
+        "reading": None,  # no live reading: the figure behind the score is not stored
     }
     assert [h["day"] for h in got["history"]] == [
         "2026-11-09",
@@ -132,7 +133,7 @@ def test_sectors_come_back_strongest_first_with_their_quadrant_and_nothing_built
 
 def log(conn, day, subject, h, p, live, up=None, realized=None, ev=None):
     conn.execute(
-        "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, evidence, outcome_up, realized) VALUES (%s,%s,%s,'logit-v1',%s,%s,%s,%s,%s)",
+        "INSERT INTO prediction_log (as_of, subject, horizon_days, model_version, live, p_up, evidence, outcome_up, realized) VALUES (%s,%s,%s,'logit-v2-night',%s,%s,%s,%s,%s)",
         (day, subject, h, live, p, Jsonb(ev or []), up, realized),
     )
 
@@ -146,6 +147,8 @@ def test_forecast_with_nothing_logged_is_empty(env):  # noqa: F811
         "sectors": [],
         "record": [],
         "misses": [],
+        "today": None,
+        "overnight": None,
     }
 
 
@@ -482,10 +485,14 @@ def test_the_zone_uses_the_live_reading_when_there_is_one_caches_it_and_falls_ba
             "STRESSED",
             {"breadth": 20.0, "momentum": 70.0},
             [(TODAY - timedelta(days=1), 50.0, "SIDEWAYS"), (TODAY, 31.5, "BEAR")],
+            {"breadth": "20.0% of stocks above their 50-day average", "momentum": None},
         )
 
     monkeypatch.setattr(zone_routes.live_zone, "live_zone", fake)
     got = c.get("/api/market/zone").json()
+    assert {d["key"]: d["reading"] for d in got["drivers"]}[
+        "breadth"
+    ] == "20.0% of stocks above their 50-day average"
     assert (
         got["latest"]["live"] is True
         and got["latest"]["label"] == "Fear"
@@ -655,3 +662,87 @@ def test_each_headline_carries_one_reading_laya_where_it_has_scored_it_and_the_m
         and sum(m["negative"] for m in got["mood"]) == 2
     )  # the unread one is not counted
     assert got["stocks"][0]["symbol"] == "TCS" and got["stocks"][0]["mentions"] == 3
+
+
+def test_performance_gives_nifty_for_the_history_days_and_the_return_after_each_zone(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    for i in range(8):
+        d = TODAY - timedelta(days=7 - i)
+        put(conn, d, 20.0 if i < 4 else 80.0, "x", "BULL")
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE','NIFTY 50',%s,1,1,1,%s,1,%s)",
+            (d, 100 + i, NOW),
+        )
+    got = c.get("/api/market/zone/performance").json()
+    assert [n["close"] for n in got["nifty"]] == [100 + i for i in range(8)]
+    rows = {r["zone"]: r for r in got["zones"]}
+    assert (
+        rows["Extreme fear"]["days"] == 4
+        and rows["Extreme greed"]["days"] == 4
+        and rows["Fear"]["days"] == 0
+    )
+    assert rows["Extreme fear"]["forward"][0]["avg_pct"] > 0
+
+
+def test_forecast_carries_what_the_market_and_sectors_are_doing_today_from_the_live_quotes(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    log(conn, TODAY - timedelta(days=1), "MARKET", 1, 0.58, True)
+    assert c.get("/api/market/forecast").json()["today"] == {
+        "market_change_pct": None,
+        "as_of": None,
+        "sectors": {},
+    }  # the feed is off
+    for token, symbol, ltp, prev in ((1, "NIFTY 500", 101.0, 100.0), (2, "NIFTY IT", 49.0, 50.0)):
+        conn.execute(
+            "INSERT INTO index_live_quote (token, exchange, symbol, ltp, prev_close, updated_at) VALUES (%s,'NSE',%s,%s,%s,%s)",
+            (token, symbol, ltp, prev, clock.now()),
+        )
+    today = c.get("/api/market/forecast").json()["today"]
+    assert round(today["market_change_pct"], 2) == 1.0 and today["as_of"] is not None
+    assert {k: round(v, 2) for k, v in today["sectors"].items()} == {"IT": -2.0}
+
+
+def test_forecast_carries_the_overnight_us_moves_and_gift_nifty_with_how_such_mornings_ended(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    mon, tue = (
+        date(2026, 11, 9),
+        date(2026, 11, 10),
+    )  # as_of is Tuesday: the forecast is for Wednesday the 11th
+    log(conn, tue, "MARKET", 1, 0.58, True)
+    for d, close in ((mon, 1000.0), (tue, 1010.0), (date(2026, 11, 11), 1030.0)):
+        for symbol, px in (("NIFTY 50", close), ("NIFTY 500", close)):
+            conn.execute(
+                "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE',%s,%s,1,1,1,%s,1,%s) ON CONFLICT DO NOTHING",
+                (symbol, d, px, NOW),
+            )
+    for symbol, rows in (
+        (
+            "SP500",
+            ((tue - timedelta(days=1), 100.0), (tue, 102.0)),
+        ),  # +2.0% in the last session before Wednesday
+        ("NASDAQ", ((tue - timedelta(days=1), 100.0), (tue, 99.0))),
+        (
+            "GIFT0845",
+            ((date(2026, 11, 11), 1020.1), (tue, 1011.0)),
+        ),  # Wednesday: +1.0% against Tuesday's 1010 close; Tuesday: +1.1% against Monday's 1000
+    ):
+        for d, px in rows:
+            conn.execute(
+                "INSERT INTO global_daily (symbol, day, close, source, ingested_at) VALUES (%s,%s,%s,'test',%s)",
+                (symbol, d, px, NOW),
+            )
+    o = c.get("/api/market/forecast").json()["overnight"]
+    assert (
+        o["for_day"] == "2026-11-11"
+        and round(o["sp"], 2) == 2.0
+        and round(o["nq"], 2) == -1.0
+        and o["vix"] is None
+    )
+    assert round(o["gift_gap_pct"], 2) == 1.0
+    up = {r["label"]: r for r in o["gift_history"]}["Up more than 0.3%"]
+    assert (
+        up["days"] == 2 and up["up_pct"] == 100.0
+    )  # both mornings GIFT indicated over +0.3% and the Nifty 500 closed higher
