@@ -454,6 +454,35 @@ def test_a_superseded_token_is_not_asked_for_but_a_history_only_stock_still_is(e
     assert day_work(conn) == [(3, "HISTONLY", other), (2, "RELIANCE", iid)]
 
 
+def test_a_token_missing_from_the_latest_kite_list_is_not_asked_for(env):
+    from datetime import timedelta
+
+    from algo.data.kite_ingest import day_work
+
+    conn, iid = env
+    repo = InstrumentRepo(conn)
+    x = repo.add_exchange("XBSE", "IN", "Asia/Kolkata", "INR", "BSE")
+    dropped = repo.add_instrument(x, "DROPPED", isin="INE000000002")
+    hist = repo.add_instrument(x, "HISTONLY", isin="INE000000001")
+    for token, symbol, instrument, seen, active in (
+        (1, "RELIANCE", iid, NOW, True),
+        (
+            2,
+            "DROPPED",
+            dropped,
+            NOW - timedelta(days=1),
+            False,
+        ),  # not in Kite's newest list: "invalid token"
+        (3, "HISTONLY", hist, NOW, False),  # still listed, just not followed by the feed
+    ):
+        conn.execute(
+            "INSERT INTO kite_instrument (instrument_token, exchange_token, tradingsymbol, name, instrument_id,"
+            " refreshed_at, active) VALUES (%s,%s,%s,'n',%s,%s,%s)",
+            (token, token, symbol, instrument, seen, active),
+        )
+    assert [w[1] for w in day_work(conn)] == ["HISTONLY", "RELIANCE"]
+
+
 def test_the_be_series_are_not_asked_for(env):
     from algo.data.kite_ingest import day_work
 

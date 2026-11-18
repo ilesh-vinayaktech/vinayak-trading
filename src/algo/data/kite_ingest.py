@@ -102,6 +102,7 @@ def day_work(conn: psycopg.Connection) -> list[tuple[int, str, int]]:
             "SELECT k.instrument_token, k.tradingsymbol, k.instrument_id FROM kite_instrument k"
             " WHERE k.instrument_id IS NOT NULL AND NOT (NOT k.active AND EXISTS"
             "  (SELECT 1 FROM kite_instrument o WHERE o.instrument_id = k.instrument_id AND o.active))"
+            " AND k.refreshed_at::date >= (SELECT max(refreshed_at)::date FROM kite_instrument)"
             " AND k.tradingsymbol NOT LIKE '%-BE' ORDER BY k.tradingsymbol"
         )
     ]

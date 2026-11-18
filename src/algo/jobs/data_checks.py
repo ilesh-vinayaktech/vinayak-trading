@@ -114,7 +114,7 @@ def problems(
     if local.weekday() < 5 and local.time() >= BASELINE_FROM:
         last = live_zone.last_bar(conn, today)
         have = conn.execute("SELECT max(last_bar) FROM breadth_baseline").fetchone()
-        if last is not None and (have is None or have[0] != last):
+        if last is not None and (have is None or have[0] is None or have[0] < last):
             out.append(
                 Problem(
                     "attention",

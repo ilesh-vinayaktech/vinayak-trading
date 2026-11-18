@@ -127,6 +127,12 @@ def test_the_live_zone_needs_a_baseline_for_the_last_trading_day_from_half_past_
         (date(2026, 11, 17), iid, NOW),
     )
     assert texts(db) == []
+    db.execute("DELETE FROM breadth_baseline")
+    db.execute(  # the evening market-zone job stamps the next session's baseline with the day it just loaded: newer is fine
+        "INSERT INTO breadth_baseline VALUES (%s,%s,1,0,0,0,0,0,1,1,0,0,%s)",
+        (date(2026, 11, 18), iid, NOW),
+    )
+    assert texts(db) == []
     early = datetime(2026, 11, 18, 2, 0, tzinfo=UTC)  # 07:30 IST: too early to expect one
     db.execute("DELETE FROM breadth_baseline")
     assert texts(db, now=early) == []
