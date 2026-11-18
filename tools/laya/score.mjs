@@ -28,7 +28,9 @@ if (items.length === 0) {
   process.stdout.write("[]");
   process.exit(0);
 }
-const laya = await Laya.load({ cacheDir: process.env.LAYA_CACHE ?? undefined });
+// a few threads, not all of them: this runs every few minutes beside the live market feed
+const threads = Number(process.env.LAYA_THREADS ?? 3);
+const laya = await Laya.load({ cacheDir: process.env.LAYA_CACHE ?? undefined, sessionOptions: { intraOpNumThreads: threads } });
 const clamp = (x) => Math.max(-1, Math.min(1, x));
 const out = [];
 for (const { id, text } of items) {

@@ -36,7 +36,7 @@ FROM b GROUP BY instrument_id
 """
 
 
-def _last_bar(conn: psycopg.Connection, today: date) -> date | None:
+def last_bar(conn: psycopg.Connection, today: date) -> date | None:
     """The last trading day with daily bars before `today`. Read from the bars table with a time bound (the `bar_canonical` view takes seconds for the same answer)."""
     row = conn.execute(
         "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE ts >= %s::date - 15 AND ts < %s::date", (today, today)
@@ -46,7 +46,7 @@ def _last_bar(conn: psycopg.Connection, today: date) -> date | None:
 
 def refresh_baseline(conn: psycopg.Connection, today: date, now: datetime) -> int:
     """Store the baseline for the session `today` from every bar before it; older generations are dropped. Returns the stocks stored (0 when there are no earlier bars)."""
-    last = _last_bar(conn, today)
+    last = last_bar(conn, today)
     if last is None:
         return 0
     rows = conn.execute(BASELINE_SQL, {"today": today, "lookback": LOOKBACK_DAYS}).fetchall()
@@ -62,7 +62,7 @@ def refresh_baseline(conn: psycopg.Connection, today: date, now: datetime) -> in
 
 def live_breadth(conn: psycopg.Connection, today: date) -> Breadth | None:
     """Today's breadth from live prices, or None when the baseline is not for the last trading day or too few stocks are quoted."""
-    last = _last_bar(conn, today)
+    last = last_bar(conn, today)
     if last is None:
         return None
     start = datetime.combine(today, time(0), IST)

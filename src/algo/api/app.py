@@ -4,6 +4,7 @@ and says plainly what is not persisted yet instead of inventing it. No writes, n
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Iterator
 from datetime import date
@@ -49,6 +50,7 @@ from algo.core.clock import Clock, SystemClock
 from algo.data import benchmark_gate
 from algo.data.review_worklist import worklist
 from algo.indicators.catalog import IndicatorError, parse_spec
+from algo.jobs import data_checks
 from algo.jobs import history as job_history
 from algo.live import heartbeat
 from algo.portal import kite_vault
@@ -193,6 +195,16 @@ def create_app(
         data = {**queries.data_health(c), "freshness": fresh(c)}
         jobs = job_history.status(c)
         feed = kite_vault.system_feed(c, now=clock.now())
+        try:  # a failing live-data check must not break the page
+            live_checks = [
+                {"level": p.level, "text": p.text}
+                for p in data_checks.problems(
+                    c, clock.now(), getattr(app.state, "lake", Path("data/lake"))
+                )
+            ]
+        except Exception:  # noqa: BLE001
+            logging.getLogger(__name__).exception("live-data checks failed")
+            live_checks = []
         return {
             "platform": platform_health.assess(
                 now=clock.now(),
@@ -200,6 +212,7 @@ def create_app(
                 jobs=jobs,
                 quarantined=data["quarantined_partitions"],
                 kite_state=None if feed is None else feed["state"],
+                checks=live_checks,
             ),
             "scorecards": scorecards.build(
                 **queries.scorecard_signals(c),

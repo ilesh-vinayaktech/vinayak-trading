@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 _CAL = re.compile(r"^(?:(\S+) )?\*-\*-(\*|\d{2}) (\d{2}:\d{2}) Asia/Kolkata$")
@@ -30,7 +30,26 @@ def max_age_days(calendar: str) -> int:
     return 5 if days == "Mon..Fri" else 9
 
 
+_STEP = re.compile(
+    r"^(\S+) \*-\*-\* (\d{2})\.\.(\d{2}):00/(\d+):00 Asia/Kolkata$"
+)  # "Mon..Fri *-*-* 09..15:00/5:00 Asia/Kolkata"
+# jobs on several schedules (news, live-data-check) run hourly at least: 6 h without success is late
+FREQUENT_AFTER = timedelta(hours=6)
+
+
+def is_frequent(calendar: str) -> bool:
+    return ";" in calendar
+
+
 def schedule_text(calendar: str) -> str:
+    if is_frequent(calendar):
+        parts = [p.strip() for p in calendar.split(";")]
+        step = _STEP.match(parts[0])
+        if step and len(parts) == 3:
+            days, start, end, every = step.groups()
+            hours = f"{start}:00 to {end}:55 IST"
+            return f"{days} every {every} min, {hours}; hourly at other times and at weekends"
+        return "; ".join(schedule_text(p) for p in parts)
     m = _CAL.match(calendar)
     if m is None:
         return calendar
@@ -74,7 +93,12 @@ def _job_reasons(now: datetime, jobs: Sequence[Mapping[str, Any]]) -> list[dict[
             )
         elif j["last_success_at"] is not None:
             age = now - datetime.fromisoformat(j["last_success_at"])
-            if age.days > max_age_days(j["calendar"]):
+            limit = (
+                FREQUENT_AFTER
+                if is_frequent(j["calendar"])
+                else timedelta(days=max_age_days(j["calendar"]) + 1)
+            )  # a daily job: overdue after more than its limit in whole days
+            if age >= limit:
                 overdue.append(
                     _reason(
                         "attention",
@@ -103,6 +127,7 @@ def assess(
     jobs: Sequence[Mapping[str, Any]],
     quarantined: Sequence[str],
     kite_state: str | None,
+    checks: Sequence[Mapping[str, str]] = (),
 ) -> dict[str, Any]:
     """{"status": OK | ATTENTION | DOWN, "reasons": [{"level": attention | down, "text": ...}]}."""
     reasons: list[dict[str, str]] = []
@@ -150,6 +175,9 @@ def assess(
             )
         )
     reasons += _job_reasons(now, jobs)
+    reasons += [
+        _reason(c["level"], c["text"]) for c in checks
+    ]  # the live-data checks (index quotes, news, Laya, live-zone baseline, lists)
     status = (
         "DOWN" if any(r["level"] == "down" for r in reasons) else "ATTENTION" if reasons else "OK"
     )

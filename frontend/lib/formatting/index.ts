@@ -28,6 +28,12 @@ export function partitionStatus(code: string): string {
 
 /** A job's systemd calendar ("Mon..Fri *-*-* 18:30 Asia/Kolkata") the way a person reads it. */
 export function schedule(calendar: string): string {
+  if (calendar.includes(";")) {
+    const parts = calendar.split(";").map((p) => p.trim());
+    const step = /^(\S+) \*-\*-\* (\d{2})\.\.(\d{2}):00\/(\d+):00 Asia\/Kolkata$/.exec(parts[0] ?? "");
+    if (step && parts.length === 3) return `${step[1]} every ${step[4]} min, ${step[2]}:00 to ${step[3]}:55 IST; hourly at other times and at weekends`;
+    return parts.map(schedule).join("; ");
+  }
   const m = /^(?:(\S+) )?\*-\*-(\*|\d{2}) (\d{2}:\d{2}) Asia\/Kolkata$/.exec(calendar);
   if (!m) return calendar;
   const [, days, day, time] = m;

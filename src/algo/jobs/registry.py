@@ -291,9 +291,10 @@ JOBS: tuple[Job, ...] = (
     ),
     Job(
         "news-feed",
-        "*-*-* 07,10,13,16,19,22:20 Asia/Kolkata",
+        # several schedules, separated by ';': every 5 minutes through the trading day, hourly outside it, hourly all day at weekends
+        "Mon..Fri *-*-* 09..15:00/5:00 Asia/Kolkata; Mon..Fri *-*-* 00..08,16..23:20 Asia/Kolkata; Sat,Sun *-*-* *:20 Asia/Kolkata",
         ((*_PY, "scripts/ingest_news.py", "--db", "{db}", "--lake", "data/lake"),),
-        "Market news headlines from four public RSS feeds, with a word-list sentiment reading and the stocks each names (a feed that fails is reported, the others still load)",
+        "Market news headlines from four public RSS feeds (every 5 minutes in market hours, hourly otherwise), each read by the Laya model (a keyword list where it cannot run) and matched to the stocks it names; a feed that fails is reported, the others still load",
         timeout_s=900,
     ),
     Job(
@@ -350,6 +351,12 @@ JOBS: tuple[Job, ...] = (
         "Alert if the newest bar is behind the latest session",
     ),
     Job(
+        "live-data-check",
+        "Mon..Fri *-*-* 09..15:03/5:00 Asia/Kolkata; Mon..Fri *-*-* 00..08,16..23:43 Asia/Kolkata; Sat,Sun *-*-* *:43 Asia/Kolkata",
+        ((*_PY, "scripts/check_live_data.py", "--db", "{db}", "--lake", "data/lake"),),
+        "Alert when the live and news data has stopped arriving: index quotes and minute bars while the feed runs, no new headline for hours, headlines waiting for the Laya model, the live market zone with no baseline, index constituent lists gone stale (every 5 minutes in market hours, hourly otherwise)",
+    ),
+    Job(
         "disk-check",
         "*-*-* 06:00 Asia/Kolkata",
         (("bash", "-c", "test $(df --output=pcent . | tail -1 | tr -dc 0-9) -lt 90"),),
@@ -384,7 +391,10 @@ def render_units(app: str, uv: str, jobs: tuple[Job, ...] = JOBS) -> dict[str, s
     """File name -> content: one service template and one timer per job."""
     out = {"algo-job@.service": SERVICE.format(app=app, uv=uv)}
     for j in jobs:
+        calendar = "\nOnCalendar=".join(
+            c.strip() for c in j.calendar.split(";")
+        )  # a job may run on several schedules
         out[f"algo-job-{j.name}.timer"] = TIMER.format(
-            description=j.description, calendar=j.calendar, name=j.name
+            description=j.description, calendar=calendar, name=j.name
         )
     return out

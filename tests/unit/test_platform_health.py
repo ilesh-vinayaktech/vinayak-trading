@@ -17,8 +17,9 @@ def job(name, calendar="Mon..Fri *-*-* 18:30 Asia/Kolkata", last=None, ok=None):
             "last_success_at": None if ok is None else (NOW - ok).isoformat()}  # fmt: skip
 
 
-def verdict(freshness=CURRENT, jobs=(), quarantined=(), kite="connected"):
+def verdict(freshness=CURRENT, jobs=(), quarantined=(), kite="connected", checks=()):
     return assess(
+        checks=checks,
         now=NOW,
         freshness=freshness,
         jobs=list(jobs),
@@ -153,3 +154,40 @@ def test_a_schedule_reads_the_way_a_person_says_it():
     assert schedule_text("*-*-* 22:00 Asia/Kolkata") == "Daily 22:00 IST"
     assert schedule_text("*-*-05 10:00 Asia/Kolkata") == "Day 5 of the month, 10:00 IST"
     assert schedule_text("hourly") == "hourly"
+
+
+NEWS = "Mon..Fri *-*-* 09..15:00/5:00 Asia/Kolkata; Mon..Fri *-*-* 00..08,16..23:20 Asia/Kolkata; Sat,Sun *-*-* *:20 Asia/Kolkata"
+
+
+def test_a_job_on_several_schedules_is_overdue_after_six_hours_not_three_days():
+    fine = verdict(
+        jobs=[job("news-feed", NEWS, run("ok", timedelta(hours=5)), ok=timedelta(hours=5))]
+    )
+    assert texts(fine) == []
+    stale = verdict(
+        jobs=[job("news-feed", NEWS, run("ok", timedelta(hours=7)), ok=timedelta(hours=7))]
+    )
+    assert len(texts(stale)) == 1 and "news-feed has not succeeded for 7 h" in texts(stale)[0]
+    # an ordinary daily job keeps its day-based limit: 30 hours late is still on time for a weekday job
+    daily = verdict(
+        jobs=[job("bhavcopy-daily", last=run("ok", timedelta(hours=30)), ok=timedelta(hours=30))]
+    )
+    assert texts(daily) == []
+
+
+def test_several_schedules_are_written_out_in_words():
+    assert (
+        schedule_text(NEWS)
+        == "Mon..Fri every 5 min, 09:00 to 15:55 IST; hourly at other times and at weekends"
+    )
+    assert (
+        schedule_text("Mon..Fri *-*-* 18:30 Asia/Kolkata; Sat *-*-* 10:00 Asia/Kolkata")
+        == "Mon..Fri 18:30 IST; Sat 10:00 IST"
+    )
+
+
+def test_the_live_data_checks_join_the_reasons_and_set_the_status():
+    v = verdict(checks=[{"level": "attention", "text": "No new headline for 9 h."}])
+    assert v["status"] == "ATTENTION" and texts(v) == ["No new headline for 9 h."]
+    assert verdict(checks=[{"level": "down", "text": "x"}])["status"] == "DOWN"
+    assert verdict(checks=[])["status"] == "OK"
