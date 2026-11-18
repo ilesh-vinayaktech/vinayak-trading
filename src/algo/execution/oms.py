@@ -20,6 +20,7 @@ from algo.execution.broker import Broker, BrokerError, BrokerOrder, BrokerReject
 from algo.execution.event_store import EventStore, MemoryStore
 from algo.execution.orders import (
     ALLOWED,
+    TERMINAL,
     Order,
     OrderError,
     OrderEvent,
@@ -295,6 +296,8 @@ class Oms:
             if o.state in (State.NEW, State.REJECTED):
                 continue  # never reached the broker
             b = remote.get(oid)
+            if b is None and o.state in TERMINAL and o.filled_qty == 0:
+                continue  # finished with nothing filled: a broker drops old orders from its book, and there is no position to disagree about
             if b is None:
                 out.append(
                     Mismatch(

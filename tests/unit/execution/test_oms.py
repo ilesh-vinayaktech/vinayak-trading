@@ -234,6 +234,19 @@ def test_every_kind_of_mismatch_is_found_named_and_recorded_and_pauses_trading_a
     ].data["result"] == "MISSING_AT_BROKER"
 
 
+def test_a_finished_order_with_no_fill_that_the_broker_no_longer_lists_is_not_a_mismatch_but_a_lost_fill_is():
+    oms, broker, _ = build()
+    expired, cancelled, filled = submit(oms, "e"), submit(oms, "c"), submit(oms, "f")
+    oms.on_update(broker.move(expired.order_id, "EXPIRED"))
+    oms.on_update(broker.move(cancelled.order_id, "CANCELLED"))
+    oms.on_update(broker.move(filled.order_id, "COMPLETE", 10, D(100)))
+    for o in (expired, cancelled, filled):
+        del broker.book[o.order_id]  # brokers drop old orders from their book
+    assert [(m.kind, m.client_order_id) for m in oms.reconcile()] == [
+        ("MISSING_AT_BROKER", filled.order_id)
+    ]
+
+
 def test_a_few_mismatches_below_the_threshold_are_recorded_but_do_not_halt():
     oms, broker, switch = build()
     a = submit(oms)
