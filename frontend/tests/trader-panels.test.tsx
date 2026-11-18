@@ -41,13 +41,14 @@ describe("SetupsPanel", () => {
 
 describe("PositionsPanel", () => {
   it("shows each holding with its nearest levels and breakout state", async () => {
-    routes({ "/api/paper/summary": SUMMARY, "/api/market/levels": LEVELS });
+    routes({ "/api/paper/summary": SUMMARY, "/api/market/levels": LEVELS, "/api/market/score": { symbol: "TANLA", name: "Tanla", as_of: "2026-11-17", scored: true, score: 33.4, components: { trend: null, participation: null, smart_money: null, quality: null }, setup: null, why: null, history: [] } });
     mount(<PositionsPanel />);
     expect(await screen.findByRole("rowheader", { name: "TANLA" })).toBeInTheDocument();
     expect(await screen.findByText("Testing resistance")).toBeInTheDocument();
     expect(screen.getByText("688")).toBeInTheDocument();
     expect(screen.getByText("726")).toBeInTheDocument();
     expect(screen.getByText("+1,200")).toBeInTheDocument();
+    expect(await screen.findByText("33")).toBeInTheDocument();
   });
 
   it("shows nothing without positions or an account", async () => {
