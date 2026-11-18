@@ -257,6 +257,17 @@ def test_news_gives_recent_headlines_the_mood_by_day_and_the_stocks_named_most(e
         and sum(m["negative"] for m in got["mood"]) == 1
     )  # the unscored one is not counted
     assert got["stocks"][0] == {"symbol": "TCS", "mentions": 2, "avg": pytest.approx(0.05)}
+    conn.execute(
+        "INSERT INTO news_item (item_id, source, title, url, published_at, first_seen_at, sentiment, hits, symbols) VALUES ('old','feed','TCS a month ago','https://ex.com/old',%s,%s,0.2,1,%s)",
+        (now - timedelta(days=45), now, ["TCS"]),
+    )
+    only = c.get("/api/market/news", params={"symbol": " tcs "}).json()
+    assert [i["title"] for i in only["items"]] == [
+        "Sensex surges",
+        "Nifty slides",
+    ]  # headlines naming it, newest first; the 45-day-old one is out
+    assert only["mood"] == [] and only["stocks"] == []
+    assert c.get("/api/market/news", params={"symbol": "NOPE"}).json()["items"] == []
 
 
 def test_score_for_a_stock_gives_today_its_parts_and_the_history(env):  # noqa: F811
@@ -566,3 +577,37 @@ def test_index_members_match_the_official_list_to_our_stocks_by_isin_and_say_whe
         "IT",
         [first[0]],
     )
+
+
+def test_notes_are_served_per_stock_cached_for_a_minute_and_need_good_ids(env, monkeypatch):
+    from algo.api import zone_routes
+    from algo.market.notes import Note
+
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    calls = []
+
+    def fake(_conn, ids, now):
+        calls.append(list(ids))
+        return {ids[0]: [Note("breakout", "good", "Breakout", 1, "Closed above resistance")]}
+
+    monkeypatch.setattr(zone_routes.stock_notes, "notes_for", fake)
+    got = c.get("/api/market/notes", params={"ids": "7,3,3"}).json()
+    assert got["notes"] == {
+        "3": [
+            {
+                "kind": "breakout",
+                "tone": "good",
+                "text": "Breakout",
+                "rank": 1,
+                "detail": "Closed above resistance",
+            }
+        ]
+    } and calls == [[3, 7]]
+    c.get("/api/market/notes", params={"ids": "3,7"})
+    assert len(calls) == 1  # the same list inside the minute is not worked out again
+    clock.advance(timedelta(seconds=70))
+    c.get("/api/market/notes", params={"ids": "3,7"})
+    assert len(calls) == 2
+    assert c.get("/api/market/notes", params={"ids": "x"}).status_code == 400
+    assert TestClient(app).get("/api/market/notes", params={"ids": "1"}).status_code == 401

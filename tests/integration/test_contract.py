@@ -849,6 +849,7 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
     shots["market_index_members"] = c.get(
         "/api/market/index-members", params={"symbol": "NIFTY IT"}
     )
+    shots["market_notes"] = c.get("/api/market/notes", params={"ids": str(stock[0])})
     shots["live_quotes"] = c.get("/api/live/quotes", params={"ids": str(stock[0])})
     shots["live_indices"] = c.get("/api/live/indices")
     shots["market_levels"] = c.get("/api/market/levels", params={"symbol": stock[1]})

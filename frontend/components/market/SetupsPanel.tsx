@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { PriceCell, useLiveQuotes } from "@/components/market/LivePrice";
+import { NoteChips, useNotes } from "@/components/market/NoteChips";
 import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/DataTable";
 import { Panel, Tabs } from "@/components/ui/Layout";
@@ -25,6 +26,7 @@ export function SetupsPanel() {
   const [key, setKey] = useState<Key>("top-swing-scores");
   const q = useQuery({ queryKey: ["screener", "setups", key], queryFn: () => api.runScreener({ preset: key, conditions: [], match: "all", limit: 8 }), staleTime: 5 * 60_000 });
   const quotes = useLiveQuotes((q.data?.rows ?? []).map((r) => Number(r.instrument_id)));
+  const notes = useNotes((q.data?.rows ?? []).map((r) => Number(r.instrument_id)));
   return (
     <Panel title="Setups today">
       <div className="flex px-3 pt-1"><Tabs label="Setup lists" tabs={LISTS.map((l) => ({ key: l.key, label: l.label }))} value={key} onChange={setKey} /></div>
@@ -33,14 +35,15 @@ export function SetupsPanel() {
       {q.data && q.data.rows.length === 0 ? <p className="p-3 text-sm text-ink-soft">Nothing matches today.</p> : null}
       {q.data && q.data.rows.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <caption className="sr-only">Stocks that match, best first</caption>
-            <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Price</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">1 month</th><th scope="col" className="px-2">Setup</th><th scope="col" className="px-2">Why</th></tr></thead>
+            <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Price</th><th scope="col" className="px-2">Notes</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">1 month</th><th scope="col" className="px-2">Setup</th><th scope="col" className="px-2">Why</th></tr></thead>
             <tbody>
               {q.data.rows.map((r) => (
                 <tr key={String(r.instrument_id)} className="border-b border-line last:border-0">
                   <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium"><Link href={`/data/instruments?id=${r.instrument_id}`} className="text-brand hover:underline">{String(r.symbol)}</Link></th>
                   <PriceCell quote={quotes[String(r.instrument_id)]} />
+                  <td className="px-2"><NoteChips notes={notes[String(r.instrument_id)]} max={2} /></td>
                   <td className="px-2 text-right font-semibold tabular-nums">{num(r.score, 0)}</td>
                   <td className={`px-2 text-right tabular-nums ${tone(r.chg_1m)}`}>{toNum(r.chg_1m) === null ? "–" : `${(toNum(r.chg_1m) ?? 0) > 0 ? "+" : ""}${num(r.chg_1m)}%`}</td>
                   <td className="px-2 text-xs">{typeof r.setup === "string" ? r.setup : ""}</td>

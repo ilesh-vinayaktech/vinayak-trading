@@ -18,7 +18,7 @@ from algo.data import index_members as index_members_data
 from algo.data import sectors as sectors_data
 from algo.live.index_store import read_quotes
 from algo.live.market_calendar import IST
-from algo.market import forecast, levels, live_zone, predict, sectors
+from algo.market import forecast, levels, live_zone, predict, sectors, stock_notes
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 HISTORY_DAYS = 260
@@ -47,6 +47,7 @@ LIVE_TTL = timedelta(
     seconds=30
 )  # the live reading is worked out at most this often, however many people have the page open
 _live_lock = threading.Lock()
+_notes_lock = threading.Lock()
 
 
 def _live(
@@ -283,10 +284,25 @@ def levels_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) ->
 
 
 @router.get("/news")
-def news_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
-    """Recent market headlines with their sentiment, the mood by day over the last week and the stocks named most in the last three days.
-    The sentiment is a crude word list that has not been checked against what markets did next: a gauge to look at, not a signal."""
+def news_view(
+    request: Request, who: CurrentUser, conn: WConn, symbol: str | None = None
+) -> dict[str, Any]:
+    """Recent market headlines with their sentiment, the mood by day over the last week and the stocks named most in the last three days. With `symbol`, only the headlines
+    that name that stock (the last 30 days, newest first) and no mood or ranking. The sentiment is a crude word list that has not been checked against what markets did next: a gauge
+    to look at, not a signal."""
     now = _st(request).clock.now()
+    if symbol is not None:
+        sym = symbol.strip().upper()
+        return {
+            "items": [
+                {"title": t, "url": u, "source": s, "published_at": p.isoformat(), "sentiment": None if v is None else float(v), "symbols": sy}
+                for t, u, s, p, v, sy in conn.execute(
+                    "SELECT title, url, source, published_at, sentiment, symbols FROM news_item WHERE %s = ANY(symbols) AND published_at > %s::timestamptz - interval '30 days'"
+                    " ORDER BY published_at DESC LIMIT 30", (sym, now)
+                )
+            ],
+            "mood": [], "stocks": [],
+        }  # fmt: skip
     items = [
         {"title": t, "url": u, "source": s, "published_at": p.isoformat(), "sentiment": None if v is None else float(v), "symbols": sy}
         for t, u, s, p, v, sy in conn.execute(
@@ -384,6 +400,41 @@ def industries_view(request: Request, who: CurrentUser, conn: WConn) -> dict[str
         })  # fmt: skip
     out.sort(key=lambda g: -float(g["avg_score"]) if isinstance(g["avg_score"], float) else 1.0)
     return {"as_of": max((r["as_of"] for _, r in rows), default=None), "industries": out}
+
+
+NOTES_TTL = timedelta(seconds=60)
+MAX_NOTE_IDS = stock_notes.MAX_IDS
+
+
+@router.get("/notes")
+def notes_view(ids: str, request: Request, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Short facts worth noticing about each stock (`ids`: comma separated instrument ids, at most 60): a breakout or a stock about to break, an inside bar, a volume or delivery
+    surge, a new 52-week high, news, an upcoming ex-date, deals and insider trades. Facts about the chart and the tape, not signals. Worked out at most once a minute per list."""
+    try:
+        want = sorted({int(x) for x in ids.split(",") if x.strip()})[:MAX_NOTE_IDS]
+    except ValueError:
+        raise HTTPException(400, "ids must be integers separated by commas") from None
+    now = _st(request).clock.now()
+    with _notes_lock:
+        cache: dict[tuple[int, ...], tuple[datetime, dict[int, list[Any]]]] = (
+            request.app.state.__dict__.setdefault("notes_cache", {})
+        )
+        key = tuple(want)
+        hit = cache.get(key)
+        if hit is None or now - hit[0] >= NOTES_TTL:
+            if len(cache) > 200:
+                cache.clear()
+            hit = cache[key] = (now, stock_notes.notes_for(conn, want, now))
+    return {
+        "as_of": hit[0].isoformat(),
+        "notes": {
+            str(i): [
+                {"kind": n.kind, "tone": n.tone, "text": n.text, "rank": n.rank, "detail": n.detail}
+                for n in ns
+            ]
+            for i, ns in hit[1].items()
+        },
+    }
 
 
 @router.get("/index-members")

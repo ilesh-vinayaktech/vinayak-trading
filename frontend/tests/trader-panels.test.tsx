@@ -8,6 +8,7 @@ import { SetupsPanel } from "@/components/market/SetupsPanel";
 const lv = (price: number, d: number) => ({ price, touches: 3, bars_since: 4, distance_pct: d });
 const LEVELS = { symbol: "TANLA", name: "Tanla", as_of: "2026-11-17", enough_history: true, supports: [lv(688, -3.2)], resistances: [lv(726, 2.1)], status: { state: "Testing resistance", level: 726, volume_ratio: 1.1, delivery_vs_avg: null }, series: [] };
 const SUMMARY = { equity: "100000", cash: "50000", invested: "50000", pnl: { realized: "0", unrealized: "1200", fees: "10", net: "1190" }, positions: [{ instrument_id: 7, symbol: "TANLA", qty: "50", avg_cost: "690", last_price: "714", value: "35700", unrealized: "1200", upcoming: [] }], equity_curve: [], pending_orders: 0 };
+const NOTES = { as_of: "2026-11-18T05:00:00+00:00", notes: { "7": [{ kind: "near_breakout", tone: "info", text: "Near breakout", rank: 2, detail: "Just under resistance at 726.00" }, { kind: "inside_bar", tone: "info", text: "Inside bar", rank: 4, detail: null }] } };
 const RUN = (names: string[]) => ({ total: names.length, sort: "score", as_of: "2026-11-17", rows: names.map((s, i) => ({ instrument_id: i + 1, symbol: s, score: `${80 - i}.2000`, chg_1m: i === 0 ? "12.3456" : "-4.0000", // the API sends numbers as text
  setup: i === 0 ? "Breakout setup" : null, score_why: i === 0 ? "Rising over 1 month" : null })) });
 
@@ -50,10 +51,12 @@ describe("SetupsPanel", () => {
 
 describe("PositionsPanel", () => {
   it("shows each holding with its nearest levels and breakout state", async () => {
-    routes({ "/api/paper/summary": SUMMARY, "/api/market/levels": LEVELS, "/api/market/score": { symbol: "TANLA", name: "Tanla", as_of: "2026-11-17", scored: true, score: 33.4, components: { trend: null, participation: null, smart_money: null, quality: null }, setup: null, why: null, history: [] } });
+    routes({ "/api/paper/summary": SUMMARY, "/api/market/levels": LEVELS, "/api/market/notes": NOTES, "/api/market/score": { symbol: "TANLA", name: "Tanla", as_of: "2026-11-17", scored: true, score: 33.4, components: { trend: null, participation: null, smart_money: null, quality: null }, setup: null, why: null, history: [] } });
     mount(<PositionsPanel />);
     expect(await screen.findByRole("rowheader", { name: "TANLA" })).toBeInTheDocument();
-    expect(await screen.findByText("Testing resistance")).toBeInTheDocument();
+    expect(await screen.findByText("Near breakout")).toBeInTheDocument();
+    expect(screen.getByText("Inside bar")).toBeInTheDocument();
+    expect(screen.getByText("Near breakout")).toHaveAttribute("title", "Just under resistance at 726.00");
     expect(screen.getByText("688")).toBeInTheDocument();
     expect(screen.getByText("726")).toBeInTheDocument();
     expect(screen.getByText("+1,200")).toBeInTheDocument();

@@ -1423,3 +1423,9 @@ export const indexMembersSchema = z.object({
   members: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable(), industry: z.string() })),
 });
 export type IndexMembers = z.infer<typeof indexMembersSchema>;
+
+export const stockNotesSchema = z.object({
+  as_of: z.string(),
+  notes: z.record(z.string(), z.array(z.object({ kind: z.string(), tone: z.enum(["good", "bad", "warn", "info"]), text: z.string(), rank: z.number(), detail: z.string().nullable() }))),
+});
+export type StockNote = z.infer<typeof stockNotesSchema>["notes"][string][number];

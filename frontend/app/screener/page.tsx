@@ -1,6 +1,7 @@
 "use client";
 
 import { PriceCell, useLiveQuotes } from "@/components/market/LivePrice";
+import { NOTE_LIMIT, NoteChips, useNotes } from "@/components/market/NoteChips";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -69,6 +70,7 @@ export default function ScreenerPage() {
   const [saving, setSaving] = useState(false);
   const run = useMutation({ mutationFn: api.runScreener });
   const quotes = useLiveQuotes((run.data?.rows ?? []).map((r) => Number(r.instrument_id)));
+  const notes = useNotes((run.data?.rows ?? []).map((r) => Number(r.instrument_id)));
 
   const fields = useMemo(() => meta.data?.fields ?? [], [meta.data]);
   const byKey = useMemo(() => new Map(fields.map((f) => [f.key, f])), [fields]);
@@ -363,6 +365,9 @@ export default function ScreenerPage() {
                       <th scope="col" className="px-5 py-2 text-right font-medium">
                         Price
                       </th>
+                      <th scope="col" className="px-5 py-2 font-medium" title={`Notes are worked out for the first ${NOTE_LIMIT} stocks of a result`}>
+                        Notes
+                      </th>
                       {cols.map((k) => (
                         <th
                           key={k}
@@ -406,6 +411,9 @@ export default function ScreenerPage() {
                           </span>
                         </td>
                         <PriceCell quote={quotes[String(r.instrument_id)]} />
+                        <td className="px-5 py-2">
+                          <NoteChips notes={notes[String(r.instrument_id)]} max={2} />
+                        </td>
                         {cols.map((k) => (
                           <td
                             key={k}

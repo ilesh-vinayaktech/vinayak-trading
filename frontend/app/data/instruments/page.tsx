@@ -12,6 +12,7 @@ import {
 import { FundamentalsPanel } from "@/components/fundamentals/FundamentalsPanel";
 import { SmartMoneyPanel } from "@/components/market/SmartMoneyPanel";
 import { LevelsPanel } from "@/components/market/LevelsPanel";
+import { StockNotesPanel } from "@/components/market/StockNotesPanel";
 import { ScorePanel } from "@/components/market/ScorePanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import type { LiveView, Mark } from "@/components/charts/PriceChart";
@@ -327,6 +328,7 @@ function Explorer() {
 
       {detail.data ? <SmartMoneyPanel key={`sm-${detail.data.id}`} instrumentId={detail.data.id} /> : null}
 
+      {detail.data ? <StockNotesPanel key={`nt-${detail.data.symbol}`} instrumentId={detail.data.id} symbol={detail.data.symbol} /> : null}
       {detail.data ? <ScorePanel key={`sc-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}
 
       {detail.data ? <LevelsPanel key={`lv-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}

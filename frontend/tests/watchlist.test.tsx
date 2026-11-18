@@ -14,6 +14,7 @@ function backend(items: { instrument_id: number; symbol: string; name: string }[
     calls.push(`${init?.method ?? "GET"} ${url}`);
     const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status });
     if (url.includes("/api/instruments")) return json([{ id: 9, symbol: "GAIL", name: "GAIL (India)", isin: "INE129A01019", status: "active", listed_on: null, delisted_on: null }]);
+    if (url.includes("/api/market/notes")) return json({ as_of: "2026-11-18T05:00:00+00:00", notes: { "7": [{ kind: "near_breakout", tone: "info", text: "Near breakout", rank: 2, detail: "Just under resistance" }, { kind: "news", tone: "good", text: "3 headlines, mostly positive", rank: 3, detail: "Latest: x" }] } });
     if (url.includes("/api/live/quotes")) return json({ quotes: { "7": { ltp: "714", prev_close: "707", change: "7", change_pct: 0.99, source: "live", as_of: "2026-11-18T05:00:00+00:00" } } });
     if (url.includes("/api/market/watchlist")) return init?.method === "POST" || init?.method === "DELETE" ? json({ ok: true }) : json({ items });
     if (url.includes("/api/market/score")) return json(SCORE);
@@ -35,7 +36,8 @@ describe("WatchlistPanel", () => {
     expect(screen.getByText("2026-11-10 · 700.00")).toBeInTheDocument();
     expect(await screen.findByText("714.00")).toBeInTheDocument();
     expect(await screen.findByText("+2.00%")).toBeInTheDocument(); // 714 against the 700 paid when added
-    expect(await screen.findByText("Testing resistance")).toBeInTheDocument();
+    expect(await screen.findByText("Near breakout")).toBeInTheDocument();
+    expect(screen.getByText("3 headlines, mostly positive")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Remove TANLA" }));
     await waitFor(() => expect(calls.some((c) => c.startsWith("DELETE ") && c.endsWith("/api/market/watchlist/7"))).toBe(true));
   });

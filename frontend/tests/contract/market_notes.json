@@ -1,0 +1,28 @@
+{
+ "as_of": "2026-11-11T10:00:00+00:00",
+ "notes": {
+  "2": [
+   {
+    "detail": "Latest: Sensex surges as FII inflows return",
+    "kind": "news",
+    "rank": 3,
+    "text": "2 headlines",
+    "tone": "info"
+   },
+   {
+    "detail": "The tightest session of the last seven (NR7): volatility is compressed, and often expands after",
+    "kind": "nr7",
+    "rank": 4,
+    "text": "Narrowest range in 7 days",
+    "tone": "info"
+   },
+   {
+    "detail": "Support 99.70 (-6.4%), resistance 110.30 (+3.5%)",
+    "kind": "range",
+    "rank": 5,
+    "text": "Between 100 and 110",
+    "tone": "info"
+   }
+  ]
+ }
+}
