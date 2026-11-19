@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { makeProjection, type ChartHandles } from "@/components/charts/DrawingTools";
 import * as H from "@/lib/drawings/history";
+import { barAnchor, barTime } from "@/lib/timeframes";
 import { anchors, clipLine, distanceTo, FIB_EXTENSION, FIB_RETRACEMENT, magnet, pick, pickHandle, shapesFor, translated, withHandleAt, type Projection } from "@/lib/drawings/geometry";
 import { DEFAULT_STYLE, GROUPS, load, makeDrawing, migrateLegacy, parseDrawings, save, storageKey, TOOL_TYPES, TOOLS, type Pt, type ToolType } from "@/lib/drawings/model";
 
@@ -215,5 +217,47 @@ describe("geometry", () => {
     expect(magnet(bar, proj, 600 - 100)).toBe(100);
     expect(magnet(bar, proj, 600 - 150)).toBeNull();
     expect(magnet(undefined, proj, 100)).toBeNull();
+  });
+});
+
+
+describe("drawings on intraday charts", () => {
+  const T0 = 1_795_000_000; // an epoch second of a 5-minute bar open
+  const bar = (i: number) => ({ date: "2026-11-18", time: T0 + i * 300, open: "1", high: "2", low: "1", close: "2", volume: "1", factor: "1" });
+  const daily = (d: string) => ({ date: d, open: "1", high: "2", low: "1", close: "2", volume: "1", factor: "1" });
+  const handles = (axisOf: (t: unknown) => number | null) => ({ chart: { timeScale: () => ({ coordinateToLogical: (x: number) => x / 10, timeToCoordinate: axisOf }) }, series: { priceToCoordinate: (p: number) => p, coordinateToPrice: (y: number) => y } }) as unknown as ChartHandles;
+
+  it("anchors a click on an intraday bar to that bar's own date and time instead of refusing it", () => {
+    const bars = [bar(0), bar(1), bar(2)];
+    const p = makeProjection(handles(() => 0), bars, 800, 400);
+    expect(p?.time(10)).toBe(barAnchor(bars[1]!)); // the nearest bar to logical index 1
+    expect(p?.time(10)).toMatch(/^2026-11-18 \d\d:\d\d$/);
+    expect(p?.index(barAnchor(bars[2]!))).toBe(2);
+  });
+
+  it("places an intraday anchor on the chart's axis by the bar's shifted epoch time and a daily one by its date", () => {
+    const asked: unknown[] = [];
+    const bars = [bar(0), bar(1)];
+    makeProjection(handles((t) => { asked.push(t); return 5; }), bars, 800, 400)?.x(barAnchor(bars[1]!));
+    expect(asked).toEqual([barTime(bars[1]!)]);
+    asked.length = 0;
+    makeProjection(handles((t) => { asked.push(t); return 5; }), [daily("2026-11-17"), daily("2026-11-18")], 800, 400)?.x("2026-11-18");
+    expect(asked).toEqual(["2026-11-18"]);
+  });
+
+  it("a daily click still anchors to the plain date", () => {
+    const bars = [daily("2026-11-17"), daily("2026-11-18")];
+    expect(makeProjection(handles(() => 0), bars, 800, 400)?.time(10)).toBe("2026-11-18");
+  });
+
+  it("keeps each intraday timeframe's drawings apart from the daily ones", () => {
+    const store = new Map<string, string>();
+    const mem = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+    const d = makeDrawing("trend", [{ t: "2026-11-18 09:15", p: 100 }, { t: "2026-11-18 10:00", p: 101 }]);
+    save("idx:NIFTY 50", "none", [d], mem, "5m");
+    expect(load("idx:NIFTY 50", "none", mem, "5m")).toHaveLength(1);
+    expect(load("idx:NIFTY 50", "none", mem, "15m")).toEqual([]); // another timeframe has its own
+    expect(load("idx:NIFTY 50", "none", mem)).toEqual([]); // and so does the daily set
+    expect(storageKey("idx:NIFTY 50", "none", "5m")).not.toBe(storageKey("idx:NIFTY 50", "none"));
   });
 });

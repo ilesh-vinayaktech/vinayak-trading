@@ -39,6 +39,7 @@ US_BY = time(
 FORECASTS_BY = time(
     9, 5
 )  # the morning direction forecasts (08:50) and the range forecast (08:55) should exist from here
+RISE_ODDS_BY = time(22, 30)  # the market-zone job (21:45) scores the day's rise odds; allow it time
 FII_BY = time(21, 30)  # NSE's participant open-interest file is polled until 21:20 IST
 
 
@@ -126,6 +127,20 @@ def problems(
                 Problem(
                     "attention",
                     f"The live market zone has no baseline for the last trading day ({last}): it will show the nightly snapshot until the market-zone job (or refresh_baseline) runs.",
+                )
+            )
+    if local.weekday() < 5 and local.time() >= RISE_ODDS_BY:
+        newest_bar = conn.execute(
+            "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE source='nse' AND series='EQ'"
+        ).fetchone()
+        scored = conn.execute("SELECT max(day) FROM rise_odds").fetchone()
+        if (
+            scored and scored[0] and newest_bar and newest_bar[0] and scored[0] < newest_bar[0]
+        ):  # quiet until the scores have ever been made
+            out.append(
+                Problem(
+                    "attention",
+                    f"The rise odds are a day behind: the newest bars are {newest_bar[0]} but the newest scores are {scored[0]} (the market-zone job's build_rise_odds.py step; it trains a new model about every six weeks, which takes minutes).",
                 )
             )
     if (

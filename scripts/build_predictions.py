@@ -21,7 +21,7 @@ ap.add_argument(
 )
 ap.add_argument(
     "--product",
-    choices=forecast.PRODUCTS,
+    choices=(*forecast.PRODUCTS, *forecast.CANDIDATES),
     default="night",
     help="which forecast to make now: night (after the close) or morning (with the US close)",
 )

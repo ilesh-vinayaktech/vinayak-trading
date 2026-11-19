@@ -201,6 +201,18 @@ export const barsSchema = z.object({
   provisional: z.array(eventRef),
 });
 
+/** Candles of one index for the index page's chart: the stock charts' bar shape (no volume: every bar says 0), the daily extent, and where intraday history begins. */
+export const indexBarsSchema = z.object({
+  symbol: z.string(),
+  exchange: z.string(),
+  timeframe: z.enum(TIMEFRAMES),
+  first: z.string(), // first and last day of the index's daily candles
+  last: z.string(),
+  intraday_first: z.string().nullable(), // the first day with stored minutes; none until the live feed has followed the index
+  bars: barsSchema.shape.bars,
+});
+export type IndexBars = z.infer<typeof indexBarsSchema>;
+
 const uses = z.record(z.object({ eligible: z.boolean(), blockers: z.array(z.string()) }));
 
 export const eligibilitySchema = z.object({
@@ -830,6 +842,51 @@ export const stockScoreSchema = z.object({
   history: z.array(z.object({ day: z.string(), score: z.number() })), // oldest first
 });
 export type StockScore = z.infer<typeof stockScoreSchema>;
+/** The rise odds: a model's chance (and its rank among the stocks scored that day) of beating the median stock over the next 5 sessions. History is walk-forward, oldest first. */
+const oddsPoint = z.object({ day: z.string(), prob: z.number(), pct: z.number() });
+export const riseOddsSchema = z.object({
+  symbol: z.string(),
+  name: z.string().nullable(),
+  horizon: z.number(),
+  kind: z.enum(["rel", "up"]),
+  scored: z.boolean(),
+  latest: oddsPoint.nullable(),
+  history: z.array(oddsPoint),
+  model_version: z.string().nullable(),
+});
+export type RiseOdds = z.infer<typeof riseOddsSchema>;
+/** Where one stock stands today, described and never predicted (scripts/study_conditions.py: no direction edge survived testing). Every block is null when its data is missing. */
+export const marketContextSchema = z.object({
+  symbol: z.string(),
+  name: z.string().nullable(),
+  as_of: z.string().nullable(),
+  adjusted: z.boolean(), // a recent split or bonus: the stock's own numbers are withheld
+  regime: z.object({ label: z.enum(["uptrend", "downtrend", "sideways"]), nifty_close: z.number(), as_of: z.string() }).nullable(),
+  sector: z.object({ name: z.string(), n: z.number(), window: z.number(), sector_ret: z.number(), market_ret: z.number(), verdict: z.enum(["outperforming", "underperforming", "in line"]) }).nullable(),
+  strength: z.object({ ret_60d: z.number().nullable(), nifty_ret_60d: z.number().nullable(), sector_ret_60d: z.number().nullable() }).nullable(),
+  momentum: z.object({ rsi: z.number().nullable(), adx: z.number().nullable(), adx_label: z.string().nullable(), ema_trend: z.enum(["above", "below"]).nullable() }).nullable(),
+  /** Facts about the latest completed daily candle against its own history (every reference excludes that candle); each field is null when its history is missing. Never what happens next. */
+  breakout: z
+    .object({
+      above_20d_high: z.boolean().nullable(),
+      high_20d: z.number().nullable(),
+      breakout: z.enum(["crossed today", "already above", "none"]).nullable(),
+      new_52w_high: z.boolean().nullable(),
+      high_52w: z.number().nullable(),
+      extension_atr: z.number().nullable(),
+    })
+    .nullable(),
+});
+export type MarketContext = z.infer<typeof marketContextSchema>;
+export const riseOddsTopSchema = z.object({
+  day: z.string().nullable(),
+  horizon: z.number(),
+  kind: z.enum(["rel", "up"]),
+  side: z.enum(["top", "bottom"]),
+  model_version: z.string().nullable(),
+  items: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable(), prob: z.number(), pct: z.number() })),
+});
+export type RiseOddsTop = z.infer<typeof riseOddsTopSchema>;
 export const marketNewsSchema = z.object({
   items: z.array(z.object({ title: z.string(), url: z.string(), source: z.string(), published_at: z.string(), sentiment: z.number().nullable(), laya: z.number().nullable(), laya_confidence: z.number().nullable(), reading: z.enum(["positive", "negative", "mixed"]).nullable(), reading_value: z.number().nullable(), reading_model: z.enum(["laya", "words"]).nullable(), symbols: z.array(z.string()) })), // newest first; `reading` is the one to show: Laya's where it has scored the headline, else the word list's
   mood: z.array(z.object({ day: z.string(), avg: z.number(), n: z.number(), positive: z.number(), negative: z.number() })), // oldest first

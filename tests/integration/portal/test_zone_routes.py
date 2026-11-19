@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from psycopg.types.json import Jsonb
 
 from tests.integration.portal.test_paper_routes import env, trader  # noqa: F401  (env is a fixture)
+from tests.support.bt import add_action
 from tests.support.portal import add_user, sign_in
 
 pytestmark = pytest.mark.integration
@@ -318,6 +319,117 @@ def test_score_for_a_stock_gives_today_its_parts_and_the_history(env):  # noqa: 
         and [h["score"] for h in got["history"]] == [60, 61, 62]
     )
     assert c.get("/api/market/score", params={"symbol": "NOPE"}).status_code == 404
+
+
+def test_rise_odds_for_a_stock_are_its_walk_forward_history_and_the_newest_day_is_the_latest(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    iid, sym = conn.execute(
+        "SELECT instrument_id, symbol FROM instrument WHERE asset_class='equity' ORDER BY instrument_id LIMIT 1"
+    ).fetchone()
+    nothing = c.get("/api/market/rise-odds", params={"symbol": sym}).json()
+    assert (
+        nothing["scored"] is False
+        and nothing["latest"] is None
+        and nothing["history"] == []
+        and nothing["horizon"] == 5
+    )  # not scored: nothing invented
+    conn.execute(
+        "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256) VALUES ('h5-2026-01-01', 5, '2026-01-01', now(), 1, %s, %s, 'x')",
+        (["a"], b"x"),
+    )
+    for k in range(3):
+        conn.execute(
+            "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version) VALUES (%s,%s,5,%s,%s,'h5-2026-01-01')",
+            (TODAY - timedelta(days=2 - k), iid, 0.5 + 0.01 * k, 90.0 + k),
+        )
+    got = c.get(
+        "/api/market/rise-odds", params={"symbol": sym.lower()}
+    ).json()  # the symbol is case-insensitive
+    assert got["scored"] and got["symbol"] == sym and got["model_version"] == "h5-2026-01-01"
+    assert [h["pct"] for h in got["history"]] == [90.0, 91.0, 92.0]  # oldest first
+    assert got["latest"] == {"day": TODAY.isoformat(), "prob": 0.52, "pct": 92.0}
+    assert c.get("/api/market/rise-odds", params={"symbol": "NOPE"}).status_code == 404
+    own = c.get(
+        "/api/market/rise-odds", params={"symbol": sym, "kind": "up"}
+    ).json()  # the own-direction kind is kept apart: nothing stored for it yet
+    assert own["kind"] == "up" and own["scored"] is False and got["kind"] == "rel"
+    conn.execute(
+        "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256, kind) VALUES ('h5up-2026-01-01', 5, '2026-01-01', now(), 1, %s, %s, 'x', 'up')",
+        (["a"], b"x"),
+    )
+    conn.execute(
+        "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version, kind) VALUES (%s,%s,5,0.61,88,'h5up-2026-01-01','up')",
+        (TODAY, iid),
+    )
+    own = c.get("/api/market/rise-odds", params={"symbol": sym, "kind": "up"}).json()
+    assert (
+        own["scored"]
+        and own["latest"]["pct"] == 88.0
+        and own["model_version"] == "h5up-2026-01-01"
+        and len(own["history"]) == 1
+    )
+    assert [
+        h["pct"] for h in c.get("/api/market/rise-odds", params={"symbol": sym}).json()["history"]
+    ] == [90.0, 91.0, 92.0]  # the relative history is unchanged
+    assert (
+        c.get("/api/market/rise-odds", params={"symbol": sym, "kind": "sideways"}).status_code
+        == 422
+    )
+
+
+def test_the_top_rise_odds_are_the_newest_days_best_stocks_with_a_capped_list(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    assert c.get("/api/market/rise-odds/top").json() == {
+        "day": None,
+        "horizon": 5,
+        "kind": "rel",
+        "side": "top",
+        "model_version": None,
+        "items": [],
+    }  # no scores yet
+    ids = [
+        r[0]
+        for r in conn.execute(
+            "SELECT instrument_id FROM instrument WHERE asset_class='equity' ORDER BY instrument_id"
+        )
+    ]
+    conn.execute(
+        "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256) VALUES ('h5-2026-01-01', 5, '2026-01-01', now(), 1, %s, %s, 'x')",
+        (["a"], b"x"),
+    )
+    for k, iid in enumerate(ids):
+        conn.execute(
+            "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version) VALUES (%s,%s,5,%s,%s,'h5-2026-01-01')",
+            (TODAY, iid, 0.4 + 0.05 * k, 10.0 * k),
+        )
+        conn.execute(
+            "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version) VALUES (%s,%s,5,0.99,99,'h5-2026-01-01')",
+            (TODAY - timedelta(days=9), iid),
+        )  # an older day: ignored
+    got = c.get("/api/market/rise-odds/top", params={"limit": 1}).json()
+    assert got["day"] == TODAY.isoformat() and got["model_version"] == "h5-2026-01-01"
+    assert len(got["items"]) == 1 and got["items"][0]["prob"] == round(
+        0.4 + 0.05 * (len(ids) - 1), 4
+    )  # the highest chance of the newest day
+    assert (
+        got["items"][0]["instrument_id"] == ids[-1] and got["items"][0]["symbol"]
+    )  # with the id the page links to
+    assert (
+        len(c.get("/api/market/rise-odds/top", params={"limit": 0}).json()["items"]) == 1
+    )  # a silly limit is raised to 1, never an error
+    low = c.get("/api/market/rise-odds/top", params={"limit": 1, "side": "bottom"}).json()
+    assert (
+        low["side"] == "bottom"
+        and low["items"][0]["prob"] == 0.4
+        and low["items"][0]["instrument_id"] == ids[0]
+    )  # the lowest chance of the newest day
+    assert c.get("/api/market/rise-odds/top", params={"side": "sideways"}).status_code == 422
+    assert (
+        c.get("/api/market/rise-odds/top", params={"kind": "up"}).json()["items"] == []
+    )  # no own-direction scores yet: its list is its own
+    assert c.get("/api/market/rise-odds/top", params={"kind": "nope"}).status_code == 422
 
 
 def test_industries_count_breadth_inside_each_group_and_skip_stocks_with_no_sector(env):  # noqa: F811
@@ -799,3 +911,158 @@ def test_range_forecast_gives_the_latest_forecast_beside_the_baselines_and_the_r
         }
     ]
     assert got["resolved"] == 1 and got["needed"] == 500
+
+
+def test_index_bars_come_back_in_the_stock_chart_shape_and_unknown_ones_are_refused(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    for k in range(3):
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE','NIFTY 50',%s,100,110,90,105,1,%s)",
+            (TODAY - timedelta(days=2 - k), NOW),
+        )
+    got = c.get("/api/market/index/bars", params={"symbol": "NIFTY 50", "timeframe": "1d"}).json()
+    assert (
+        got["symbol"] == "NIFTY 50"
+        and got["exchange"] == "NSE"
+        and got["timeframe"] == "1d"
+        and len(got["bars"]) == 3
+    )
+    assert (
+        got["bars"][0]["volume"] == "0"
+        and got["bars"][0]["factor"] == "1"
+        and "time" not in got["bars"][0]
+    )
+    assert (
+        got["first"] == (TODAY - timedelta(days=2)).isoformat()
+        and got["last"] == TODAY.isoformat()
+        and got["intraday_first"] is None
+    )
+    assert c.get("/api/market/index/bars", params={"symbol": "NOT AN INDEX"}).status_code == 404
+    assert (
+        c.get(
+            "/api/market/index/bars", params={"symbol": "NIFTY 50", "timeframe": "7m"}
+        ).status_code
+        == 422
+    )
+
+
+def _context_world(conn):
+    """Two IT stocks (A rising fast, B slowly) and a flat one with no sector, 260 weekdays to TODAY, and a Nifty 50 that rises every day."""
+    from algo.data.store.instruments import InstrumentRepo
+
+    ids = [
+        r[0]
+        for r in conn.execute(
+            "SELECT instrument_id FROM instrument WHERE asset_class='equity' ORDER BY instrument_id LIMIT 2"
+        )
+    ]
+    ids.append(
+        InstrumentRepo(conn).add_instrument(
+            conn.execute("SELECT min(exchange_id) FROM exchange").fetchone()[0], "FLATCO"
+        )
+    )
+    conn.execute("DELETE FROM bar_1d WHERE instrument_id = ANY(%s)", (ids,))
+    conn.execute("DELETE FROM index_bar_1d WHERE symbol='NIFTY 50'")
+    days, d = [], TODAY
+    while len(days) < 260:
+        if d.weekday() < 5:
+            days.append(d)
+        d -= timedelta(days=1)
+    days.reverse()
+    for iid, step in zip(ids, (1.0, 0.3, 0.0), strict=True):
+        for i, day in enumerate(days):
+            p = 100 + step * i
+            conn.execute(
+                "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, series, source, dataset_version, ingested_at) VALUES (%s, %s::date + time '03:45', %s, %s, %s, %s, 1000, 'EQ', 'nse', 1, now())",
+                (iid, day, p, p + 0.5, p - 0.5, p),
+            )
+    for i, day in enumerate(days):
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE','NIFTY 50',%s,1,1,1,%s,1,now())",
+            (day, 1000 + 5 * i),
+        )
+    for iid in ids[:2]:
+        conn.execute(
+            "INSERT INTO instrument_sector (instrument_id, sector, effective_from, source_sha256, ingested_at) VALUES (%s,'IT','2026-01-01','x',now())",
+            (iid,),
+        )
+    return ids
+
+
+def test_stock_context_describes_regime_sector_strength_and_momentum_without_a_direction(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    ids = _context_world(conn)
+    sym = conn.execute(
+        "SELECT symbol FROM instrument WHERE instrument_id=%s", (ids[0],)
+    ).fetchone()[0]
+    got = c.get("/api/market/context", params={"symbol": sym.lower()}).json()
+    assert got["symbol"] == sym and got["as_of"] == TODAY.isoformat() and got["adjusted"] is False
+    assert got["regime"]["label"] == "uptrend" and got["regime"]["as_of"] == TODAY.isoformat()
+    sector = got["sector"]
+    assert (
+        sector["name"] == "IT"
+        and sector["n"] == 2
+        and sector["window"] == 20
+        and sector["verdict"] == "outperforming"
+        and sector["sector_ret"] > sector["market_ret"]
+    )
+    assert (
+        got["strength"]["ret_60d"] > got["strength"]["nifty_ret_60d"] > 0
+        and got["strength"]["sector_ret_60d"] > 0
+    )
+    m = got["momentum"]
+    assert m["ema_trend"] == "above" and m["rsi"] > 70 and m["adx_label"] == "strong trend"
+    b = got[
+        "breakout"
+    ]  # a steadily rising stock: over its 20-day and 52-week highs, yesterday too, and above its EMA20
+    assert (
+        b["above_20d_high"] is True
+        and b["breakout"] == "already above"
+        and b["new_52w_high"] is True
+        and b["extension_atr"] > 0
+        and b["high_20d"] <= b["high_52w"]
+    )
+    assert not {"buy", "sell", "signal", "prob", "probability"} & set(
+        got
+    )  # described, never predicted
+    assert c.get("/api/market/context", params={"symbol": "NOPE"}).status_code == 404
+
+
+def test_stock_context_withholds_a_stocks_own_numbers_after_a_recent_split_and_copes_with_no_bars(
+    env,
+):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    ids = _context_world(conn)
+    sym = conn.execute(
+        "SELECT symbol FROM instrument WHERE instrument_id=%s", (ids[0],)
+    ).fetchone()[0]
+    add_action(conn, ids[0], TODAY - timedelta(days=10), "split", num=2, den=1)
+    got = c.get("/api/market/context", params={"symbol": sym}).json()
+    assert (
+        got["adjusted"] is True
+        and got["momentum"] is None
+        and got["strength"] is None
+        and got["breakout"] is None
+    )
+    assert (
+        got["regime"]["label"] == "uptrend" and got["sector"]["name"] == "IT"
+    )  # the market's own picture stays
+    conn.execute("DELETE FROM bar_1d WHERE instrument_id=%s", (ids[1],))
+    empty = c.get(
+        "/api/market/context",
+        params={
+            "symbol": conn.execute(
+                "SELECT symbol FROM instrument WHERE instrument_id=%s", (ids[1],)
+            ).fetchone()[0]
+        },
+    ).json()
+    assert (
+        empty["as_of"] is None
+        and empty["regime"] is None
+        and empty["sector"] is None
+        and empty["momentum"] is None
+        and empty["breakout"] is None
+    )

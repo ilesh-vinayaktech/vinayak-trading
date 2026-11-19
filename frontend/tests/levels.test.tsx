@@ -41,9 +41,15 @@ describe("LevelsPanel", () => {
     expect(await screen.findByText("Breakout")).toBeInTheDocument();
     expect(screen.getByText(/volume 2.1× its norm/)).toBeInTheDocument();
     expect(screen.getByText(/delivery 1.4× its norm/)).toBeInTheDocument();
-    expect(screen.getByText("726")).toBeInTheDocument();
-    expect(screen.getByText("688")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /price over the last 2 days/ })).toBeInTheDocument();
+    expect(screen.getByText(/Resistance 726 · \+2\.1% · touched 4×/)).toBeInTheDocument();
+    expect(screen.getByText(/Support 688 · -3\.2% · touched 4×/)).toBeInTheDocument();
+    expect(screen.getByText("Price now 711")).toBeInTheDocument();
+    expect(screen.getByText("Most traded")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /price ladder/ })).toBeInTheDocument();
+    expect(screen.getByText(/Most volume traded near 700/)).toBeInTheDocument();
+    expect(screen.getByText("What this means for TANLA")).toBeInTheDocument();
+    expect(screen.getByText(/closed above 705, which now turns from resistance into support/)).toBeInTheDocument();
+    expect(screen.getByText(/Volume is 2\.1× its norm, so the move has support/)).toBeInTheDocument();
     expect(screen.getByText(/bigger than 71% of days/)).toBeInTheDocument();
   });
 

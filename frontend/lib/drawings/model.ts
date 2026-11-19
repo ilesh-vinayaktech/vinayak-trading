@@ -76,8 +76,9 @@ export function makeDrawing(type: ToolType, points: Pt[], style: Style = DEFAULT
   return { id: newId(), type, points, style, locked: false, hidden: false, ...(text !== undefined ? { text } : {}) };
 }
 
-export function storageKey(instrumentId: number, adjust: string): string {
-  return `drawings:v2:${instrumentId}:${adjust}`;
+/** Where an instrument's (or index's) drawings are kept. Daily and longer charts share one set; each intraday timeframe has its own (`scope`), because a note on a 5-minute bar has no bar of its own on a 15-minute chart. */
+export function storageKey(instrumentId: number | string, adjust: string, scope?: string): string {
+  return `drawings:v2:${instrumentId}:${adjust}${scope ? `:${scope}` : ""}`;
 }
 
 const legacySchema = z.discriminatedUnion("type", [
@@ -116,19 +117,19 @@ export function parseDrawings(raw: string | null): Drawing[] {
   }
 }
 
-export function load(instrumentId: number, adjust: string, store: Pick<Storage, "getItem"> = window.localStorage): Drawing[] {
+export function load(instrumentId: number | string, adjust: string, store: Pick<Storage, "getItem"> = window.localStorage, scope?: string): Drawing[] {
   try {
-    const v2 = parseDrawings(store.getItem(storageKey(instrumentId, adjust)));
+    const v2 = parseDrawings(store.getItem(storageKey(instrumentId, adjust, scope)));
     if (v2.length) return v2;
-    return migrateLegacy(store.getItem(`drawings:v1:${instrumentId}:${adjust}`));
+    return scope ? [] : migrateLegacy(store.getItem(`drawings:v1:${instrumentId}:${adjust}`));
   } catch {
     return [];
   }
 }
 
-export function save(instrumentId: number, adjust: string, list: Drawing[], store: Pick<Storage, "setItem"> = window.localStorage): void {
+export function save(instrumentId: number | string, adjust: string, list: Drawing[], store: Pick<Storage, "setItem"> = window.localStorage, scope?: string): void {
   try {
-    store.setItem(storageKey(instrumentId, adjust), JSON.stringify(list));
+    store.setItem(storageKey(instrumentId, adjust, scope), JSON.stringify(list));
   } catch {
     /* storage unavailable or full: drawings simply do not persist */
   }

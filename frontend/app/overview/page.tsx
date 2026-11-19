@@ -7,6 +7,7 @@ import { ForecastPanel } from "@/components/market/ForecastPanel";
 import { IndustriesPanel } from "@/components/market/IndustriesPanel";
 import { NewsPanel } from "@/components/market/NewsPanel";
 import { PositionsPanel } from "@/components/market/PositionsPanel";
+import { RiseOddsPanel } from "@/components/market/RiseOddsPanel";
 import { SetupsPanel } from "@/components/market/SetupsPanel";
 import { IndexStrip } from "@/components/market/IndexStrip";
 import { AlertsPanel } from "@/components/market/AlertsPanel";
@@ -66,6 +67,7 @@ export default function OverviewPage() {
           <ZonePanel />
           <ForecastPanel />
           <SetupsPanel />
+          <RiseOddsPanel />
           <PositionsPanel />
           <WatchlistPanel />
           <SectorPanel />

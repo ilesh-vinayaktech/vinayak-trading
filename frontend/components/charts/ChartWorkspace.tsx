@@ -54,7 +54,7 @@ const NO_BENCHMARK: BenchmarkPick = { ...NO_STRATEGY, name: "", points: [] };
 const tbBtn = (active = false) => `flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[13px] transition-colors ${active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"} disabled:opacity-35 disabled:hover:bg-transparent`;
 const Sep = () => <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />;
 
-export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY, benchmark = NO_BENCHMARK, live = null }: { benchmark?: BenchmarkPick; live?: LiveView | null; signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; onAdjust: (a: Adjust) => void; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
+export function ChartWorkspace({ picked, onPick, instrument, adjust, timeframe, onTimeframe, start, end, onRange, bars, loading, error, signals, strategy = NO_STRATEGY, benchmark = NO_BENCHMARK, live = null }: { benchmark?: BenchmarkPick; live?: LiveView | null; signals?: Mark[]; strategy?: StrategyPick; picked: Instrument | null; onPick: (i: Instrument) => void; instrument: InstrumentDetail | null; adjust: Adjust; timeframe: Timeframe; onTimeframe: (t: Timeframe) => void; start: string; end: string; onRange: (s: string, e: string) => void; bars: Bars | undefined; loading: boolean; error: unknown }) {
   const box = useRef<HTMLDivElement>(null);
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [full, setFull] = useState(false);
@@ -138,17 +138,6 @@ export function ChartWorkspace({ picked, onPick, instrument, adjust, onAdjust, t
       <button type="button" title="Show dividends, splits and other corporate actions on the chart" aria-label="Events" aria-pressed={events} disabled={isIntraday(timeframe)} onClick={() => setEvents((v) => !v)} className={tbBtn(events)}>
         <span>Events</span>
       </button>
-      <Sep />
-      <label className="sr-only" htmlFor="adjust">
-        Price basis
-      </label>
-      <select id="adjust" value={adjust} onChange={(e) => onAdjust(e.target.value as Adjust)} title={BASES.find((b) => b.value === adjust)?.blurb} className="h-8 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium text-slate-800 hover:bg-slate-100">
-        {BASES.map((b) => (
-          <option key={b.value} value={b.value} disabled={isIntraday(timeframe) && b.value === "total_return"}>
-            {b.label}
-          </option>
-        ))}
-      </select>
       <Sep />
       <div className="flex items-center" role="group" aria-label="Date range">
         {(isIntraday(timeframe)

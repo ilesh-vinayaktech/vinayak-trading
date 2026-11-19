@@ -1,0 +1,16 @@
+{
+ "day": "2026-11-10",
+ "horizon": 5,
+ "items": [
+  {
+   "instrument_id": 2,
+   "name": null,
+   "pct": 90.0,
+   "prob": 0.58,
+   "symbol": "TCS"
+  }
+ ],
+ "kind": "up",
+ "model_version": "h5up-2026-01-01",
+ "side": "top"
+}

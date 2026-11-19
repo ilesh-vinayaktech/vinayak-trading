@@ -82,12 +82,17 @@ export function intradayStart(end: string, tf: Intraday, days: number = INTRADAY
 }
 
 /** The chart library draws UTC; shifting an intraday bar's time by +05:30 makes its axis read in IST. */
-export function barTime(b: Bar): string | number {
+export function barTime(b: { date: string; time?: number }): string | number {
   return b.time !== undefined ? b.time + IST_OFFSET_S : b.date;
 }
 
+/** What a drawing is anchored to: the plain date of a daily (or longer) bar, the IST date and time of an intraday bar. Unique within a chart and the same whatever the chart's axis. */
+export function barAnchor(b: { date: string; time?: number }): string {
+  return barLabel(b);
+}
+
 /** "2025-06-09 09:15" for an intraday bar (IST), the plain date for a daily one. */
-export function barLabel(b: Bar): string {
+export function barLabel(b: { date: string; time?: number }): string {
   if (b.time === undefined) return b.date;
   return new Date((b.time + IST_OFFSET_S) * 1000).toISOString().slice(0, 16).replace("T", " ");
 }

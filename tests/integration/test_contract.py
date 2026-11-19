@@ -737,6 +737,9 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
                 ),
             )
     shots["market_sectors"] = c.get("/api/market/sectors")
+    shots["market_index_bars"] = c.get(
+        "/api/market/index/bars", params={"symbol": "NIFTY 500", "timeframe": "1w"}
+    )
     forecast_day = datetime(2026, 11, 11, tzinfo=UTC).date()
     for subject, h, p, live, up, r, ev in (
         (
@@ -804,6 +807,8 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         "SELECT instrument_id, symbol FROM instrument WHERE asset_class='equity' AND instrument_id NOT IN (SELECT instrument_id FROM bar_1d) ORDER BY instrument_id LIMIT 1"
     ).fetchone()
     shots["market_score_unscored"] = c.get("/api/market/score", params={"symbol": stock[1]})
+    shots["market_rise_odds_unscored"] = c.get("/api/market/rise-odds", params={"symbol": stock[1]})
+    shots["market_rise_odds_top_empty"] = c.get("/api/market/rise-odds/top")
     for k in range(
         90
     ):  # a stock bouncing between about 100 and 110, ending just under its resistance
@@ -844,6 +849,40 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         ),
     )
     shots["market_industries"] = c.get("/api/market/industries")
+    conn.execute(
+        "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256) VALUES ('h5-2026-01-01', 5, '2026-01-01', '2026-01-01T00:00:00Z', 1, %s, %s, 'x')",
+        (["a"], b"x"),
+    )
+    for k, d in enumerate(("2026-11-06", "2026-11-09", "2026-11-10")):
+        conn.execute(
+            "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version) VALUES (%s,%s,5,%s,%s,'h5-2026-01-01')",
+            (d, stock[0], 0.55 + 0.01 * k, 93.0 + 2 * k),
+        )
+    shots["market_rise_odds"] = c.get("/api/market/rise-odds", params={"symbol": stock[1]})
+    for k in range(260):  # a Nifty 50 long enough for its regime (the stock's own 90 bars end on the 11th)
+        conn.execute(
+            "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE','NIFTY 50',%s,1,1,1,%s,1,'2026-11-11T00:00:00Z')",
+            (datetime(2026, 11, 11, tzinfo=UTC).date() - timedelta(days=259 - k), 20000 + 10 * k),
+        )
+    shots["market_context"] = c.get("/api/market/context", params={"symbol": stock[1]})
+    conn.execute(
+        "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256, kind) VALUES ('h5up-2026-01-01', 5, '2026-01-01', '2026-01-01T00:00:00Z', 1, %s, %s, 'x', 'up')",
+        (["a"], b"x"),
+    )
+    conn.execute(
+        "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version, kind) VALUES ('2026-11-10', %s, 5, 0.58, 90, 'h5up-2026-01-01', 'up')",
+        (stock[0],),
+    )
+    shots["market_rise_odds_up"] = c.get(
+        "/api/market/rise-odds", params={"symbol": stock[1], "kind": "up"}
+    )
+    shots["market_rise_odds_top_up"] = c.get(
+        "/api/market/rise-odds/top", params={"limit": 5, "kind": "up"}
+    )
+    shots["market_rise_odds_top"] = c.get("/api/market/rise-odds/top", params={"limit": 5})
+    shots["market_rise_odds_bottom"] = c.get(
+        "/api/market/rise-odds/top", params={"limit": 5, "side": "bottom"}
+    )
     c.post("/api/market/watchlist", json={"symbol": stock[1]})
     shots["market_watchlist"] = c.get("/api/market/watchlist")
     lake = (

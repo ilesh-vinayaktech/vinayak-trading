@@ -1,0 +1,38 @@
+{
+ "adjusted": false,
+ "as_of": "2026-11-11",
+ "breakout": {
+  "above_20d_high": false,
+  "breakout": "none",
+  "extension_atr": 0.03,
+  "high_20d": 110.3,
+  "high_52w": null,
+  "new_52w_high": null
+ },
+ "momentum": {
+  "adx": 22.75,
+  "adx_label": "moderate trend",
+  "ema_trend": "above",
+  "rsi": 51.59
+ },
+ "name": null,
+ "regime": {
+  "as_of": "2026-11-11",
+  "label": "uptrend",
+  "nifty_close": 22590.0
+ },
+ "sector": {
+  "market_ret": 0.0,
+  "n": 1,
+  "name": "Information Technology",
+  "sector_ret": 0.0,
+  "verdict": "in line",
+  "window": 20
+ },
+ "strength": {
+  "nifty_ret_60d": 2.73,
+  "ret_60d": 0.0,
+  "sector_ret_60d": 0.0
+ },
+ "symbol": "TCS"
+}

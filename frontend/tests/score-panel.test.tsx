@@ -24,10 +24,13 @@ describe("ScorePanel", () => {
     mount();
     expect(await screen.findByLabelText("Score 71 out of 100")).toBeInTheDocument();
     expect(screen.getByText("Accumulation")).toBeInTheDocument();
-    expect(screen.getByText("Rising over 1 month; High delivery %")).toBeInTheDocument();
+    expect(screen.getByText("Rising over 1 month")).toBeInTheDocument();
+    expect(screen.getByText("High delivery %")).toBeInTheDocument();
+    expect(screen.getAllByText("Strong").length).toBeGreaterThan(0);
     expect(screen.getByText("no data")).toBeInTheDocument();
-    expect(screen.getByText("80")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /last 3 readings/ })).toBeInTheDocument();
+    expect(screen.getByText("+5")).toBeInTheDocument(); // 71.4 against the 66 of 2026-11-10; no reading a month back, so no month line
+    expect(screen.queryByText(/vs 1 month/)).toBeNull();
+
   });
 
   it("explains an unscored stock instead of inventing a number, and shows nothing for a non-stock", async () => {

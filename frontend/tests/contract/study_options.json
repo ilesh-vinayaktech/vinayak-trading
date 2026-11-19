@@ -74,6 +74,28 @@
    "params": [
     {
      "choices": [
+      3,
+      5
+     ],
+     "default": 3,
+     "name": "cross_window"
+    },
+    {
+     "choices": [
+      5,
+      10,
+      20
+     ],
+     "default": 10,
+     "name": "max_positions"
+    }
+   ]
+  },
+  {
+   "id": "<id>",
+   "params": [
+    {
+     "choices": [
       5,
       10,
       20

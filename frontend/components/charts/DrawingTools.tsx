@@ -4,7 +4,9 @@ import type { IChartApi, ISeriesApi, SeriesType, Time } from "lightweight-charts
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { magnet, pick, pickHandle, shapesFor, translated, withHandleAt, anchors, type Projection, type Shape } from "@/lib/drawings/geometry";
 import * as H from "@/lib/drawings/history";
-import { COLORS, DASHES, DEFAULT_STYLE, GROUPS, load, makeDrawing, save, TOOLS, TOOL_TYPES, type Drawing, type Pt, type Style, type ToolGroup, type ToolType } from "@/lib/drawings/model";
+import { COLORS, DASHES, DEFAULT_STYLE, GROUPS, load, makeDrawing, save, storageKey, TOOLS, TOOL_TYPES, type Drawing, type Pt, type Style, type ToolGroup, type ToolType } from "@/lib/drawings/model";
+import type { Timeframe } from "@/lib/schemas";
+import { barAnchor, barTime, isIntraday } from "@/lib/timeframes";
 import { Icon } from "./icons";
 
 
@@ -31,7 +33,8 @@ const DASH_ARRAY: Record<string, string | undefined> = { solid: undefined, dashe
 /** Chart coordinates <-> (bar date, price) for the chart as it is now; any failure means "not available". */
 export function makeProjection(h: ChartHandles | null, bars: Bar[], width: number, height: number): Projection | null {
   if (!h || width <= 0 || height <= 0) return null;
-  const idx = new Map(bars.map((b, i) => [b.date, i]));
+  const idx = new Map(bars.map((b, i) => [barAnchor(b), i]));
+  const axis = new Map(bars.map((b) => [barAnchor(b), barTime(b)])); // an intraday bar sits on the chart's axis at its shifted epoch time, a daily one at its date
   const guard = <T,>(f: () => T | null): T | null => {
     try {
       return f();
@@ -42,14 +45,14 @@ export function makeProjection(h: ChartHandles | null, bars: Bar[], width: numbe
   return {
     width,
     height,
-    x: (t) => guard(() => h.chart.timeScale().timeToCoordinate(t as Time)),
+    x: (t) => guard(() => h.chart.timeScale().timeToCoordinate((axis.get(t) ?? t) as Time)),
     y: (p) => guard(() => h.series.priceToCoordinate(p)),
     time: (x) =>
       guard(() => {
         const l = h.chart.timeScale().coordinateToLogical(x);
         if (l === null || bars.length === 0) return null;
         const b = bars[Math.max(0, Math.min(bars.length - 1, Math.round(l)))];
-        return b && b.time === undefined ? b.date : null; // drawings are anchored to daily bars only
+        return b ? barAnchor(b) : null; // the nearest bar, daily or intraday
       }),
     price: (y) => guard(() => h.series.coordinateToPrice(y)),
     index: (t) => idx.get(t) ?? null,
@@ -84,10 +87,12 @@ function ShapeEl({ s, i, faint }: { s: Shape; i: number; faint: boolean }) {
   return <path key={i} d={d} {...common} {...fill} />;
 }
 
-export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust, topbar, above, overlay, children }: { handles: ChartHandles | null; ready: number; tick: number; bars: Bar[]; instrumentId: number; adjust: string; topbar?: (api: DrawingApi) => ReactNode; above?: ReactNode; overlay?: ReactNode; children: ReactNode }) {
+export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust, timeframe, topbar, above, overlay, rail, children }: { handles: ChartHandles | null; ready: number; tick: number; bars: Bar[]; instrumentId: number | string; adjust: string; timeframe: Timeframe; topbar?: (api: DrawingApi) => ReactNode; above?: ReactNode; overlay?: ReactNode; rail?: ReactNode; children: ReactNode }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [hist, setHist] = useState<H.History>(() => H.initial());
-  const [loaded, setLoaded] = useState(false);
+  const scope = isIntraday(timeframe) ? timeframe : undefined; // daily and longer share one set of drawings; each intraday timeframe has its own
+  const key = storageKey(instrumentId, adjust, scope);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null); // the key `hist` was loaded for: nothing is saved under a key until its own drawings are in
   const [tool, setToolState] = useState<Tool>("cursor");
   const [lastIn, setLastIn] = useState<Partial<Record<ToolGroup, ToolType>>>({});
   const [openGroup, setOpenGroup] = useState<ToolGroup | null>(null);
@@ -112,15 +117,15 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
 
   // drawings belong to one instrument and one price basis
   useEffect(() => {
-    setHist(H.reset(load(instrumentId, adjust)));
-    setLoaded(true);
+    setHist(H.reset(load(instrumentId, adjust, undefined, scope)));
+    setLoadedFor(key);
     setSelected(null);
     setDraft(null);
     setToolState("cursor");
-  }, [instrumentId, adjust]);
+  }, [instrumentId, adjust, scope]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (loaded) save(instrumentId, adjust, hist.list);
-  }, [hist.list, loaded, instrumentId, adjust]);
+    if (loadedFor === key) save(instrumentId, adjust, hist.list, undefined, scope);
+  }, [hist.list, loadedFor, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // plot area size (the chart minus its price and time axes)
   useEffect(() => {
@@ -177,7 +182,7 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
       let price = p.price(y);
       if (t === null || price === null) return null;
       if (latest.current.snap) {
-        const b = latest.current.bars.find((q) => q.date === t);
+        const b = latest.current.bars.find((q) => barAnchor(q) === t);
         const snapped = b ? magnet({ open: +b.open, high: +b.high, low: +b.low, close: +b.close }, p, y) : null;
         if (snapped !== null) price = snapped;
       }
@@ -413,6 +418,7 @@ export function DrawingTools({ handles, ready, tick, bars, instrumentId, adjust,
           <button type="button" title="Remove all drawings" aria-label="Clear drawings" disabled={list.length === 0} onClick={() => { setHist((h) => H.clear(h)); setSelected(null); }} className={`${railBtn(false)} disabled:opacity-35`}>
             <Icon name="trash" />
           </button>
+          {rail ? <><span className="my-1 h-px w-7 bg-line" aria-hidden="true" />{rail}</> : null}
         </div>
 
         {/* ---- chart area ---- */}

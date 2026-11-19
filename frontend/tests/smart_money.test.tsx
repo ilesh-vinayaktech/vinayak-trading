@@ -54,6 +54,9 @@ describe("smart money", () => {
     expect(await screen.findByText("AAA: smart money")).toBeTruthy();
     expect(screen.getAllByText("+2.00")).toHaveLength(2);
     expect(screen.getByText("-1.00")).toBeTruthy(); // DII 20 -> 19
+    expect(screen.getByText("Ownership changed.")).toBeTruthy(); // promoter +2, FII +2, DII -1 since June
+    expect(screen.getByText(/Last session: 1,000 shares traded, 90.00% delivered/)).toBeTruthy();
+    expect(screen.getByText("High delivery.")).toBeTruthy(); // 90% delivered: the 50%+ band
     expect(screen.getByText("P Person")).toBeTruthy();
     expect(screen.getByText("FUND LLP")).toBeTruthy();
   });

@@ -1,6 +1,19 @@
 {
  "indices": [
   {
+   "as_of": "2026-11-11",
+   "change": "10",
+   "change_pct": 0.04428697962798937,
+   "day_high": null,
+   "day_low": null,
+   "exchange": "NSE",
+   "ltp": "22590",
+   "prev_close": "22580",
+   "source": "daily",
+   "spark": [],
+   "symbol": "NIFTY 50"
+  },
+  {
    "as_of": "2026-11-12",
    "change": "2.3482",
    "change_pct": 0.1500030055537907,

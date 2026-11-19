@@ -17,12 +17,18 @@ import {
   type SeriesType,
   type Time,
 } from "lightweight-charts";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { api } from "@/lib/api/client";
+import { analyze, countsOf, KINDS, type AutoKind } from "@/lib/autoAnalysis";
 import { reachedLeftEdge, viewToRestore, type SavedView } from "@/lib/chartView";
 import { plotNumber } from "@/lib/formatting";
 import { toPoints, type Active } from "@/lib/indicators";
 import type { Bars, IndicatorDef, IndicatorSeries, InstrumentDetail, Timeframe } from "@/lib/schemas";
 import { IST_OFFSET_S, TIMEFRAME_LABELS, barLabel, barOfDay, barTime, isIntraday } from "@/lib/timeframes";
+import { AutoToolButton, useAutoLines } from "./AutoAnalysis";
+import { MarketContextButton } from "./MarketContext";
+import { RiseScoreButton, useRiseScorePane } from "./RiseScore";
 import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools";
 import { IndicatorRow } from "./IndicatorLegend";
 
@@ -40,6 +46,9 @@ function liveBarOf(v: LiveView): Bar {
 const NO_SIGNALS: Mark[] = []; // a stable default: a fresh array each render would rebuild the chart each render
 type Bar = Bars["bars"][number];
 export type ChartType = "candles" | "line" | "area";
+const AUTO_KEY = "chart.autoAnalysis.v1";
+const CONTEXT_KEY = "chart.marketContext.v1";
+const RISE_KEY = "chart.riseScore.v1";
 export type ChartApi = DrawingApi & { screenshot: () => void };
 export type IndicatorControls = {
   active: Active[];
@@ -58,7 +67,7 @@ const PANE_HEIGHT = 140;
  * drawn). The data is OUR database's: the chart library only renders it. Indicator VALUES come from
  * the backend (algo.indicators); overlays draw on the price pane, oscillators in panes below it.
  * Drawings are browser-only notes (see DrawingTools); they never feed anything else. */
-export function PriceChart({ showEvents = false, bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null, compare }: { showEvents?: boolean; compare?: { name: string; points: { date: string; level: string }[] }; live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
+export function PriceChart({ showEvents = false, noVolume = false, bars, actions, instrumentId, adjust, timeframe, symbol, exchange, chartType, indicators, topbar, signals = NO_SIGNALS, onExtend, live = null, compare }: { showEvents?: boolean; noVolume?: boolean; compare?: { name: string; points: { date: string; level: string }[] }; live?: LiveView | null; onExtend?: () => void; signals?: Mark[]; bars: Bar[]; actions: Action[]; instrumentId: number | string; adjust: string; timeframe: Timeframe; symbol: string; exchange: string; chartType: ChartType; indicators: IndicatorControls; topbar: (api: ChartApi) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const handles = useRef<ChartHandles | null>(null);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -68,6 +77,74 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
   const extending = useRef(false); // earlier history was just asked for: keep the user's place when it arrives
   const savedView = useRef<SavedView<Time> | null>(null);
   const lastExtend = useRef(0);
+  const [auto, setAuto] = useState(false); // the automatic drawings (support and resistance, trend lines, ...) are on
+  const [autoOpen, setAutoOpen] = useState(true);
+  const [autoKinds, setAutoKinds] = useState<ReadonlySet<AutoKind>>(() => new Set(KINDS.filter((k) => k.kind !== "channels").map((k) => k.kind)));
+  // which layers are on is remembered in this browser, so they need not be switched on again each visit. Read after the first paint (the server cannot know it), then written on every change.
+  const autoLoaded = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(AUTO_KEY) ?? "null") as { on?: unknown; kinds?: unknown } | null;
+      if (saved && typeof saved.on === "boolean") setAuto(saved.on);
+      if (saved && Array.isArray(saved.kinds)) setAutoKinds(new Set(KINDS.map((k) => k.kind).filter((k) => (saved.kinds as unknown[]).includes(k))));
+    } catch {
+      // storage blocked or the value unreadable: keep the defaults
+    }
+    autoLoaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!autoLoaded.current) return; // do not overwrite what was saved with the defaults before it has been read
+    try {
+      localStorage.setItem(AUTO_KEY, JSON.stringify({ on: auto, kinds: [...autoKinds] }));
+    } catch {
+      // storage blocked: the choice just is not remembered
+    }
+  }, [auto, autoKinds]);
+  const analysis = useMemo(() => (auto ? analyze(bars) : { lines: [], trends: [], markers: [] }), [auto, bars]);
+  useAutoLines(handles, ready, bars, analysis, auto, autoKinds);
+  const autoCounts = useMemo(() => countsOf(analysis), [analysis]);
+  // market context: where the stock stands today (Nifty regime, sector, relative strength, momentum), described and never predicted; on/off is remembered in this browser, like the layers above.
+  const [context, setContext] = useState(false);
+  const [contextOpen, setContextOpen] = useState(true);
+  const contextLoaded = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CONTEXT_KEY) ?? "null") as { on?: unknown } | null;
+      if (saved && typeof saved.on === "boolean") setContext(saved.on);
+    } catch {
+      // storage blocked or unreadable: keep the default
+    }
+    contextLoaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!contextLoaded.current) return;
+    try {
+      localStorage.setItem(CONTEXT_KEY, JSON.stringify({ on: context }));
+    } catch {
+      // storage blocked: the choice just is not remembered
+    }
+  }, [context]);
+  // rise score: the model's nightly chance of rising as a pane under the chart (daily candles); on/off is remembered in this browser
+  const [rise, setRise] = useState(false);
+  const riseLoaded = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(RISE_KEY) ?? "null") as { on?: unknown } | null;
+      if (saved && typeof saved.on === "boolean") setRise(saved.on);
+    } catch {
+      // storage blocked or unreadable: keep the default
+    }
+    riseLoaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!riseLoaded.current) return;
+    try {
+      localStorage.setItem(RISE_KEY, JSON.stringify({ on: rise }));
+    } catch {
+      // storage blocked: the choice just is not remembered
+    }
+  }, [rise]);
+  const contextQ = useQuery({ queryKey: ["market", "context", symbol], queryFn: () => api.marketContext(symbol), retry: false, enabled: context });
   const onExtendRef = useRef(onExtend);
   onExtendRef.current = onExtend;
   const askEarlier = useRef(() => {
@@ -228,6 +305,9 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
     };
   }, [active, data, ready, colorsFor, bars]); // bars: a wider load (earlier history) draws the indicator further back
 
+  const isDaily = timeframe === "1d";
+  const riseState = useRiseScorePane(handles, ready, rise && isDaily, symbol, bars[0]?.date, active.filter((a) => a.visible && data?.indicators.find((x) => x.spec === a.spec)?.pane === "pane").length + 1);
+
   // the candle still forming follows the feed: updated in place, so zoom and position are kept (no rebuild of the chart).
   // One older than the last stored bar is ignored: the chart already has that bar.
   const liveBar = useMemo(() => (live ? liveBarOf(live) : null), [live]);
@@ -306,11 +386,13 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
           <span>C <b className="font-medium text-slate-900">{shown.close}</b></span>
           <span className="text-slate-500">{barLabel(shown)}</span>
           {live && shown === liveBar ? <span data-testid="live-badge" className={`rounded px-1.5 font-sans text-[11px] font-semibold ${live.live ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>{live.live ? "● LIVE" : "last price"}</span> : null}
-          <span className="text-slate-500">factor {shown.factor}</span>
+          {noVolume ? null : <span className="text-slate-500">factor {shown.factor}</span>}
         </div>
-        <div className="mt-0.5 font-mono text-slate-500">
-          Volume <span className="text-slate-800">{compact.format(plotNumber(shown.volume))}</span> <span className="hidden">Vol {shown.volume}</span>
-        </div>
+        {noVolume ? null : (
+          <div className="mt-0.5 font-mono text-slate-500">
+            Volume <span className="text-slate-800">{compact.format(plotNumber(shown.volume))}</span> <span className="hidden">Vol {shown.volume}</span>
+          </div>
+        )}
       </div>
       {rowsOf("overlay").map(({ a, r }) => row(a, r))}
       {hoveredDecisions.map((d) => (
@@ -387,7 +469,7 @@ export function PriceChart({ showEvents = false, bars, actions, instrumentId, ad
   );
   const hiddenRows = paneRows.filter(({ a }) => !a.visible);
   return (
-    <DrawingTools handles={handles.current} ready={ready} tick={tick} bars={bars} instrumentId={instrumentId} adjust={adjust} above={legend} overlay={<>{controls}{paneOverlay}{hiddenRows.length ? <div className="pointer-events-none absolute bottom-9 right-20 z-20 flex gap-2">{hiddenRows.map(({ a, r }) => row(a, r))}</div> : null}</>} topbar={(api) => topbar({ ...api, screenshot })}>
+    <DrawingTools handles={handles.current} ready={ready} tick={tick} bars={bars} instrumentId={instrumentId} adjust={adjust} timeframe={timeframe} above={legend} rail={<><AutoToolButton on={auto} onToggle={() => { setAuto((v) => !v); setAutoOpen(true); }} kinds={autoKinds} onKinds={setAutoKinds} counts={autoCounts} open={autoOpen} onOpen={setAutoOpen} /><RiseScoreButton on={rise && isDaily} onToggle={() => setRise((v) => !v)} daily={isDaily} loading={riseState.loading} failed={riseState.failed} unscored={riseState.unscored} /><MarketContextButton on={context} onToggle={() => { setContext((v) => !v); setContextOpen(true); }} open={contextOpen} onOpen={setContextOpen} data={contextQ.data} loading={context && contextQ.isLoading} failed={contextQ.isError} /></>} overlay={<>{controls}{paneOverlay}{hiddenRows.length ? <div className="pointer-events-none absolute bottom-9 right-20 z-20 flex gap-2">{hiddenRows.map(({ a, r }) => row(a, r))}</div> : null}</>} topbar={(api) => topbar({ ...api, screenshot })}>
       <div ref={ref} className="h-full w-full" data-testid="price-chart" />
     </DrawingTools>
   );

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "@/app/providers";
 import { FundamentalsPanel } from "@/components/fundamentals/FundamentalsPanel";
+import { rankAmongPast } from "@/components/fundamentals/SummaryView";
 import { formatRatio, readingText, snapshot, versusYearAgo, type RatioRow } from "@/lib/ratios";
 import { fundamentalsSchema, ratiosSchema } from "@/lib/schemas";
 
@@ -47,6 +48,20 @@ describe("ratio formatting", () => {
   });
 });
 
+describe("rank among the company's own past", () => {
+  const h = (...v: number[]) => v.map((x, i) => ({ period_end: `2025-0${i + 1}-28`, value: String(x) }));
+  it("counts the earlier quarters this one beats, in the ratio's good direction, and ignores the history's own last point", () => {
+    expect(rankAmongPast(row({ value: "13", history: h(10, 11, 12, 14, 13) }))).toEqual({ fraction: 0.75, text: "better than 3 of the last 4 quarters" });
+    expect(rankAmongPast(row({ value: "9", history: h(10, 11, 12, 9) }))?.text).toBe("the worst of the last 3 quarters");
+    expect(rankAmongPast(row({ value: "20", better: "low", group: "valuation", history: h(10, 11, 12, 20) }))?.text).toBe("the dearest of the last 3 quarters");
+    expect(rankAmongPast(row({ value: "10", better: "low", group: "valuation", history: h(15, 16, 12, 10) }))?.text).toBe("the cheapest of the last 3 quarters");
+  });
+  it("gives no rank without a direction or at least three earlier quarters", () => {
+    expect(rankAmongPast(row({ better: null, history: h(1, 2, 3, 4, 5) }))).toBeNull();
+    expect(rankAmongPast(row({ value: "5", history: h(1, 2, 5) }))).toBeNull();
+  });
+});
+
 describe("Ratios view", () => {
   afterEach(() => vi.restoreAllMocks());
   it("is one click from the summary and groups the ratios with plain meanings, yardsticks and the data behind them", async () => {
@@ -62,5 +77,17 @@ describe("Ratios view", () => {
     expect(screen.getByText(/Price ₹104 \(last close, 2025-06-12\)/)).toBeTruthy();
     expect(screen.getByText(/Two kinds of reading/)).toBeTruthy();
     expect(screen.queryByText("no fixed yardstick")).toBeNull();
+  });
+  it("puts the valuation snapshot and a rank-meter scorecard on the summary, without opening the Ratios tab", async () => {
+    const hist = [10, 11, 12, 13, 12, 14, 15, 16].map((v, i) => ({ period_end: `202${4 + Math.floor(i / 4)}-0${(i % 4) * 3 + 3}-30`, value: String(v) }));
+    const rich = { ...ratios, ratios: [...ratios.ratios, row({ key: "roe_x", label: "Return on equity", value: "16", year_ago: "12", reading: "good", reading_basis: "rule", history: hist })] };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(String(url).includes("/ratios") ? rich : fundamentals), { status: 200, headers: { "content-type": "application/json" } })));
+    render(<Providers><FundamentalsPanel instrumentId={1} symbol="XYZ" /></Providers>);
+    expect(await screen.findByTestId("overview-market_cap")).toBeTruthy();
+    expect(screen.getByTestId("overview-market_cap").textContent).toContain("₹37,648 cr");
+    expect(screen.getByLabelText("Quality and growth scorecard")).toBeTruthy();
+    expect(screen.getByText("Price against its own past")).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Return on equity: 16\.0%, the best of the last 7 quarters/ })).toBeTruthy();
+    expect(screen.getByText("the best of the last 7 quarters; up 4.0 pts vs a year ago")).toBeTruthy();
   });
 });

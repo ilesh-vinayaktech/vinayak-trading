@@ -310,10 +310,11 @@ JOBS: tuple[Job, ...] = (
         (
             (*_PY, "scripts/build_market_zone.py", "--db", "{db}"),
             (*_PY, "scripts/build_score_history.py", "--db", "{db}"),
+            (*_PY, "scripts/build_rise_odds.py", "--db", "{db}"),
             (*_PY, "scripts/build_predictions.py", "--db", "{db}"),
         ),
-        "Market breadth, the fear/greed score and the bull/bear regime for the day, the day's point-in-time swing scores, then tonight's market and sector forecasts and the resolution of earlier ones (after the bars and the screener refresh)",
-        timeout_s=1800,
+        "Market breadth, the fear/greed score and the bull/bear regime for the day, the day's point-in-time swing scores, the day's rise odds (a learned estimate per stock of beating the market over the next 5 sessions; a new model is trained about every six weeks, which takes minutes), then tonight's market and sector forecasts and the resolution of earlier ones (after the bars and the screener refresh)",
+        timeout_s=3600,
     ),
     Job(
         "news-feed",

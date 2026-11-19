@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import IndexMembersPage from "@/app/market/index/page";
 
 let search = "symbol=NIFTY%20IT";
+vi.mock("@/components/charts/IndexChart", () => ({ IndexChart: ({ symbol }: { symbol: string }) => <div data-testid="index-chart-stub" data-symbol={symbol} /> })); // the chart has its own tests
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(search), useRouter: () => ({ replace: vi.fn() }), usePathname: () => "/" }));
 
 const MEMBERS = { kind: "index", symbol: "NIFTY IT", name: "IT", as_of: "2026-11-17", unmatched: 1, members: [
@@ -48,13 +49,24 @@ describe("index members page", () => {
     search = "industry=Realty";
     backend({ ...MEMBERS, kind: "industry", symbol: null, name: "Realty", as_of: null, unmatched: 0 });
     mount();
-    expect(await screen.findByRole("heading", { name: "Realty" })).toBeInTheDocument();
-    expect(screen.getByText(/Nifty 500 stocks NSE files under this industry/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nifty 500 stocks NSE files under this industry/)).toBeInTheDocument(); // the heading shows at once; the subtitle says the list arrived
+    expect(screen.getByRole("heading", { name: "Realty" })).toBeInTheDocument();
   });
 
   it("says plainly when there is no list for the index", async () => {
     backend({ detail: "no constituent list stored for SENSEX" }, 404);
     mount();
     expect(await screen.findByText("No list of stocks for this one")).toBeInTheDocument();
+    expect(screen.getByTestId("index-chart-stub")).toHaveAttribute("data-symbol", "NIFTY IT"); // no list of stocks, but the index still has a chart
+    expect(screen.getByRole("heading", { name: "NIFTY IT" })).toBeInTheDocument();
+    expect(screen.getByText(/Its chart is below/)).toBeInTheDocument();
+  });
+
+  it("shows the chart straight away and the stocks when their list arrives", async () => {
+    backend();
+    mount();
+    expect(screen.getByTestId("index-chart-stub")).toBeInTheDocument(); // not held back by the list of stocks
+    expect(await screen.findByText(/The 4 stocks in this index/)).toBeInTheDocument();
+    expect(screen.getAllByTestId("index-chart-stub")).toHaveLength(1); // and not rebuilt when the list arrives
   });
 });

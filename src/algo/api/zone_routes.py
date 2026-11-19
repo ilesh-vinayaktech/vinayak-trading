@@ -8,6 +8,7 @@ import logging
 import threading
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
+from statistics import median
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -20,12 +21,16 @@ from algo.data import sectors as sectors_data
 from algo.live.index_store import read_quotes
 from algo.live.market_calendar import IST
 from algo.market import (
+    context,
     forecast,
+    index_chart,
     levels,
     live_zone,
+    notes,
     performance,
     predict,
     range_forecast,
+    rise_odds,
     sectors,
     stock_notes,
     volatility,
@@ -281,6 +286,25 @@ def _overnight(conn: Any, as_of: date) -> dict[str, Any]:
         "gift_gap_pct": gap,
         "gift_history": performance.gift_buckets(pairs),
     }
+
+
+@router.get("/index/bars")
+def index_chart_bars(
+    symbol: str,
+    who: CurrentUser,
+    conn: WConn,
+    timeframe: str = "1d",
+    start: date | None = None,
+    end: date | None = None,
+) -> dict[str, Any]:
+    """Candles of one index for the index page's chart, in the stock charts' shape: daily, weekly and monthly from the Kite daily candles, intraday from the stored one-minute bars."""
+    try:
+        got = index_chart.index_bars(conn, symbol, timeframe, start, end)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    if got is None:
+        raise HTTPException(404, f"no candles for the index {symbol}")
+    return got
 
 
 @router.get("/range-forecast")
@@ -554,6 +578,180 @@ def score_view(symbol: str, request: Request, who: CurrentUser, conn: WConn) -> 
         "setup": today.get("setup"), "why": today.get("score_why"), "history": hist,
         "scored": today.get("score") is not None,
     }  # fmt: skip
+
+
+def _odds_kind(kind: str) -> str:
+    if kind not in rise_odds.KINDS:
+        raise HTTPException(422, f"kind must be one of {sorted(rise_odds.KINDS)}")
+    return kind
+
+
+@router.get("/rise-odds")
+def rise_odds_view(symbol: str, who: CurrentUser, conn: WConn, kind: str = "rel") -> dict[str, Any]:
+    """One stock's rise odds, today and for the last ~3 years (walk-forward: each day as its model could have said it then). `kind=rel`: the chance (and its rank among the stocks scored that day) of beating
+    the median stock over the next 5 sessions; `kind=up`: the chance of closing higher 5 sessions on, from the stock's own history."""
+    kind = _odds_kind(kind)
+    sym = symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id, name FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    iid, name = row
+    rows = conn.execute(
+        "SELECT day, prob, pct, model_version FROM rise_odds WHERE instrument_id=%s AND horizon=%s AND kind=%s ORDER BY day DESC LIMIT 800",
+        (iid, rise_odds.HORIZON, kind),
+    ).fetchall()
+    hist = [
+        {"day": d.isoformat(), "prob": round(float(p), 4), "pct": round(float(c), 1)}
+        for d, p, c, _ in reversed(rows)
+    ]
+    return {
+        "symbol": sym, "name": name, "horizon": rise_odds.HORIZON, "kind": kind, "scored": bool(rows),
+        "latest": hist[-1] if hist else None, "history": hist, "model_version": rows[0][3] if rows else None,
+    }  # fmt: skip
+
+
+@router.get("/rise-odds/top")
+def rise_odds_top(
+    who: CurrentUser, conn: WConn, limit: int = 20, side: str = "top", kind: str = "rel"
+) -> dict[str, Any]:
+    """The stocks the model rates most likely to 'yes' (`side=top`) or most likely to 'no' (`side=bottom`) on the newest day scored: for `kind=rel` beating or lagging the median stock over the next
+    5 sessions, for `kind=up` closing higher or lower 5 sessions on."""
+    kind = _odds_kind(kind)
+    if side not in ("top", "bottom"):
+        raise HTTPException(422, "side must be top or bottom")
+    day = conn.execute(
+        "SELECT max(day) FROM rise_odds WHERE horizon=%s AND kind=%s", (rise_odds.HORIZON, kind)
+    ).fetchone()
+    if day is None or day[0] is None:
+        return {
+            "day": None,
+            "horizon": rise_odds.HORIZON,
+            "kind": kind,
+            "side": side,
+            "model_version": None,
+            "items": [],
+        }
+    order = "DESC" if side == "top" else "ASC"
+    rows = conn.execute(
+        "SELECT i.instrument_id, i.symbol, i.name, r.prob, r.pct, r.model_version FROM rise_odds r JOIN instrument i USING (instrument_id)"
+        f" WHERE r.day=%s AND r.horizon=%s AND r.kind=%s AND i.delisted_on IS NULL ORDER BY r.prob {order}, i.symbol LIMIT %s",  # noqa: S608 (order is one of two fixed words)
+        (day[0], rise_odds.HORIZON, kind, max(1, min(limit, 100))),
+    ).fetchall()
+    return {
+        "day": day[0].isoformat(), "horizon": rise_odds.HORIZON, "kind": kind, "side": side, "model_version": rows[0][5] if rows else None,
+        "items": [{"instrument_id": i, "symbol": s, "name": n, "prob": round(float(p), 4), "pct": round(float(c), 1)} for i, s, n, p, c, _ in rows],
+    }  # fmt: skip
+
+
+def _r(v: float | None) -> float | None:
+    return None if v is None else round(v, 2)
+
+
+@router.get("/context")
+def stock_context(symbol: str, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """Where one stock stands today, described and not predicted (scripts/study_conditions.py found no direction edge, only that the market regime mattered a little): the Nifty 50 regime, the stock's sector against the whole market over 20 sessions
+    (medians, so one split cannot drag them), the stock against Nifty and its sector over 60 sessions, its RSI, ADX and 20/50 EMA trend, and plain breakout / extension facts about the latest completed candle (`context.breakout_facts`; never what happens next). A split or bonus in the last 70 sessions withholds the stock's own numbers (the bars are not adjusted)."""
+    sym = symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id, name FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    iid, name = row
+    bars = conn.execute(
+        "SELECT d, h, l, c FROM (SELECT DISTINCT ON (ts) (ts AT TIME ZONE 'Asia/Kolkata')::date AS d, ts, high::float8 AS h, low::float8 AS l, close::float8 AS c FROM bar_1d"
+        " WHERE instrument_id=%s AND source='nse' AND series='EQ' ORDER BY ts DESC, dataset_version DESC LIMIT 300) x ORDER BY d",
+        (iid,),
+    ).fetchall()
+    out: dict[str, Any] = {
+        "symbol": sym,
+        "name": name,
+        "as_of": None,
+        "regime": None,
+        "sector": None,
+        "strength": None,
+        "momentum": None,
+        "breakout": None,
+        "adjusted": False,
+    }
+    if not bars:
+        return out
+    as_of = bars[-1][0]
+    out["as_of"] = as_of.isoformat()
+    nifty = conn.execute(
+        "SELECT trade_date, close::float8 FROM (SELECT trade_date, close FROM index_bar_1d WHERE symbol='NIFTY 50' AND trade_date <= %s ORDER BY trade_date DESC LIMIT 260) x ORDER BY trade_date",
+        (as_of,),
+    ).fetchall()
+    nc = [float(c) for _, c in nifty]
+    label = context.regime(nc)
+    if label is not None:
+        out["regime"] = {
+            "label": label,
+            "nifty_close": round(nc[-1], 2),
+            "as_of": nifty[-1][0].isoformat(),
+        }
+    split = conn.execute(
+        "SELECT 1 FROM corporate_action WHERE instrument_id=%s AND kind IN ('split','bonus') AND status='ok' AND ex_date > %s LIMIT 1",
+        (iid, bars[-70][0] if len(bars) >= 70 else bars[0][0]),
+    ).fetchone()
+    out["adjusted"] = split is not None
+    closes = [b[3] for b in bars]
+    if not out["adjusted"]:
+        a = context.adx([b[1] for b in bars], [b[2] for b in bars], closes)
+        facts = context.breakout_facts([b[1] for b in bars], [b[2] for b in bars], closes)
+        out["breakout"] = {k: (_r(v) if isinstance(v, float) else v) for k, v in facts.items()}
+        out["momentum"] = {
+            "rsi": _r(notes.rsi(closes)),
+            "adx": _r(a),
+            "adx_label": context.adx_label(a),
+            "ema_trend": context.ema_trend(closes),
+        }
+    # the sector against the market: every stock's close on the last day, 20 and 60 Nifty sessions before it
+    sector_of = sectors_data.sectors_on(conn, as_of)
+    mine = sector_of.get(int(iid))
+    days = [d for d, _ in nifty]
+    if mine is not None and len(days) > 60:
+        want = [days[-1], days[-21], days[-61]]
+        px: dict[int, dict[date, float]] = {}
+        for i, d, c in conn.execute(
+            "SELECT DISTINCT ON (instrument_id, d) instrument_id, d, c FROM (SELECT instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date AS d, close::float8 AS c, dataset_version FROM bar_1d"
+            " WHERE source='nse' AND series='EQ' AND (ts AT TIME ZONE 'Asia/Kolkata')::date = ANY(%s)) x ORDER BY instrument_id, d, dataset_version DESC",
+            (want,),
+        ):
+            px.setdefault(int(i), {})[d] = c
+
+        def rets(k: int) -> tuple[list[float], list[float]]:
+            allr, secr = [], []
+            for i, v in px.items():
+                if want[0] in v and want[k] in v and v[want[k]] > 0:
+                    r = 100 * (v[want[0]] / v[want[k]] - 1)
+                    allr.append(r)
+                    if sector_of.get(i) == mine:
+                        secr.append(r)
+            return secr, allr
+
+        sv = context.sector_view(*rets(1))
+        if sv is not None:
+            out["sector"] = {
+                "name": mine,
+                "n": len(rets(1)[0]),
+                "window": 20,
+                "sector_ret": _r(sv[0]),
+                "market_ret": _r(sv[1]),
+                "verdict": sv[2],
+            }
+        s60 = rets(2)[0]
+        if not out["adjusted"]:
+            out["strength"] = {
+                "ret_60d": _r(context.ret(closes, 60)),
+                "nifty_ret_60d": _r(context.ret(nc, 60)),
+                "sector_ret_60d": _r(median(s60)) if s60 else None,
+            }
+    return out
 
 
 @router.get("/industries")

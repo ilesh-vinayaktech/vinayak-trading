@@ -86,7 +86,7 @@ export function FundamentalsPanel({ instrumentId, symbol }: { instrumentId: numb
             <Badge tone={newest.audited ? "good" : "neutral"}>{newest.audited ? "audited" : "unaudited"}</Badge>
           </div>
           {view === "summary" ? (
-            <SummaryView periods={every} />
+            <SummaryView periods={every} instrumentId={instrumentId} basis={q.data.basis ?? undefined} />
           ) : view === "ratios" ? (
             <RatiosView instrumentId={instrumentId} basis={q.data.basis ?? undefined} />
           ) : (

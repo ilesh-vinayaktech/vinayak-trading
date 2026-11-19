@@ -44,3 +44,16 @@ describe("StockNotesPanel", () => {
     expect(await screen.findByText(/No headline in the public feeds names TANLA/)).toBeInTheDocument();
   });
 });
+
+describe("StockNotesPanel headlines", () => {
+  it("shows the top 3 and opens all of them in a dialog, each link in a new tab", async () => {
+    const items = Array.from({ length: 5 }, (_, i) => ({ ...NEWS.items[0], title: `Headline ${i}`, url: `https://ex.com/${i}` }));
+    backend({ ...NEWS, items });
+    mount(<StockNotesPanel instrumentId={7} symbol="TANLA" />);
+    expect(await screen.findByText("Headline 2")).toBeInTheDocument();
+    expect(screen.queryByText("Headline 3")).toBeNull();
+    screen.getByRole("button", { name: "View all 5 headlines" }).click();
+    const link = await screen.findByRole("link", { name: "Headline 4" });
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+});

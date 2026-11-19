@@ -72,7 +72,7 @@ function Explorer() {
   const { can } = useAuth();
   const [strategyId, setStrategyId] = useState("");
   const [picked, setPicked] = useState<Instrument | null>(null);
-  const [adjust, setAdjust] = useState<Adjust>("none");
+  const adjust: Adjust = "none"; // the chart shows prices as traded; there is no basis control
   const [timeframe, setTimeframe] = useState<Timeframe>("1d");
   const [range, setRange] = useState<{
     id: number | null;
@@ -216,7 +216,6 @@ function Explorer() {
     const last = detail.data?.bars.last ?? null;
     if (!last) return;
     if (isIntraday(t)) {
-      if (adjust === "total_return") setAdjust("split"); // minutes carry no dividend basis
       const end = latestDay(last); // today's minutes come from the live feed
       setRange((r) => ({ ...r, start: intradayStart(end, t), end }));
     } else {
@@ -248,7 +247,6 @@ function Explorer() {
         }}
         instrument={detail.data ?? null}
         adjust={adjust}
-        onAdjust={setAdjust}
         timeframe={timeframe}
         onTimeframe={pickTimeframe}
         start={range.start}
@@ -319,19 +317,23 @@ function Explorer() {
       ) : null}
 
       {detail.data ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <StockNotesPanel key={`nt-${detail.data.symbol}`} instrumentId={detail.data.id} symbol={detail.data.symbol} />
+          <ScorePanel key={`sc-${detail.data.symbol}`} symbol={detail.data.symbol} />
+        </div>
+      ) : null}
+
+      {detail.data ? <LevelsPanel key={`lv-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}
+
+      {detail.data ? <SmartMoneyPanel key={`sm-${detail.data.id}`} instrumentId={detail.data.id} /> : null}
+
+      {detail.data ? (
         <FundamentalsPanel
           key={detail.data.id}
           instrumentId={detail.data.id}
           symbol={detail.data.symbol}
         />
       ) : null}
-
-      {detail.data ? <SmartMoneyPanel key={`sm-${detail.data.id}`} instrumentId={detail.data.id} /> : null}
-
-      {detail.data ? <StockNotesPanel key={`nt-${detail.data.symbol}`} instrumentId={detail.data.id} symbol={detail.data.symbol} /> : null}
-      {detail.data ? <ScorePanel key={`sc-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}
-
-      {detail.data ? <LevelsPanel key={`lv-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}
 
       {detail.data ? (
         <>

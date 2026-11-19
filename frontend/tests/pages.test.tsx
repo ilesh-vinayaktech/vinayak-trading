@@ -273,7 +273,7 @@ describe("Data Explorer", () => {
   });
 
   it("labels the price basis, shows the adjustment version and surfaces data-quality warnings", async () => {
-    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } }));
+    vi.stubGlobal("fetch", route({ "/api/market/context": { symbol: "XYZ", name: "Xyz Ltd", as_of: "2026-11-17", adjusted: false, regime: { label: "uptrend", nifty_close: 22590, as_of: "2026-11-17" }, sector: { name: "IT", n: 25, window: 20, sector_ret: 3.1, market_ret: 1.2, verdict: "outperforming" }, strength: { ret_60d: 12.4, nifty_ret_60d: 2.7, sector_ret_60d: 5.5 }, momentum: { rsi: 61.2, adx: 27.4, adx_label: "strong trend", ema_trend: "above" }, breakout: { above_20d_high: true, high_20d: 1480.5, breakout: "crossed today", new_52w_high: false, high_52w: 1520, extension_atr: 3.4 } }, "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } }));
     wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
     fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
     fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
@@ -305,8 +305,56 @@ describe("Data Explorer", () => {
     expect(screen.getByLabelText("Strategy")).toBeDisabled(); // no saved strategy to choose
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();
     expect(screen.getByText("review")).toBeInTheDocument(); // an unverified action is not shown as verified
-    fireEvent.change(screen.getByLabelText("Price basis"), { target: { value: "split" } });
-    await waitFor(() => expect(screen.getAllByText("Split/bonus adjusted").length).toBeGreaterThan(0));
+    expect(screen.queryByLabelText("Price basis")).not.toBeInTheDocument(); // no basis dropdown: prices are shown as traded
+    const kept = new Map<string, string>(); // a stand-in for the browser's storage, empty at the start
+    vi.stubGlobal("localStorage", { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v), removeItem: (k: string) => void kept.delete(k) });
+    const auto = screen.getByRole("button", { name: "Auto analysis" });
+    expect(auto).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("group", { name: "Auto analysis layers" })).not.toBeInTheDocument();
+    fireEvent.click(auto);
+    expect(auto).toHaveAttribute("aria-pressed", "true");
+    const layers = screen.getByRole("group", { name: "Auto analysis layers" });
+    for (const name of ["Support and resistance", "Trend lines", "Pivot points", "Fibonacci retracement", "Range high and low", "Volume profile", "Candlestick patterns"]) expect(within(layers).getByRole("checkbox", { name: new RegExp(name) })).toBeChecked();
+    expect(within(layers).getByRole("checkbox", { name: /Channels/ })).not.toBeChecked(); // channels start off: they are the busiest layer
+    fireEvent.click(within(layers).getByRole("checkbox", { name: /Pivot points/ }));
+    expect(within(layers).getByRole("checkbox", { name: /Pivot points/ })).not.toBeChecked();
+    await waitFor(() => expect(JSON.parse(localStorage.getItem("chart.autoAnalysis.v1") ?? "null")).toMatchObject({ on: true }));
+    expect(JSON.parse(localStorage.getItem("chart.autoAnalysis.v1") ?? "{}").kinds).not.toContain("pivots"); // the choice is remembered in this browser
+    const ctx = screen.getByRole("button", { name: "Market context" });
+    expect(ctx).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(ctx);
+    expect(ctx).toHaveAttribute("aria-pressed", "true");
+    const panel = within(screen.getByRole("group", { name: "Market context details" }));
+    expect(panel.getByText(/not a buy or sell signal and not a prediction of direction/)).toBeInTheDocument();
+    expect(await screen.findByLabelText("Market regime")).toHaveTextContent("Uptrend");
+    expect(screen.getByLabelText("Sector strength")).toHaveTextContent("IT is outperforming the market over 20 sessions: median +3.1% against +1.2%");
+    expect(screen.getByLabelText("Relative strength")).toHaveTextContent("+12.4%");
+    expect(screen.getByLabelText("Momentum and trend")).toHaveTextContent("RSI 61; ADX 27 (strong trend");
+    const facts = screen.getByLabelText("Breakout and extension context");
+    expect(facts).toHaveTextContent("the latest close is above the previous 20-day high (₹1,480.5)");
+    expect(facts).toHaveTextContent("not a new 52-week high (previous high ₹1,520)");
+    expect(facts).toHaveTextContent("3.4 ATR above it");
+    expect(facts).toHaveTextContent("the latest close crossed above the previous 20-day high");
+    expect(facts).toHaveTextContent("They do not say what the stock will do next");
+    expect(facts.textContent ?? "").not.toMatch(/bullish|bearish|probab|chance|likely|signal to|buy |sell /i);
+    expect(screen.getByLabelText("Research confidence")).toHaveTextContent("none survived correction");
+    expect(screen.queryByText(/buy signal$/i)).toBeNull();
+    await waitFor(() => expect(JSON.parse(localStorage.getItem("chart.marketContext.v1") ?? "null")).toEqual({ on: true }));
+  });
+
+  it("brings the auto-analysis layers back as they were left, from this browser's storage", async () => {
+    const kept = new Map<string, string>([["chart.autoAnalysis.v1", JSON.stringify({ on: true, kinds: ["levels", "channels"] })]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v), removeItem: (k: string) => void kept.delete(k) });
+    vi.stubGlobal("fetch", route({ "/api/instruments": [inst], "/api/instruments/7": detail, "/api/instruments/7/bars": bars, "/api/instruments/7/fundamentals": { instrument_id: 7, symbol: "XYZ", bases: [], basis: null, periods: [] }, "/api/nse/instrument/7": { symbol: "XYZ", delivery: [], holdings: [], insider: [], deals: [] } }));
+    wrap(<AuthProvider><InstrumentsPage /></AuthProvider>);
+    fireEvent.change(screen.getByLabelText("Symbol, ISIN or name"), { target: { value: "xy" } });
+    fireEvent.click(await screen.findByRole("button", { name: /XYZ/ }));
+    const auto = await screen.findByRole("button", { name: "Auto analysis" });
+    await waitFor(() => expect(auto).toHaveAttribute("aria-pressed", "true"));
+    const layers = within(screen.getByRole("group", { name: "Auto analysis layers" }));
+    expect(layers.getByRole("checkbox", { name: /Support and resistance/ })).toBeChecked();
+    expect(layers.getByRole("checkbox", { name: /Channels/ })).toBeChecked();
+    expect(layers.getByRole("checkbox", { name: /Pivot points/ })).not.toBeChecked();
   });
 
   it("closes the suggestion list once an instrument is chosen and reopens it when typing again", async () => {

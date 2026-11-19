@@ -1,0 +1,30 @@
+{
+ "history": [
+  {
+   "day": "2026-11-06",
+   "pct": 93.0,
+   "prob": 0.55
+  },
+  {
+   "day": "2026-11-09",
+   "pct": 95.0,
+   "prob": 0.56
+  },
+  {
+   "day": "2026-11-10",
+   "pct": 97.0,
+   "prob": 0.57
+  }
+ ],
+ "horizon": 5,
+ "kind": "rel",
+ "latest": {
+  "day": "2026-11-10",
+  "pct": 97.0,
+  "prob": 0.57
+ },
+ "model_version": "h5-2026-01-01",
+ "name": null,
+ "scored": true,
+ "symbol": "TCS"
+}
