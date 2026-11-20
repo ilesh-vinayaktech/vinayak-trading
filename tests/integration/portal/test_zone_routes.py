@@ -1066,3 +1066,219 @@ def test_stock_context_withholds_a_stocks_own_numbers_after_a_recent_split_and_c
         and empty["momentum"] is None
         and empty["breakout"] is None
     )
+
+
+def test_latest_rise_odds_of_a_list_of_stocks_has_both_kinds_and_leaves_out_the_unscored(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    a, b = [
+        r[0]
+        for r in conn.execute(
+            "SELECT instrument_id FROM instrument WHERE asset_class='equity' ORDER BY instrument_id LIMIT 2"
+        )
+    ]
+    assert c.get("/api/market/rise-odds/latest", params={"ids": f"{a},{b}"}).json() == {
+        "horizon": 5,
+        "items": {},
+    }
+    for kind, ver in (("rel", "h5-2026-01-01"), ("up", "h5up-2026-01-01")):
+        conn.execute(
+            "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256, kind) VALUES (%s, 5, '2026-01-01', now(), 1, %s, %s, 'x', %s)",
+            (ver, ["a"], b"x", kind),
+        )
+    for day, prob in ((TODAY - timedelta(days=1), 0.4), (TODAY, 0.52)):
+        conn.execute(
+            "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version, kind) VALUES (%s,%s,5,%s,70,'h5-2026-01-01','rel')",
+            (day, a, prob),
+        )
+    conn.execute(
+        "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version, kind) VALUES (%s,%s,5,0.47,30,'h5up-2026-01-01','up')",
+        (TODAY, a),
+    )
+    got = c.get("/api/market/rise-odds/latest", params={"ids": f" {a}, {b},"}).json()
+    assert list(got["items"]) == [str(a)]  # b was never scored
+    assert got["items"][str(a)] == {
+        "rel": {"day": TODAY.isoformat(), "prob": 0.52, "pct": 70.0},
+        "up": {"day": TODAY.isoformat(), "prob": 0.47, "pct": 30.0},
+    }
+    assert c.get("/api/market/rise-odds/latest", params={"ids": "x,1"}).status_code == 422
+
+
+def test_rise_odds_effect_sets_each_scored_day_against_the_next_five_sessions_price(env):  # noqa: F811
+    from tests.integration.conftest import bar
+
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    iid = conn.execute(
+        "SELECT min(instrument_id) FROM instrument WHERE asset_class='equity' AND instrument_id NOT IN (SELECT instrument_id FROM bar_1d)"
+    ).fetchone()[0]
+    sym = conn.execute("SELECT symbol FROM instrument WHERE instrument_id=%s", (iid,)).fetchone()[0]
+    days = [TODAY - timedelta(days=79 - k) for k in range(80)]
+    for k, d in enumerate(days):
+        bar(conn, iid, d, 100 + k, 1000, 500)
+    nothing = c.get("/api/market/rise-odds/effect", params={"symbol": sym}).json()
+    assert (
+        nothing["rel"]["enough"] is False and nothing["up"]["days"] == 0
+    )  # nothing scored: nothing said
+    conn.execute(
+        "INSERT INTO rise_odds_model (version, horizon, train_end, trained_at, n_rows, features, payload, sha256) VALUES ('h5-2026-01-01', 5, '2026-01-01', now(), 1, %s, %s, 'x')",
+        (["a"], b"x"),
+    )
+    for k, d in enumerate(days):
+        conn.execute(
+            "INSERT INTO rise_odds (day, instrument_id, horizon, prob, pct, model_version) VALUES (%s,%s,5,%s,50,'h5-2026-01-01')",
+            (d, iid, 0.4 + 0.001 * k),
+        )
+    got = c.get("/api/market/rise-odds/effect", params={"symbol": sym.lower()}).json()
+    assert (
+        got["symbol"] == sym
+        and got["rel"]["enough"]
+        and got["rel"]["days"] == 75
+        and got["up"]["enough"] is False
+    )
+    assert [b["band"] for b in got["rel"]["bands"]] == ["top fifth", "middle", "bottom fifth"]
+    assert got["rel"]["all"]["up_share"] == 100.0  # the price only rose
+    assert c.get("/api/market/rise-odds/effect", params={"symbol": "NOPE"}).status_code == 404
+
+
+HOLD_V = "hold1-2024-12-31"
+
+
+def hold_model(conn):
+    conn.execute(
+        "INSERT INTO hold_signal_model (version, train_end, trained_at, n_rows, features, payload, sha256) VALUES (%s, '2024-12-31', now(), 1, %s, %s, 'x') ON CONFLICT DO NOTHING",
+        (HOLD_V, ["a"], b"x"),
+    )
+
+
+def hold_stocks(conn, n):
+    """`n` new equity stocks (ids), so a test does not depend on how many the fixture has."""
+    from algo.data.store.instruments import InstrumentRepo
+
+    repo = InstrumentRepo(conn)
+    x = conn.execute("SELECT exchange_id FROM exchange ORDER BY exchange_id LIMIT 1").fetchone()[0]
+    return [repo.add_instrument(x, f"HOLD{k}") for k in range(n)]
+
+
+def hold_row(conn, day, iid, action, rank, prob=0.5, held=False, entry=None):
+    conn.execute(
+        "INSERT INTO hold_signal (day, instrument_id, prob, rank_pct, action, in_position, entry_day, model_version) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+        (day, iid, prob, rank, action, held, entry, HOLD_V),
+    )
+
+
+def test_hold_signal_for_a_stock_is_its_buy_and_sell_days_and_today(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    iid, sym = conn.execute(
+        "SELECT instrument_id, symbol FROM instrument WHERE asset_class='equity' ORDER BY instrument_id LIMIT 1"
+    ).fetchone()
+    nothing = c.get("/api/market/hold-signal", params={"symbol": sym}).json()
+    assert (
+        nothing["scored"] is False
+        and nothing["latest"] is None
+        and nothing["marks"] == []
+        and nothing["model_version"] is None
+    )  # not scored: nothing invented
+    assert nothing["rule"] == {"buy_at": 90.0, "sell_at": 20.0, "max_positions": 10}
+    hold_model(conn)
+    d = [TODAY - timedelta(days=4 - k) for k in range(5)]
+    hold_row(conn, d[0], iid, "NONE", 50.0)
+    hold_row(conn, d[1], iid, "BUY", 95.2, 0.56, True, d[1])
+    hold_row(conn, d[2], iid, "HOLD", 60.0, 0.5, True, d[1])
+    hold_row(conn, d[3], iid, "SELL", 10.0, 0.4)
+    hold_row(conn, d[4], iid, "NONE", 40.0, 0.45)
+    got = c.get("/api/market/hold-signal", params={"symbol": sym.lower()}).json()
+    assert got["scored"] and got["symbol"] == sym and got["model_version"] == HOLD_V
+    assert got["marks"] == [
+        {"day": d[1].isoformat(), "action": "BUY", "rank_pct": 95.2},
+        {"day": d[3].isoformat(), "action": "SELL", "rank_pct": 10.0},
+    ]  # only the decisions, oldest first
+    assert got["latest"] == {
+        "day": d[4].isoformat(),
+        "action": "NONE",
+        "rank_pct": 40.0,
+        "prob": 0.45,
+        "in_position": False,
+        "entry_day": None,
+    }
+    assert c.get("/api/market/hold-signal", params={"symbol": "NOPE"}).status_code == 404
+
+
+def test_hold_signal_latest_gives_each_listed_stock_its_newest_call_and_leaves_out_the_unscored(
+    env,
+):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    a, b, z = hold_stocks(conn, 3)
+    assert c.get("/api/market/hold-signal/latest", params={"ids": f"{a},{b}"}).json() == {
+        "items": {}
+    }
+    hold_model(conn)
+    hold_row(conn, TODAY - timedelta(days=1), a, "BUY", 92.0, 0.55, True, TODAY - timedelta(days=1))
+    hold_row(conn, TODAY, a, "HOLD", 70.0, 0.52, True, TODAY - timedelta(days=1))
+    hold_row(conn, TODAY, b, "SELL", 12.0, 0.41)
+    got = c.get("/api/market/hold-signal/latest", params={"ids": f"{a},{b},{z}"}).json()["items"]
+    assert set(got) == {str(a), str(b)}  # the stock never scored is absent
+    assert (
+        got[str(a)]["action"] == "HOLD"
+        and got[str(a)]["entry_day"] == (TODAY - timedelta(days=1)).isoformat()
+        and got[str(b)]["action"] == "SELL"
+        and got[str(b)]["in_position"] is False
+    )
+    assert c.get("/api/market/hold-signal/latest", params={"ids": "1,x"}).status_code == 422
+    assert c.get("/api/market/hold-signal/latest", params={"ids": ""}).json() == {"items": {}}
+
+
+def test_the_days_recommendation_lists_buys_best_first_sells_and_how_many_are_held(env):  # noqa: F811
+    conn, app, clock, _ = env
+    _, c = trader(conn, app, clock)
+    empty = c.get("/api/market/hold-signal/today").json()
+    assert (
+        empty["day"] is None
+        and empty["buy"] == []
+        and empty["sell"] == []
+        and empty["counts"] == {"buy": 0, "sell": 0, "hold": 0, "in_position": 0}
+        and empty["max_positions"] == 10
+    )
+    ids = hold_stocks(conn, 6)
+    hold_model(conn)
+    hold_row(
+        conn, TODAY - timedelta(days=1), ids[0], "BUY", 99.0, 0.7, True, TODAY - timedelta(days=1)
+    )  # yesterday's row is not today's recommendation
+    hold_row(conn, TODAY, ids[0], "HOLD", 80.0, 0.5, True, TODAY - timedelta(days=1))
+    hold_row(conn, TODAY, ids[1], "BUY", 91.0, 0.55, True, TODAY)
+    hold_row(conn, TODAY, ids[2], "BUY", 97.0, 0.60, True, TODAY)
+    hold_row(conn, TODAY, ids[3], "SELL", 15.0, 0.40, False)
+    hold_row(conn, TODAY, ids[4], "SELL", 5.0, 0.38, False)
+    hold_row(conn, TODAY, ids[5], "NONE", 50.0, 0.48, False)
+    conn.execute("UPDATE instrument SET delisted_on='2026-01-01' WHERE instrument_id=%s", (ids[5],))
+    conn.execute(
+        "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, series, source, dataset_version, ingested_at) VALUES (%s, %s::date + time '03:45', 1, 1, 1, 123.4, 1, NULL, 'kite', 1, now())",
+        (ids[2], TODAY),
+    )
+    got = c.get("/api/market/hold-signal/today").json()
+    assert (
+        got["day"] == TODAY.isoformat() and got["model_version"] == HOLD_V and got["scored"] == 5
+    )  # the delisted stock is left out
+    assert got["counts"] == {"buy": 2, "sell": 2, "hold": 1, "in_position": 3}
+    assert [x["instrument_id"] for x in got["buy"]] == [ids[2], ids[1]]  # the best chance first
+    assert (
+        got["buy"][0]["close"] == 123.4 and got["buy"][1]["close"] is None
+    )  # the reference price is the day's Kite close when there is one
+    assert [x["instrument_id"] for x in got["sell"]] == [ids[4], ids[3]]  # the weakest first
+    assert {x["instrument_id"] for x in got["holding"]} == {ids[0], ids[1], ids[2]} and got[
+        "holding"
+    ][0]["instrument_id"] == ids[2]  # held, strongest first
+    assert len(c.get("/api/market/hold-signal/today", params={"limit": 1}).json()["buy"]) == 1
+
+
+def test_hold_signal_needs_a_signed_in_user(env):  # noqa: F811
+    conn, app, clock, _ = env
+    anon = TestClient(app)
+    for path in (
+        "/api/market/hold-signal?symbol=A",
+        "/api/market/hold-signal/latest?ids=1",
+        "/api/market/hold-signal/today",
+    ):
+        assert anon.get(path).status_code in (401, 403)

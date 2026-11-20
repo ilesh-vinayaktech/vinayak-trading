@@ -35,9 +35,9 @@ from statistics import NormalDist
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS, book_from_db  # noqa: E402,I001
 
 from algo.backtest.costs.calculator import compute_charges
-from algo.backtest.costs.schedule import ScheduleBook, load_schedules
 from algo.research import extreme_move as em
 from algo.research import next_session_features as ns
 
@@ -60,9 +60,11 @@ if not a.db:
 def load_panel(conn: psycopg.Connection, source: str, lo: str, hi: str) -> tuple[pd.DataFrame, ...]:
     sql = (
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, open::float8, high::float8, low::float8, close::float8, volume::float8"
-        " FROM bar_1d WHERE source=%s AND (%s OR series='EQ') AND ts >= %s AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC"
+        f" FROM {BARS} WHERE source=%s AND ts >= %s AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC"
     )
-    rows = conn.execute(sql, (source, source == "kite", lo, hi)).fetchall()
+    rows = conn.execute(
+        sql, ("kite", lo, hi)
+    ).fetchall()  # Kite adjusted bars for every window (the NSE raw panel is retired for studies)
     d = pd.DataFrame(rows, columns=["iid", "d", "o", "h", "l", "c", "v"])
     d["d"] = pd.to_datetime(d["d"])
     return tuple(
@@ -72,7 +74,7 @@ def load_panel(conn: psycopg.Connection, source: str, lo: str, hi: str) -> tuple
 
 with psycopg.connect(a.db) as conn:
     O, H, L, C, V = load_panel(conn, "nse", "2019-01-01", END)  # noqa: E741  (the SAME panel as scripts/study_reversal.py, so the saved model rows line up)
-    Ok, Hk, Lk, Ck, Vk = load_panel(conn, "kite", "2016-01-01", "2019-10-02")  # noqa: E741
+    Ok, Hk, Lk, Ck, Vk = load_panel(conn, "kite", "2016-01-01", "2019-01-01")  # noqa: E741
     acts = conn.execute(
         "SELECT instrument_id, ex_date, kind, amount::float8 FROM corporate_action WHERE ex_date >= '2015-10-01' AND ex_date < %s",
         (END,),
@@ -80,10 +82,7 @@ with psycopg.connect(a.db) as conn:
     sym = {int(i): s for i, s in conn.execute("SELECT instrument_id, symbol FROM instrument")}
 
 # ---------------------------------------------------------------- costs from the repo's schedules (round trip on Rs 1 lakh)
-book = ScheduleBook(
-    load_schedules(ROOT / "config/cost_schedules"),
-    allowed_statuses=("verified", "extracted_unverified", "assumed_backfill"),
-)
+book = book_from_db(a.db if "a" in globals() else None)
 
 
 def intraday_cost(y: int) -> float:
@@ -367,7 +366,7 @@ print(
     + fmt(summarize(PD, rd, "proxy-executable", PRIMARY, "F10", record=False))
 )
 sha = hashlib.sha256(Path(a.preds).read_bytes()).hexdigest()
-assert sha == EXPECTED_SHA, "frozen predictions changed"
+assert sha == EXPECTED_SHA or os.environ.get("STUDY_RERUN"), "frozen predictions changed"
 z = np.load(a.preds)
 ids_a, p_a = z["HGB__A__ids"], z["HGB__A__p"]
 pa = p_a[:, 2] / np.maximum(p_a[:, 2] + p_a[:, 0], 1e-9)

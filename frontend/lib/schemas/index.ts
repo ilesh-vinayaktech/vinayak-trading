@@ -887,6 +887,57 @@ export const riseOddsTopSchema = z.object({
   items: z.array(z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable(), prob: z.number(), pct: z.number() })),
 });
 export type RiseOddsTop = z.infer<typeof riseOddsTopSchema>;
+/** The newest rise odds (both kinds) of a list of stocks, keyed by instrument id; a stock never scored is absent. */
+const latestPoint = z.object({ day: z.string(), prob: z.number(), pct: z.number() });
+export const riseOddsLatestSchema = z.object({
+  horizon: z.number(),
+  items: z.record(z.string(), z.object({ up: latestPoint.optional(), rel: latestPoint.optional() })),
+});
+export type RiseOddsLatest = z.infer<typeof riseOddsLatestSchema>;
+/** The hold signal (algo/market/hold_signal.py): a frozen buy / hold / sell rule. Each stock is ranked 0-100 each night; a flat stock at 90+ is bought at the next open, a held one at 20 or below is sold. */
+const holdAction = z.enum(["BUY", "HOLD", "SELL", "NONE"]);
+const holdPoint = z.object({ day: z.string(), action: holdAction, rank_pct: z.number(), prob: z.number(), in_position: z.boolean(), entry_day: z.string().nullable() });
+const holdRule = z.object({ buy_at: z.number(), sell_at: z.number(), max_positions: z.number() });
+export const holdSignalSchema = z.object({
+  symbol: z.string(),
+  name: z.string().nullable(),
+  scored: z.boolean(),
+  latest: holdPoint.nullable(),
+  model_version: z.string().nullable(),
+  marks: z.array(z.object({ day: z.string(), action: z.enum(["BUY", "SELL"]), rank_pct: z.number() })),
+  rule: holdRule,
+});
+export type HoldSignal = z.infer<typeof holdSignalSchema>;
+/** The newest hold signal of a list of stocks, keyed by instrument id; a stock outside the scored universe is absent. */
+export const holdSignalLatestSchema = z.object({ items: z.record(z.string(), holdPoint) });
+export type HoldSignalLatest = z.infer<typeof holdSignalLatestSchema>;
+const holdItem = z.object({ instrument_id: z.number(), symbol: z.string(), name: z.string().nullable(), action: holdAction, rank_pct: z.number(), prob: z.number(), entry_day: z.string().nullable(), close: z.number().nullable() });
+/** The day's recommendation from the rule: what to buy at the next open (best chance first), what to sell, what is held. */
+export const holdSignalTodaySchema = z.object({
+  day: z.string().nullable(),
+  model_version: z.string().nullable(),
+  scored: z.number(),
+  buy_at: z.number(),
+  sell_at: z.number(),
+  max_positions: z.number(),
+  counts: z.object({ buy: z.number(), sell: z.number(), hold: z.number(), in_position: z.number() }),
+  buy: z.array(holdItem),
+  sell: z.array(holdItem),
+  holding: z.array(holdItem),
+});
+export type HoldSignalToday = z.infer<typeof holdSignalTodaySchema>;
+/** One stock's price over the 5 sessions after its high and low score days, per kind. A description of that stock, never a forecast. */
+const effectStats = z.object({ n: z.number(), mean: z.number().nullable(), up_share: z.number().nullable() });
+const effectKind = z.object({
+  horizon: z.number(),
+  enough: z.boolean(),
+  days: z.number(),
+  all: effectStats,
+  bands: z.array(effectStats.extend({ band: z.string(), from: z.number(), to: z.number() })),
+  rank_correlation: z.number().nullable(),
+});
+export const riseEffectSchema = z.object({ symbol: z.string(), name: z.string().nullable(), rel: effectKind, up: effectKind });
+export type RiseEffect = z.infer<typeof riseEffectSchema>;
 export const marketNewsSchema = z.object({
   items: z.array(z.object({ title: z.string(), url: z.string(), source: z.string(), published_at: z.string(), sentiment: z.number().nullable(), laya: z.number().nullable(), laya_confidence: z.number().nullable(), reading: z.enum(["positive", "negative", "mixed"]).nullable(), reading_value: z.number().nullable(), reading_model: z.enum(["laya", "words"]).nullable(), symbols: z.array(z.string()) })), // newest first; `reading` is the one to show: Laya's where it has scored the headline, else the word list's
   mood: z.array(z.object({ day: z.string(), avg: z.number(), n: z.number(), positive: z.number(), negative: z.number() })), // oldest first

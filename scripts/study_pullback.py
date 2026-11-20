@@ -24,9 +24,9 @@ from statistics import NormalDist
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS, book_from_db  # noqa: E402,I001
 
 from algo.backtest.costs.calculator import compute_charges
-from algo.backtest.costs.schedule import ScheduleBook, load_schedules
 from algo.research import next_session_features as ns
 
 END, FIRST, MAXHOLD, SLIP = "2025-01-01", "2019-11-01", 60, 0.0010
@@ -36,7 +36,7 @@ ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
-book = ScheduleBook(load_schedules(ROOT / "config/cost_schedules"), allowed_statuses=("verified", "extracted_unverified", "assumed_backfill"))
+book = book_from_db(a.db if "a" in globals() else None)
 
 
 def cost(y: int) -> float:
@@ -45,17 +45,26 @@ def cost(y: int) -> float:
     except Exception:
         sch = book.for_date(date(2026, 6, 30), "DELIVERY")
     p, q = Decimal(100), Decimal(1000)
-    return float((compute_charges(sch, "BUY", q, p).total + compute_charges(sch, "SELL", q, p).total) / (q * p))
+    return float(
+        (compute_charges(sch, "BUY", q, p).total + compute_charges(sch, "SELL", q, p).total)
+        / (q * p)
+    )
 
 
 with psycopg.connect(a.db) as conn:
     rows = conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, open::float8, high::float8, low::float8, close::float8, volume::float8"
-        " FROM bar_1d WHERE source='nse' AND series='EQ' AND ts >= '2018-06-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
+        f" FROM {BARS} WHERE source='kite' AND ts >= '2018-06-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
         (END,),
     ).fetchall()
-    acts = conn.execute("SELECT instrument_id, ex_date, kind, amount::float8 FROM corporate_action WHERE ex_date >= '2018-01-01' AND ex_date < %s", (END,)).fetchall()
-    glob = conn.execute("SELECT symbol, day, close::float8 FROM global_daily WHERE symbol IN ('SP500','VIXUS') AND day < %s ORDER BY day", (END,)).fetchall()
+    acts = conn.execute(
+        "SELECT instrument_id, ex_date, kind, amount::float8 FROM corporate_action WHERE ex_date >= '2018-01-01' AND ex_date < %s",
+        (END,),
+    ).fetchall()
+    glob = conn.execute(
+        "SELECT symbol, day, close::float8 FROM global_daily WHERE symbol IN ('SP500','VIXUS') AND day < %s ORDER BY day",
+        (END,),
+    ).fetchall()
     fil = conn.execute(
         "SELECT f.instrument_id, f.period_end, f.basis, min(f.filed_at AT TIME ZONE 'Asia/Kolkata')::date, max(x.value)::float8"
         " FROM fundamental_filing f JOIN fundamental_fact x USING (filing_id) WHERE x.metric='pat' AND x.scope='QUARTER' AND f.instrument_id IS NOT NULL"
@@ -63,14 +72,19 @@ with psycopg.connect(a.db) as conn:
     ).fetchall()
 d = pd.DataFrame(rows, columns=["iid", "d", "o", "h", "l", "c", "v"])
 d["d"] = pd.to_datetime(d["d"])
-O, H, L, C, V = (d.pivot(index="d", columns="iid", values=k).sort_index() for k in ("o", "h", "l", "c", "v"))
+O, H, L, C, V = (  # noqa: E741
+    d.pivot(index="d", columns="iid", values=k).sort_index() for k in ("o", "h", "l", "c", "v")
+)  # noqa: E741
 idx, cols = C.index.values, list(C.columns)
 T, S = C.shape
 o, h, low, c = (x.to_numpy(dtype=float) for x in (O, H, L, C))
 _, bad = ns.corporate_action_masks(idx, cols, acts)
 liquid = ((C * V).rolling(20, min_periods=15).mean() / 1e7).to_numpy() >= 5.0
 liquid &= ~bad & np.isfinite(c)
-print(f"panel {T} sessions x {S} stocks; costs (round trip) " + ", ".join(f"{y} {100 * cost(y):.3f}%" for y in (2020, 2024)))
+print(
+    f"panel {T} sessions x {S} stocks; costs (round trip) "
+    + ", ".join(f"{y} {100 * cost(y):.3f}%" for y in (2020, 2024))
+)
 
 moc = np.where(liquid, c / o - 1, np.nan)
 mcc = np.full((T, S), np.nan)
@@ -91,7 +105,9 @@ g["day"] = pd.to_datetime(g["day"])
 sp = g[g.sym == "SP500"].set_index("day")["c"]
 vx = g[g.sym == "VIXUS"].set_index("day")["c"]
 sp_ok = (sp > sp.rolling(200).mean()).astype(float).where(sp.rolling(200).mean().notna())
-vx_ok = (vx < vx.rolling(252).quantile(0.9)).astype(float).where(vx.rolling(252).quantile(0.9).notna())
+vx_ok = (
+    (vx < vx.rolling(252).quantile(0.9)).astype(float).where(vx.rolling(252).quantile(0.9).notna())
+)
 gl = pd.concat([sp_ok.rename("sp"), vx_ok.rename("vx")], axis=1).dropna()
 gl_ok = ((gl.sp == 1) & (gl.vx == 1)).astype(float)
 gpos = np.searchsorted(gl_ok.index.values, idx, side="left") - 1
@@ -103,7 +119,9 @@ for iid, pe, basis, filed, pat in fil:
     cur = q.get(pe)
     if cur is None or (basis == "CONSOLIDATED" and cur[2] != "CONSOLIDATED"):
         q[pe] = (pat, filed, basis)
-fund_sorted = {iid: sorted((pe, v[0], pd.Timestamp(v[1])) for pe, v in q.items()) for iid, q in fq.items()}
+fund_sorted = {
+    iid: sorted((pe, v[0], pd.Timestamp(v[1])) for pe, v in q.items()) for iid, q in fq.items()
+}
 
 
 def fund_ok(iid: int, t: np.datetime64) -> bool:
@@ -117,18 +135,31 @@ def fund_ok(iid: int, t: np.datetime64) -> bool:
 
 trades: list[tuple] = []
 for j in range(S):
-    fin = np.nonzero(np.isfinite(c[:, j]) & np.isfinite(h[:, j]) & np.isfinite(low[:, j]) & np.isfinite(o[:, j]))[0]
+    fin = np.nonzero(
+        np.isfinite(c[:, j]) & np.isfinite(h[:, j]) & np.isfinite(low[:, j]) & np.isfinite(o[:, j])
+    )[0]
     if len(fin) < 260:
         continue
     cc, hh, ll = c[fin, j], h[fin, j], low[fin, j]
     s = pd.Series(cc)
-    ema20, ema50 = s.ewm(span=20, adjust=False).mean().to_numpy(), s.ewm(span=50, adjust=False).mean().to_numpy()
+    ema20, ema50 = (
+        s.ewm(span=20, adjust=False).mean().to_numpy(),
+        s.ewm(span=50, adjust=False).mean().to_numpy(),
+    )
     pc = np.r_[np.nan, cc[:-1]]
-    atr = pd.Series(np.maximum.reduce([hh - ll, np.abs(hh - pc), np.abs(ll - pc)])).rolling(14).mean().to_numpy()
+    atr = (
+        pd.Series(np.maximum.reduce([hh - ll, np.abs(hh - pc), np.abs(ll - pc)]))
+        .rolling(14)
+        .mean()
+        .to_numpy()
+    )
     sma = s.rolling(200, min_periods=150).mean().to_numpy()
     hi60 = s.rolling(60).max().to_numpy()
     dl = s.diff()
-    rs = dl.clip(lower=0).ewm(alpha=1 / 14, adjust=False).mean() / (-dl.clip(upper=0)).ewm(alpha=1 / 14, adjust=False).mean()
+    rs = (
+        dl.clip(lower=0).ewm(alpha=1 / 14, adjust=False).mean()
+        / (-dl.clip(upper=0)).ewm(alpha=1 / 14, adjust=False).mean()
+    )
     rsi = (100 - 100 / (1 + rs)).to_numpy()
     busy_until = -1
     for n in range(210, len(fin) - 2):
@@ -138,7 +169,12 @@ for j in range(S):
         if not (cc[n] > sma[n] and sma[n] > sma[n - 20]):
             continue
         dd = 1 - cc[n] / hi60[n]
-        if not (ema50[n] <= cc[n] <= ema20[n] and ema20[n] > ema50[n] and 0.05 <= dd <= 0.10 and rsi[n] < 50):
+        if not (
+            ema50[n] <= cc[n] <= ema20[n]
+            and ema20[n] > ema50[n]
+            and 0.05 <= dd <= 0.10
+            and rsi[n] < 50
+        ):
             continue
         e = n + 1
         if fin[e] - i > 3 or e + MAXHOLD > len(fin) - 1:
@@ -151,12 +187,16 @@ for j in range(S):
                 break
         ret, mk = cc[x] / entry_open - 1, mkt(fin[e], fin[x])
         F = fund_ok(cols[j], idx[i])
-        trades.append((i, j, ret, ret - mk, int(pd.Timestamp(idx[i]).year), F, bool(glob_ok[i]), x - e))
+        trades.append(
+            (i, j, ret, ret - mk, int(pd.Timestamp(idx[i]).year), F, bool(glob_ok[i]), x - e)
+        )
         busy_until = fin[x]
 
 df = pd.DataFrame(trades, columns=["i", "j", "ret", "ex", "year", "F", "G", "hold"])
 df["mk"] = df["ret"] - df["ex"]
-print(f"diagnostic: mean trade {100 * df.ret.mean():+.2f}%, mean same-window market {100 * df.mk.mean():+.2f}%, mean hold {df.hold.mean():.1f} sessions")
+print(
+    f"diagnostic: mean trade {100 * df.ret.mean():+.2f}%, mean same-window market {100 * df.mk.mean():+.2f}%, mean hold {df.hold.mean():.1f} sessions"
+)
 df["net"] = df["ex"] - (df["year"].map(lambda y: cost(int(y))) + 2 * SLIP)
 z = NormalDist().inv_cdf(0.975)
 
@@ -172,13 +212,36 @@ def show(name: str, x: pd.DataFrame) -> str:
         print(f"{name:20s} n={len(x)} (too few)")
         return "INCONCLUSIVE"
     gm, nm = summary(x, "ex"), summary(x, "net")
-    yrs = [g_.groupby("i")["net"].mean().mean() > 0 for y, g_ in x.groupby("year") if 2020 <= y <= 2024]
-    v = "INCONCLUSIVE" if len(x) < 300 else ("SUCCESS" if nm[0] > 0 and nm[1] > 0 and sum(yrs) >= 4 else "FAIL")
-    print(f"{name:20s} n={len(x):5d} dates={x['i'].nunique():4d} avg ret {100 * x['ret'].mean():+.2f}%  gross ex {100 * gm[0]:+.3f}% [{100 * gm[1]:+.3f},{100 * gm[2]:+.3f}]  net {100 * nm[0]:+.3f}% [{100 * nm[1]:+.3f},{100 * nm[2]:+.3f}]  win {100 * (x['ret'] > 0).mean():.0f}%  yrs>0 {sum(yrs)}/{len(yrs)}  -> {v}")
-    print("    by year (net): " + "  ".join(f"{y}: {100 * g_.groupby('i')['net'].mean().mean():+.2f}% (n{len(g_)})" for y, g_ in x.groupby("year") if y >= 2020))
+    yrs = [
+        g_.groupby("i")["net"].mean().mean() > 0 for y, g_ in x.groupby("year") if 2020 <= y <= 2024
+    ]
+    v = (
+        "INCONCLUSIVE"
+        if len(x) < 300
+        else ("SUCCESS" if nm[0] > 0 and nm[1] > 0 and sum(yrs) >= 4 else "FAIL")
+    )
+    print(
+        f"{name:20s} n={len(x):5d} dates={x['i'].nunique():4d} avg ret {100 * x['ret'].mean():+.2f}%  gross ex {100 * gm[0]:+.3f}% [{100 * gm[1]:+.3f},{100 * gm[2]:+.3f}]  net {100 * nm[0]:+.3f}% [{100 * nm[1]:+.3f},{100 * nm[2]:+.3f}]  win {100 * (x['ret'] > 0).mean():.0f}%  yrs>0 {sum(yrs)}/{len(yrs)}  -> {v}"
+    )
+    print(
+        "    by year (net): "
+        + "  ".join(
+            f"{y}: {100 * g_.groupby('i')['net'].mean().mean():+.2f}% (n{len(g_)})"
+            for y, g_ in x.groupby("year")
+            if y >= 2020
+        )
+    )
     return v
 
 
 print()
-res = {nm: show(nm, x) for nm, x in (("A regime only", df), ("F fundamentals", df[df.F]), ("G global", df[df.G]), ("FG both", df[df.F & df.G]))}
+res = {
+    nm: show(nm, x)
+    for nm, x in (
+        ("A regime only", df),
+        ("F fundamentals", df[df.F]),
+        ("G global", df[df.G]),
+        ("FG both", df[df.F & df.G]),
+    )
+}
 print("\nVERDICTS (frozen rule): " + "; ".join(f"{k}: {v}" for k, v in res.items()))

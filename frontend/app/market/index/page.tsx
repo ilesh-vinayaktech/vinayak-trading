@@ -7,6 +7,8 @@ import { Suspense, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { IndexChart } from "@/components/charts/IndexChart";
 import { Pct, PriceText, useLiveQuotes } from "@/components/market/LivePrice";
+import { RISE_HEADER, RiseText, useRiseOdds } from "@/components/market/RiseCell";
+import { HOLD_HEADER, HoldText, useHoldSignal } from "@/components/market/HoldCell";
 import { NoteChips, useNotes } from "@/components/market/NoteChips";
 import { Alert } from "@/components/ui/Alert";
 import { type Column, DataTable, Skeleton } from "@/components/ui/DataTable";
@@ -26,6 +28,8 @@ function Members() {
   const q = useQuery({ queryKey: ["market", "members", symbol ?? "", industry ?? ""], queryFn: () => api.indexMembers({ symbol, industry }), enabled: Boolean(symbol || industry), retry: false });
   const members = useMemo(() => q.data?.members ?? [], [q.data]);
   const quotes = useLiveQuotes(members.map((m) => m.instrument_id));
+  const rise = useRiseOdds(members.map((m) => m.instrument_id));
+  const hold = useHoldSignal(members.map((m) => m.instrument_id));
   const notes = useNotes(members.map((m) => m.instrument_id));
   const rows = useMemo(() => {
     const change = (m: Member) => quotes[String(m.instrument_id)]?.change_pct ?? null;
@@ -52,6 +56,8 @@ function Members() {
     { key: "name", header: "Name", hideBelow: "sm", cell: (m) => <span className="text-ink-soft">{m.name}</span> },
     { key: "industry", header: "Industry", hideBelow: "md", cell: (m) => <span className="text-ink-soft">{m.industry}</span> },
     { key: "price", header: "Live price and change", className: "text-right", cell: (m) => <PriceText quote={quotes[String(m.instrument_id)]} /> },
+    { key: "rise", header: RISE_HEADER, className: "text-right", hideBelow: "sm", cell: (m) => <RiseText odds={rise[String(m.instrument_id)]} /> },
+    { key: "hold", header: HOLD_HEADER, className: "text-right", hideBelow: "sm", cell: (m) => <HoldText signal={hold[String(m.instrument_id)]} /> },
     { key: "notes", header: "Notes", cell: (m) => <NoteChips notes={notes[String(m.instrument_id)]} /> },
   ];
   if (!symbol && !industry) return <Alert tone="info" title="Nothing chosen">Open an index or sector from the Overview.</Alert>;

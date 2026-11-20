@@ -278,3 +278,40 @@ def test_rise_odds_a_day_behind_are_reported_after_the_evening_jobs_and_never_be
         (iid,),
     )
     assert not any("rise odds" in t for t in texts(db, evening))  # caught up
+
+
+def test_hold_signal_a_day_behind_is_reported_after_the_evening_jobs_and_never_before_it_has_ever_run(
+    db,
+):
+    evening = datetime(2026, 11, 18, 17, 30, tzinfo=UTC)  # 23:00 IST on a Wednesday
+    early = datetime(
+        2026, 11, 18, 14, 0, tzinfo=UTC
+    )  # 19:30 IST: the market-zone job has not run yet
+    from algo.data.store.instruments import InstrumentRepo
+
+    x = InstrumentRepo(db).add_exchange("XNSE", "IN", "Asia/Kolkata", "INR", "NSE")
+    iid = InstrumentRepo(db).add_instrument(x, "AAA")
+    for d in (date(2026, 11, 17), date(2026, 11, 18)):
+        db.execute(
+            "INSERT INTO bar_1d (instrument_id, ts, open, high, low, close, volume, series, source, dataset_version, ingested_at) VALUES (%s, %s::date + time '03:45', 1,1,1,1,1,NULL,'kite',1, now())",
+            (iid, d),
+        )
+    assert not any(
+        "hold signal" in t for t in texts(db, evening)
+    )  # never scored: the feature is not in use, so no alarm
+    db.execute(
+        "INSERT INTO hold_signal_model (version, train_end, trained_at, n_rows, features, payload, sha256) VALUES ('hold1-2024-12-31', '2024-12-31', now(), 1, %s, %s, 'x')",
+        (["a"], b"x"),
+    )
+    db.execute(
+        "INSERT INTO hold_signal (day, instrument_id, prob, rank_pct, action, in_position, entry_day, model_version) VALUES ('2026-11-17', %s, 0.5, 50, 'NONE', false, NULL, 'hold1-2024-12-31')",
+        (iid,),
+    )
+    late = [t for t in texts(db, evening) if "hold signal" in t]
+    assert len(late) == 1 and "2026-11-18" in late[0] and "2026-11-17" in late[0]
+    assert not any("hold signal" in t for t in texts(db, early))  # the job has not had its time yet
+    db.execute(
+        "INSERT INTO hold_signal (day, instrument_id, prob, rank_pct, action, in_position, entry_day, model_version) VALUES ('2026-11-18', %s, 0.5, 50, 'NONE', false, NULL, 'hold1-2024-12-31')",
+        (iid,),
+    )
+    assert not any("hold signal" in t for t in texts(db, evening))  # caught up

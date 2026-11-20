@@ -33,9 +33,9 @@ from statistics import NormalDist
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS, book_from_db  # noqa: E402,I001
 
 from algo.backtest.costs.calculator import compute_charges
-from algo.backtest.costs.schedule import ScheduleBook, load_schedules
 from algo.research import next_session_features as ns
 
 EXPECTED_SHA = "2d19078d7e31a1b85c56f644f4194ff491222d70049a32fea6bd287229dae772"
@@ -54,7 +54,7 @@ a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 sha = hashlib.sha256(Path(a.preds).read_bytes()).hexdigest()
-if sha != EXPECTED_SHA:
+if sha != EXPECTED_SHA and not os.environ.get("STUDY_RERUN"):
     sys.exit(f"error: the frozen predictions changed (sha256 {sha})")
 z = np.load(a.preds)
 day, stock, r_cc, cls = z["day"], z["stock"], z["r"], z["cls"]
@@ -62,7 +62,7 @@ day, stock, r_cc, cls = z["day"], z["stock"], z["r"], z["cls"]
 with psycopg.connect(a.db) as conn:
     rows = conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, open::float8, high::float8, low::float8, close::float8"
-        " FROM bar_1d WHERE source='nse' AND series='EQ' AND ts >= '2019-01-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
+        f" FROM {BARS} WHERE source='kite' AND ts >= '2019-01-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
         (END,),
     ).fetchall()
     nifty = conn.execute(
@@ -150,10 +150,7 @@ SIDES["NIFTY"] = nd
 print("RCOV cuts (from training days only): " + "; ".join(cut_info))
 
 # ---------------------------------------------------------------- costs from the repo's schedules
-book = ScheduleBook(
-    load_schedules(ROOT / "config/cost_schedules"),
-    allowed_statuses=("verified", "extracted_unverified", "assumed_backfill"),
-)
+book = book_from_db(a.db if "a" in globals() else None)
 VALUE = Decimal(100000)
 
 

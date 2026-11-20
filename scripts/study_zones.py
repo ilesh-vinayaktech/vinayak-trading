@@ -24,9 +24,9 @@ from statistics import NormalDist
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS, book_from_db  # noqa: E402,I001
 
 from algo.backtest.costs.calculator import compute_charges
-from algo.backtest.costs.schedule import ScheduleBook, load_schedules
 from algo.market import levels as lv
 from algo.research import next_session_features as ns
 
@@ -38,7 +38,7 @@ a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 
-book = ScheduleBook(load_schedules(ROOT / "config/cost_schedules"), allowed_statuses=("verified", "extracted_unverified", "assumed_backfill"))
+book = book_from_db(a.db if "a" in globals() else None)
 
 
 def cost(y: int) -> float:
@@ -47,33 +47,46 @@ def cost(y: int) -> float:
     except Exception:
         sch = book.for_date(date(2026, 6, 30), "DELIVERY")
     p, q = Decimal(100), Decimal(1000)
-    return float((compute_charges(sch, "BUY", q, p).total + compute_charges(sch, "SELL", q, p).total) / (q * p))
+    return float(
+        (compute_charges(sch, "BUY", q, p).total + compute_charges(sch, "SELL", q, p).total)
+        / (q * p)
+    )
 
 
 with psycopg.connect(a.db) as conn:
     rows = conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, open::float8, high::float8, low::float8, close::float8, volume::float8"
-        " FROM bar_1d WHERE source='nse' AND series='EQ' AND ts >= '2018-06-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
+        f" FROM {BARS} WHERE source='kite' AND ts >= '2018-06-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
         (END,),
     ).fetchall()
-    acts = conn.execute("SELECT instrument_id, ex_date, kind, amount::float8 FROM corporate_action WHERE ex_date >= '2018-01-01' AND ex_date < %s", (END,)).fetchall()
+    acts = conn.execute(
+        "SELECT instrument_id, ex_date, kind, amount::float8 FROM corporate_action WHERE ex_date >= '2018-01-01' AND ex_date < %s",
+        (END,),
+    ).fetchall()
 d = pd.DataFrame(rows, columns=["iid", "d", "o", "h", "l", "c", "v"])
 d["d"] = pd.to_datetime(d["d"])
-O, H, L, C, V = (d.pivot(index="d", columns="iid", values=k).sort_index() for k in ("o", "h", "l", "c", "v"))
+O, H, L, C, V = (  # noqa: E741
+    d.pivot(index="d", columns="iid", values=k).sort_index() for k in ("o", "h", "l", "c", "v")
+)  # noqa: E741
 idx, cols = C.index.values, list(C.columns)
 T, S = C.shape
 o, h, low, c = (x.to_numpy(dtype=float) for x in (O, H, L, C))
 _, bad = ns.corporate_action_masks(idx, cols, acts)
 liquid = ((C * V).rolling(20, min_periods=15).mean() / 1e7).to_numpy() >= 5.0
 liquid &= ~bad & np.isfinite(c)
-print(f"panel {T} sessions x {S} stocks; costs (round trip) " + ", ".join(f"{y} {100 * cost(y):.3f}%" for y in (2020, 2024)))
+print(
+    f"panel {T} sessions x {S} stocks; costs (round trip) "
+    + ", ".join(f"{y} {100 * cost(y):.3f}%" for y in (2020, 2024))
+)
 
 # market return over the same window, per entry day i: mean over liquid stocks of close[i+HOLD]/open[i+1]-1
 i_all = np.arange(T - HOLD - 1)
 ret = np.full((T, S), np.nan)
 ret[i_all] = c[i_all + HOLD] / o[i_all + 1] - 1
 ok = liquid & np.isfinite(ret)
-mkt = np.where(ok.sum(1) > 0, np.nansum(np.where(ok, ret, 0.0), 1) / np.maximum(ok.sum(1), 1), np.nan)
+mkt = np.where(
+    ok.sum(1) > 0, np.nansum(np.where(ok, ret, 0.0), 1) / np.maximum(ok.sum(1), 1), np.nan
+)
 
 dates = [i for i in range(T - HOLD - 1) if idx[i] >= np.datetime64(FIRST)][::STEP]
 recs: list[tuple[int, int, str, bool, float]] = []  # (date index, stock, zone, uptrend, excess)
@@ -87,15 +100,25 @@ for j in range(S):
     for i in dates:
         if not (liquid[i, j] and np.isfinite(ret[i, j])):
             continue
-        n = int(np.searchsorted(fin, i, side="right")) - 1  # position of day i inside the compressed series
+        n = (
+            int(np.searchsorted(fin, i, side="right")) - 1
+        )  # position of day i inside the compressed series
         if n < lv.MIN_BARS or fin[n] != i:
             continue
         pts = [p for p in piv if n - LOOK < p[0] <= n - lv.PIVOT_K]
         sup, res = lv.nearest(lv.clusters(pts, n, cc[n]), cc[n])
         zone = "inside"
-        if sup and sup[0].touches >= MINTOUCH and sup[0].price * (1 - lv.BREAK_MARGIN) <= cc[n] <= sup[0].price * (1 + lv.NEAR):
+        if (
+            sup
+            and sup[0].touches >= MINTOUCH
+            and sup[0].price * (1 - lv.BREAK_MARGIN) <= cc[n] <= sup[0].price * (1 + lv.NEAR)
+        ):
             zone = "buy"
-        elif res and res[0].touches >= MINTOUCH and res[0].price * (1 - lv.NEAR) <= cc[n] <= res[0].price * (1 + lv.BREAK_MARGIN):
+        elif (
+            res
+            and res[0].touches >= MINTOUCH
+            and res[0].price * (1 - lv.NEAR) <= cc[n] <= res[0].price * (1 + lv.BREAK_MARGIN)
+        ):
             zone = "sell"
         up = bool(np.isfinite(sma200[n]) and cc[n] > sma200[n])
         recs.append((i, j, zone, up, float(ret[i, j] - mkt[i])))
@@ -108,7 +131,9 @@ z = NormalDist().inv_cdf(0.975)
 
 
 def summary(x: pd.DataFrame, col: str) -> tuple[float, float, float, int, int]:
-    per = x.groupby("i")[col].mean()  # one number per signal date: signals on the same day share the market's mood
+    per = x.groupby("i")[
+        col
+    ].mean()  # one number per signal date: signals on the same day share the market's mood
     m, se = per.mean(), per.std(ddof=1) / np.sqrt(len(per))
     return m, m - z * se, m + z * se, len(x), len(per)
 
@@ -118,7 +143,9 @@ def show(name: str, x: pd.DataFrame) -> None:
         print(f"{name:34s} n={len(x)} (too few)")
         return
     g, n_ = summary(x, "ex"), summary(x, "net")
-    print(f"{name:34s} n={g[3]:6d} dates={g[4]:4d}  gross excess {100 * g[0]:+.3f}% [{100 * g[1]:+.3f},{100 * g[2]:+.3f}]   net {100 * n_[0]:+.3f}% [{100 * n_[1]:+.3f},{100 * n_[2]:+.3f}]  hit>mkt {100 * (x['ex'] > 0).mean():.1f}%")
+    print(
+        f"{name:34s} n={g[3]:6d} dates={g[4]:4d}  gross excess {100 * g[0]:+.3f}% [{100 * g[1]:+.3f},{100 * g[2]:+.3f}]   net {100 * n_[0]:+.3f}% [{100 * n_[1]:+.3f},{100 * n_[2]:+.3f}]  hit>mkt {100 * (x['ex'] > 0).mean():.1f}%"
+    )
 
 
 for zn in ("buy", "sell", "inside"):
@@ -126,7 +153,14 @@ for zn in ("buy", "sell", "inside"):
     show(f"{zn} zone, all", x)
     show(f"{zn} zone, uptrend only (secondary)", x[x.up])
     col = "net" if zn == "buy" else "ex"
-    print(f"  by year ({col}): " + "  ".join(f"{y}: {100 * g.groupby('i')[col].mean().mean():+.2f}% (n{len(g)})" for y, g in x.groupby("year") if y >= 2020))
+    print(
+        f"  by year ({col}): "
+        + "  ".join(
+            f"{y}: {100 * g.groupby('i')[col].mean().mean():+.2f}% (n{len(g)})"
+            for y, g in x.groupby("year")
+            if y >= 2020
+        )
+    )
 
 
 def verdict(zn: str) -> str:
@@ -135,7 +169,11 @@ def verdict(zn: str) -> str:
         return "INCONCLUSIVE (fewer than 300 signals)"
     col, sign = ("net", 1) if zn == "buy" else ("ex", -1)
     m, lo_, hi_, _, _ = summary(x, col)
-    yrs = [g.groupby("i")[col].mean().mean() * sign > 0 for y, g in x.groupby("year") if 2020 <= y <= 2024]
+    yrs = [
+        g.groupby("i")[col].mean().mean() * sign > 0
+        for y, g in x.groupby("year")
+        if 2020 <= y <= 2024
+    ]
     ci_ok = lo_ > 0 if zn == "buy" else hi_ < 0
     return "SUCCESS" if (m * sign > 0 and ci_ok and sum(yrs) >= 4) else "FAIL"
 

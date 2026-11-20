@@ -1,0 +1,13 @@
+{
+ "latest": null,
+ "marks": [],
+ "model_version": null,
+ "name": null,
+ "rule": {
+  "buy_at": 90.0,
+  "max_positions": 10,
+  "sell_at": 20.0
+ },
+ "scored": false,
+ "symbol": "TCS"
+}

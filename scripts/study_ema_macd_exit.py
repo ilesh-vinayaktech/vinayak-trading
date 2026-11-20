@@ -9,7 +9,7 @@ Buy at the OPEN of T+1. RISK R = 2 x ATR14(T) (a stop is needed for a 3:1 ratio;
   time      60 sessions -> sell at that close.
 "Any other 3 signals" is not a separate exit: any single one of the reversal signals above already exits, so a 3-of-N rule can only be slower.
 Universe: liquid stocks (20-day turnover >= Rs 5 crore), no split/bonus within 70 sessions before or 60 after. Excess = trade return minus the equal-weight liquid index over the same sessions (close T to exit day).
-Cost: 0.25% round trip (primary), 0.5% shown. Data: bars strictly before 2025-01-01 (config/research_holdout.json); the holdout is not read.
+Cost: the repo's real round trip (primary, see the cost line printed), 0.5% shown. Data: bars strictly before 2025-01-01 (config/research_holdout.json); the holdout is not read.
 SUCCESS RULE (fixed now): net mean excess per entry-date > 0 with t over dates > 1.96 AND positive in at least 4 of the 5 years 2020-2024; fewer than 300 trades = INCONCLUSIVE; else FAIL. Variants (1 and 3 ATR stops, no stop/target) are printed and cannot rescue a FAIL.
 usage: study_ema_macd_exit.py [--db URL] [--symbol HONASA --through YYYY-MM-DD]   (--symbol is a worked example on one stock, not evidence)"""
 
@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS, flat_cost, use_kite_panel  # noqa: E402,I001
 
 from algo.market import rise_odds as ro
 
@@ -43,10 +44,11 @@ END = json.loads(
 )["holdout_start"]
 if a.through:
     END = (pd.Timestamp(a.through) + pd.Timedelta(days=1)).date().isoformat()
+use_kite_panel(ro)  # Kite adjusted bars, not the NSE raw panel + split mask
 with psycopg.connect(a.db) as conn:
     rows = conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, open::float8, high::float8, low::float8, close::float8, volume::float8"
-        " FROM bar_1d WHERE source='nse' AND series='EQ' AND ts >= '2019-09-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC", (END,)
+        f" FROM {BARS} WHERE source='kite' AND ts >= '2019-09-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC", (END,)
     ).fetchall()  # fmt: skip
     splits = ro.load_splits(conn)
     sym = {int(i): s for i, s in conn.execute("SELECT instrument_id, symbol FROM instrument")}
@@ -154,7 +156,7 @@ def report(title: str, tr: pd.DataFrame, primary: bool = False) -> None:
             print(f"  {name:<7}{len(g):>6}")
             continue
         w, ls = g.ret[g.ret > 0], g.ret[g.ret <= 0]
-        net = g.ex - 0.0025
+        net = g.ex - flat_cost()
         t_ = tstat(net.groupby(g.t).mean())
         if name in ("2020", "2021", "2022", "2023", "2024") and net.mean() > 0:
             pos_years += 1
@@ -162,7 +164,7 @@ def report(title: str, tr: pd.DataFrame, primary: bool = False) -> None:
             f"  {name:<7}{len(g):>6}{100 * (g.ret > 0).mean():>7.1f}{100 * g.ret.mean():>8.2f}{100 * w.mean():>9.2f}{100 * ls.mean():>9.2f}{g.days.mean():>6.1f}{100 * g.ex.mean():>10.2f}{100 * net.mean():>10.2f}{100 * (g.ex - 0.005).mean():>9.2f}{t_:>9.1f}"
         )
     if primary:
-        net = tr.ex - 0.0025
+        net = tr.ex - flat_cost()
         t_all = tstat(net.groupby(tr.t).mean())
         verdict = (
             "INCONCLUSIVE"

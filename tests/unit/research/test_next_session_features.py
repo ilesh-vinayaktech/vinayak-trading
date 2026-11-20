@@ -194,7 +194,14 @@ def test_the_flat_band_and_exclusion_windows_are_frozen():
 
 
 @pytest.mark.parametrize(
-    "script", ["study_volatility.py", "study_next_session.py", "study_reversal.py", "study_fade.py", "study_trend_transition.py"]
+    "script",
+    [
+        "study_volatility.py",
+        "study_next_session.py",
+        "study_reversal.py",
+        "study_fade.py",
+        "study_trend_transition.py",
+    ],
 )
 def test_the_recent_studies_cut_their_price_queries_before_the_holdout_and_have_no_final_switch(
     script,

@@ -1,0 +1,12 @@
+{
+ "items": {
+  "2": {
+   "action": "SELL",
+   "day": "2026-11-10",
+   "entry_day": null,
+   "in_position": false,
+   "prob": 0.43,
+   "rank_pct": 12.0
+  }
+ }
+}

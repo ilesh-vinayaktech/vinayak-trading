@@ -21,7 +21,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from algo.core.clock import Clock
-from algo.data.providers.kite_session import load_token
 
 IST = ZoneInfo("Asia/Kolkata")
 EX_SKIP = 75
@@ -117,7 +116,6 @@ def run_job(
     lock_dir: Path,
     log_dir: Path,
     env: Mapping[str, str] | None = None,
-    token_file: Path = Path("data/secrets/kite_token.json"),
     run: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
     sleep: Callable[[float], None] = time.sleep,
     record: Record = lambda _run: None,
@@ -147,7 +145,7 @@ def run_job(
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return 0  # the previous run is still going; do not stack a second one
-        if job.needs_kite and load_token(token_file, now) is None and not _feed_ok(session_ok, now):
+        if job.needs_kite and not _feed_ok(session_ok, now):
             alert(
                 f"{job.name}: SKIPPED, no valid Kite session (log in via the portal; tokens expire 06:00 IST)"
             )

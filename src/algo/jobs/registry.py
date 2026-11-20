@@ -311,9 +311,10 @@ JOBS: tuple[Job, ...] = (
             (*_PY, "scripts/build_market_zone.py", "--db", "{db}"),
             (*_PY, "scripts/build_score_history.py", "--db", "{db}"),
             (*_PY, "scripts/build_rise_odds.py", "--db", "{db}"),
+            (*_PY, "scripts/build_hold_signal.py", "--db", "{db}"),
             (*_PY, "scripts/build_predictions.py", "--db", "{db}"),
         ),
-        "Market breadth, the fear/greed score and the bull/bear regime for the day, the day's point-in-time swing scores, the day's rise odds (a learned estimate per stock of beating the market over the next 5 sessions; a new model is trained about every six weeks, which takes minutes), then tonight's market and sector forecasts and the resolution of earlier ones (after the bars and the screener refresh)",
+        "Market breadth, the fear/greed score and the bull/bear regime for the day, the day's point-in-time swing scores, the day's rise odds (a learned estimate per stock of beating the market over the next 5 sessions; a new model is trained about every six weeks, which takes minutes), the day's hold signal (the frozen buy / hold / sell rule: a model ranks the stocks, a flat stock at rank 90 or more is bought, a held one at 20 or less is sold; a new year's model is trained on the first night of the year, which takes minutes), then tonight's market and sector forecasts and the resolution of earlier ones (after the bars and the screener refresh)",
         timeout_s=3600,
     ),
     Job(

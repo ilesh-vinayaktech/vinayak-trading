@@ -17,6 +17,7 @@ import pandas as pd
 import psycopg
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
+from study_common import BARS, use_kite_panel  # noqa: E402,I001
 
 from algo.market import rise_odds as ro
 
@@ -26,9 +27,10 @@ a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 
+use_kite_panel(ro)  # Kite adjusted bars, not the NSE raw panel + split mask
 with psycopg.connect(a.db) as conn:
     last = conn.execute(
-        "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE source='nse' AND series='EQ'"
+        f"SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM {BARS} WHERE source='kite'"
     ).fetchone()[0]
     p = ro.load_panel(conn, ro.HISTORY_FROM, last)
     splits = ro.load_splits(conn)

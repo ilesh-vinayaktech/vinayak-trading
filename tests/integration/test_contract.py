@@ -859,7 +859,9 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
             (d, stock[0], 0.55 + 0.01 * k, 93.0 + 2 * k),
         )
     shots["market_rise_odds"] = c.get("/api/market/rise-odds", params={"symbol": stock[1]})
-    for k in range(260):  # a Nifty 50 long enough for its regime (the stock's own 90 bars end on the 11th)
+    for k in range(
+        260
+    ):  # a Nifty 50 long enough for its regime (the stock's own 90 bars end on the 11th)
         conn.execute(
             "INSERT INTO index_bar_1d (exchange, symbol, trade_date, open, high, low, close, token, ingested_at) VALUES ('NSE','NIFTY 50',%s,1,1,1,%s,1,'2026-11-11T00:00:00Z')",
             (datetime(2026, 11, 11, tzinfo=UTC).date() - timedelta(days=259 - k), 20000 + 10 * k),
@@ -880,9 +882,46 @@ def test_the_paper_trading_responses_match_the_fixtures_the_frontend_is_tested_a
         "/api/market/rise-odds/top", params={"limit": 5, "kind": "up"}
     )
     shots["market_rise_odds_top"] = c.get("/api/market/rise-odds/top", params={"limit": 5})
+    shots["market_rise_odds_latest"] = c.get(
+        "/api/market/rise-odds/latest", params={"ids": str(stock[0])}
+    )
+    shots["market_rise_odds_effect"] = c.get(
+        "/api/market/rise-odds/effect", params={"symbol": stock[1]}
+    )
     shots["market_rise_odds_bottom"] = c.get(
         "/api/market/rise-odds/top", params={"limit": 5, "side": "bottom"}
     )
+    shots["market_hold_signal_unscored"] = c.get(
+        "/api/market/hold-signal", params={"symbol": stock[1]}
+    )
+    shots["market_hold_signal_today_empty"] = c.get("/api/market/hold-signal/today")
+    conn.execute(
+        "INSERT INTO hold_signal_model (version, train_end, trained_at, n_rows, features, payload, sha256) VALUES ('hold1-2024-12-31', '2024-12-31', '2026-01-01T00:00:00Z', 1, %s, %s, 'x')",
+        (["a"], b"x"),
+    )
+    other = conn.execute(
+        "SELECT instrument_id FROM instrument WHERE asset_class='equity' AND instrument_id <> %s ORDER BY instrument_id LIMIT 1",
+        (stock[0],),
+    ).fetchone()
+    for d, act, rank, held, entry in (
+        ("2026-11-06", "BUY", 94.0, True, "2026-11-06"),
+        ("2026-11-09", "HOLD", 61.5, True, "2026-11-06"),
+        ("2026-11-10", "SELL", 12.0, False, None),
+    ):
+        conn.execute(
+            "INSERT INTO hold_signal (day, instrument_id, prob, rank_pct, action, in_position, entry_day, model_version) VALUES (%s,%s,%s,%s,%s,%s,%s,'hold1-2024-12-31')",
+            (d, stock[0], 0.4 + rank / 400, rank, act, held, entry),
+        )
+    if other:
+        conn.execute(
+            "INSERT INTO hold_signal (day, instrument_id, prob, rank_pct, action, in_position, entry_day, model_version) VALUES ('2026-11-10', %s, 0.55, 93.2, 'BUY', true, '2026-11-10', 'hold1-2024-12-31')",
+            (other[0],),
+        )
+    shots["market_hold_signal"] = c.get("/api/market/hold-signal", params={"symbol": stock[1]})
+    shots["market_hold_signal_latest"] = c.get(
+        "/api/market/hold-signal/latest", params={"ids": str(stock[0])}
+    )
+    shots["market_hold_signal_today"] = c.get("/api/market/hold-signal/today")
     c.post("/api/market/watchlist", json={"symbol": stock[1]})
     shots["market_watchlist"] = c.get("/api/market/watchlist")
     lake = (

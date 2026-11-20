@@ -302,7 +302,7 @@ describe("Data Explorer", () => {
     expect(screen.getByRole("button", { name: "Screenshot" })).toBeEnabled();
     expect(screen.getByRole("group", { name: "Chart type" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1Y" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Strategy")).toBeDisabled(); // no saved strategy to choose
+    expect(screen.getByLabelText("Strategy")).toBeEnabled(); // the built-in hold signal is always offered on a daily chart, with no saved strategy at all
     expect(screen.getByText("Bonus 1:1")).toBeInTheDocument();
     expect(screen.getByText("review")).toBeInTheDocument(); // an unverified action is not shown as verified
     expect(screen.queryByLabelText("Price basis")).not.toBeInTheDocument(); // no basis dropdown: prices are shown as traded
@@ -589,6 +589,15 @@ describe("Data Explorer", () => {
       summary: { buys: 1, sells: 1 },
       days: [day("2024-06-10", { action: "BUY", reason: "oversold in an uptrend" }), day("2024-06-11", { action: "SELL", reason: "rsi_above_exit" })],
     };
+    const holdSignal = {
+      symbol: "XYZ",
+      name: "XYZ Ltd",
+      scored: true,
+      latest: { day: "2024-06-11", action: "SELL", rank_pct: 12, prob: 0.41, in_position: false, entry_day: null },
+      model_version: "hold1-2022-12-31",
+      marks: [{ day: "2024-06-10", action: "BUY", rank_pct: 94.2 }, { day: "2024-06-11", action: "SELL", rank_pct: 12 }],
+      rule: { buy_at: 90, sell_at: 20, max_positions: 10 },
+    };
     const table = {
       "/api/auth/me": me,
       "/api/instruments": [inst],
@@ -596,6 +605,7 @@ describe("Data Explorer", () => {
       "/api/instruments/7/bars": bars,
       "/api/strategies": { label: "UNVALIDATED", options: { universes: [], timeframes: [], params: { trend_sma: [], entry_rsi: [], exit_rsi: [], max_positions: [] } }, strategies: [saved("c1", "Cautious"), saved("c2", "Bolder")] },
       "/api/strategies/c1/signals": signals,
+      "/api/market/hold-signal": holdSignal,
     };
     const open = async (urls: string[] = []) => {
       const respond = route(table);
@@ -609,19 +619,46 @@ describe("Data Explorer", () => {
       await screen.findByText("basis: Raw (as traded)");
     };
 
-    it("lists the saved strategies in the toolbar and draws nothing until one is chosen", async () => {
+    it("lists the hold signal and the saved strategies in the toolbar and draws the hold signal until another is chosen", async () => {
       await open();
       const pick = await screen.findByLabelText("Strategy");
-      await waitFor(() => expect(within(pick).getAllByRole("option").map((o) => o.textContent)).toEqual(["No strategy", "Cautious", "Bolder"]));
+      await waitFor(() => expect(within(pick).getAllByRole("option").map((o) => o.textContent)).toEqual(["No strategy", "Hold signal (frozen rule)", "Cautious", "Bolder"]));
       expect(pick).toBeEnabled();
-      expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument();
+      expect(pick).toHaveValue("hold:v1");
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell; today SELL, rank 12"));
+      fireEvent.change(pick, { target: { value: "" } }); // choosing none takes it off
+      await waitFor(() => expect(screen.queryByTestId("strategy-status")).not.toBeInTheDocument());
+    });
+
+    it("draws the hold signal's buy and sell days with an H- label, explains each on hover, and does not ask for a strategy run", async () => {
+      const urls: string[] = [];
+      vi.mocked(createSeriesMarkers).mockClear();
+      await open(urls);
+      await waitFor(() => {
+        const drawn = vi.mocked(createSeriesMarkers).mock.calls.at(-1)?.[1] as { text: string; position: string }[];
+        expect(drawn.filter((m) => m.text.startsWith("H-")).map((m) => [m.text, m.position])).toEqual([["H-BUY", "belowBar"], ["H-SELL", "aboveBar"]]);
+      });
+      expect(urls.some((u) => u.includes("/api/market/hold-signal?symbol=XYZ"))).toBe(true);
+      expect(urls.some((u) => u.includes("/api/strategies/") && u.includes("/signals"))).toBe(false); // the built-in rule is not a saved strategy
+      const move = () => (globalThis as unknown as { __crosshairMove: (p: { time: string }) => void }).__crosshairMove;
+      await waitFor(() => expect(typeof move()).toBe("function"));
+      act(() => move()({ time: "2024-06-10" }));
+      expect(await screen.findByTestId("decision-hover")).toHaveTextContent("Hold signal: rank 94 of 100");
+      expect(screen.getByTestId("decision-hover")).toHaveTextContent("buys at the next open");
+    });
+
+    it("says so when the stock is outside the stocks the hold rule ranks", async () => {
+      (table as Record<string, unknown>)["/api/market/hold-signal"] = { ...holdSignal, scored: false, latest: null, marks: [], model_version: null };
+      await open();
+      await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("Not scored"));
+      (table as Record<string, unknown>)["/api/market/hold-signal"] = holdSignal;
     });
 
     it("runs the chosen strategy over the chart's range and draws its buy and sell signals on the chart", async () => {
       const urls: string[] = [];
       await open(urls);
       const pick = await screen.findByLabelText("Strategy");
-      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(4));
       vi.mocked(createSeriesMarkers).mockClear();
       fireEvent.change(pick, { target: { value: "c1" } });
       await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell"));
@@ -675,7 +712,7 @@ describe("Data Explorer", () => {
         fireEvent.click(within(screen.getByRole("menu", { name: "Timeframes" })).getByRole("menuitemradio", { name }));
       };
       await waitFor(() => expect(names()).toContain("Definition: ALPHA_DAILY_H1")); // daily chart: every strategy
-      expect(names()).toEqual(["No strategy", "Cautious", "Bolder", "Definition: ALPHA_DAILY_H1", "Definition: ALPHA_WEEKLY_H5", "Definition: ALPHA_MONTHLY_H20"]);
+      expect(names()).toEqual(["No strategy", "Hold signal (frozen rule)", "Cautious", "Bolder", "Definition: ALPHA_DAILY_H1", "Definition: ALPHA_WEEKLY_H5", "Definition: ALPHA_MONTHLY_H20"]);
       pickTf("1 week");
       await waitFor(() => expect(names()).toEqual(["No strategy", "Definition: ALPHA_WEEKLY_H5", "Definition: ALPHA_MONTHLY_H20"])); // not the daily ones
       expect(screen.getByLabelText("Strategy")).toBeEnabled();
@@ -700,7 +737,7 @@ describe("Data Explorer", () => {
     it("shows why a decision was made when the mouse is over its bar, and nothing on other bars", async () => {
       await open();
       const pick = await screen.findByLabelText("Strategy");
-      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(4));
       fireEvent.change(pick, { target: { value: "c1" } });
       await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("1 buy, 1 sell"));
       const move = () => (globalThis as unknown as { __crosshairMove: (p: { time: string }) => void }).__crosshairMove;
@@ -747,7 +784,7 @@ describe("Data Explorer", () => {
       table["/api/strategies/c1/signals"] = undefined as unknown as typeof signals;
       await open();
       const pick = await screen.findByLabelText("Strategy");
-      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+      await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(4));
       fireEvent.change(pick, { target: { value: "c1" } });
       await waitFor(() => expect(screen.getByTestId("strategy-status")).toHaveTextContent("Could not run"));
       table["/api/strategies/c1/signals"] = signals;

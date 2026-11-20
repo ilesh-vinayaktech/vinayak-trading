@@ -31,6 +31,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from study_common import BARS  # noqa: E402,I001
 
 from algo.research import next_session_features as ns
 
@@ -58,7 +59,7 @@ THRESH = (0.55, 0.60, 0.65, 0.70)
 with psycopg.connect(a.db) as conn:
     rows = conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, open::float8, high::float8, low::float8, close::float8, volume::float8, delivery_qty::float8"
-        " FROM bar_1d WHERE source='nse' AND series='EQ' AND ts >= '2019-01-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
+        f" FROM {BARS} WHERE source='kite' AND ts >= '2019-01-01' AND (ts AT TIME ZONE 'Asia/Kolkata')::date < %s ORDER BY instrument_id, ts, dataset_version DESC",
         (END,),
     ).fetchall()
     acts = conn.execute(

@@ -33,7 +33,7 @@ import { DrawingTools, type ChartHandles, type DrawingApi } from "./DrawingTools
 import { IndicatorRow } from "./IndicatorLegend";
 
 type Action = InstrumentDetail["actions"][number];
-export type Mark = { day: string; action: "BUY" | "SELL"; reason?: string | null; plain?: { summary: string; buy: string; sell: string } };
+export type Mark = { day: string; action: "BUY" | "SELL"; reason?: string | null; plain?: { summary: string; buy: string; sell: string }; label?: string };
 /** The candle still forming, as the server built it for this timeframe from the live feed (`time`: date or UTC epoch seconds). */
 export type LiveView = { candle: { time: number | string; open: string; high: string; low: string; close: string; volume: string }; prevClose: string | null; live: boolean };
 
@@ -206,7 +206,7 @@ export function PriceChart({ showEvents = false, noVolume = false, bars, actions
     if (!isIntraday(timeframe)) {
       for (const s of signals) { // a decision is drawn on the day it was made (after that close)
         const day = barOfDay(days, s.day);
-        if (day) markers.push({ time: day as Time, position: s.action === "BUY" ? "belowBar" : "aboveBar", color: s.action === "BUY" ? "#089981" : "#f23645", shape: s.action === "BUY" ? "arrowUp" : "arrowDown", text: s.action });
+        if (day) markers.push({ time: day as Time, position: s.action === "BUY" ? "belowBar" : "aboveBar", color: s.action === "BUY" ? "#089981" : "#f23645", shape: s.action === "BUY" ? "arrowUp" : "arrowDown", text: s.label ?? s.action });
       }
     }
     markers.sort((x, y) => String(x.time).localeCompare(String(y.time)));

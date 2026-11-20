@@ -23,6 +23,7 @@ from algo.live.market_calendar import IST
 from algo.market import (
     context,
     forecast,
+    hold_signal,
     index_chart,
     levels,
     live_zone,
@@ -30,6 +31,7 @@ from algo.market import (
     performance,
     predict,
     range_forecast,
+    rise_effect,
     rise_odds,
     sectors,
     stock_notes,
@@ -644,6 +646,162 @@ def rise_odds_top(
         "day": day[0].isoformat(), "horizon": rise_odds.HORIZON, "kind": kind, "side": side, "model_version": rows[0][5] if rows else None,
         "items": [{"instrument_id": i, "symbol": s, "name": n, "prob": round(float(p), 4), "pct": round(float(c), 1)} for i, s, n, p, c, _ in rows],
     }  # fmt: skip
+
+
+@router.get("/rise-odds/latest")
+def rise_odds_latest(ids: str, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """The newest rise odds of each listed stock (both kinds), for the column every stock list shows. `ids` is a comma list of instrument ids (at most 300); a stock never scored is absent."""
+    try:
+        want = sorted({int(x) for x in ids.split(",") if x.strip()})[:300]
+    except ValueError as e:
+        raise HTTPException(422, "ids must be whole numbers separated by commas") from e
+    rows = conn.execute(
+        "SELECT DISTINCT ON (instrument_id, kind) instrument_id, kind, day, prob, pct FROM rise_odds WHERE instrument_id = ANY(%s) AND horizon=%s ORDER BY instrument_id, kind, day DESC",
+        (want, rise_odds.HORIZON),
+    ).fetchall()
+    items: dict[str, dict[str, Any]] = {}
+    for iid, kind, day, prob, pct in rows:
+        items.setdefault(str(iid), {})[kind] = {
+            "day": day.isoformat(),
+            "prob": round(float(prob), 4),
+            "pct": round(float(pct), 1),
+        }
+    return {"horizon": rise_odds.HORIZON, "items": items}
+
+
+def _hold_row(
+    day: Any, action: str, rank: float, prob: float, in_pos: bool, entry: Any
+) -> dict[str, Any]:
+    return {
+        "day": day.isoformat(),
+        "action": action,
+        "rank_pct": round(float(rank), 1),
+        "prob": round(float(prob), 4),
+        "in_position": bool(in_pos),
+        "entry_day": entry.isoformat() if entry else None,
+    }
+
+
+@router.get("/hold-signal")
+def hold_signal_view(symbol: str, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """One stock's hold signal: today's call and every BUY and SELL day since 2022 (the chart draws them), each as the frozen rule would have called it then. See algo/market/hold_signal.py for the rule and its evidence."""
+    sym = symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id, name FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    iid, name = row
+    newest = conn.execute(
+        "SELECT day, action, rank_pct, prob, in_position, entry_day, model_version FROM hold_signal WHERE instrument_id=%s ORDER BY day DESC LIMIT 1",
+        (iid,),
+    ).fetchone()
+    marks = conn.execute(
+        "SELECT day, action, rank_pct FROM hold_signal WHERE instrument_id=%s AND action IN ('BUY','SELL') ORDER BY day",
+        (iid,),
+    ).fetchall()
+    return {
+        "symbol": sym, "name": name, "scored": newest is not None,
+        "latest": None if newest is None else _hold_row(*newest[:6]), "model_version": None if newest is None else newest[6],
+        "marks": [{"day": d.isoformat(), "action": a, "rank_pct": round(float(r), 1)} for d, a, r in marks],
+        "rule": {"buy_at": hold_signal.BUY_AT, "sell_at": hold_signal.SELL_AT, "max_positions": hold_signal.MAX_POSITIONS},
+    }  # fmt: skip
+
+
+@router.get("/hold-signal/latest")
+def hold_signal_latest(ids: str, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """The newest hold signal of each listed stock, for the column every stock list shows. `ids` is a comma list of instrument ids (at most 300); a stock never scored (not in the fixed universe) is absent."""
+    try:
+        want = sorted({int(x) for x in ids.split(",") if x.strip()})[:300]
+    except ValueError as e:
+        raise HTTPException(422, "ids must be whole numbers separated by commas") from e
+    rows = conn.execute(
+        "SELECT DISTINCT ON (instrument_id) instrument_id, day, action, rank_pct, prob, in_position, entry_day FROM hold_signal WHERE instrument_id = ANY(%s) ORDER BY instrument_id, day DESC",
+        (want,),
+    ).fetchall()
+    return {"items": {str(i): _hold_row(d, a, r, p, ip, e) for i, d, a, r, p, ip, e in rows}}
+
+
+@router.get("/hold-signal/today")
+def hold_signal_today(who: CurrentUser, conn: WConn, limit: int = 20) -> dict[str, Any]:
+    """The day's recommendation from the rule: the stocks to BUY at the next open (best chance first), the held ones to SELL, and how many are held. Not advice and not an order: the rule's own calls, long only."""
+    day = conn.execute("SELECT max(day) FROM hold_signal").fetchone()
+    cap = max(1, min(limit, 100))
+    empty: dict[str, Any] = {"day": None, "model_version": None, "scored": 0, "buy_at": hold_signal.BUY_AT, "sell_at": hold_signal.SELL_AT, "max_positions": hold_signal.MAX_POSITIONS,
+                             "counts": {"buy": 0, "sell": 0, "hold": 0, "in_position": 0}, "buy": [], "sell": [], "holding": []}  # fmt: skip
+    if day is None or day[0] is None:
+        return empty
+    d = day[0]
+    rows = conn.execute(
+        "SELECT h.instrument_id, i.symbol, i.name, h.action, h.rank_pct, h.prob, h.in_position, h.entry_day, h.model_version FROM hold_signal h JOIN instrument i USING (instrument_id) WHERE h.day=%s AND i.delisted_on IS NULL",
+        (d,),
+    ).fetchall()
+    ids = [r[0] for r in rows if r[3] in ("BUY", "SELL") or r[6]]
+    close = {
+        int(i): float(c)
+        for i, c in conn.execute(
+            "SELECT DISTINCT ON (instrument_id) instrument_id, close::float8 FROM bar_1d WHERE source='kite' AND instrument_id = ANY(%s) AND ts >= %s::date AND ts < %s::date + 1 ORDER BY instrument_id, ts DESC, dataset_version DESC",
+            (ids, d, d),
+        ).fetchall()
+    }
+
+    def item(r: tuple[Any, ...]) -> dict[str, Any]:
+        return {
+            "instrument_id": r[0],
+            "symbol": r[1],
+            "name": r[2],
+            "action": r[3],
+            "rank_pct": round(float(r[4]), 1),
+            "prob": round(float(r[5]), 4),
+            "entry_day": r[7].isoformat() if r[7] else None,
+            "close": close.get(r[0]),
+        }
+
+    buys = sorted((r for r in rows if r[3] == "BUY"), key=lambda r: (-r[5], r[1]))
+    sells = sorted((r for r in rows if r[3] == "SELL"), key=lambda r: (r[4], r[1]))
+    held = sorted((r for r in rows if r[6]), key=lambda r: (-r[4], r[1]))
+    return {
+        "day": d.isoformat(), "model_version": rows[0][8] if rows else None, "scored": len(rows), "buy_at": hold_signal.BUY_AT, "sell_at": hold_signal.SELL_AT, "max_positions": hold_signal.MAX_POSITIONS,
+        "counts": {"buy": len(buys), "sell": len(sells), "hold": sum(1 for r in rows if r[3] == "HOLD"), "in_position": len(held)},
+        "buy": [item(r) for r in buys[:cap]], "sell": [item(r) for r in sells[:cap]], "holding": [item(r) for r in held[:cap]],
+    }  # fmt: skip
+
+
+@router.get("/rise-odds/effect")
+def rise_odds_effect(symbol: str, who: CurrentUser, conn: WConn) -> dict[str, Any]:
+    """How the stock's price moved over the 5 sessions after its high and low rise-odds days (its own history, both kinds). A description of this stock, not a forecast."""
+    sym = symbol.strip().upper()
+    row = conn.execute(
+        "SELECT instrument_id, name FROM instrument WHERE asset_class='equity' AND symbol=%s AND delisted_on IS NULL",
+        (sym,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no listed stock {sym}")
+    iid, name = row
+    cut = conn.execute(
+        "SELECT max(ex_date) FROM corporate_action WHERE instrument_id=%s AND kind IN ('split','bonus') AND status='ok' AND ex_date <= current_date",
+        (iid,),
+    ).fetchone()
+    closes = [
+        (d, float(c))
+        for d, c in conn.execute(
+            "SELECT (ts AT TIME ZONE 'Asia/Kolkata')::date, close FROM (SELECT DISTINCT ON (ts) * FROM bar_1d WHERE instrument_id=%s AND source='nse' ORDER BY ts, dataset_version DESC) x"
+            " WHERE (ts AT TIME ZONE 'Asia/Kolkata')::date >= coalesce(%s::date, '1900-01-01') ORDER BY ts",
+            (iid, cut[0] if cut else None),
+        )
+    ]  # since the latest split or bonus: earlier prices are not comparable
+    out: dict[str, Any] = {"symbol": sym, "name": name}
+    for kind in sorted(rise_odds.KINDS):
+        scores = [
+            (d, float(p))
+            for d, p in conn.execute(
+                "SELECT day, prob FROM rise_odds WHERE instrument_id=%s AND horizon=%s AND kind=%s ORDER BY day",
+                (iid, rise_odds.HORIZON, kind),
+            )
+        ]
+        out[kind] = rise_effect.effect(scores, closes)
+    return out
 
 
 def _r(v: float | None) -> float | None:

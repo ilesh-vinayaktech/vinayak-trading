@@ -1,0 +1,17 @@
+{
+ "buy": [],
+ "buy_at": 90.0,
+ "counts": {
+  "buy": 0,
+  "hold": 0,
+  "in_position": 0,
+  "sell": 0
+ },
+ "day": null,
+ "holding": [],
+ "max_positions": 10,
+ "model_version": null,
+ "scored": 0,
+ "sell": [],
+ "sell_at": 20.0
+}

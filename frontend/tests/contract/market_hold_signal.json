@@ -1,0 +1,31 @@
+{
+ "latest": {
+  "action": "SELL",
+  "day": "2026-11-10",
+  "entry_day": null,
+  "in_position": false,
+  "prob": 0.43,
+  "rank_pct": 12.0
+ },
+ "marks": [
+  {
+   "action": "BUY",
+   "day": "2026-11-06",
+   "rank_pct": 94.0
+  },
+  {
+   "action": "SELL",
+   "day": "2026-11-10",
+   "rank_pct": 12.0
+  }
+ ],
+ "model_version": "hold1-2024-12-31",
+ "name": null,
+ "rule": {
+  "buy_at": 90.0,
+  "max_positions": 10,
+  "sell_at": 20.0
+ },
+ "scored": true,
+ "symbol": "TCS"
+}

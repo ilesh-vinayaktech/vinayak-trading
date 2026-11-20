@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { PriceCell, useLiveQuotes } from "@/components/market/LivePrice";
+import { RISE_HEADER, RISE_HELP, RiseCell, useRiseOdds } from "@/components/market/RiseCell";
+import { HOLD_HEADER, HOLD_HELP, HoldCell, useHoldSignal } from "@/components/market/HoldCell";
 import { NoteChips, useNotes } from "@/components/market/NoteChips";
 import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/DataTable";
@@ -26,6 +28,8 @@ export function SetupsPanel() {
   const [key, setKey] = useState<Key>("top-swing-scores");
   const q = useQuery({ queryKey: ["screener", "setups", key], queryFn: () => api.runScreener({ preset: key, conditions: [], match: "all", limit: 8 }), staleTime: 5 * 60_000 });
   const quotes = useLiveQuotes((q.data?.rows ?? []).map((r) => Number(r.instrument_id)));
+  const rise = useRiseOdds((q.data?.rows ?? []).map((r) => Number(r.instrument_id)));
+  const hold = useHoldSignal((q.data?.rows ?? []).map((r) => Number(r.instrument_id)));
   const notes = useNotes((q.data?.rows ?? []).map((r) => Number(r.instrument_id)));
   return (
     <Panel title="Setups today">
@@ -37,12 +41,14 @@ export function SetupsPanel() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
             <caption className="sr-only">Stocks that match, best first</caption>
-            <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Price</th><th scope="col" className="px-2">Notes</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">1 month</th><th scope="col" className="px-2">Setup</th><th scope="col" className="px-2">Why</th></tr></thead>
+            <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Price</th><th scope="col" className="px-2 text-right" title={RISE_HELP}>{RISE_HEADER}</th><th scope="col" className="px-2 text-right" title={HOLD_HELP}>{HOLD_HEADER}</th><th scope="col" className="px-2">Notes</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">1 month</th><th scope="col" className="px-2">Setup</th><th scope="col" className="px-2">Why</th></tr></thead>
             <tbody>
               {q.data.rows.map((r) => (
                 <tr key={String(r.instrument_id)} className="border-b border-line last:border-0">
                   <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium"><Link href={`/data/instruments?id=${r.instrument_id}`} className="text-brand hover:underline">{String(r.symbol)}</Link></th>
                   <PriceCell quote={quotes[String(r.instrument_id)]} />
+                  <RiseCell odds={rise[String(r.instrument_id)]} />
+                  <HoldCell signal={hold[String(r.instrument_id)]} />
                   <td className="px-2"><NoteChips notes={notes[String(r.instrument_id)]} max={2} /></td>
                   <td className="px-2 text-right font-semibold tabular-nums">{num(r.score, 0)}</td>
                   <td className={`px-2 text-right tabular-nums ${tone(r.chg_1m)}`}>{toNum(r.chg_1m) === null ? "–" : `${(toNum(r.chg_1m) ?? 0) > 0 ? "+" : ""}${num(r.chg_1m)}%`}</td>

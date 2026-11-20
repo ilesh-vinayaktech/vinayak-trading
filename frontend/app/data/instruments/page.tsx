@@ -14,6 +14,7 @@ import { SmartMoneyPanel } from "@/components/market/SmartMoneyPanel";
 import { LevelsPanel } from "@/components/market/LevelsPanel";
 import { StockNotesPanel } from "@/components/market/StockNotesPanel";
 import { ScorePanel } from "@/components/market/ScorePanel";
+import { RiseEffectPanel } from "@/components/market/RiseEffectPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import type { LiveView, Mark } from "@/components/charts/PriceChart";
 import { useAuth } from "@/lib/auth";
@@ -30,6 +31,8 @@ import type {
   Timeframe,
 } from "@/lib/schemas";
 import { type Cadence, cadenceFits, intradayStart, isIntraday, latestDay } from "@/lib/timeframes";
+
+const HOLD_ID = "hold:v1"; // the built-in hold signal, offered beside the saved strategies
 
 type Action = InstrumentDetail["actions"][number];
 
@@ -70,7 +73,7 @@ function Explorer() {
   const raw = useSearchParams().get("id"); // deep link, e.g. from the screener
   const linked = raw !== null && /^\d+$/.test(raw) ? Number(raw) : null;
   const { can } = useAuth();
-  const [strategyId, setStrategyId] = useState("");
+  const [strategyId, setStrategyId] = useState(HOLD_ID); // the hold signal is drawn unless another strategy (or none) is chosen
   const [picked, setPicked] = useState<Instrument | null>(null);
   const adjust: Adjust = "none"; // the chart shows prices as traded; there is no basis control
   const [timeframe, setTimeframe] = useState<Timeframe>("1d");
@@ -112,6 +115,7 @@ function Explorer() {
   });
   // a strategy is offered on a candle at least as long as its own rebalance period: saved strategies decide daily; a definition decides daily, weekly or monthly
   const offered = [
+    { id: HOLD_ID, name: "Hold signal (frozen rule)", cadence: "DAILY" as Cadence },
     ...strategies.map((s) => ({ id: s.config_id, name: s.name, cadence: "DAILY" as Cadence })),
     ...(defs.data?.definitions ?? []).map((d) => ({
       id: `def:${d.strategy_id}:${d.version}`,
@@ -139,7 +143,15 @@ function Explorer() {
       });
     },
     enabled:
-      chosen !== "" && ready && range.start <= range.end && !isIntraday(timeframe),
+      chosen !== "" && chosen !== HOLD_ID && ready && range.start <= range.end && !isIntraday(timeframe),
+  });
+  // the hold signal: its BUY and SELL days for the open stock (one request; the chart draws those inside its range)
+  const hold = useQuery({
+    queryKey: ["market", "hold-signal", detail.data?.symbol],
+    queryFn: () => api.marketHoldSignal(detail.data?.symbol ?? ""),
+    enabled: chosen === HOLD_ID && !!detail.data?.symbol && !isIntraday(timeframe),
+    staleTime: 10 * 60_000,
+    retry: false,
   });
   // the live price: polled every 2 s while the chart reaches the latest day, on every timeframe; the server builds the
   // candle still forming (today, this week, this month, or the current N-minute bar) and the chart moves it in place
@@ -168,20 +180,35 @@ function Explorer() {
   const plain = defs.data?.definitions.find((d) => d.strategy_id === defId && String(d.version) === defVersion)?.plain;
   const marks = useMemo<Mark[]>(
     () =>
-      (signals.data?.days ?? []).flatMap((d) =>
-        d.action ? [{ day: d.day, action: d.action, reason: d.reason, plain }] : [],
-      ),
-    [signals.data, plain],
+      chosen === HOLD_ID
+        ? (hold.data?.marks ?? []).map((m) => ({
+            day: m.day,
+            action: m.action,
+            label: m.action === "BUY" ? "H-BUY" : "H-SELL",
+            reason: `Hold signal: rank ${Math.round(m.rank_pct)} of 100 on this day, so the frozen rule ${m.action === "BUY" ? "buys at the next open (rank 90 or more)" : "sells at the next open (rank 20 or less)"}. A lean from past prices, not advice.`,
+          }))
+        : (signals.data?.days ?? []).flatMap((d) =>
+            d.action ? [{ day: d.day, action: d.action, reason: d.reason, plain }] : [],
+          ),
+    [signals.data, plain, chosen, hold.data],
   );
   const buys = marks.filter((m) => m.action === "BUY").length;
   const strategyStatus =
     chosen === "" || isIntraday(timeframe)
       ? null
-      : signals.isError
-        ? "Could not run"
-        : signals.isFetching || !signals.data
-          ? "Running..."
-          : `${buys} buy, ${marks.length - buys} sell`;
+      : chosen === HOLD_ID
+        ? hold.isError
+          ? "Could not load"
+          : hold.isFetching || !hold.data
+            ? "Loading..."
+            : !hold.data.scored
+              ? "Not scored (outside the rule's stocks)"
+              : `${buys} buy, ${marks.length - buys} sell${hold.data.latest ? `; today ${hold.data.latest.action === "NONE" ? "no call" : hold.data.latest.action}, rank ${Math.round(hold.data.latest.rank_pct)}` : ""}`
+        : signals.isError
+          ? "Could not run"
+          : signals.isFetching || !signals.data
+            ? "Running..."
+            : `${buys} buy, ${marks.length - buys} sell`;
   // a chosen benchmark's levels are drawn over the stock (daily and longer timeframes), cut to the chart's own range
   const [benchId, setBenchId] = useState("");
   const benchList = useQuery({ queryKey: ["benchmarks"], queryFn: api.benchmarks });
@@ -273,7 +300,7 @@ function Explorer() {
         }}
       />
 
-      {chosen !== "" && signals.data && !isIntraday(timeframe) ? (
+      {chosen !== "" && chosen !== HOLD_ID && signals.data && !isIntraday(timeframe) ? (
         <DecisionList days={signals.data.days} name={signals.data.strategy} />
       ) : null}
 
@@ -322,6 +349,8 @@ function Explorer() {
           <ScorePanel key={`sc-${detail.data.symbol}`} symbol={detail.data.symbol} />
         </div>
       ) : null}
+
+      {detail.data ? <RiseEffectPanel key={`re-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}
 
       {detail.data ? <LevelsPanel key={`lv-${detail.data.symbol}`} symbol={detail.data.symbol} /> : null}
 

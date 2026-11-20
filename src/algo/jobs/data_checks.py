@@ -144,6 +144,22 @@ def problems(
                 )
             )
     if (
+        local.weekday() < 5 and local.time() >= RISE_ODDS_BY
+    ):  # the hold signal is scored by the same job, from the Kite bars
+        newest_kite = conn.execute(
+            "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE source='kite'"
+        ).fetchone()
+        made = conn.execute("SELECT max(day) FROM hold_signal").fetchone()
+        if (
+            made and made[0] and newest_kite and newest_kite[0] and made[0] < newest_kite[0]
+        ):  # quiet until it has ever been made
+            out.append(
+                Problem(
+                    "attention",
+                    f"The hold signal is a day behind: the newest Kite bars are {newest_kite[0]} but the newest signals are {made[0]} (the market-zone job's build_hold_signal.py step; a new year's model is trained on the first night of the year, which takes minutes).",
+                )
+            )
+    if (
         windows_for(conn, today) and conn.execute("SELECT 1 FROM global_daily LIMIT 1").fetchone()
     ):  # the overnight forecasts are in use
         out += _overnight_problems(conn, local)

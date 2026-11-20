@@ -12,21 +12,20 @@ import os
 import sys
 import urllib.request
 from datetime import UTC, date, datetime, time, timedelta
-from pathlib import Path
 
 import psycopg
 
 from algo.data import global_markets as g
 from algo.data.providers.kite import KiteClient, KiteTokenExpired, windows
-from algo.data.providers.kite_session import load_env, load_token, urllib_http
+from algo.data.providers.kite_session import urllib_http
+from algo.portal.crypto import KeyRing
+from algo.portal.kite_vault import system_feed_credentials
 
 ap = argparse.ArgumentParser()
 ap.add_argument("stage", choices=["yahoo", "gift", "all"])
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
 ap.add_argument("--from", dest="start", type=date.fromisoformat)
 ap.add_argument("--to", dest="end", type=date.fromisoformat)
-ap.add_argument("--env", type=Path, default=Path(".env"))
-ap.add_argument("--token-file", type=Path, default=Path("data/secrets/kite_token.json"))
 a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
@@ -45,12 +44,10 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                 f"{name}: {g.store(conn, name, rows, 'yahoo', now)} days ({rows[0][0] if rows else '-'} to {rows[-1][0] if rows else '-'})"
             )
     if a.stage in ("gift", "all"):
-        env, tok = load_env(a.env), load_token(a.token_file, now)
-        if tok is None:
-            sys.exit("no valid Kite session: run scripts/kite_token_from_portal.py")
-        client = KiteClient(
-            env["ZERODHA_API_KEY"], tok[0], urllib_http, min_interval=0.4, retries=6
-        )
+        creds = system_feed_credentials(conn, KeyRing.from_env(os.environ), now=now)
+        if creds is None:
+            sys.exit("no valid Kite session: connect the data feed on the portal")
+        client = KiteClient(creds[0], creds[1], urllib_http, min_interval=0.4, retries=6)
         raw: list[bytes] = []
         client.instruments(None, raw_sink=raw.append)
         token = next(
@@ -75,5 +72,5 @@ with psycopg.connect(a.db, autocommit=True) as conn:
                     now,
                 )
         except KiteTokenExpired:
-            sys.exit("Kite session expired: run scripts/kite_token_from_portal.py")
+            sys.exit("Kite session expired: reconnect the data feed on the portal")
         print(f"GIFT Nifty 08:45: {total} days")

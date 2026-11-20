@@ -1,0 +1,28 @@
+{
+ "name": null,
+ "rel": {
+  "all": {
+   "mean": -2.92,
+   "n": 1,
+   "up_share": 0.0
+  },
+  "bands": [],
+  "days": 1,
+  "enough": false,
+  "horizon": 5,
+  "rank_correlation": null
+ },
+ "symbol": "TCS",
+ "up": {
+  "all": {
+   "mean": null,
+   "n": 0,
+   "up_share": null
+  },
+  "bands": [],
+  "days": 0,
+  "enough": false,
+  "horizon": 5,
+  "rank_correlation": null
+ }
+}

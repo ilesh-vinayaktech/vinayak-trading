@@ -16,6 +16,7 @@ import sys
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS, flat_cost, use_kite_panel  # noqa: E402,I001
 
 from algo.market import rise_odds as ro
 
@@ -25,9 +26,10 @@ a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 
+use_kite_panel(ro)  # Kite adjusted bars, not the NSE raw panel + split mask
 with psycopg.connect(a.db) as conn:
     last = conn.execute(
-        "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE source='nse' AND series='EQ'"
+        f"SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM {BARS} WHERE source='kite'"
     ).fetchone()[0]
     p = ro.load_panel(conn, ro.HISTORY_FROM, last)
     splits = ro.load_splits(conn)
@@ -129,7 +131,7 @@ def judge(title: str, entry: np.ndarray) -> None:
             )
     print("  B. as a trend trade: hold until EMA(9) closes under EMA(21), at most 60 sessions")
     print(
-        f"     {'period':<9}{'trades':>8}{'win %':>8}{'mean %':>9}{'median %':>10}{'avg win %':>11}{'avg loss %':>12}{'days':>7}{'excess vs the index %':>26}{'t':>7}{'  after 0.5% cost %':>20}"
+        f"     {'period':<9}{'trades':>8}{'win %':>8}{'mean %':>9}{'median %':>10}{'avg win %':>11}{'avg loss %':>12}{'days':>7}{'excess vs the index %':>26}{'t':>7}{'  after real cost %':>20}"
     )
     d, s_ = np.nonzero(first)
     cross_row = nxt_dn[np.minimum(d + 1, T - 1), s_]
@@ -155,7 +157,7 @@ def judge(title: str, entry: np.ndarray) -> None:
             continue
         wins, loss = r[r > 0], r[r <= 0]
         print(
-            f"     {name:<9}{len(r):>8,}{100 * (r > 0).mean():>8.1f}{100 * r.mean():>9.2f}{100 * np.median(r):>10.2f}{100 * wins.mean():>11.2f}{100 * loss.mean():>12.2f}{np.mean(ex_row[per] - dd):>7.1f}{100 * e.mean():>26.2f}{tstat(pd.Series(e).groupby(dd).mean()):>7.1f}{100 * (r.mean() - 0.005):>20.2f}"
+            f"     {name:<9}{len(r):>8,}{100 * (r > 0).mean():>8.1f}{100 * r.mean():>9.2f}{100 * np.median(r):>10.2f}{100 * wins.mean():>11.2f}{100 * loss.mean():>12.2f}{np.mean(ex_row[per] - dd):>7.1f}{100 * e.mean():>26.2f}{tstat(pd.Series(e).groupby(dd).mean()):>7.1f}{100 * (r.mean() - flat_cost()):>20.2f}"
         )
 
 

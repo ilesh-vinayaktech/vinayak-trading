@@ -1,0 +1,50 @@
+{
+ "buy": [
+  {
+   "action": "BUY",
+   "close": 1.0,
+   "entry_day": "2026-11-10",
+   "instrument_id": 1,
+   "name": null,
+   "prob": 0.55,
+   "rank_pct": 93.2,
+   "symbol": "RELIANCE"
+  }
+ ],
+ "buy_at": 90.0,
+ "counts": {
+  "buy": 1,
+  "hold": 0,
+  "in_position": 1,
+  "sell": 1
+ },
+ "day": "2026-11-10",
+ "holding": [
+  {
+   "action": "BUY",
+   "close": 1.0,
+   "entry_day": "2026-11-10",
+   "instrument_id": 1,
+   "name": null,
+   "prob": 0.55,
+   "rank_pct": 93.2,
+   "symbol": "RELIANCE"
+  }
+ ],
+ "max_positions": 10,
+ "model_version": "hold1-2024-12-31",
+ "scored": 2,
+ "sell": [
+  {
+   "action": "SELL",
+   "close": null,
+   "entry_day": null,
+   "instrument_id": 2,
+   "name": null,
+   "prob": 0.43,
+   "rank_pct": 12.0,
+   "symbol": "TCS"
+  }
+ ],
+ "sell_at": 20.0
+}

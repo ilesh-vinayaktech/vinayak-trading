@@ -15,11 +15,10 @@ def go(job, codes, tmp_path, token=False, **kw):
         calls.append(argv)
         return subprocess.CompletedProcess(argv, next(it))
 
-    tf = tmp_path / "tok.json"
     if token:
-        tf.write_text('{"access_token":"a","user_id":"u","expires_at":"2026-11-14T00:30:00+00:00"}')
+        kw.setdefault("session_ok", lambda _now: True)
     rc = run_job(job, clock=CLOCK, alert=alerts.append, lock_dir=tmp_path / "l", log_dir=tmp_path / "g",
-                 env={"ALGO_DB_URL": "pg://x"}, token_file=tf, run=run, sleep=sleeps.append, **kw)  # fmt: skip
+                 env={"ALGO_DB_URL": "pg://x"}, run=run, sleep=sleeps.append, **kw)  # fmt: skip
     return rc, alerts, calls, sleeps
 
 
@@ -178,15 +177,15 @@ def test_a_recorder_that_breaks_never_hides_the_job_result(tmp_path):
     assert (rc, alerts) == (0, [])
 
 
-# --- a Kite session may be the portal's data feed in the database, not only the token file ---
-def test_a_kite_job_runs_when_the_portal_feed_is_valid_even_without_a_token_file(tmp_path):
+# --- the Kite session is the portal's data feed in the database, never a file ---
+def test_a_kite_job_runs_when_the_portal_feed_is_valid_(tmp_path):
     runs = []
     job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
     rc, alerts, calls, _ = go(job, [0], tmp_path, record=runs.append, session_ok=lambda _now: True)
     assert (rc, alerts, len(calls)) == (0, [], 1) and runs[0].status == "ok"
 
 
-def test_a_kite_job_is_skipped_when_neither_the_file_nor_the_feed_has_a_session(tmp_path):
+def test_a_kite_job_is_skipped_when_the_feed_has_no_session(tmp_path):
     job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
     rc, alerts, calls, _ = go(job, [], tmp_path, session_ok=lambda _now: False)
     assert (rc, len(calls)) == (EX_SKIP, 0) and "no valid Kite session" in alerts[0]
@@ -199,10 +198,3 @@ def test_a_feed_check_that_breaks_counts_as_no_session_not_as_a_crash(tmp_path):
     job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
     rc, alerts, _, _ = go(job, [], tmp_path, session_ok=broken)
     assert rc == EX_SKIP and "no valid Kite session" in alerts[0]
-
-
-def test_the_feed_is_not_asked_when_the_token_file_is_already_good(tmp_path):
-    asked = []
-    job = Job("k", "x", (("a.py",),), "d", needs_kite=True)
-    rc, *_ = go(job, [0], tmp_path, token=True, session_ok=lambda now: asked.append(now) or False)
-    assert rc == 0 and asked == []

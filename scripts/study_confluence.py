@@ -21,6 +21,7 @@ import sys
 import numpy as np
 import pandas as pd
 import psycopg
+from study_common import BARS  # noqa: E402,I001
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db", default=os.environ.get("ALGO_DB_URL"))
@@ -43,7 +44,7 @@ with psycopg.connect(a.db) as conn:
     )
     rows = conn.execute(
         "SELECT DISTINCT ON (instrument_id, ts) instrument_id, (ts AT TIME ZONE 'Asia/Kolkata')::date, high::float8, low::float8, close::float8, volume::float8"
-        " FROM bar_1d WHERE source='nse' AND series='EQ' AND ts >= '2019-09-01' ORDER BY instrument_id, ts, dataset_version DESC"
+        f" FROM {BARS} WHERE source='kite' AND ts >= '2019-09-01' ORDER BY instrument_id, ts, dataset_version DESC"
     ).fetchall()
     splits = conn.execute(
         "SELECT instrument_id, ex_date FROM corporate_action WHERE kind IN ('split','bonus') AND status='ok'"

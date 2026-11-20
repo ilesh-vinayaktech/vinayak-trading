@@ -15,6 +15,7 @@ dependencies = [
     "scipy>=1.18.1",
     "uvicorn[standard]>=0.54.0",
     "websockets>=13",
+    "xgboost>=3.4.1",
 ]
 
 [dependency-groups]

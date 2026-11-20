@@ -1,6 +1,8 @@
 "use client";
 
 import { PriceText, useLiveQuotes } from "@/components/market/LivePrice";
+import { RISE_HEADER, RiseText, useRiseOdds } from "@/components/market/RiseCell";
+import { HOLD_HEADER, HoldText, useHoldSignal } from "@/components/market/HoldCell";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -60,11 +62,15 @@ function Active() {
   const [by, setBy] = useState<"value" | "volume">("value");
   const q = useQuery({ queryKey: ["nse-active", by], queryFn: () => api.nseMostActive(by) });
   const quotes = useLiveQuotes((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const rise = useRiseOdds((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const hold = useHoldSignal((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
   if (q.error) return <ErrorBox error={q.error} what="most active stocks" />;
   type R = NonNullable<typeof q.data>["rows"][number];
   const cols: Column<R>[] = [
     { key: "s", header: "Stock", cell: (r) => Sym({ id: r.id, symbol: r.symbol }) },
     { key: "live", header: "Live price", className: "text-right", hideBelow: "sm", cell: (r) => <PriceText quote={r.id ? quotes[String(r.id)] : undefined} /> },
+    { key: "rise", header: RISE_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <RiseText odds={r.id ? rise[String(r.id)] : undefined} /> },
+    { key: "hold", header: HOLD_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <HoldText signal={r.id ? hold[String(r.id)] : undefined} /> },
     { key: "c", header: "Close", cell: (r) => inr(r.close) },
     { key: "v", header: "Volume", cell: (r) => inr(r.volume, 0) },
     { key: "t", header: "Traded value", cell: (r) => cr(r.traded_value / 1e7) },
@@ -88,11 +94,15 @@ function Delivery() {
   const [minVol, setMinVol] = useState(100000);
   const q = useQuery({ queryKey: ["nse-delivery", minVol], queryFn: () => api.nseDelivery(minVol) });
   const quotes = useLiveQuotes((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const rise = useRiseOdds((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const hold = useHoldSignal((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
   if (q.error) return <ErrorBox error={q.error} what="delivery %" />;
   type R = NonNullable<typeof q.data>["rows"][number];
   const cols: Column<R>[] = [
     { key: "s", header: "Stock", cell: (r) => Sym({ id: r.id, symbol: r.symbol }) },
     { key: "live", header: "Live price", className: "text-right", hideBelow: "sm", cell: (r) => <PriceText quote={r.id ? quotes[String(r.id)] : undefined} /> },
+    { key: "rise", header: RISE_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <RiseText odds={r.id ? rise[String(r.id)] : undefined} /> },
+    { key: "hold", header: HOLD_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <HoldText signal={r.id ? hold[String(r.id)] : undefined} /> },
     { key: "c", header: "Close", cell: (r) => inr(r.close) },
     { key: "v", header: "Volume", hideBelow: "sm", cell: (r) => inr(r.volume, 0) },
     { key: "d", header: "Delivered", hideBelow: "sm", cell: (r) => inr(r.delivery_qty, 0) },
@@ -118,12 +128,16 @@ function Deals() {
   const [days, setDays] = useState(7);
   const q = useQuery({ queryKey: ["nse-deals", days], queryFn: () => api.nseDeals(days) });
   const quotes = useLiveQuotes((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const rise = useRiseOdds((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const hold = useHoldSignal((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
   if (q.error) return <ErrorBox error={q.error} what="bulk and block deals" />;
   type R = NonNullable<typeof q.data>["rows"][number];
   const cols: Column<R>[] = [
     { key: "d", header: "Date", cell: (r) => r.date },
     { key: "s", header: "Stock", cell: (r) => Sym({ id: r.id, symbol: r.symbol }) },
     { key: "live", header: "Live price", className: "text-right", hideBelow: "sm", cell: (r) => <PriceText quote={r.id ? quotes[String(r.id)] : undefined} /> },
+    { key: "rise", header: RISE_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <RiseText odds={r.id ? rise[String(r.id)] : undefined} /> },
+    { key: "hold", header: HOLD_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <HoldText signal={r.id ? hold[String(r.id)] : undefined} /> },
     { key: "k", header: "Kind", hideBelow: "sm", cell: (r) => r.kind },
     { key: "c", header: "Client", cell: (r) => r.client },
     { key: "side", header: "Side", cell: (r) => <span className={r.side === "BUY" ? "text-emerald-700" : "text-red-700"}>{r.side}</span> },
@@ -150,12 +164,16 @@ function Insider() {
   const [days, setDays] = useState(30);
   const q = useQuery({ queryKey: ["nse-insider", days], queryFn: () => api.nseInsider(days) });
   const quotes = useLiveQuotes((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const rise = useRiseOdds((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
+  const hold = useHoldSignal((q.data?.rows ?? []).flatMap((r) => (r.id ? [r.id] : [])));
   if (q.error) return <ErrorBox error={q.error} what="insider trades" />;
   type R = NonNullable<typeof q.data>["rows"][number];
   const cols: Column<R>[] = [
     { key: "at", header: "Filed", cell: (r) => day(r.broadcast_at) },
     { key: "s", header: "Stock", cell: (r) => Sym({ id: r.id, symbol: r.symbol }) },
     { key: "live", header: "Live price", className: "text-right", hideBelow: "sm", cell: (r) => <PriceText quote={r.id ? quotes[String(r.id)] : undefined} /> },
+    { key: "rise", header: RISE_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <RiseText odds={r.id ? rise[String(r.id)] : undefined} /> },
+    { key: "hold", header: HOLD_HEADER, className: "text-right", hideBelow: "sm", cell: (r) => <HoldText signal={r.id ? hold[String(r.id)] : undefined} /> },
     { key: "p", header: "Person", cell: (r) => <span>{r.person} <span className="text-xs text-ink-soft">{r.category ?? ""}</span></span> },
     { key: "t", header: "Type", cell: (r) => <span className={r.type === "Buy" ? "text-emerald-700" : r.type === "Sell" ? "text-red-700" : ""}>{r.type ?? "–"}</span> },
     { key: "q", header: "Shares", hideBelow: "md", cell: (r) => inr(r.quantity, 0) },

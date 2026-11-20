@@ -13,6 +13,8 @@ import { ApiError, api } from "@/lib/api/client";
 import { fmtMoney } from "@/lib/formatting";
 import type { PaperOrder } from "@/lib/schemas";
 import { PriceText, useLiveQuotes } from "@/components/market/LivePrice";
+import { RISE_HEADER, RiseText, useRiseOdds } from "@/components/market/RiseCell";
+import { HOLD_HEADER, HoldText, useHoldSignal } from "@/components/market/HoldCell";
 import { NoteChips, useNotes } from "@/components/market/NoteChips";
 import { useVenue } from "@/lib/venue";
 
@@ -37,6 +39,8 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
   const pending = all.filter((o) => o.status === "PENDING");
   const history = all.filter((o) => o.status !== "PENDING");
   const quotes = useLiveQuotes(pending.map((o) => o.instrument_id));
+  const rise = useRiseOdds(pending.map((o) => o.instrument_id));
+  const hold = useHoldSignal(pending.map((o) => o.instrument_id));
   const notes = useNotes(pending.map((o) => o.instrument_id));
   const [how, setHow] = useState<Record<string, { type: "MARKET" | "LIMIT"; price: string }>>({}); // the owner's choice per order, made when approving
   const busy = approve.isPending || reject.isPending;
@@ -48,6 +52,8 @@ export function OrdersPanel({ only }: { only?: "pending" }) {
     { key: "qty", header: "Shares", className: "text-right", cell: (o) => fmtMoney(o.qty, 0) },
     { key: "value", header: "About", className: "text-right", hideBelow: "sm", cell: (o) => `₹${fmtMoney(o.ref_price)} each` },
     { key: "live", header: "Live price", className: "text-right", cell: (o) => <PriceText quote={quotes[String(o.instrument_id)]} /> },
+    { key: "rise", header: RISE_HEADER, className: "text-right", hideBelow: "md", cell: (o) => <RiseText odds={rise[String(o.instrument_id)]} /> },
+    { key: "hold", header: HOLD_HEADER, className: "text-right", hideBelow: "md", cell: (o) => <HoldText signal={hold[String(o.instrument_id)]} /> },
     { key: "notes", header: "Notes", hideBelow: "md", cell: (o) => <NoteChips notes={notes[String(o.instrument_id)]} /> },
     { key: "reason", header: "Why", hideBelow: "md", cell: (o) => <span className="text-ink-soft">{o.reason}</span> },
     { key: "expires", header: "Answer by", hideBelow: "sm", cell: (o) => <span className="text-ink-soft"><RelativeTime iso={o.expires_at} /></span> },

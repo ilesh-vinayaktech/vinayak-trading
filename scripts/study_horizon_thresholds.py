@@ -21,6 +21,7 @@ import psycopg
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import roc_auc_score
+from study_common import BARS, flat_cost, use_kite_panel  # noqa: E402,I001
 
 from algo.market import rise_odds as ro
 
@@ -30,9 +31,10 @@ a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 
+use_kite_panel(ro)  # Kite adjusted bars, not the NSE raw panel + split mask
 with psycopg.connect(a.db) as conn:
     last = conn.execute(
-        "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE source='nse' AND series='EQ'"
+        f"SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM {BARS} WHERE source='kite'"
     ).fetchone()[0]
     p = ro.load_panel(conn, ro.HISTORY_FROM, last)
     splits = ro.load_splits(conn)
@@ -41,7 +43,7 @@ T, S = C.shape
 idx = np.array(C.index, dtype="datetime64[D]")
 feats = ro.features(p)
 liq = ro.liquid(p)
-COST = 0.005
+COST = flat_cost()
 
 
 def stack(mask: np.ndarray) -> np.ndarray:
@@ -138,7 +140,7 @@ for H in (5, 10, 20):
     for side in ("up", "down"):
         t_edge, t_pays = best(side, p_va, r[va], base_va)
         print(
-            f"{side.upper()} threshold chosen on 2022-23: max-edge {t_edge}, pays-after-0.5%-cost {t_pays}"
+            f"{side.upper()} threshold chosen on 2022-23: max-edge {t_edge}, pays-after-real-cost {t_pays}"
         )
         for label, t in (("max-edge", t_edge), ("pays", t_pays)):
             if t is None:

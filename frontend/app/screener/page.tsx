@@ -1,6 +1,8 @@
 "use client";
 
 import { PriceCell, useLiveQuotes } from "@/components/market/LivePrice";
+import { RISE_HEADER, RISE_HELP, RiseCell, useRiseOdds } from "@/components/market/RiseCell";
+import { HOLD_HEADER, HOLD_HELP, HoldCell, useHoldSignal } from "@/components/market/HoldCell";
 import { NOTE_LIMIT, NoteChips, useNotes } from "@/components/market/NoteChips";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -70,6 +72,8 @@ export default function ScreenerPage() {
   const [saving, setSaving] = useState(false);
   const run = useMutation({ mutationFn: api.runScreener });
   const quotes = useLiveQuotes((run.data?.rows ?? []).map((r) => Number(r.instrument_id)));
+  const rise = useRiseOdds((run.data?.rows ?? []).map((r) => Number(r.instrument_id)));
+  const hold = useHoldSignal((run.data?.rows ?? []).map((r) => Number(r.instrument_id)));
   const notes = useNotes((run.data?.rows ?? []).map((r) => Number(r.instrument_id)));
 
   const fields = useMemo(() => meta.data?.fields ?? [], [meta.data]);
@@ -365,6 +369,12 @@ export default function ScreenerPage() {
                       <th scope="col" className="px-5 py-2 text-right font-medium">
                         Price
                       </th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium" title={RISE_HELP}>
+                        {RISE_HEADER}
+                      </th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium" title={HOLD_HELP}>
+                        {HOLD_HEADER}
+                      </th>
                       <th scope="col" className="px-5 py-2 font-medium" title={`Notes are worked out for the first ${NOTE_LIMIT} stocks of a result`}>
                         Notes
                       </th>
@@ -411,6 +421,8 @@ export default function ScreenerPage() {
                           </span>
                         </td>
                         <PriceCell quote={quotes[String(r.instrument_id)]} />
+                        <RiseCell odds={rise[String(r.instrument_id)]} />
+                        <HoldCell signal={hold[String(r.instrument_id)]} />
                         <td className="px-5 py-2">
                           <NoteChips notes={notes[String(r.instrument_id)]} max={2} />
                         </td>

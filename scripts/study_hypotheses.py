@@ -22,6 +22,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from study_common import BARS, flat_cost, use_kite_panel  # noqa: E402,I001
 
 from algo.market import rise_odds as ro
 
@@ -31,9 +32,10 @@ a = ap.parse_args()
 if not a.db:
     sys.exit("error: pass --db or set ALGO_DB_URL")
 
+use_kite_panel(ro)  # Kite adjusted bars, not the NSE raw panel + split mask
 with psycopg.connect(a.db) as conn:
     last = conn.execute(
-        "SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM bar_1d WHERE source='nse' AND series='EQ'"
+        f"SELECT max((ts AT TIME ZONE 'Asia/Kolkata')::date) FROM {BARS} WHERE source='kite'"
     ).fetchone()[0]
     p = ro.load_panel(conn, ro.HISTORY_FROM, last)
     splits = ro.load_splits(conn)
@@ -276,5 +278,5 @@ for c in (0.01, 0.05):
     k = max(1, int(c * len(order)))
     top, bot = r5[order[:k]], r5[order[-k:]]
     print(
-        f"   top {100 * c:.0f}%: mean {100 * top.mean():+.2f}% (random stock {100 * r5.mean():+.2f}%), after a 0.35% / 0.5% round trip {100 * (top.mean() - 0.0035):+.2f}% / {100 * (top.mean() - 0.005):+.2f}%;  bottom {100 * c:.0f}%: mean {100 * bot.mean():+.2f}% (a short would earn {100 * -bot.mean():+.2f}% before costs and short-selling constraints)"
+        f"   top {100 * c:.0f}%: mean {100 * top.mean():+.2f}% (random stock {100 * r5.mean():+.2f}%), after the repo's real {100 * flat_cost():.2f}% round trip {100 * (top.mean() - flat_cost()):+.2f}%;  bottom {100 * c:.0f}%: mean {100 * bot.mean():+.2f}% (a short would earn {100 * -bot.mean():+.2f}% before costs and short-selling constraints)"
     )

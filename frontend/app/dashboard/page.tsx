@@ -37,6 +37,12 @@ function FreshnessPanel({ f }: { f: Freshness }) {
 const PLATFORM_TONE = { OK: "good", ATTENTION: "warn", DOWN: "bad" } as const;
 const RESULT_TONE = { ok: "good", failed: "bad", skipped: "neutral" } as const;
 
+/** Minutes after midnight of a job's first scheduled time ("09..15:00/5:00" -> 9:00, "*:20" -> 0:20), for ordering the table. */
+function firstTime(calendar: string): number {
+  const m = /\*-\*-(?:\*|\d{2}) (\*|\d{2})(?:\.\.\d{2}(?:,\d{2}(?:\.\.\d{2})?)*)?:(\d{2})/.exec(calendar);
+  return m ? (m[1] === "*" ? 0 : Number(m[1]) * 60) + Number(m[2]) : 0;
+}
+
 /** When each scheduled job last ran and how it ended: every sync the platform does on a timer, in one place. */
 function SyncPanel({ jobs }: { jobs: ScheduledJob[] }) {
   const failed = jobs.filter((j) => j.last_run?.status === "failed").length;
@@ -57,7 +63,7 @@ function SyncPanel({ jobs }: { jobs: ScheduledJob[] }) {
             </tr>
           </thead>
           <tbody>
-            {jobs.map((j) => (
+            {[...jobs].sort((a, b) => firstTime(a.calendar) - firstTime(b.calendar) || a.name.localeCompare(b.name)).map((j) => (
               <tr key={j.name} className="border-b border-line align-top last:border-0">
                 <td className="py-2.5 pr-4">
                   <div className="font-medium">{j.name}</div>

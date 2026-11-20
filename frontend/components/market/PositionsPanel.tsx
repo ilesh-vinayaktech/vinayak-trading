@@ -3,6 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { PriceCell, useLiveQuotes } from "@/components/market/LivePrice";
+import { RISE_HEADER, RISE_HELP, RiseCell, useRiseOdds } from "@/components/market/RiseCell";
+import { HOLD_HEADER, HOLD_HELP, HoldCell, useHoldSignal } from "@/components/market/HoldCell";
 import { NoteChips, useNotes } from "@/components/market/NoteChips";
 import { Panel } from "@/components/ui/Layout";
 import { ApiError, api } from "@/lib/api/client";
@@ -36,6 +38,8 @@ export function PositionsPanel() {
   const q = useQuery({ queryKey: ["paper", "summary", "paper"], queryFn: () => api.paperSummary("paper"), retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1 });
   const rows = q.data?.positions ?? [];
   const quotes = useLiveQuotes(rows.map((p) => p.instrument_id));
+  const rise = useRiseOdds(rows.map((p) => p.instrument_id));
+  const hold = useHoldSignal(rows.map((p) => p.instrument_id));
   const notes = useNotes(rows.map((p) => p.instrument_id));
   if (q.isError || !q.data || rows.length === 0) return null;
   return (
@@ -43,7 +47,7 @@ export function PositionsPanel() {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-sm">
           <caption className="sr-only">Positions with the nearest support and resistance</caption>
-          <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Qty</th><th scope="col" className="px-2 text-right">Live price</th><th scope="col" className="px-2 text-right">Unrealised</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">Support</th><th scope="col" className="px-2 text-right">Resistance</th><th scope="col" className="px-2">Notes</th></tr></thead>
+          <thead className="border-b border-line text-xs text-ink-soft"><tr><th scope="col" className="px-3 py-2">Stock</th><th scope="col" className="px-2 text-right">Qty</th><th scope="col" className="px-2 text-right">Live price</th><th scope="col" className="px-2 text-right" title={RISE_HELP}>{RISE_HEADER}</th><th scope="col" className="px-2 text-right" title={HOLD_HELP}>{HOLD_HEADER}</th><th scope="col" className="px-2 text-right">Unrealised</th><th scope="col" className="px-2 text-right">Score</th><th scope="col" className="px-2 text-right">Support</th><th scope="col" className="px-2 text-right">Resistance</th><th scope="col" className="px-2">Notes</th></tr></thead>
           <tbody>
             {rows.map((p) => {
               const u = Number(p.unrealized);
@@ -52,6 +56,8 @@ export function PositionsPanel() {
                   <th scope="row" className="whitespace-nowrap px-3 py-1.5 font-medium"><Link href={`/data/instruments?id=${p.instrument_id}`} className="text-brand hover:underline">{p.symbol}</Link></th>
                   <td className="px-2 text-right tabular-nums">{p.qty}</td>
                   <PriceCell quote={quotes[String(p.instrument_id)]} />
+                  <RiseCell odds={rise[String(p.instrument_id)]} />
+                  <HoldCell signal={hold[String(p.instrument_id)]} />
                   <td className={`px-2 text-right tabular-nums ${u > 0 ? "text-emerald-700" : u < 0 ? "text-red-700" : ""}`}>{u > 0 ? "+" : ""}{money(u)}</td>
                   <Score symbol={p.symbol} />
                   <Levels symbol={p.symbol} />
